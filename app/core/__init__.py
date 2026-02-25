@@ -1,0 +1,1 @@
+"""FNDS – app.core package."""
