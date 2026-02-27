@@ -1,33 +1,36 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from app.api.v1.endpoints import auth, analysis
 
-from app.core.config import settings
-from app.core.db import engine
-from app.models.base import Base
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Create all tables on startup (dev convenience; use Alembic in production)."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    await engine.dispose()
-
-
-app: FastAPI = FastAPI(
-    title="Fake News Detection & Analysis System",
-    description=(
-        "High-scalability backend for fake-news detection powered by "
-        "pgvector similarity search and an NLP analysis pipeline."
-    ),
-    version="0.1.0",
-    debug=settings.DEBUG,
-    lifespan=lifespan,
+app = FastAPI(
+    title="Fake News Detection System (FNDS)",
+    description="API for detecting fake news and misinformation using machine learning.",
+    version="1.0.0",
 )
 
+# CORS configuration
+origins = [
+    "http://localhost",
+    "http://localhost:3000", # Frontend dev server
+    # Add other origins as needed
+]
 
-@app.get("/health", tags=["Health"])
-async def health_check() -> dict[str, str]:
-    return {"status": "ok"}
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include Routers
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
+app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["Analysis"])
+
+@app.get("/", tags=["Health"])
+async def read_root():
+    return {
+        "status": "online",
+        "message": "FNDS API is running",
+        "docs_url": "/docs"
+    }
