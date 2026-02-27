@@ -1,40 +1,40 @@
-"""
-Celery task definitions.
+import os
+import time
+from celery import Celery
 
-Tasks are auto-discovered because this module is listed in the
-``include`` argument of the Celery app factory (workers/celery_app.py).
-"""
-import logging
-from typing import Any
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
-from workers.celery_app import celery_app
+# Initialize Celery
+celery_app = Celery(
+    "worker",
+    broker=REDIS_URL,
+    backend=REDIS_URL
+)
 
-logger = logging.getLogger(__name__)
+celery_app.conf.update(
+    task_serializer="json",
+    accept_content=["json"],
+    result_serializer="json",
+    timezone="UTC",
+    enable_utc=True,
+)
 
-
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
-def analyse_article(self, article_id: str) -> dict[str, Any]:
+@celery_app.task(name="analyze_article")
+def analyze_article(content_id: str, text: str = None, url: str = None):
     """
-    Trigger the ML analysis pipeline for a given article.
-
-    Args:
-        article_id: UUID string of the article to analyse.
-
-    Returns:
-        Dict containing overall_score, sentiment_score, linguistic_flags.
+    Placeholder task for article analysis.
+    In real usage, this will trigger the ML models and web scrapers.
     """
-    try:
-        logger.info("Starting analysis for article %s", article_id)
-        # TODO: implement analysis logic using ml_engine
-        return {"article_id": article_id, "status": "queued"}
-    except Exception as exc:
-        logger.exception("Analysis failed for article %s", article_id)
-        raise self.retry(exc=exc)
-
-
-@celery_app.task
-def scrape_rss_feeds() -> dict[str, int]:
-    """Periodic task: fetch new articles from configured RSS feeds."""
-    # TODO: implement via scrapers package
-    logger.info("RSS feed scraping triggered")
-    return {"scraped": 0}
+    # Simulate processing delay
+    time.sleep(5)
+    
+    result = {
+        "content_id": content_id,
+        "status": "completed",
+        "mock_score": "fake",
+        "confidence": 0.88,
+        "processed_text_length": len(text) if text else 0,
+        "source_url": url
+    }
+    
+    return result
