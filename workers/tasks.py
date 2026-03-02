@@ -79,7 +79,8 @@ async def async_analyze_and_save(content_id: str, text: str) -> dict:
             title=text[:50] + "..." if len(text) > 50 else text, # placeholder title
             raw_content=raw_text,
             content=cleaned_text,
-            embedding=embedding
+            embedding=embedding,
+            metadata_info={"task_id": content_id}
         )
         session.add(new_article)
         await session.flush() # uuid generation
@@ -106,7 +107,7 @@ async def async_analyze_and_save(content_id: str, text: str) -> dict:
     
     return result
 
-@celery_app.task(name="analyze_article")
+@celery_app.task(name="analyze_article", rate_limit=settings.CELERY_RATE_LIMIT)
 def analyze_article(content_id: str, text: str) -> dict:
     """
     NLP Pipeline Görev Akışı:
