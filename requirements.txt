@@ -13,3 +13,6 @@ spacy
 zemberek-python
 transformers
 python-multipart
+sentence-transformers
+pandas
+scikit-learn

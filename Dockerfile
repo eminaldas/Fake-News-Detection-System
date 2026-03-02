@@ -7,8 +7,9 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Bağımlılıkları yükle (Büyük kütüphaneler için timeout'u artırıyoruz)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
 
 # Download a base spacy model if needed
 # RUN python -m spacy download en_core_web_sm
