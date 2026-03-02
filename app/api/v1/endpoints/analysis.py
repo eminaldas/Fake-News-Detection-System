@@ -11,6 +11,8 @@ from app.models.models import Article
 from ml_engine.vectorizer import TurkishVectorizer
 from app.db.session import get_db
 from app.core.config import settings
+import json
+from app.models.models import AnalysisResult
 
 router = APIRouter()
 
@@ -53,8 +55,8 @@ async def analyze_content(
         # dbmdz/bert-base-turkish-cased gibi temel (base) dil modelleri
         # fine-tune edilmediği için vektörleri dar bir alana sıkışır (anisotropi).
         # Bu yüzden çok alakasız iki cümlenin benzerliği %85 çıkabilir.
-        # Threshold'u çok daha katı (> %92 benzerlik) yapmalıyız.
-        distance_threshold = 0.08 # 92% similarity threshold (1 - 0.92)
+        # Threshold'u admin ayarlarından (veya env) dinamik alıyoruz.
+        distance_threshold = settings.SIMILARITY_THRESHOLD # configurable via .env
         
         # Find top 3 closest items
         stmt = (
@@ -111,11 +113,38 @@ async def analyze_content(
 @router.get("/status/{task_id}", response_model=TaskStatusResponse)
 async def get_analysis_status(
     task_id: str,
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Check the status of an ongoing analysis task.
     """
+    # 1. Check persistent PostgreSQL database first for safety
+    query = (
+        select(AnalysisResult, Article)
+        .join(Article, AnalysisResult.article_id == Article.id)
+        .where(Article.metadata_info.op("->>")("task_id") == task_id)
+    )
+    result = await db.execute(query)
+    match = result.first()
+    
+    if match:
+        analysis_res, article = match
+        return TaskStatusResponse(
+            task_id=task_id,
+            status="SUCCESS",
+            result={
+                "content_id": task_id,
+                "status": "completed",
+                "db_article_id": str(article.id),
+                "prediction": analysis_res.status,
+                "confidence": analysis_res.confidence,
+                "signals": json.loads(analysis_res.signals) if analysis_res.signals else {},
+                "processed_text_length": len(article.content)
+            }
+        )
+
+    # 2. Fallback to Redis queue if task is still running or not saved
     task_result = AsyncResult(task_id)
     
     response = TaskStatusResponse(
