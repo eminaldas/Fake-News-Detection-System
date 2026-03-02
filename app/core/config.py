@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     
     # NLP Engine
     TRANSFORMER_MODEL: str = "dbmdz/bert-base-turkish-cased"
+    SIMILARITY_THRESHOLD: float = 0.08 # Default 92% similarity match
+    CELERY_RATE_LIMIT: str = "10/s" # Default anti-OOM limit
 
     model_config = SettingsConfigDict(
         env_file=".env",
