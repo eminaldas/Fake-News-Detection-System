@@ -27,7 +27,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 @router.post("/analyze", response_model=AnalysisResponse, status_code=status.HTTP_202_ACCEPTED)
 async def analyze_content(
     request: ContentAnalysisRequest,
-    current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -90,16 +89,30 @@ async def analyze_content(
             best_match, distance = matches[0]
             similarity = (1 - distance) * 100
             
-            # Bu haber daha önce yalanlanmıştır (veya doğrulanmıştır)
-            warning_msg = (
-                f"Sistemde benzer bir haber bulundu! (Benzerlik: %{similarity:.1f})\n"
-                f"Durum: {best_match.status}\n"
-                f"Dayanak: {best_match.metadata_info.get('dayanak_noktalari', 'Bilinmiyor') if best_match.metadata_info else 'Bilinmiyor'}"
-            )
+            # Use English standardized keys for frontend parsing
+            normalized_status = "UNKNOWN"
+            if best_match.status:
+                if best_match.status.upper() in ["FAKE", "YANLIŞ", "YANLIS", "FALSE"]:
+                    normalized_status = "FAKE"
+                elif best_match.status.upper() in ["AUTHENTIC", "DOĞRU", "DOGRU", "TRUE"]:
+                    normalized_status = "AUTHENTIC"
+                else:
+                    normalized_status = best_match.status.upper()
+            
+            dayanak = best_match.metadata_info.get('dayanak_noktalari', 'Bilinmiyor') if best_match.metadata_info else 'Bilinmiyor'
+            
+            warning_msg = f"Sistemde %{similarity:.1f} oranında benzer bir kayıt bulundu."
             
             return AnalysisResponse(
-                task_id=content_id, # Just return the generated ID
-                message=warning_msg
+                task_id=content_id,
+                message=warning_msg,
+                is_direct_match=True,
+                direct_match_data={
+                    "similarity": round(similarity, 2),
+                    "original_status": best_match.status or "Belirtilmemiş",
+                    "mapped_status": normalized_status,
+                    "evidence": dayanak
+                }
             )
     
     # 2. Offload new unseen heavy work to Celery
@@ -113,7 +126,6 @@ async def analyze_content(
 @router.get("/status/{task_id}", response_model=TaskStatusResponse)
 async def get_analysis_status(
     task_id: str,
-    current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """

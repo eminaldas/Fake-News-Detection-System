@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List, Optional
+from uuid import UUID
 
 from app.db.session import get_db
 from app.models.models import Article
@@ -16,7 +17,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return verify_token(token)
 
 class ArticleResponse(BaseModel):
-    id: str
+    id: UUID
     title: str
     content: str
     status: str
@@ -36,7 +37,6 @@ async def get_articles(
     page: int = Query(1, ge=1, description="Page number"),
     size: int = Query(10, ge=1, le=100, description="Items per page"),
     status_filter: Optional[str] = Query(None, description="Filter by status (e.g., 'Yanlış', 'Doğru')"),
-    current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """

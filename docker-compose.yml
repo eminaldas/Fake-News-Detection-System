@@ -25,6 +25,17 @@ services:
       - db
     command: celery -A workers.tasks worker --loglevel=info
 
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - app
+
   db:
     image: ankane/pgvector:latest
     ports:
@@ -36,7 +47,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d fnds"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d fnds" ]
       interval: 5s
       timeout: 5s
       retries: 5

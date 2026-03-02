@@ -23,6 +23,8 @@ class ContentAnalysisRequest(BaseModel):
 class AnalysisResponse(BaseModel):
     task_id: str
     message: str
+    is_direct_match: bool = False
+    direct_match_data: dict | None = None
 
 class TaskStatusResponse(BaseModel):
     task_id: str

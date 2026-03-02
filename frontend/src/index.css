@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-bg-primary: #F8F9FA;
+    --color-bg-surface: #FFFFFF;
+    --color-text-primary: #292929;
+    --color-border: #E5E7EB;
+
+    --color-burgundy: #7C2138;
+    --color-plum: #512745;
+  }
+
+  .dark {
+    --color-bg-primary: #121212;
+    --color-bg-surface: #1E1E1E;
+    --color-text-primary: #F8F9FA;
+    --color-border: #333333;
+
+    --color-burgundy: #e11d48;
+    /* Brighter rose for dark mode visibility */
+    --color-plum: #c026d3;
+    /* Brighter fuchsia for dark mode visibility */
+  }
+
+  body {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+@theme {
+  --color-app-bg: var(--color-bg-primary);
+  --color-app-surface: var(--color-bg-surface);
+
+  --color-app-charcoal: var(--color-text-primary);
+  --color-app-gray: var(--color-border);
+
+  --color-app-burgundy: var(--color-burgundy);
+  --color-app-plum: var(--color-plum);
+
+  /* Fallbacks for existing hardcoded usage */
+  --color-app-white: var(--color-bg-primary);
+}

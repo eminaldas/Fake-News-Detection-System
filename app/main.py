@@ -11,14 +11,14 @@ app = FastAPI(
 # CORS configuration
 origins = [
     "http://localhost",
-    "http://localhost:3000", # Frontend dev server
-    # Add other origins as needed
+    "http://localhost:3000",
+    "http://localhost:5173", # Vite Frontend dev server
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
