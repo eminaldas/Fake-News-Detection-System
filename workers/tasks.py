@@ -55,20 +55,32 @@ async def async_analyze_and_save(content_id: str, text: str) -> dict:
     embedding = vectorizer.get_embedding(cleaned_text)
 
     # 3. YZ Sınıflandırma Modeli Tahmini (Classifier)
+    # Ağırlıklı Sinyal (Kural Tabanlı) Risk Skoru
+    risk_score = (signals.get("exclamation_ratio", 0) * 0.5) + (signals.get("uppercase_ratio", 0) * 0.5)
+
     if classifier_model and cleaned_text:
         try:
             proba = classifier_model.predict_proba([cleaned_text])[0]
             # proba[0] = class 0 (Authentic), proba[1] = class 1 (Fake)
             fake_prob = proba[1]
-            status = "FAKE" if fake_prob > 0.5 else "AUTHENTIC"
-            confidence = str(round(max(proba), 2))
+            max_prob = max(proba)
+            
+            # Hybrid Ensemble Mantığı: Eğer YZ modeli kelimeleri tanımadıysa
+            # ve kararsız kaldıysa (%40-%60 arası), Kural tabanlı sisteme (Sinyallere) danış.
+            if max_prob < 0.60 and risk_score > 0.03:
+                status = "FAKE"
+                # Sinyal gücüne göre confidence belirle (en az YZ'nin tahmini kadar göster)
+                confidence = str(round(max(max_prob, min(risk_score * 10, 0.99)), 2))
+            else:
+                status = "FAKE" if fake_prob > 0.5 else "AUTHENTIC"
+                confidence = str(round(max_prob, 2))
+                
         except Exception as e:
             status = "UNKNOWN"
             confidence = "0.0"
             
     else:
-        # Fallback kural tabanlı sonuç:
-        risk_score = (signals.get("exclamation_ratio", 0) * 0.5) + (signals.get("uppercase_ratio", 0) * 0.5)
+        # Tamamen kural tabanlı Fallback:
         status = "FAKE" if risk_score > 0.05 else "AUTHENTIC"
         confidence = str(round(min(risk_score * 10, 0.99), 2))
 

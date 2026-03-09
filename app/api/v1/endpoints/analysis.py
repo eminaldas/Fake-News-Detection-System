@@ -77,7 +77,10 @@ async def analyze_content(
         # A more optimal query to only get those > 80% similarity:
         stmt_filtered = (
             select(Article, Article.embedding.cosine_distance(embedding).label('distance'))
-            .where(Article.embedding.cosine_distance(embedding) < distance_threshold)
+            .where(
+                (Article.embedding.cosine_distance(embedding) < distance_threshold) &
+                (Article.status.is_not(None))
+            )
             .order_by("distance")
             .limit(3)
         )

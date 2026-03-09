@@ -20,6 +20,8 @@ services:
     build: .
     env_file:
       - .env
+    volumes:
+      - .:/workspace
     depends_on:
       - redis
       - db
