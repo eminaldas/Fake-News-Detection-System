@@ -1,49 +1,316 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   :root {
-    --color-bg-primary: #F8F9FA;
-    --color-bg-surface: #FFFFFF;
-    --color-text-primary: #292929;
-    --color-border: #E5E7EB;
+    /* ─── ANA RENKLER ─── */
+    /* #c1c2b1 → Krem/bej zemin  */
+    /* #6c6d62 → Koyu olive gri  */
+    /* #eaeaea → Açık gri/beyaz  */
 
-    --color-burgundy: #7C2138;
-    --color-plum: #512745;
+    --color-bg-base: #c1c2b1;
+    /* Ana sayfa zemini */
+    --color-bg-surface: #eaeaea;
+    /* Panel / kart yüzeyi */
+    --color-bg-surface-solid: #eaeaea;
+
+    --color-text-primary: #6c6d62;
+    /* Koyu olive → ana metin */
+    --color-text-secondary: #8a8b7e;
+    /* Biraz açık → ikincil metin */
+    --color-border: #6c6d62;
+    /* Koyu border */
+
+    --color-brand-primary: #6c6d62;
+    /* Ana aksan (butonlar, ikon arka plan) */
+    --color-brand-secondary: #4e4f46;
+    /* Hover/pressed koyu tonu */
+    --color-brand-accent: #c1c2b1;
+    /* Açık aksan */
+    --color-brand-light: #d8d9cb;
+    /* Geçiş tonu */
   }
 
   .dark {
-    --color-bg-primary: #121212;
-    --color-bg-surface: #121212;
-    --color-text-primary: #F8F9FA;
-    --color-border: #333333;
+    /* ─── DARK MOD — Profesyonel Kömür & Arduaz Paleti ─── */
+    --color-bg-base: #0b0e14;
+    /* Sayfa zemini: Derin Lacivert-Siyah */
+    --color-bg-surface: #151921;
+    /* Panel / Kart yüzeyi: Hafif yükseltilmiş katman */
+    --color-bg-surface-solid: #1b2029;
+    /* Kartların içi veya daha belirgin katmanlar */
 
-    --color-burgundy: #e11d48;
-    /* Brighter rose for dark mode visibility */
-    --color-plum: #c026d3;
-    /* Brighter fuchsia for dark mode visibility */
+    --color-text-primary: #e3e6ed;
+    /* Ana metin: Yumuşatılmış beyaz */
+    --color-text-secondary: #a1a8b5;
+    /* İkincil metin: Daha okunaklı orta gri */
+    --color-border: #2d333f;
+    /* Border: Kurumsal koyu gri-mavi */
+
+    --color-brand-primary: #cbd5e1;
+    /* Brand aksan: Arduaz gri */
+    --color-brand-secondary: #f1f5f9;
+    /* Hover parlaklık */
+    --color-brand-accent: #1e293b;
+    /* Kart içi aksan yüzeyi */
+    --color-brand-light: #334155;
+    /* Hover yüzeyi */
+  }
+
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
   }
 
   body {
-    background-color: var(--color-bg-primary);
+    background-color: var(--color-bg-base);
     color: var(--color-text-primary);
-    font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
+    min-height: 100vh;
     transition: background-color 0.3s ease, color 0.3s ease;
+    background-image: url('./assets/images/background.png');
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+  }
+
+  .dark body {
+    background-image: none;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Outfit', system-ui, sans-serif;
   }
 }
 
 @theme {
-  --color-app-bg: var(--color-bg-primary);
-  --color-app-surface: var(--color-bg-surface);
+  --font-inter: 'Inter', sans-serif;
+  --font-outfit: 'Outfit', sans-serif;
 
-  --color-app-charcoal: var(--color-text-primary);
-  --color-app-gray: var(--color-border);
+  /* Zemin renkleri */
+  --color-base: var(--color-bg-base);
+  --color-surface: var(--color-bg-surface);
+  --color-surface-solid: var(--color-bg-surface-solid);
 
-  --color-app-burgundy: var(--color-burgundy);
-  --color-app-plum: var(--color-plum);
+  /* Metin renkleri */
+  --color-tx-primary: var(--color-text-primary);
+  --color-tx-secondary: var(--color-text-secondary);
+  --color-brutal-border: var(--color-border);
 
-  /* Fallbacks for existing hardcoded usage */
-  --color-app-white: var(--color-bg-primary);
+  /* Marka renkleri */
+  --color-brand: var(--color-brand-primary);
+  --color-brand-dark: var(--color-brand-secondary);
+  --color-brand-light: var(--color-brand-light);
+  --color-brand-accent: var(--color-brand-accent);
+}
+
+@layer utilities {
+  .glass {
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+  }
+
+  .glass-card {
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+  }
+
+  /* ─── GLOW BORDER — Form ve kartlar için kenarlıktan ışıtan gölge ─── */
+  .glow-border-brand {
+    border-color: var(--color-border);
+    box-shadow:
+      0 0 0 1px var(--color-border),
+      0 0 8px 2px color-mix(in srgb, var(--color-border) 40%, transparent),
+      0 0 20px 4px color-mix(in srgb, var(--color-border) 20%, transparent);
+    transition: box-shadow 0.4s ease, border-color 0.4s ease;
+  }
+
+  .glow-border-brand:focus-within {
+    box-shadow:
+      0 0 0 1.5px var(--color-border),
+      0 0 12px 4px color-mix(in srgb, var(--color-border) 55%, transparent),
+      0 0 30px 8px color-mix(in srgb, var(--color-border) 25%, transparent);
+  }
+
+  /* ─── FADE IN UP ─── */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* ─── FADE IN LEFT ─── */
+  @keyframes fadeInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-16px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* ─── FADE IN RIGHT ─── */
+  @keyframes fadeInRight {
+    from {
+      opacity: 0;
+      transform: translateX(16px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* ─── PULSE SUBTLE (badge, dot) ─── */
+  @keyframes pulseSoft {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.55;
+    }
+  }
+
+  /* ─── SHIMMER ANIMATION ─── */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(90deg,
+        rgba(0, 0, 0, 0.06) 25%,
+        rgba(0, 0, 0, 0.1) 37%,
+        rgba(0, 0, 0, 0.06) 63%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite linear;
+  }
+
+  .dark .animate-shimmer {
+    background: linear-gradient(90deg,
+        rgba(255, 255, 255, 0.03) 25%,
+        rgba(255, 255, 255, 0.07) 37%,
+        rgba(255, 255, 255, 0.03) 63%);
+    background-size: 200% 100%;
+  }
+
+  .animate-fade-up {
+    animation: fadeInUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-fade-left {
+    animation: fadeInLeft 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-fade-right {
+    animation: fadeInRight 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-pulse-soft {
+    animation: pulseSoft 2.5s ease-in-out infinite;
+  }
+
+  /* ─── Delay yardımcıları ─── */
+  .delay-75 {
+    animation-delay: 75ms;
+  }
+
+  .delay-150 {
+    animation-delay: 150ms;
+  }
+
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+
+  .delay-400 {
+    animation-delay: 400ms;
+  }
+
+  .delay-500 {
+    animation-delay: 500ms;
+  }
+
+  /* ─── CUSTOM SCROLLBAR UTILITY ─── */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(90, 96, 88, 0.4); /* #5a6058 with opacity */
+    border-radius: 12px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(90, 96, 88, 0.6);
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Global scrollbar for the site */
+  ::-webkit-scrollbar {
+    width: 14px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-bg-base);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(90, 96, 88, 0.5); /* Brand Dark Color #5a6058 */
+    border-radius: 20px;
+    border: 3px solid var(--color-bg-base);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(90, 96, 88, 0.8);
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.2); /* Slate-400 equivalent */
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.4);
+  }
 }
