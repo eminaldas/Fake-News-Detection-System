@@ -38,6 +38,16 @@ services:
     depends_on:
       - app
 
+  news-agent-worker:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - .:/workspace
+    depends_on:
+      - db
+    command: python -m scrapers.rss_monitor
+
   db:
     image: ankane/pgvector:latest
     ports:
