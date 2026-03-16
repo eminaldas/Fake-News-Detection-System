@@ -37,7 +37,6 @@ const ArticleTable = ({ articles, loading, page, totalPages, prevPage, nextPage 
                             const statusUpper = rawStatus.toUpperCase();
 
                             let isFake = false;
-                            let isAuth = false;
                             let printStatus = 'UNKNOWN';
                             let colorClasses = 'bg-app-charcoal bg-opacity-10 text-app-charcoal border border-app-charcoal border-opacity-20';
 
@@ -46,7 +45,6 @@ const ArticleTable = ({ articles, loading, page, totalPages, prevPage, nextPage 
                                 printStatus = 'FAKE';
                                 colorClasses = 'bg-app-burgundy bg-opacity-10 text-app-burgundy border border-app-burgundy border-opacity-20';
                             } else if (['AUTHENTIC', 'DOĞRU', 'DOGRU'].includes(statusUpper)) {
-                                isAuth = true;
                                 printStatus = 'AUTH';
                                 colorClasses = 'bg-app-plum bg-opacity-10 text-app-plum border border-app-plum border-opacity-20';
                             }

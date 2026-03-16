@@ -12,7 +12,7 @@ const Navbar = () => {
     const isActive = (path) => location.pathname === path;
 
     return (
-        <header className="fixed top-0 w-full z-50 dark:bg-[#0b0e14]/80 backdrop-blur-xl border-b border-white/5">
+        <header className="fixed top-0 w-full z-50  backdrop-blur-xl ">
             <div className="max-w-7xl mx-auto px-6 py-4">
                 <div className="flex justify-between items-center gap-4">
 
