@@ -431,7 +431,8 @@ async def run_agent_cycle(dry_run: bool = False) -> list[dict]:
                         "origin": "trending_topics",
                         "source_url": url,
                         "radar_hits": len(radar_results),
-                        "agent": "rss_monitor_v3",
+                        "radar_evidence": radar_results, # Kanıt linklerini ve özetlerini sakla
+                        "agent": "rss_monitor_v4",
                         "reasoning": analysis.get("reasoning", "")[:REASONING_MAX],
                     },
                 )
