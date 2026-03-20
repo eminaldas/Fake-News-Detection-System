@@ -1,84 +1,96 @@
-import pandas as pd
-import pickle
 import os
 import sys
-from sklearn.feature_extraction.text import TfidfVectorizer
+import pickle
+import asyncio
+import numpy as np
 from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
+from sqlalchemy.future import select
 
 # Add project root to sys path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from app.db.session import AsyncSessionLocal
+from app.models.models import Article
 from ml_engine.processing.cleaner import NewsCleaner
+from ml_engine.vectorizer import TurkishVectorizer
 
-def train_and_save_model(csv_path="Data/teyit_final_x_dataset.csv"):
-    print(f"Loading dataset from {csv_path} for training...")
-    try:
-        df = pd.read_csv(csv_path)
-    except FileNotFoundError:
-        print(f"Error: Could not find {csv_path}. Make sure the path is correct.")
-        return
-
-    cleaner = NewsCleaner()
-    
-    X_texts = []
+async def fetch_training_data_from_db():
+    print("Fetching training data from PostgreSQL Database...")
+    X_embeddings = []
     y_labels = []
 
-    print("Cleaning and extracting features from dataset...")
-    for index, row in df.iterrows():
-        processed_data = cleaner.process(raw_iddia=row.get('iddia'))
-        text = processed_data["cleaned_text"]
-        
-        # Skip empty or "Bilgi mevcut değil" texts
-        if not text or text == "Bilgi mevcut değil":
-            continue
-            
-        status = str(row.get('dogruluk_etiketi', '')).strip().lower()
-        
-        # Binary classification mapping
-        # False/Yanlış -> 1 (Fake)
-        # True/Doğru -> 0 (Authentic)
-        if "yanlış" in status or "false" in status:
-            label = 1
-        elif "doğru" in status or "true" in status:
-            label = 0
-        else:
-            continue # Skip unknown labels for clear training
-            
-        X_texts.append(text)
-        y_labels.append(label)
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(Article))
+        articles = result.scalars().all()
 
-    print(f"Extracted {len(X_texts)} valid samples for training.")
-    
-    # Train-test split
-    X_train, X_test, y_train, y_test = train_test_split(X_texts, y_labels, test_size=0.2, random_state=42)
-    
-    # Create an ML Pipeline: TF-IDF -> Logistic Regression
-    pipeline = Pipeline([
-        ('tfidf', TfidfVectorizer(max_features=5000, ngram_range=(1, 2))),
-        ('clf', LogisticRegression(random_state=42, class_weight='balanced'))
-    ])
-    
-    print("Training model...")
-    pipeline.fit(X_train, y_train)
-    
-    print("\nEvaluating model on test data:")
-    y_pred = pipeline.predict(X_test)
+        cleaner = NewsCleaner()
+        vectorizer = TurkishVectorizer()
+
+        for article in articles:
+            status = str(article.status).strip().lower()
+
+            if "yanlış" in status or "false" in status or "fake" in status:
+                label = 1
+            elif "doğru" in status or "true" in status or "authentic" in status:
+                label = 0
+            else:
+                continue  # Skip unknown labels
+
+            # Reuse stored embedding if available, otherwise compute
+            if article.embedding is not None:
+                embedding = list(article.embedding)
+            else:
+                try:
+                    processed = cleaner.process(raw_iddia=article.content)
+                    text = processed["cleaned_text"]
+                except Exception:
+                    text = article.content
+
+                if not text or text == "Bilgi mevcut değil":
+                    continue
+
+                embedding = vectorizer.get_embedding(text)
+
+            X_embeddings.append(embedding)
+            y_labels.append(label)
+
+    return X_embeddings, y_labels
+
+def train_and_save_model(X_embeddings, y_labels):
+    print(f"\nExtracted {len(X_embeddings)} valid samples from DB for training.")
+
+    if len(X_embeddings) < 10:
+        print("Not enough data to train. Need at least 10 valid articles.")
+        return
+
+    X = np.array(X_embeddings)
+    y = np.array(y_labels)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    clf = LogisticRegression(random_state=42, class_weight='balanced', max_iter=1000)
+
+    print("\nTraining classifier on BERT embeddings...")
+    clf.fit(X_train, y_train)
+
+    print("\n================ EVALUATION METRICS ================")
+    y_pred = clf.predict(X_test)
     print(classification_report(y_test, y_pred, target_names=["Authentic (0)", "Fake (1)"]))
-    
-    # Ensure directory exists
+    print("====================================================")
+
     os.makedirs("ml_engine/models", exist_ok=True)
     model_path = "ml_engine/models/fake_news_classifier.pkl"
-    
+
     with open(model_path, "wb") as f:
-        pickle.dump(pipeline, f)
-        
-    print(f"Model successfully saved to {model_path}!")
+        pickle.dump(clf, f)
+
+    print(f"\nModel successfully trained and saved to {model_path}!")
+
+async def main():
+    X_embeddings, y_labels = await fetch_training_data_from_db()
+    train_and_save_model(X_embeddings, y_labels)
 
 if __name__ == "__main__":
-    import sys
-    csv_file = "Data/teyit_final_x_dataset.csv"
-    if len(sys.argv) > 1:
-        csv_file = sys.argv[1]
-    train_and_save_model(csv_file)
+    asyncio.run(main())

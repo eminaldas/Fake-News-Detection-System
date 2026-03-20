@@ -60,7 +60,7 @@ async def async_analyze_and_save(content_id: str, text: str) -> dict:
 
     if classifier_model and cleaned_text:
         try:
-            proba = classifier_model.predict_proba([cleaned_text])[0]
+            proba = classifier_model.predict_proba([embedding])[0]
             # proba[0] = class 0 (Authentic), proba[1] = class 1 (Fake)
             fake_prob = proba[1]
             max_prob = max(proba)
