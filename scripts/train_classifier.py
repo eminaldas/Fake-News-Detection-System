@@ -7,6 +7,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 from sqlalchemy.future import select
+from sqlalchemy import cast
+from sqlalchemy.dialects.postgresql import JSONB
 
 # Add project root to sys path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -22,7 +24,13 @@ async def fetch_training_data_from_db():
     y_labels = []
 
     async with AsyncSessionLocal() as session:
-        result = await session.execute(select(Article))
+        # Yalnızca ingest edilmiş (kaynaklı) article'ları al.
+        # tasks.py tarafından oluşturulan analiz kayıtlarını eğitime dahil etmiyoruz;
+        # aksi hâlde model kendi tahminleri üzerine eğitilerek bias döngüsü oluşur.
+        stmt = select(Article).where(
+            Article.metadata_info.op("->>")(  "source").isnot(None)
+        )
+        result = await session.execute(stmt)
         articles = result.scalars().all()
 
         cleaner = NewsCleaner()

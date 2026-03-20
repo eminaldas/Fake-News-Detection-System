@@ -130,8 +130,6 @@ def analyze_article(content_id: str, text: str) -> dict:
     Ham Metin -> Temizlik -> Özellik Çıkarımı -> Vektörleme -> DB Kayıt
     """
         
-    # Run the asyncio event loop within the sync Celery task
-    loop = asyncio.get_event_loop()
-    result = loop.run_until_complete(async_analyze_and_save(content_id, text))
+    result = asyncio.run(async_analyze_and_save(content_id, text))
     
     return result

@@ -1,23 +1,25 @@
 import re
-from typing import Dict, Any, List
-
 import math
-import pandas as pd
+from typing import Dict, Any
 
 class NewsCleaner:
     def __init__(self):
         # UI temizliği için hedef metin
         self.ui_artifact_text = "Etkileşim penceresinin başlangıcı. ESC tuşu işlemi iptal edip pencereyi kapatacaktır."
 
+    @staticmethod
+    def _is_missing(value: Any) -> bool:
+        return value is None or (isinstance(value, float) and math.isnan(value))
+
     def clean_ui_artifacts(self, text: str) -> str:
         """detayli_analiz sütunundaki UI artifact metnini siler."""
-        if not text or pd.isna(text):
+        if not text or self._is_missing(text):
             return text
         return text.replace(self.ui_artifact_text, "").strip()
 
     def clean_links(self, text: str) -> str:
         """iddia sütunundaki kısa linkleri (örn. https://t.co/...) regex ile temizler."""
-        if not text or pd.isna(text):
+        if not text or self._is_missing(text):
             return text
         # Linkleri temizle
         text = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', '', text)
@@ -26,7 +28,7 @@ class NewsCleaner:
 
     def handle_nan(self, value: Any) -> str:
         """Eksik veri (NaN) olan alanları 'Bilgi mevcut değil' olarak işaretler."""
-        if pd.isna(value) or value is None or str(value).strip().lower() == "nan":
+        if self._is_missing(value) or str(value).strip().lower() == "nan":
             return "Bilgi mevcut değil"
         return str(value).strip()
 

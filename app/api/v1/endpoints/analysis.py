@@ -54,25 +54,7 @@ async def analyze_content(
         # cosine_similarity = 1 - cosine_distance
         
         distance_threshold = settings.SIMILARITY_THRESHOLD  # configurable via .env
-        
-        # Find top 3 closest items
-        stmt = (
-            select(Article)
-            .order_by(Article.embedding.cosine_distance(embedding))
-            .limit(3)
-        )
-        
-        result = await db.execute(stmt)
-        closest_articles = result.scalars().all()
-        
-        for article in closest_articles:
-            # Re-calculate distance in Python just to be safe, or use the DB distance if queried
-            # Alternatively, we could query the distance in SELECT: `Article.embedding.cosine_distance(embedding).label('distance')`
-            # For simplicity, we assume if it's the top result we can verify later, 
-            # but let's do a strict query with threshold checking directly
-            pass
-            
-        # A more optimal query to only get those > 80% similarity:
+
         stmt_filtered = (
             select(Article, Article.embedding.cosine_distance(embedding).label('distance'))
             .where(
