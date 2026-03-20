@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.models import Article
 from ml_engine.vectorizer import TurkishVectorizer
+from ml_engine.processing.cleaner import NewsCleaner
 from app.db.session import get_db
 from app.core.config import settings
 import json
@@ -18,8 +19,8 @@ router = APIRouter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
-# Load lightweight vectorizer component for real-time search
 vectorizer = TurkishVectorizer()
+cleaner = NewsCleaner()
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     return verify_token(token)
@@ -44,8 +45,9 @@ async def analyze_content(
     
     # 1. Immediate Semantic Search
     if request.text:
-        # Generate embedding for incoming text
-        embedding = vectorizer.get_embedding(request.text)
+        # Clean text before embedding — must match how stored embeddings were produced
+        cleaned_for_search = cleaner.process(raw_iddia=request.text)["cleaned_text"]
+        embedding = vectorizer.get_embedding(cleaned_for_search)
         
         # Search the database for the closest match using Cosine Distance
         # pgvector cosine_distance operator is <=>, lower distance means higher similarity
