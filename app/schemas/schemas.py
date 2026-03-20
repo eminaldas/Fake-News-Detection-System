@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 import html
 import re
 
@@ -25,6 +25,18 @@ class AnalysisResponse(BaseModel):
     message: str
     is_direct_match: bool = False
     direct_match_data: dict | None = None
+
+class UrlAnalysisRequest(BaseModel):
+    url: AnyHttpUrl = Field(..., description="Analiz edilecek haber URL'si (http/https)")
+
+    @field_validator("url", mode="before")
+    @classmethod
+    def validate_scheme(cls, v) -> str:
+        url_str = str(v)
+        if not url_str.startswith(("http://", "https://")):
+            raise ValueError("URL http veya https şemasıyla başlamalıdır.")
+        return url_str
+
 
 class TaskStatusResponse(BaseModel):
     task_id: str

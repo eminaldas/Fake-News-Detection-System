@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.schemas.schemas import ContentAnalysisRequest, AnalysisResponse, TaskStatusResponse
+from app.schemas.schemas import ContentAnalysisRequest, AnalysisResponse, TaskStatusResponse, UrlAnalysisRequest
+from workers.link_analysis_task import analyze_article_url
 from app.core.security import verify_token
 from celery.result import AsyncResult
 from workers.tasks import analyze_article
@@ -105,6 +106,24 @@ async def analyze_content(
         task_id=task.id,
         message="Analysis task registered successfully. No exact historical match found. Use the task_id to check the status."
     )
+
+@router.post("/analyze/url", response_model=AnalysisResponse, status_code=status.HTTP_202_ACCEPTED)
+async def analyze_url(
+    request: UrlAnalysisRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Verilen URL'deki haberi scrape edip hibrit NLP pipeline'ından geçirir.
+    Sonuç: truth_score (0-100), verdict (AUTHENTIC/FAKE/UNCERTAIN), tüm sinyaller.
+    Uzun süreç Celery'e devredilir; sonucu /status/{task_id} ile sorgulayın.
+    """
+    content_id = str(uuid.uuid4())
+    task = analyze_article_url.delay(task_id=content_id, url=str(request.url))
+    return AnalysisResponse(
+        task_id=task.id,
+        message="URL analiz görevi kuyruğa alındı. Sonuç için /status/{task_id} endpoint'ini kullanın."
+    )
+
 
 @router.get("/status/{task_id}", response_model=TaskStatusResponse)
 async def get_analysis_status(

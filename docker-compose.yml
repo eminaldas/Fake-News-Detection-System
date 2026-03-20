@@ -25,7 +25,7 @@ services:
     depends_on:
       - redis
       - db
-    command: celery -A workers.tasks worker --loglevel=info
+    command: celery -A workers.tasks worker --include=workers.link_analysis_task --loglevel=info
 
   frontend:
     build:
@@ -38,15 +38,15 @@ services:
     depends_on:
       - app
 
-  news-agent-worker:
-    build: .
-    env_file:
-      - .env
-    volumes:
-      - .:/workspace
-    depends_on:
-      - db
-    command: python -m scrapers.rss_monitor
+#  news-agent-worker:
+#    build: .
+#    env_file:
+#      - .env
+#    volumes:
+#      - .:/workspace
+#    depends_on:
+#      - db
+#    command: python -m scrapers.rss_monitor
 
   db:
     image: ankane/pgvector:latest
