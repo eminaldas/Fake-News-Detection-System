@@ -1,14 +1,16 @@
 from typing import List
 import torch
 from sentence_transformers import SentenceTransformer
+from app.core.config import settings
 
 class TurkishVectorizer:
     """
-    SentenceTransformers kullanarak metinleri 
+    SentenceTransformers kullanarak metinleri
     vektör uzayına (embeddings) çeviren sınıf.
     """
-    
-    def __init__(self, model_name: str = "dbmdz/bert-base-turkish-cased"):
+
+    def __init__(self, model_name: str = None):
+        model_name = model_name or settings.TRANSFORMER_MODEL
         # CPU veya GPU cihazını ayarla
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         

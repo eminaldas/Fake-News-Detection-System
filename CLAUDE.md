@@ -71,7 +71,7 @@ cd frontend && npm run lint    # Lint check
 | `app/main.py` | FastAPI app entry point, router registration |
 | `app/api/v1/endpoints/analysis.py` | Core analysis endpoint |
 | `app/models/models.py` | Article (768-dim pgvector embedding), AnalysisResult, Source ORM models |
-| `ml_engine/vectorizer.py` | BERT Turkish embedding generation (`dbmdz/bert-base-turkish-cased`) |
+| `ml_engine/vectorizer.py` | Turkish sentence embedding generation (`emrecan/bert-base-turkish-cased-mean-nli-stsb-tr`) |
 | `ml_engine/processing/cleaner.py` | Text preprocessing & linguistic signal extraction |
 | `workers/tasks.py` | Main Celery analysis tasks |
 | `workers/agent_tasks.py` | AI News Agent (RSS monitoring + fact-checking pipeline) |

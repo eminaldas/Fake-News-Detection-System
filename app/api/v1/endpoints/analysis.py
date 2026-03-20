@@ -51,11 +51,7 @@ async def analyze_content(
         # pgvector cosine_distance operator is <=>, lower distance means higher similarity
         # cosine_similarity = 1 - cosine_distance
         
-        # dbmdz/bert-base-turkish-cased gibi temel (base) dil modelleri
-        # fine-tune edilmediği için vektörleri dar bir alana sıkışır (anisotropi).
-        # Bu yüzden çok alakasız iki cümlenin benzerliği %85 çıkabilir.
-        # Threshold'u admin ayarlarından (veya env) dinamik alıyoruz.
-        distance_threshold = settings.SIMILARITY_THRESHOLD # configurable via .env
+        distance_threshold = settings.SIMILARITY_THRESHOLD  # configurable via .env
         
         # Find top 3 closest items
         stmt = (

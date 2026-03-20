@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0" # Redis can have a default
     
     # NLP Engine
-    TRANSFORMER_MODEL: str = "dbmdz/bert-base-turkish-cased"
+    TRANSFORMER_MODEL: str = "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr"
     SIMILARITY_THRESHOLD: float = 0.08 # Default 92% similarity match
     CELERY_RATE_LIMIT: str = "10/s" # Default anti-OOM limit
 
