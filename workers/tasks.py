@@ -3,10 +3,11 @@ import json
 from celery import Celery
 import asyncio
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 
-from app.db.session import AsyncSessionLocal
 from app.core.config import settings
-
 from app.models.models import Article, AnalysisResult
 from ml_engine.processing.cleaner import NewsCleaner
 from ml_engine.vectorizer import TurkishVectorizer
@@ -45,6 +46,8 @@ async def async_analyze_and_save(content_id: str, text: str) -> dict:
     """
     Handles the async database operations and ML classification pipeline.
     """
+    task_engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
+    TaskSession = sessionmaker(task_engine, class_=AsyncSession, expire_on_commit=False)
     # 1. Metin Temizleme ve Linguistik Bayrak Çıkarımı
     processed_data = cleaner.process(raw_iddia=text)
     signals = processed_data["signals"]
@@ -88,7 +91,7 @@ async def async_analyze_and_save(content_id: str, text: str) -> dict:
         status = "FAKE" if risk_score > 0.05 else "AUTHENTIC"
         confidence = str(round(min(risk_score * 10, 0.99), 2))
 
-    async with AsyncSessionLocal() as session:
+    async with TaskSession() as session:
         # Check if article exists first, or just create a new one if not linked
         # For this example, we assume we are creating a new Article record for every analysis
         new_article = Article(
@@ -121,6 +124,7 @@ async def async_analyze_and_save(content_id: str, text: str) -> dict:
             "processed_text_length": len(cleaned_text)
         }
     
+    await task_engine.dispose()
     return result
 
 @celery_app.task(name="analyze_article", rate_limit=settings.CELERY_RATE_LIMIT)
@@ -130,6 +134,4 @@ def analyze_article(content_id: str, text: str) -> dict:
     Ham Metin -> Temizlik -> Özellik Çıkarımı -> Vektörleme -> DB Kayıt
     """
         
-    result = asyncio.run(async_analyze_and_save(content_id, text))
-    
-    return result
+    return asyncio.run(async_analyze_and_save(content_id, text))

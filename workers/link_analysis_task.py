@@ -17,9 +17,11 @@ import json
 import logging
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
-from app.db.session import AsyncSessionLocal
 from app.models.models import Article, AnalysisResult
 from ml_engine.processing.stylometric import TurkishStylometrics
 from scrapers.web_scraper import ScraperError, scrape_article
@@ -100,16 +102,26 @@ def _verdict(score: float) -> str:
 # Ana async pipeline
 # ---------------------------------------------------------------------------
 
+def _make_session():
+    """Fresh engine + sessionmaker per task call — prevents asyncpg loop binding across tasks."""
+    engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
+    return sessionmaker(engine, class_=AsyncSession, expire_on_commit=False), engine
+
+
 async def _async_pipeline(task_id: str, url: str) -> dict:
+    TaskSession, task_engine = _make_session()
+
     # 1. Scrape
     try:
         scraped = scrape_article(url)
     except ScraperError as exc:
         logger.error("Scraping başarısız [%s]: %s", url, exc)
+        await task_engine.dispose()
         return {"task_id": task_id, "status": "failed", "error": str(exc), "url": url}
 
     full_text = f"{scraped.title}. {scraped.body}".strip()
     if not full_text:
+        await task_engine.dispose()
         return {"task_id": task_id, "status": "failed",
                 "error": "URL'den okunabilir içerik çekilemedi.", "url": url}
 
@@ -129,7 +141,7 @@ async def _async_pipeline(task_id: str, url: str) -> dict:
     best_match_meta = {}
 
     if not is_zero_vec:
-        async with AsyncSessionLocal() as session:
+        async with TaskSession() as session:
             stmt = (
                 select(Article, Article.embedding.cosine_distance(embedding).label("distance"))
                 .where(
@@ -181,7 +193,7 @@ async def _async_pipeline(task_id: str, url: str) -> dict:
         "truth_score": score,
     }
 
-    async with AsyncSessionLocal() as session:
+    async with TaskSession() as session:
         title_db = (scraped.title or full_text[:50])[:512]
         new_article = Article(
             title=title_db,
@@ -208,6 +220,7 @@ async def _async_pipeline(task_id: str, url: str) -> dict:
         await session.commit()
         article_id = str(new_article.id)
 
+    await task_engine.dispose()
     logger.info("URL analizi → verdict=%s score=%.1f | %s", verdict, score, url)
 
     return {
