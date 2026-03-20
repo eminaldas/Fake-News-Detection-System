@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, XCircle, ThumbsUp, ThumbsDown, Info, HelpCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, ThumbsUp, ThumbsDown, Info, HelpCircle, Link2 } from 'lucide-react';
 
 const AnalysisResultCard = ({ result }) => {
     if (!result) return null;
@@ -9,9 +9,18 @@ const AnalysisResultCard = ({ result }) => {
     const isFake = status.includes('FAKE') || status.includes('FALSE') || status.includes('YANILTICI');
     const isAuthentic = status.includes('AUTHENTIC') || status.includes('TRUE') || status.includes('GÜVENİLİR') || status.includes('REAL');
 
+    // URL analizi mi, doğrudan eşleşme mi, yoksa metin AI mi?
+    const isUrlAnalysis = !!result.truth_score;
+    const badgeLabel = isUrlAnalysis ? 'URL Analizi' : result.isDirectMatch ? 'Veritabanı Eşleşmesi' : 'Yapay Zeka Sınıflandırması';
+    const badgeIcon = isUrlAnalysis ? <Link2 size={10} /> : <Info size={10} />;
+    const scoreLabel = isUrlAnalysis ? 'Doğruluk Skoru' : 'Analiz Skoru';
+
     // 2. Güven Skoru Hesaplama (0.96 veya 96 gelme ihtimaline karşı güvenli matematik)
-    let rawConfidence = parseFloat(result.confidence || 0);
-    const confidence = rawConfidence <= 1 ? (rawConfidence * 100).toFixed(0) : rawConfidence.toFixed(0);
+    // URL analizinde truth_score (0-100) doğrudan kullanılır
+    const displayScore = isUrlAnalysis
+        ? parseFloat(result.truth_score).toFixed(0)
+        : (() => { let r = parseFloat(result.confidence || 0); return r <= 1 ? (r * 100).toFixed(0) : r.toFixed(0); })();
+    const confidence = displayScore;
 
     // 3. Üç Aşamalı Tema Yönetimi (Authentic, Fake, Neutral)
     let theme;
@@ -54,8 +63,8 @@ const AnalysisResultCard = ({ result }) => {
             
             {/* Analiz Yöntemi Badge */}
             <div className={`absolute -top-3 left-8 px-3 py-1 rounded-full text-white text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 shadow-sm ${theme.progressFill}`}>
-                <Info size={10} />
-                {result.isDirectMatch ? 'Veritabanı Eşleşmesi' : 'Yapay Zeka Sınıflandırması'}
+                {badgeIcon}
+                {badgeLabel}
             </div>
 
             {/* Header: Başlık ve Büyük İkon */}
@@ -71,10 +80,18 @@ const AnalysisResultCard = ({ result }) => {
                 </div>
             </div>
 
+            {/* Scrape edilen başlık (URL analizi için) */}
+            {isUrlAnalysis && result.scraped_title && (
+                <div className="mb-4 flex items-start gap-2 opacity-70">
+                    <Link2 className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${theme.title}`} />
+                    <p className={`text-xs font-medium truncate ${theme.title}`}>{result.scraped_title}</p>
+                </div>
+            )}
+
             {/* Progress Bar Bölümü */}
             <div className="flex flex-col gap-2 mb-8">
                 <div className="flex justify-between items-end">
-                    <span className={`text-xs font-bold ${theme.title}`}>Analiz Skoru</span>
+                    <span className={`text-xs font-bold ${theme.title}`}>{scoreLabel}</span>
                     <span className={`text-lg font-black ${theme.title}`}>%{confidence}</span>
                 </div>
                 <div className={`w-full h-3 rounded-full overflow-hidden p-0.5 ${theme.progressBg}`}>

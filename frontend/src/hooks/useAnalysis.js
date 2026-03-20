@@ -42,6 +42,28 @@ export const useAnalysis = () => {
         };
     }, [pollingTaskId]);
 
+    const analyzeUrl = async (url) => {
+        if (!url || !url.trim()) {
+            setError("Lütfen geçerli bir URL girin.");
+            return;
+        }
+        setLoading(true);
+        setResult(null);
+        setError(null);
+        try {
+            const data = await AnalysisService.analyzeUrl(url);
+            if (data.task_id) {
+                setPollingTaskId(data.task_id);
+            } else {
+                setError("Sunucudan beklenmeyen yanıt.");
+                setLoading(false);
+            }
+        } catch (err) {
+            setError(err.message || "URL analizi başlatılamadı.");
+            setLoading(false);
+        }
+    };
+
     const analyze = async (text) => {
         if (!text || !text.trim()) {
             setError("Lütfen analiz edilecek bir metin girin.");
@@ -85,5 +107,5 @@ export const useAnalysis = () => {
         setPollingTaskId(null);
     };
 
-    return { analyze, reset, loading, result, error, isPolling: !!pollingTaskId };
+    return { analyze, analyzeUrl, reset, loading, result, error, isPolling: !!pollingTaskId };
 };

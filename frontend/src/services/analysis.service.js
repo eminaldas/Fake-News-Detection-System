@@ -16,6 +16,11 @@ class AnalysisService {
      * @param {string} taskId - The ID of the queued task.
      * @returns {Promise} Resolves to the task status and potentially the result.
      */
+    static async analyzeUrl(url) {
+        const response = await axiosInstance.post('/analysis/analyze/url', { url });
+        return response.data;
+    }
+
     static async checkStatus(taskId) {
         const response = await axiosInstance.get(`/analysis/status/${taskId}`);
         return response.data;

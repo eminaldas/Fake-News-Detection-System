@@ -11,7 +11,7 @@ import TwitterFeedSkeleton from "../components/features/analysis/TwitterFeedSkel
 import AnalysisDisclaimer from "../features/analysis/AnalysisDisclaimer";
 
 const Home = () => {
-  const { analyze, loading, result, error, isPolling } = useAnalysis();
+  const { analyze, analyzeUrl, loading, result, error, isPolling } = useAnalysis();
   const [initialLoading, setInitialLoading] = useState(true);
 
   // Yan kolonlardaki mock veriler için yüklenme animasyonunu simüle et
@@ -50,6 +50,7 @@ const Home = () => {
         <div className="col-span-1 lg:col-span-6 flex flex-col min-h-[600px]">
           <AnalysisForm
             onAnalyze={analyze}
+            onAnalyzeUrl={analyzeUrl}
             loading={loading}
             isPolling={isPolling}
             _error={error}
