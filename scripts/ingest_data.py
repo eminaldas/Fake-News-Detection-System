@@ -91,7 +91,7 @@ async def ingest_dataset(csv_path: str):
 
 if __name__ == "__main__":
     # Ensure CSV is supplied or use default
-    csv_file = "teyit_final_x_dataset.csv" 
+    csv_file = "Data/sonveri/teyit_dataset.csv" 
     if len(sys.argv) > 1:
         csv_file = sys.argv[1]
         
