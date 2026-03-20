@@ -52,12 +52,15 @@ class NewsCleaner:
         exclamation_count = original_text.count('!')
         question_count = original_text.count('?')
         
-        # Büyük harf oranı (sadece harfleri karakterleri sayarak da yapılabilir)
-        uppercase_count = sum(1 for c in original_text if c.isupper())
-        
+        # Büyük harf oranı — yalnızca alfabetik karakterler paydaya girer;
+        # boşluk/rakam/noktalama sinyali seyrelteceği için hariç tutulur.
+        alpha_chars = [c for c in original_text if c.isalpha()]
+        alpha_count = len(alpha_chars)
+        uppercase_count = sum(1 for c in alpha_chars if c.isupper())
+
         return {
             "exclamation_ratio": round(exclamation_count / length, 4) if length > 0 else 0.0,
-            "uppercase_ratio": round(uppercase_count / length, 4) if length > 0 else 0.0,
+            "uppercase_ratio": round(uppercase_count / alpha_count, 4) if alpha_count > 0 else 0.0,
             "question_density": round(question_count / length, 4) if length > 0 else 0.0,
             "length": length
         }

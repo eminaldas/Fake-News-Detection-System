@@ -56,7 +56,11 @@ async def async_analyze_and_save(content_id: str, text: str) -> dict:
 
     # 3. YZ Sınıflandırma Modeli Tahmini (Classifier)
     # Ağırlıklı Sinyal (Kural Tabanlı) Risk Skoru
-    risk_score = (signals.get("exclamation_ratio", 0) * 0.5) + (signals.get("uppercase_ratio", 0) * 0.5)
+    risk_score = (
+        signals.get("exclamation_ratio", 0) * 0.4 +
+        signals.get("uppercase_ratio", 0) * 0.4 +
+        signals.get("question_density", 0) * 0.2
+    )
 
     if classifier_model and cleaned_text:
         try:
