@@ -59,7 +59,7 @@ Kullanıcı
 | Backend | FastAPI + SQLAlchemy (async) + asyncpg |
 | Frontend | React 19 + Vite + Tailwind CSS 4 |
 | Veritabanı | PostgreSQL + pgvector |
-| ML | sentence-transformers (`emrecan/bert-base-turkish-cased-mean-nli-stsb-tr`) + scikit-learn |
+| ML |  scikit-learn |
 | Kuyruk | Celery + Redis |
 | Scraper | requests + BeautifulSoup4 |
 | Altyapı | Docker Compose |
@@ -76,145 +76,25 @@ Kullanıcı
 ### Başlatma
 
 ```bash
-git clone https://github.com/<kullanici>/Fake-News-Detection-System.git
+git clone https://github.com/eminaldas/Fake-News-Detection-System.git
 cd Fake-News-Detection-System
-
-# .env dosyasını oluştur
-cp .env.example .env   # yoksa aşağıdaki değişkenleri manuel gir
 
 # Tüm servisleri başlat
 docker compose up -d
 ```
 
-Servisler:
 
-| Servis | URL |
-|--------|-----|
-| Frontend | http://localhost:5173 |
-| Backend API | http://localhost:8000 |
-| Swagger UI | http://localhost:8000/docs |
-| PostgreSQL | localhost:5432 |
-| Redis | localhost:6379 |
-
-### .env Değişkenleri
-
-```env
-DATABASE_URL=postgresql+asyncpg://user:password@db:5432/fakenews
-REDIS_URL=redis://redis:6379/0
-SECRET_KEY=<gizli-anahtar>
-GEMINI_API_KEY=<google-gemini-api-anahtari>
-SIMILARITY_THRESHOLD=0.08
-CELERY_RATE_LIMIT=10/s
-```
-
----
 
 ## Veri Seti ve Model Eğitimi
 
 Sistemin çalışması için önce veritabanına doğrulanmış haber verisi yüklenmeli ve sınıflandırıcı modeli eğitilmelidir.
 
-```bash
-# Docker üzerinden Python çalıştır
-docker compose exec worker bash
-
-# Veri setlerini yükle
-python scripts/ingest_aa_data.py     # Anadolu Ajansı (AUTHENTIC)
-python scripts/ingest_ht_data.py     # Hoax Tutorial (FAKE/AUTHENTIC)
-
-# pgvector indeks oluştur
-python scripts/create_index.py
-
-# ML sınıflandırıcısını eğit
-python scripts/train_classifier.py
-```
 
 Kullanılan veri setleri:
 - **Anadolu Ajansı (AA)** — doğrulanmış haberler (AUTHENTIC)
-- **HaberTürk** — kategorilendirilmiş haberler
+- **HaberTürk** — kategorilendirilmiş haberler(AUTHENTIC)
 - **Teyit** — profesyonel doğrulama kuruluşu etiketleri (FAKE/AUTHENTIC)
 
----
 
-## API Kullanımı
-
-### Kimlik Doğrulama
-
-```bash
-# Token al
-curl -X POST http://localhost:8000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "sifre"}'
-```
-
-Tüm isteklerde `Authorization: Bearer <token>` header'ı gereklidir.
-
-### Metin Analizi
-
-```bash
-curl -X POST http://localhost:8000/api/v1/analysis/analyze \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Analiz edilecek haber metni buraya..."}'
-```
-
-### URL Analizi
-
-```bash
-# Görevi kuyruğa al
-curl -X POST http://localhost:8000/api/v1/analysis/analyze/url \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://haber-sitesi.com/makale"}'
-
-# Sonucu sorgula
-curl http://localhost:8000/api/v1/analysis/status/<task_id> \
-  -H "Authorization: Bearer <token>"
-```
-
-### Örnek Yanıt (URL Analizi)
-
-```json
-{
-  "prediction": "AUTHENTIC",
-  "truth_score": 73.94,
-  "confidence": 0.7394,
-  "scraped_title": "Haberin Başlığı",
-  "signals": {
-    "exclamation_ratio": 0.001,
-    "uppercase_ratio": 0.042,
-    "semantic_component": 0.72,
-    "classifier_authentic_score": 0.81,
-    "ling_component": 0.94,
-    "style_style_score": 0.05
-  }
-}
-```
-
----
-
-## Proje Yapısı
-
-```
-├── app/                    # FastAPI backend
-│   ├── api/v1/endpoints/   # Analysis, auth endpoint'leri
-│   ├── models/             # SQLAlchemy ORM modelleri
-│   └── core/               # Config, JWT
-├── ml_engine/              # ML pipeline
-│   ├── vectorizer.py       # BERT embedding üretimi
-│   └── processing/
-│       ├── cleaner.py      # Metin temizleme + linguistik sinyaller
-│       └── stylometric.py  # Türkçe stilometrik analiz
-├── workers/                # Celery görev tanımları
-│   ├── tasks.py            # Metin analiz görevi
-│   └── link_analysis_task.py  # URL analiz görevi
-├── scrapers/               # Web scraper
-├── scripts/                # Veri ingestion + model eğitim
-├── frontend/               # React + Vite + Tailwind
-└── docker-compose.yml
-```
-
----
-
-## Lisans
 
 Bu proje akademik ve araştırma amaçlı geliştirilmiştir.
