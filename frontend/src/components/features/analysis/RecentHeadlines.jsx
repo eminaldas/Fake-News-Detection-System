@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, ArrowUpRight } from 'lucide-react';
 import axiosInstance from '../../../api/axios';
+import RecentHeadlinesSkeleton from './RecentHeadlinesSkeleton';
 
 const RecentHeadlines = () => {
     const [headlines, setHeadlines] = useState([]);
@@ -13,6 +14,8 @@ const RecentHeadlines = () => {
             .catch(() => setHeadlines([]))
             .finally(() => setLoading(false));
     }, []);
+
+    if (loading) return <RecentHeadlinesSkeleton />;
 
     return (
         <div className="bg-surface rounded-2xl overflow-hidden border border-brutal-border dark:border-surface-solid animate-fade-left">
@@ -27,15 +30,7 @@ const RecentHeadlines = () => {
 
             {/* Liste */}
             <div className="divide-y divide-brutal-border/40 dark:divide-surface-solid/60">
-                {loading ? (
-                    [...Array(5)].map((_, i) => (
-                        <div key={i} className="px-4 py-3.5 space-y-2">
-                            <div className="h-2.5 w-12 rounded-full bg-black/10 dark:bg-white/10 animate-pulse" />
-                            <div className="h-3 w-full rounded bg-black/8 dark:bg-white/8 animate-pulse" />
-                            <div className="h-3 w-3/4 rounded bg-black/8 dark:bg-white/8 animate-pulse" />
-                        </div>
-                    ))
-                ) : headlines.length === 0 ? (
+                {headlines.length === 0 ? (
                     <p className="px-4 py-8 text-center text-xs text-tx-secondary">
                         Henüz trend yok
                     </p>
@@ -48,19 +43,14 @@ const RecentHeadlines = () => {
                             rel="noopener noreferrer"
                             className="group flex flex-col gap-1.5 px-4 py-3.5 hover:bg-black/[0.03] dark:hover:bg-white/[0.03] transition-colors"
                         >
-                            {/* Kaynak */}
                             {(item.source_domain || item.source_name) && (
                                 <span className="text-[10px] font-semibold text-tx-secondary uppercase tracking-wide">
                                     {item.source_domain || item.source_name}
                                 </span>
                             )}
-
-                            {/* Başlık */}
                             <p className="text-[13px] font-medium leading-snug text-tx-primary line-clamp-2 group-hover:text-brand dark:group-hover:text-tx-primary transition-colors">
                                 {item.title}
                             </p>
-
-                            {/* Link ikonu */}
                             <span className="flex items-center gap-1 text-[10px] text-tx-secondary opacity-0 group-hover:opacity-100 transition-opacity">
                                 <ArrowUpRight className="w-3 h-3" />
                                 Habere git

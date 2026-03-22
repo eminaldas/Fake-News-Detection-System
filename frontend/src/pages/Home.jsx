@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { AlertCircle } from "lucide-react";
 import { useAnalysis } from "../hooks/useAnalysis";
 import AnalysisForm from "../features/analysis/AnalysisForm";
@@ -6,45 +6,37 @@ import AnalysisResultCard from "../features/analysis/AnalysisResultCard";
 import AnalysisResultSkeleton from "../features/analysis/AnalysisResultSkeleton";
 import RecentHeadlines from "../components/features/analysis/RecentHeadlines";
 import TwitterFeedCard from "../components/features/analysis/TwitterFeedCard";
-import TwitterFeedSkeleton from "../components/features/analysis/TwitterFeedSkeleton";
 import AnalysisDisclaimer from "../features/analysis/AnalysisDisclaimer";
 
 const Home = () => {
   const { analyze, analyzeUrl, loading, result, error, isPolling } = useAnalysis();
-  const [initialLoading, setInitialLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setInitialLoading(false), 600);
-    return () => clearTimeout(timer);
-  }, []);
-
   const showAnalysisSkeleton = loading || isPolling;
 
   return (
     <div className="w-full min-h-[80vh] flex flex-col px-4 md:px-6">
 
       {/* ── Hero ── */}
-      <div className="text-center mb-12 mt-2 animate-fade-up flex flex-col items-center gap-4">
+      <div className="text-center mb-8 md:mb-12 mt-1 md:mt-2 flex flex-col items-center gap-3 md:gap-4">
 
         {/* Badge pill */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 rounded-full
                         bg-surface dark:bg-es-surface
                         border border-brutal-border dark:border-es-primary/20
-                        shadow-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-es-primary animate-pulse-soft" />
-          <span className="text-[10px] font-manrope font-black uppercase tracking-widest text-tx-secondary dark:text-es-primary">
+                        shadow-sm animate-fade-up">
+          <span className="w-1.5 h-1.5 rounded-full bg-es-primary animate-pulse-soft shrink-0" />
+          <span className="text-[9px] md:text-[10px] font-manrope font-black uppercase tracking-widest text-tx-secondary dark:text-es-primary">
             Yapay Zeka Destekli Doğrulama
           </span>
         </div>
 
         {/* Ana başlık */}
-        <h1 className="text-5xl md:text-7xl font-manrope font-extrabold text-tx-primary dark:text-tx-primary tracking-tighter leading-[0.95]">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-manrope font-extrabold text-tx-primary tracking-tighter leading-[0.95] animate-fade-up delay-75">
           Verify the{' '}
           <span className="italic text-brand dark:text-es-primary">Truth</span>.
         </h1>
 
         {/* Subtitle */}
-        <p className="text-base text-tx-secondary max-w-xl mx-auto leading-relaxed font-inter">
+        <p className="text-sm md:text-base text-tx-secondary max-w-sm md:max-w-xl mx-auto leading-relaxed font-inter px-2 md:px-0 animate-fade-up delay-150">
           Bilgi kirliliğinin ötesine geçin. Şüpheli haberi, iddiayı ya da metni
           aşağıya yapıştırın — sistem dilbilimsel sinyalleri değerlendirip
           bilgi tabanıyla karşılaştırarak gerçeklik analizi yapar.
@@ -52,21 +44,22 @@ const Home = () => {
       </div>
 
       {/* ── 3 Kolon Layout ── */}
-      <div className="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6
+      <div className="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-6
                       w-full max-w-[1400px] mx-auto pb-8 items-start">
 
         {/* Sol: Günlük Trendler */}
-        <div className="hidden lg:block lg:col-span-3 top-28">
+        <div className="hidden lg:flex lg:col-span-3 flex-col animate-fade-left delay-200">
           <RecentHeadlines />
         </div>
 
         {/* Orta: Analiz aracı */}
-        <div className="col-span-1 lg:col-span-6 flex flex-col min-h-[600px]">
+        <div className="col-span-1 lg:col-span-6 flex flex-col min-h-[320px] md:min-h-[420px] lg:min-h-[500px] animate-fade-up delay-200">
 
-          {/* Gradient glow wrapper — dark modda emerald/mavi parlama */}
+          {/* Gradient glow wrapper */}
           <div className="relative">
-            <div className="absolute -inset-2 rounded-2xl pointer-events-none opacity-20 dark:opacity-100
-                            bg-gradient-to-r from-brand/8 via-brutal-border/20 to-brand/8 dark:from-es-primary/10 dark:via-es-secondary/8 dark:to-es-primary/10
+            <div className="absolute -inset-2 rounded-2xl pointer-events-none opacity-10 dark:opacity-100
+                            bg-gradient-to-r from-brand/8 via-brutal-border/20 to-brand/8
+                            dark:from-es-primary/10 dark:via-es-secondary/8 dark:to-es-primary/10
                             blur-2xl" />
             <div className="relative">
               <AnalysisForm
@@ -81,9 +74,9 @@ const Home = () => {
 
           {/* Hata mesajı */}
           {error && (
-            <div className="animate-fade-up mt-6 border-l-4 border-l-es-error
+            <div className="animate-fade-up mt-4 md:mt-6 border-l-4 border-l-es-error
                             bg-es-error/5 dark:bg-es-error/8
-                            p-4 rounded-xl flex items-start gap-3">
+                            p-3 md:p-4 rounded-xl flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-es-error shrink-0 mt-0.5" />
               <div>
                 <h3 className="text-es-error font-manrope font-bold text-sm">Analiz Hatası</h3>
@@ -92,20 +85,27 @@ const Home = () => {
             </div>
           )}
 
-          {!loading && !isPolling && !result && <AnalysisDisclaimer />}
+          {/* Disclaimer — key ile re-animasyon */}
+          {!loading && !isPolling && !result && (
+            <AnalysisDisclaimer key="disclaimer" />
+          )}
 
-          <div className="mt-6 w-full">
+          {/* Sonuç alanı — key değişince animate-fade-up tetiklenir */}
+          <div className="mt-4 md:mt-6 w-full">
             {showAnalysisSkeleton ? (
-              <AnalysisResultSkeleton />
+              <AnalysisResultSkeleton key="skeleton" />
             ) : result ? (
-              <AnalysisResultCard result={result} />
+              <AnalysisResultCard
+                key={`result-${result.task_id ?? result.prediction ?? Math.random()}`}
+                result={result}
+              />
             ) : null}
           </div>
         </div>
 
         {/* Sağ: Twitter / Sosyal Akış */}
-        <div className="hidden lg:block lg:col-span-3 sticky top-28 animate-fade-right">
-          {initialLoading ? <TwitterFeedSkeleton /> : <TwitterFeedCard />}
+        <div className="hidden lg:flex lg:col-span-3 flex-col animate-fade-right delay-300">
+          <TwitterFeedCard />
         </div>
       </div>
     </div>

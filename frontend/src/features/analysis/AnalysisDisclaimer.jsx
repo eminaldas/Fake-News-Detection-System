@@ -4,8 +4,8 @@ import { Info } from 'lucide-react';
 const AnalysisDisclaimer = () => {
     return (
         <div className="
-            animate-in fade-in slide-in-from-bottom-4 duration-700
-            mt-8 p-4 rounded-2xl
+            animate-fade-up
+            mt-6 md:mt-8 p-4 rounded-2xl
             bg-info-bg border border-info-border
             flex items-start md:items-center gap-4
             shadow-sm backdrop-blur-sm
