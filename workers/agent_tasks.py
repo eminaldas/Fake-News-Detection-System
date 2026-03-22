@@ -14,7 +14,6 @@ import asyncio
 import logging
 
 from celery import Celery
-from celery.schedules import crontab
 
 from app.core.config import settings
 from scrapers.rss_monitor import run_agent_cycle

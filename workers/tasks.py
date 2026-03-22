@@ -1,8 +1,9 @@
-import os
-import json
-from celery import Celery
 import asyncio
-from sqlalchemy import select
+import logging
+import os
+import pickle
+
+from celery import Celery
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
@@ -11,15 +12,17 @@ from app.core.config import settings
 from app.models.models import Article, AnalysisResult
 from ml_engine.processing.cleaner import NewsCleaner
 from ml_engine.vectorizer import TurkishVectorizer
-import pickle
 
-# Initialize Celery
+logger = logging.getLogger(__name__)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Celery
+# ─────────────────────────────────────────────────────────────────────────────
 celery_app = Celery(
     "worker",
     broker=settings.REDIS_URL,
-    backend=settings.REDIS_URL
+    backend=settings.REDIS_URL,
 )
-
 celery_app.conf.update(
     task_serializer="json",
     accept_content=["json"],
@@ -28,110 +31,110 @@ celery_app.conf.update(
     enable_utc=True,
 )
 
-# Load NLP Models / Cleaners globally for the worker to reuse across tasks
-cleaner = NewsCleaner()
+# ─────────────────────────────────────────────────────────────────────────────
+# NLP singleton'ları — worker sürecinde bir kez yüklenir
+# ─────────────────────────────────────────────────────────────────────────────
+cleaner    = NewsCleaner()
 vectorizer = TurkishVectorizer()
 
-# Load ML Classifier if available
+_MODEL_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)),
+    "ml_engine", "models", "fake_news_classifier.pkl",
+)
 try:
-    model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ml_engine", "models", "fake_news_classifier.pkl")
-    with open(model_path, "rb") as f:
+    with open(_MODEL_PATH, "rb") as f:
         classifier_model = pickle.load(f)
-    print("Loaded Fake News Classifier successfully.")
-except Exception as e:
-    print(f"Warning: Could not load classifier model. Ensure it is trained. Error: {e}")
+    logger.info("Fake News Classifier yüklendi.")
+except Exception as exc:
+    logger.warning("Classifier yüklenemedi, kural tabanlı fallback kullanılacak: %s", exc)
     classifier_model = None
 
-async def async_analyze_and_save(content_id: str, text: str) -> dict:
-    """
-    Handles the async database operations and ML classification pipeline.
-    """
-    task_engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
-    TaskSession = sessionmaker(task_engine, class_=AsyncSession, expire_on_commit=False)
-    # 1. Metin Temizleme ve Linguistik Bayrak Çıkarımı
-    processed_data = cleaner.process(raw_iddia=text)
-    signals = processed_data["signals"]
-    cleaned_text = processed_data["cleaned_text"]
-    raw_text = processed_data["original_text"]
 
-    # 2. Vektör Çıkarımı (BERTurk)
-    embedding = vectorizer.get_embedding(cleaned_text)
+# ─────────────────────────────────────────────────────────────────────────────
+# Async pipeline
+# ─────────────────────────────────────────────────────────────────────────────
+async def _analyze_and_save(content_id: str, text: str) -> dict:
+    engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
+    Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
-    # 3. YZ Sınıflandırma Modeli Tahmini (Classifier)
-    # Ağırlıklı Sinyal (Kural Tabanlı) Risk Skoru
-    risk_score = (
-        signals.get("exclamation_ratio", 0) * 0.4 +
-        signals.get("uppercase_ratio", 0) * 0.4 +
-        signals.get("question_density", 0) * 0.2
+    # 1. Temizlik + linguistik sinyaller
+    processed   = cleaner.process(raw_iddia=text)
+    signals     = processed["signals"]
+    cleaned     = processed["cleaned_text"]
+    raw         = processed["original_text"]
+
+    # 2. BERT embedding
+    embedding = vectorizer.get_embedding(cleaned)
+
+    # 3. Risk skoru (kural tabanlı)
+    risk = (
+        signals.get("exclamation_ratio", 0) * 0.4
+        + signals.get("uppercase_ratio",   0) * 0.4
+        + signals.get("question_density",  0) * 0.2
     )
 
-    if classifier_model and cleaned_text:
+    # 4. Sınıflandırma
+    if classifier_model and cleaned:
         try:
-            proba = classifier_model.predict_proba([embedding])[0]
-            # proba[0] = class 0 (Authentic), proba[1] = class 1 (Fake)
-            fake_prob = proba[1]
-            max_prob = max(proba)
-            
-            # Hybrid Ensemble Mantığı: Eğer YZ modeli kelimeleri tanımadıysa
-            # ve kararsız kaldıysa (%40-%60 arası), Kural tabanlı sisteme (Sinyallere) danış.
-            if max_prob < 0.60 and risk_score > 0.03:
-                status = "FAKE"
-                # Sinyal gücüne göre confidence belirle (en az YZ'nin tahmini kadar göster)
-                confidence = str(round(max(max_prob, min(risk_score * 10, 0.99)), 2))
+            proba    = classifier_model.predict_proba([embedding])[0]
+            fake_p   = float(proba[1])
+            max_p    = float(max(proba))
+
+            if max_p < 0.60 and risk > 0.03:
+                pred_status = "FAKE"
+                confidence  = round(max(max_p, min(risk * 10, 0.99)), 4)
             else:
-                status = "FAKE" if fake_prob > 0.5 else "AUTHENTIC"
-                confidence = str(round(max_prob, 2))
-                
-        except Exception as e:
-            status = "UNKNOWN"
-            confidence = "0.0"
-            
+                pred_status = "FAKE" if fake_p > 0.5 else "AUTHENTIC"
+                confidence  = round(max_p, 4)
+        except Exception as exc:
+            logger.warning("Classifier tahmin hatası: %s", exc)
+            pred_status = "UNKNOWN"
+            confidence  = 0.0
     else:
-        # Tamamen kural tabanlı Fallback:
-        status = "FAKE" if risk_score > 0.05 else "AUTHENTIC"
-        confidence = str(round(min(risk_score * 10, 0.99), 2))
+        pred_status = "FAKE" if risk > 0.05 else "AUTHENTIC"
+        confidence  = round(min(risk * 10, 0.99), 4)
 
-    async with TaskSession() as session:
-        # Check if article exists first, or just create a new one if not linked
-        # For this example, we assume we are creating a new Article record for every analysis
-        new_article = Article(
-            title=text[:50] + "..." if len(text) > 50 else text, # placeholder title
-            raw_content=raw_text,
-            content=cleaned_text,
+    # 5. DB kaydı
+    title_db = (text[:50] + "...") if len(text) > 50 else text
+    async with Session() as session:
+        article = Article(
+            title=title_db,
+            raw_content=raw,
+            content=cleaned,
             embedding=embedding,
-            metadata_info={"task_id": content_id}
+            metadata_info={"task_id": content_id},
         )
-        session.add(new_article)
-        await session.flush() # uuid generation
+        session.add(article)
+        await session.flush()
 
-        # Analysis Result oluştur
-        analysis_res = AnalysisResult(
-            article_id=new_article.id,
-            status=status,
-            confidence=confidence,
-            signals=json.dumps(signals) # JSON string olarak kaydet
+        analysis = AnalysisResult(
+            article_id=article.id,
+            status=pred_status,
+            confidence=confidence,   # artık Float
+            signals=signals,         # artık JSONB — dict doğrudan
         )
-        session.add(analysis_res)
+        session.add(analysis)
         await session.commit()
-        
-        result = {
-            "content_id": content_id,
-            "status": "completed",
-            "db_article_id": str(new_article.id),
-            "prediction": status,
-            "confidence": confidence,
-            "signals": signals,
-            "processed_text_length": len(cleaned_text)
-        }
-    
-    await task_engine.dispose()
-    return result
+        article_id = str(article.id)
 
+    await engine.dispose()
+    logger.info("Analiz tamamlandı → status=%s conf=%.4f id=%s", pred_status, confidence, article_id)
+
+    return {
+        "content_id":            content_id,
+        "status":                "completed",
+        "db_article_id":         article_id,
+        "prediction":            pred_status,
+        "confidence":            confidence,
+        "signals":               signals,
+        "processed_text_length": len(cleaned),
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Celery task
+# ─────────────────────────────────────────────────────────────────────────────
 @celery_app.task(name="analyze_article", rate_limit=settings.CELERY_RATE_LIMIT)
 def analyze_article(content_id: str, text: str) -> dict:
-    """
-    NLP Pipeline Görev Akışı:
-    Ham Metin -> Temizlik -> Özellik Çıkarımı -> Vektörleme -> DB Kayıt
-    """
-        
-    return asyncio.run(async_analyze_and_save(content_id, text))
+    """Ham metin → temizlik → embedding → sınıflandırma → DB kaydı."""
+    return asyncio.run(_analyze_and_save(content_id, text))
