@@ -13,7 +13,6 @@ Pipeline:
 """
 
 import asyncio
-import json
 import logging
 
 from sqlalchemy import select
@@ -213,8 +212,8 @@ async def _async_pipeline(task_id: str, url: str) -> dict:
         analysis_res = AnalysisResult(
             article_id=new_article.id,
             status=verdict,
-            confidence=str(confidence),
-            signals=json.dumps(all_signals, ensure_ascii=False),
+            confidence=confidence,
+            signals=all_signals,
         )
         session.add(analysis_res)
         await session.commit()
