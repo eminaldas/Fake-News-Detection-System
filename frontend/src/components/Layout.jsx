@@ -1,21 +1,57 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
+import { Github } from 'lucide-react';
 import Navbar from './common/Navbar';
+
+const FOOTER_LINKS = ['Hakkımızda', 'Gizlilik', 'İletişim', 'Kullanım Koşulları'];
 
 const Layout = () => {
     return (
-        <div className="min-h-screen bg-app-bg flex flex-col font-sans transition-colors duration-300">
+        <div className="min-h-screen flex flex-col transition-colors duration-300">
             <Navbar />
 
-            {/* Main Content Area */}
-            {/* Main Content Area */}
-            {/* Added pt-28 to account for absolute navbar */}
             <main className="flex-grow pt-28">
                 <Outlet />
             </main>
-            <footer className="border-t-0 border-app-gray mt-auto transition-colors duration-300 relative z-10 py-6">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-center text-sm font-medium text-app-charcoal dark:text-gray-400 opacity-70">
-                    Fake News Detection System &copy; {new Date().getFullYear()}
+
+            <footer className="mt-24 border-t border-brutal-border dark:border-es-primary/10 bg-surface dark:bg-es-surface">
+                <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-8">
+
+                    {/* Marka */}
+                    <div className="flex flex-col items-center md:items-start gap-1">
+                        <span className="text-base font-manrope font-extrabold tracking-tight text-tx-primary dark:text-es-primary">
+                            Ne Haber
+                        </span>
+                        <p className="text-xs text-tx-secondary">
+                            © {new Date().getFullYear()} Fake News Detection System
+                        </p>
+                    </div>
+
+                    {/* Linkler */}
+                    <div className="flex flex-wrap justify-center gap-6">
+                        {FOOTER_LINKS.map((link) => (
+                            <a
+                                key={link}
+                                href="#"
+                                className="text-xs text-tx-secondary hover:text-tx-primary transition-colors"
+                            >
+                                {link}
+                            </a>
+                        ))}
+                    </div>
+
+                    {/* Sosyal */}
+                    <div className="flex gap-3">
+                        <a
+                            href="https://github.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-8 h-8 rounded-full border border-brutal-border flex items-center justify-center text-tx-secondary hover:text-tx-primary hover:border-tx-primary transition-all"
+                        >
+                            <Github size={14} />
+                        </a>
+                    </div>
+
                 </div>
             </footer>
         </div>

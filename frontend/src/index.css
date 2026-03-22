@@ -1,64 +1,131 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Inter:wght@400;500;600&family=Outfit:wght@400;700;900&display=swap');
+
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ═══════════════════════════════════════════════════════════════════
+   EMERALD SENTINEL — Token Sistemi
+   Tüm renkler burada tanımlanır. Bileşenlere hardcode hex girilmez.
+   ═══════════════════════════════════════════════════════════════════ */
+
 @layer base {
+
+  /* ─── LIGHT MOD ─────────────────────────────────────────────── */
   :root {
-    /* ─── ANA RENKLER ─── */
-    /* #c1c2b1 → Krem/bej zemin  */
-    /* #6c6d62 → Koyu olive gri  */
-    /* #eaeaea → Açık gri/beyaz  */
+    /* Zemin */
+    --color-bg-base:          #f8f9fb;
+    --color-bg-surface:       #ffffff;
+    --color-bg-surface-solid: #f1f2f4;
 
-    --color-bg-base: #c1c2b1;
-    /* Ana sayfa zemini */
-    --color-bg-surface: #eaeaea;
-    /* Panel / kart yüzeyi */
-    --color-bg-surface-solid: #eaeaea;
+    /* Metin */
+    --color-text-primary:     #18181b;
+    --color-text-secondary:   #71717a;
+    --color-text-muted:       #71717a;
 
-    --color-text-primary: #6c6d62;
-    /* Koyu olive → ana metin */
-    --color-text-secondary: #8a8b7e;
-    /* Biraz açık → ikincil metin */
-    --color-border: #6c6d62;
-    /* Koyu border */
+    /* Kenarlık */
+    --color-border:           #e4e4e7;
 
-    --color-brand-primary: #6c6d62;
-    /* Ana aksan (butonlar, ikon arka plan) */
-    --color-brand-secondary: #4e4f46;
-    /* Hover/pressed koyu tonu */
-    --color-brand-accent: #c1c2b1;
-    /* Açık aksan */
-    --color-brand-light: #d8d9cb;
-    /* Geçiş tonu */
+    /* Marka */
+    --color-brand-primary:    #3f3f46;
+    --color-brand-secondary:  #18181b;
+    --color-brand-accent:     #f4f4f5;
+    --color-brand-light:      #e4e4e7;
+
+    /* Skeleton */
+    --color-skeleton:         #e4e4e7;
+
+    /* ── Durum: Doğru (Authentic) ── */
+    --color-authentic-bg:     #ddf0e5;
+    --color-authentic-border: #5a8060;
+    --color-authentic-text:   #2d5a3d;
+    --color-authentic-track:  #c0d4b8;
+    --color-authentic-fill:   #5a8060;
+
+    /* ── Durum: Sahte (Fake) ── */
+    --color-fake-bg:          #f5e6d8;
+    --color-fake-border:      #bc6c25;
+    --color-fake-text:        #8b4513;
+    --color-fake-track:       #ddc8b4;
+    --color-fake-fill:        #bc6c25;
+
+    /* ── Durum: Belirsiz (Neutral) ── */
+    --color-neutral-bg:       #f4f4f5;
+    --color-neutral-border:   #a1a1aa;
+    --color-neutral-text:     #52525b;
+    --color-neutral-track:    #e4e4e7;
+    --color-neutral-fill:     #71717a;
+
+    /* ── Bilgilendirme (Disclaimer) ── */
+    --color-info-bg:          rgba(239, 246, 255, 0.55);
+    --color-info-border:      rgba(147, 197, 253, 0.55);
+    --color-info-icon-bg:     #dbeafe;
+    --color-info-icon:        #1d4ed8;
+    --color-info-title:       #1e3a5f;
+    --color-info-text:        #334155;
+    --color-info-accent:      #1e40af;
   }
 
+  /* ─── DARK MOD — Emerald Sentinel ────────────────────────────── */
   .dark {
-    /* ─── DARK MOD — Profesyonel Kömür & Arduaz Paleti ─── */
-    --color-bg-base: #0b0e14;
-    /* Sayfa zemini: Derin Lacivert-Siyah */
-    --color-bg-surface: #151921;
-    /* Panel / Kart yüzeyi: Hafif yükseltilmiş katman */
-    --color-bg-surface-solid: #1b2029;
-    /* Kartların içi veya daha belirgin katmanlar */
+    /* Zemin */
+    --color-bg-base:          #070f12;
+    --color-bg-surface:       #111b1f;
+    --color-bg-surface-solid: #1c272c;   /* ← border rengi olarak kullanılır */
 
-    --color-text-primary: #e3e6ed;
-    /* Ana metin: Yumuşatılmış beyaz */
-    --color-text-secondary: #a1a8b5;
-    /* İkincil metin: Daha okunaklı orta gri */
-    --color-border: #2d333f;
-    /* Border: Kurumsal koyu gri-mavi */
+    /* Metin */
+    --color-text-primary:     #f0f8fc;
+    --color-text-secondary:   #a4acb0;
+    --color-text-muted:       #8e8e99;
 
-    --color-brand-primary: #cbd5e1;
-    /* Brand aksan: Arduaz gri */
-    --color-brand-secondary: #f1f5f9;
-    /* Hover parlaklık */
-    --color-brand-accent: #1e293b;
-    /* Kart içi aksan yüzeyi */
-    --color-brand-light: #334155;
-    /* Hover yüzeyi */
+    /* Kenarlık */
+    --color-border:           #41494d;
+
+    /* Marka */
+    --color-brand-primary:    #3fff8b;
+    --color-brand-secondary:  #54e0fd;
+    --color-brand-accent:     #0a1f15;
+    --color-brand-light:      #122219;
+
+    /* Skeleton */
+    --color-skeleton:         #1c272c;   /* surface-solid, yüzeyden biraz yüksek */
+
+    /* ── Durum: Doğru (Authentic) ── */
+    --color-authentic-bg:     #172621;
+    --color-authentic-border: #1f3320;
+    --color-authentic-text:   #6ee7b7;
+    --color-authentic-track:  #1c2b1c;
+    --color-authentic-fill:   #10b981;
+
+    /* ── Durum: Sahte (Fake) ── */
+    --color-fake-bg:          #1a1210;
+    --color-fake-border:      #7c3910;
+    --color-fake-text:        #fb923c;
+    --color-fake-track:       #2a1a10;
+    --color-fake-fill:        #f59e0b;
+
+    /* ── Durum: Belirsiz (Neutral) ── */
+    --color-neutral-bg:       #18181c;
+    --color-neutral-border:   #303036;
+    --color-neutral-text:     #8e8e99;
+    --color-neutral-track:    #26262b;
+    --color-neutral-fill:     #52525b;
+
+    /* ── Bilgilendirme (Disclaimer) ── */
+    --color-info-bg:          rgba(23, 37, 84, 0.22);
+    --color-info-border:      rgba(30, 58, 138, 0.38);
+    --color-info-icon-bg:     rgba(30, 58, 138, 0.28);
+    --color-info-icon:        #60a5fa;
+    --color-info-title:       #bfdbfe;
+    --color-info-text:        #cbd5e1;
+    --color-info-accent:      #93c5fd;
   }
 
   html {
     font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Manrope', system-ui, sans-serif;
   }
 
   body {
@@ -69,50 +136,96 @@
     margin: 0;
     min-height: 100vh;
     transition: background-color 0.3s ease, color 0.3s ease;
-    background-image: url('./assets/images/mesh-641\ \(1\).png');
-    background-size: cover;
-    background-attachment: fixed;
-    background-position: center;
   }
 
+  /* Dark mod — CSS radial gradient arka plan */
   .dark body {
-    background-image: url('./assets/images/mesh-641.png');
-  }
-
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    font-family: 'Outfit', system-ui, sans-serif;
+    background:
+      radial-gradient(ellipse 70% 55% at 12% 50%,  rgba(63, 255, 139, 0.045) 0%, transparent 70%),
+      radial-gradient(ellipse 55% 45% at 88% 12%,  rgba(84, 224, 253, 0.035) 0%, transparent 65%),
+      radial-gradient(ellipse 40% 40% at 55% 88%,  rgba(30, 233, 182, 0.020) 0%, transparent 60%),
+      #070f12;
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   @theme — CSS token → Tailwind utility class eşlemesi
+   ═══════════════════════════════════════════════════════════════════ */
 @theme {
-  --font-inter: 'Inter', sans-serif;
-  --font-outfit: 'Outfit', sans-serif;
+  /* Fontlar */
+  --font-inter:    'Inter',   sans-serif;
+  --font-outfit:   'Outfit',  sans-serif;
+  --font-manrope:  'Manrope', sans-serif;
 
-  /* Zemin renkleri */
-  --color-base: var(--color-bg-base);
-  --color-surface: var(--color-bg-surface);
-  --color-surface-solid: var(--color-bg-surface-solid);
+  /* Zemin */
+  --color-base:           var(--color-bg-base);
+  --color-surface:        var(--color-bg-surface);
+  --color-surface-solid:  var(--color-bg-surface-solid);
 
-  /* Metin renkleri */
-  --color-tx-primary: var(--color-text-primary);
-  --color-tx-secondary: var(--color-text-secondary);
-  --color-brutal-border: var(--color-border);
+  /* Metin */
+  --color-tx-primary:     var(--color-text-primary);
+  --color-tx-secondary:   var(--color-text-secondary);
+  --color-muted:          var(--color-text-muted);
+  --color-brutal-border:  var(--color-border);
 
-  /* Marka renkleri */
-  --color-brand: var(--color-brand-primary);
-  --color-brand-dark: var(--color-brand-secondary);
-  --color-brand-light: var(--color-brand-light);
-  --color-brand-accent: var(--color-brand-accent);
+  /* Marka (temaya göre değişir) */
+  --color-brand:          var(--color-brand-primary);
+  --color-brand-dark:     var(--color-brand-secondary);
+  --color-brand-light:    var(--color-brand-light);
+  --color-brand-accent:   var(--color-brand-accent);
+
+  /* Skeleton */
+  --color-skeleton:       var(--color-skeleton);
+
+  /* ── Emerald Sentinel — sabit renkler ── */
+  --color-es-primary:   #3fff8b;
+  --color-es-secondary: #54e0fd;
+  --color-es-tertiary:  #1ee9b6;
+  --color-es-error:     #ff7351;
+  --color-es-bg:        #070f12;
+  --color-es-surface:   #111b1f;
+
+  /* ── Durum: Authentic ── */
+  --color-authentic-bg:     var(--color-authentic-bg);
+  --color-authentic-border: var(--color-authentic-border);
+  --color-authentic-text:   var(--color-authentic-text);
+  --color-authentic-track:  var(--color-authentic-track);
+  --color-authentic-fill:   var(--color-authentic-fill);
+
+  /* ── Durum: Fake ── */
+  --color-fake-bg:     var(--color-fake-bg);
+  --color-fake-border: var(--color-fake-border);
+  --color-fake-text:   var(--color-fake-text);
+  --color-fake-track:  var(--color-fake-track);
+  --color-fake-fill:   var(--color-fake-fill);
+
+  /* ── Durum: Neutral ── */
+  --color-neutral-bg:     var(--color-neutral-bg);
+  --color-neutral-border: var(--color-neutral-border);
+  --color-neutral-text:   var(--color-neutral-text);
+  --color-neutral-track:  var(--color-neutral-track);
+  --color-neutral-fill:   var(--color-neutral-fill);
+
+  /* ── Bilgilendirme ── */
+  --color-info-bg:       var(--color-info-bg);
+  --color-info-border:   var(--color-info-border);
+  --color-info-icon-bg:  var(--color-info-icon-bg);
+  --color-info-icon:     var(--color-info-icon);
+  --color-info-title:    var(--color-info-title);
+  --color-info-text:     var(--color-info-text);
+  --color-info-accent:   var(--color-info-accent);
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   UTILITIES
+   ═══════════════════════════════════════════════════════════════════ */
 @layer utilities {
+
+  /* ── Glass ── */
   .glass {
-    background-color: var(--color-bg-surface);
+    background-color: color-mix(in srgb, var(--color-bg-surface) 85%, transparent);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--color-border);
   }
 
@@ -122,7 +235,22 @@
     border-radius: 0.5rem;
   }
 
-  /* ─── GLOW BORDER — Form ve kartlar için kenarlıktan ışıtan gölge ─── */
+  /* ── Glass Pill — navbar ── */
+  .glass-pill {
+    background-color: color-mix(in srgb, var(--color-bg-surface) 85%, transparent);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--color-border);
+    border-radius: 9999px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .dark .glass-pill {
+    background-color: rgba(4, 30, 22, 0.62);
+    border-color: rgba(63, 255, 139, 0.12);
+    box-shadow: 0 4px 32px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(63,255,139,0.06);
+  }
+
+  /* ── Glow Border ── */
   .glow-border-brand {
     border-color: var(--color-border);
     box-shadow:
@@ -131,189 +259,93 @@
       0 0 20px 4px color-mix(in srgb, var(--color-border) 20%, transparent);
     transition: box-shadow 0.4s ease, border-color 0.4s ease;
   }
-
+  .dark .glow-border-brand {
+    border-color: color-mix(in srgb, #3fff8b 22%, #41494d);
+    box-shadow:
+      0 0 0 1px   color-mix(in srgb, #3fff8b 18%, #41494d),
+      0 0 10px 2px rgba(63,255,139,0.10),
+      0 0 28px 6px rgba(63,255,139,0.05);
+  }
   .glow-border-brand:focus-within {
     box-shadow:
       0 0 0 1.5px var(--color-border),
       0 0 12px 4px color-mix(in srgb, var(--color-border) 55%, transparent),
       0 0 30px 8px color-mix(in srgb, var(--color-border) 25%, transparent);
   }
+  .dark .glow-border-brand:focus-within {
+    border-color: rgba(63,255,139,0.42);
+    box-shadow:
+      0 0 0 1.5px rgba(63,255,139,0.32),
+      0 0 16px 4px rgba(63,255,139,0.16),
+      0 0 40px 10px rgba(63,255,139,0.07);
+  }
 
-  /* ─── FADE IN UP ─── */
+  /* ── Animasyonlar ── */
   @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(16px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity:0; transform:translateY(16px); }
+    to   { opacity:1; transform:translateY(0); }
   }
-
-  /* ─── FADE IN LEFT ─── */
   @keyframes fadeInLeft {
-    from {
-      opacity: 0;
-      transform: translateX(-16px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
+    from { opacity:0; transform:translateX(-16px); }
+    to   { opacity:1; transform:translateX(0); }
   }
-
-  /* ─── FADE IN RIGHT ─── */
   @keyframes fadeInRight {
-    from {
-      opacity: 0;
-      transform: translateX(16px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
+    from { opacity:0; transform:translateX(16px); }
+    to   { opacity:1; transform:translateX(0); }
   }
-
-  /* ─── PULSE SUBTLE (badge, dot) ─── */
   @keyframes pulseSoft {
-
-    0%,
-    100% {
-      opacity: 1;
-    }
-
-    50% {
-      opacity: 0.55;
-    }
+    0%,100% { opacity:1; }
+    50%      { opacity:0.5; }
   }
-
-  /* ─── SHIMMER ANIMATION ─── */
   @keyframes shimmer {
-    0% {
-      background-position: -200% 0;
-    }
-
-    100% {
-      background-position: 200% 0;
-    }
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
   }
 
+  .animate-fade-up    { animation: fadeInUp    0.5s cubic-bezier(0.22,1,0.36,1) both; }
+  .animate-fade-left  { animation: fadeInLeft  0.5s cubic-bezier(0.22,1,0.36,1) both; }
+  .animate-fade-right { animation: fadeInRight 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+  .animate-pulse-soft { animation: pulseSoft 2.5s ease-in-out infinite; }
+
+  /* Shimmer — CSS var tabanlı, dark override gerekmez */
   .animate-shimmer {
     background: linear-gradient(90deg,
-        rgba(0, 0, 0, 0.06) 25%,
-        rgba(0, 0, 0, 0.1) 37%,
-        rgba(0, 0, 0, 0.06) 63%);
+      var(--color-skeleton) 25%,
+      color-mix(in srgb, var(--color-skeleton) 60%, var(--color-border)) 50%,
+      var(--color-skeleton) 75%
+    );
     background-size: 200% 100%;
-    animation: shimmer 1.5s infinite linear;
+    animation: shimmer 1.4s ease-in-out infinite;
   }
 
-  .dark .animate-shimmer {
-    background: linear-gradient(90deg,
-        rgba(255, 255, 255, 0.03) 25%,
-        rgba(255, 255, 255, 0.07) 37%,
-        rgba(255, 255, 255, 0.03) 63%);
-    background-size: 200% 100%;
-  }
+  /* Delay yardımcıları */
+  .delay-75  { animation-delay:  75ms; }
+  .delay-150 { animation-delay: 150ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-400 { animation-delay: 400ms; }
+  .delay-500 { animation-delay: 500ms; }
 
-  .animate-fade-up {
-    animation: fadeInUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-
-  .animate-fade-left {
-    animation: fadeInLeft 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-
-  .animate-fade-right {
-    animation: fadeInRight 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-
-  .animate-pulse-soft {
-    animation: pulseSoft 2.5s ease-in-out infinite;
-  }
-
-  /* ─── Delay yardımcıları ─── */
-  .delay-75 {
-    animation-delay: 75ms;
-  }
-
-  .delay-150 {
-    animation-delay: 150ms;
-  }
-
-  .delay-200 {
-    animation-delay: 200ms;
-  }
-
-  .delay-300 {
-    animation-delay: 300ms;
-  }
-
-  .delay-400 {
-    animation-delay: 400ms;
-  }
-
-  .delay-500 {
-    animation-delay: 500ms;
-  }
-
-  /* ─── CUSTOM SCROLLBAR UTILITY ─── */
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(90, 96, 88, 0.4);
-    /* #5a6058 with opacity */
-    border-radius: 12px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(90, 96, 88, 0.6);
-  }
-
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  /* Global scrollbar for the site */
-  ::-webkit-scrollbar {
-    width: 14px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: var(--color-bg-base);
-  }
-
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar       { width: 12px; }
+  ::-webkit-scrollbar-track { background: var(--color-bg-base); }
   ::-webkit-scrollbar-thumb {
-    background: rgba(90, 96, 88, 0.5);
-    /* Brand Dark Color #5a6058 */
+    background: color-mix(in srgb, var(--color-border) 55%, transparent);
     border-radius: 20px;
     border: 3px solid var(--color-bg-base);
   }
-
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(90, 96, 88, 0.8);
+    background: color-mix(in srgb, var(--color-border) 85%, transparent);
   }
+  .dark ::-webkit-scrollbar-thumb       { background: rgba(63,255,139,0.10); }
+  .dark ::-webkit-scrollbar-thumb:hover { background: rgba(63,255,139,0.20); }
 
-  .dark ::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.2);
-    /* Slate-400 equivalent */
+  .custom-scrollbar::-webkit-scrollbar       { width: 8px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--color-border) 45%, transparent);
+    border-radius: 12px;
   }
-
-  .dark ::-webkit-scrollbar-thumb:hover {
-    background: rgba(148, 163, 184, 0.4);
-  }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb       { background: rgba(63,255,139,0.08); }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(63,255,139,0.18); }
 }

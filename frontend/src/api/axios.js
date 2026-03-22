@@ -32,10 +32,10 @@ axiosInstance.interceptors.response.use(
     (error) => {
         // Check if error is due to Unauthorized (401)
         if (error.response && error.response.status === 401) {
-            // Clear token and optionally force reload to clear state and redirect to login
             localStorage.removeItem('token');
-            // Uncomment below to force a strict logout transition if desired:
-            // window.location.href = '/login'; 
+            if (window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
         }
 
         // Format error message to be cleaner for the UI
