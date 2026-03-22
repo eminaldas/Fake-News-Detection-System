@@ -20,22 +20,22 @@ const AnalysisForm = ({ onAnalyze, onAnalyzeUrl, loading, isPolling }) => {
         <div className="
             animate-fade-up
             glow-border-brand
-            bg-base dark:bg-surface
+            bg-surface
             rounded-2xl flex flex-col
             h-[60%] lg:h-auto min-h-[300px]
             overflow-hidden
-            border border-brutal-border dark:border-[#303036]
+            border border-brutal-border dark:border-surface-solid
             transition-all duration-300
         ">
             {/* Tab Switcher */}
-            <div className="flex border-b border-brutal-border/30 dark:border-[#303036]">
+            <div className="flex border-b border-brutal-border/30 dark:border-surface-solid">
                 <button
                     onClick={() => setMode('text')}
                     disabled={loading}
                     className={`flex items-center gap-2 px-5 py-3 text-sm font-bold transition-colors duration-200 disabled:opacity-50
                         ${mode === 'text'
-                            ? 'text-tx-primary dark:text-[#f0f0f2] border-b-2 border-tx-primary dark:border-[#f0f0f2] -mb-px'
-                            : 'text-tx-secondary dark:text-[#8e8e99] hover:text-tx-primary dark:hover:text-[#f0f0f2]'
+                            ? 'text-tx-primary border-b-2 border-tx-primary -mb-px'
+                            : 'text-tx-secondary hover:text-tx-primary'
                         }`}
                 >
                     <FileText className="w-4 h-4" />
@@ -46,8 +46,8 @@ const AnalysisForm = ({ onAnalyze, onAnalyzeUrl, loading, isPolling }) => {
                     disabled={loading}
                     className={`flex items-center gap-2 px-5 py-3 text-sm font-bold transition-colors duration-200 disabled:opacity-50
                         ${mode === 'url'
-                            ? 'text-tx-primary dark:text-[#f0f0f2] border-b-2 border-tx-primary dark:border-[#f0f0f2] -mb-px'
-                            : 'text-tx-secondary dark:text-[#8e8e99] hover:text-tx-primary dark:hover:text-[#f0f0f2]'
+                            ? 'text-tx-primary border-b-2 border-tx-primary -mb-px'
+                            : 'text-tx-secondary hover:text-tx-primary'
                         }`}
                 >
                     <Link2 className="w-4 h-4" />
@@ -65,20 +65,20 @@ const AnalysisForm = ({ onAnalyze, onAnalyzeUrl, loading, isPolling }) => {
                         placeholder="Şüpheli haberi buraya yapıştırın..."
                         className="
                             w-full flex-grow min-h-[160px] p-6
-                            text-brand dark:text-[#f0f0f2]
+                            text-tx-primary
                             bg-transparent border-0 focus:ring-0
                             resize-none text-lg lg:text-xl font-medium outline-none
-                            placeholder:text-tx-secondary dark:placeholder:text-[#8e8e99]
+                            placeholder:text-tx-secondary
                             disabled:opacity-50 transition-colors
                         "
                     />
                 ) : (
                     <div className="flex-grow flex flex-col justify-center px-6 py-8 gap-3">
-                        <label className="text-xs font-bold uppercase tracking-widest text-tx-secondary dark:text-[#8e8e99]">
+                        <label className="text-xs font-bold uppercase tracking-widest text-tx-secondary">
                             Haber URL'si
                         </label>
-                        <div className="flex items-center gap-3 rounded-xl border border-brutal-border dark:border-[#303036] bg-white/30 dark:bg-[#1a1d24] px-4 py-3 focus-within:border-tx-primary dark:focus-within:border-[#f0f0f2] transition-colors">
-                            <Link2 className="w-5 h-5 text-tx-secondary dark:text-[#8e8e99] shrink-0" />
+                        <div className="flex items-center gap-3 rounded-xl border border-brutal-border dark:border-surface-solid bg-surface-solid px-4 py-3 focus-within:border-tx-primary transition-colors">
+                            <Link2 className="w-5 h-5 text-tx-secondary shrink-0" />
                             <input
                                 type="url"
                                 value={url}
@@ -88,13 +88,13 @@ const AnalysisForm = ({ onAnalyze, onAnalyzeUrl, loading, isPolling }) => {
                                 placeholder="https://ornek-haber.com/makale"
                                 className="
                                     flex-grow bg-transparent border-0 focus:ring-0 outline-none
-                                    text-brand dark:text-[#f0f0f2] font-medium text-base
-                                    placeholder:text-tx-secondary dark:placeholder:text-[#8e8e99]
+                                    text-tx-primary font-medium text-base
+                                    placeholder:text-tx-secondary
                                     disabled:opacity-50
                                 "
                             />
                         </div>
-                        <p className="text-xs text-tx-secondary dark:text-[#8e8e99] opacity-70">
+                        <p className="text-xs text-tx-secondary opacity-70">
                             Makale scrape edilip BERT ve stilometrik analiz uygulanacaktır.
                         </p>
                     </div>
@@ -102,8 +102,8 @@ const AnalysisForm = ({ onAnalyze, onAnalyzeUrl, loading, isPolling }) => {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 flex justify-between items-center border-t border-brutal-border/30 dark:border-[#303036] transition-colors duration-300">
-                <span className="text-xs font-semibold text-tx-secondary dark:text-[#8e8e99]">
+            <div className="px-6 py-4 flex justify-between items-center border-t border-brutal-border/30 dark:border-surface-solid transition-colors duration-300">
+                <span className="text-xs font-semibold text-tx-secondary">
                     {mode === 'text' ? `${text.length} karakter` : (() => { try { return url ? new URL(url.startsWith('http') ? url : 'https://' + url).hostname : '—'; } catch { return url || '—'; } })()}
                 </span>
                 <button
@@ -111,10 +111,10 @@ const AnalysisForm = ({ onAnalyze, onAnalyzeUrl, loading, isPolling }) => {
                     disabled={isDisabled}
                     className="
                         flex items-center gap-2
-                        bg-tx-primary dark:bg-[#26262b]
-                        hover:bg-brand-dark dark:hover:bg-[#303036]
-                        text-white dark:text-[#f0f0f2]
-                        border border-brutal-border dark:border-[#303036]
+                        bg-tx-primary dark:bg-surface-solid
+                        hover:bg-brand-dark dark:hover:bg-neutral-border
+                        text-white dark:text-tx-primary
+                        border border-brutal-border dark:border-surface-solid
                         px-8 py-2 rounded-xl font-bold
                         transition-all duration-200 active:scale-95
                         shadow-sm hover:shadow-md

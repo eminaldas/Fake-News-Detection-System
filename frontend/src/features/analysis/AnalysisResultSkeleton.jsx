@@ -4,10 +4,10 @@ import Skeleton from '../../components/common/Skeleton';
 
 const AnalysisResultSkeleton = () => {
     return (
-        <div className="animate-fade-up mt-8 p-6 md:p-8 rounded-2xl border-2 shadow-lg relative bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10">
-            
+        <div className="animate-fade-up mt-8 p-6 md:p-8 rounded-2xl border-2 shadow-lg relative bg-surface border-brutal-border dark:border-surface-solid">
+
             {/* Analysis Method Badge Skeleton */}
-            <div className="absolute -top-3 left-8 px-3 py-1 rounded-full bg-black/20 dark:bg-white/20 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+            <div className="absolute -top-3 left-8 px-3 py-1 rounded-full bg-neutral-fill/20 text-muted text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
                 <Info size={10} />
                 <span>Yapay Zeka Analiz Ediyor...</span>
             </div>
@@ -38,7 +38,7 @@ const AnalysisResultSkeleton = () => {
             </div>
 
             {/* Footer Skeleton */}
-            <div className="mt-10 flex items-center justify-end gap-4 pt-4 border-t border-black/5 dark:border-white/5">
+            <div className="mt-10 flex items-center justify-end gap-4 pt-4 border-t border-brutal-border dark:border-surface-solid">
                 <Skeleton className="h-3 w-28" />
                 <div className="flex gap-2">
                     <Skeleton className="w-9 h-9 rounded-full" />

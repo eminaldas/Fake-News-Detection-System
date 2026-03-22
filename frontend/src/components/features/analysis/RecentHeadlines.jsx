@@ -1,93 +1,73 @@
-import React from 'react';
-
-/*
-  Mock veriler: isAuthentic → analiz sonuçlarındaki authentic teması (yeşil)
-                isAuthentic === false → fake teması (turuncu)
-  Renkler AnalysisResultCard ile birebir uyumlu.
-*/
-const headlines = [
-    {
-        text: "İzmir'de korkutan sarsıntı: 4.8 büyüklüğündeki deprem çevre illerden de hissedildi",
-        isAuthentic: true,
-    },
-    {
-        text: "Küresel piyasalarda teknoloji hisselerindeki düşüş yatırımcıyı tedirgin etti",
-        isAuthentic: false,
-    },
-    {
-        text: "Balıkesirde sürücüsünün kontrolünden çıkan otomobil şarampole devrildi. 1 kişi öldü, 6 yaralandı",
-        isAuthentic: true,
-    },
-    {
-        text: "Yeni yapay zeka regülasyonları teknoloji devlerini zorlayabilir",
-        isAuthentic: false,
-    },
-];
+import React, { useEffect, useState } from 'react';
+import { TrendingUp, ArrowUpRight } from 'lucide-react';
+import axiosInstance from '../../../api/axios';
 
 const RecentHeadlines = () => {
+    const [headlines, setHeadlines] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        axiosInstance
+            .get('/articles/trending')
+            .then((res) => setHeadlines(res.data.filter((h) => !!h.source_url)))
+            .catch(() => setHeadlines([]))
+            .finally(() => setLoading(false));
+    }, []);
+
     return (
-        /*
-          sticky top-32: sayfada yukarı scroll anchor kalmış, bu div sayfayla birlikte
-          yüklenir ama konumlanmaz — parent'ta overflow:hidden yoksa sticky çalışır.
-          Home.jsx'te items-start kullanıldığı için sticky col doğru çalışıyor.
-        */
-        <div className="
-            animate-fade-left
-            bg-base dark:bg-surface
-            rounded-2xl flex flex-col overflow-hidden
-            border border-[#5a6058] dark:border-[#303036]
-            shadow-sm border-2
-        ">
+        <div className="bg-surface rounded-2xl overflow-hidden border border-brutal-border dark:border-surface-solid animate-fade-left">
+
             {/* Başlık */}
-            <div className="p-4 border-b border-[#5a6058] dark:border-[#303036]">
-                <h3 className="text-lg font-outfit font-bold text-center text-tx-primary dark:text-[#f0f0f2] tracking-tight">
-                    Son Başlıklar
-                </h3>
+            <div className="px-4 py-3 border-b border-brutal-border dark:border-surface-solid flex items-center gap-2">
+                <TrendingUp className="w-3.5 h-3.5 text-authentic-fill shrink-0" />
+                <span className="text-xs font-black uppercase tracking-widest text-tx-primary">
+                    Günlük Trendler
+                </span>
             </div>
 
             {/* Liste */}
-            <div className="p-3 space-y-2.5 custom-scrollbar">
-                {headlines.map((item, idx) => {
-                    const authentic = item.isAuthentic;
-                    return (
-                        <div
-                            key={idx}
-                            style={{ animationDelay: `${idx * 90}ms` }}
-                            className={`
-                                animate-fade-up
-                                p-3.5 rounded-xl text-sm cursor-pointer
-                                border-l-4 transition-all duration-300
-                                hover:-translate-y-0.5 hover:shadow-md
-                                ${authentic
-                                    /* Authentic — light: yeşil tonu, dark: AnalysisResultCard authentic dark bg */
-                                    ? 'bg-[#dce4d5] dark:bg-[#141a14] border-l-[#5a6058] dark:border-l-[#34d399]'
-                                    /* Fake — light: turuncu tonu, dark: AnalysisResultCard fake dark bg */
-                                    : 'bg-[#e9ddd0] dark:bg-[#1a1210] border-l-[#bc6c25] dark:border-l-[#f97316]'
-                                }
-                            `}
-                        >
-                            {/* Etiket */}
-                            <span className={`
-                                inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest
-                                mb-1.5 px-2 py-0.5 rounded-full
-                                ${authentic
-                                    ? 'bg-[#5a6058]/15 text-[#5a6058] dark:bg-[#34d399]/15 dark:text-[#6ee7b7]'
-                                    : 'bg-[#bc6c25]/15 text-[#bc6c25] dark:bg-[#f97316]/15 dark:text-[#fb923c]'
-                                }
-                            `}>
-                                <span className={`w-1.5 h-1.5 rounded-full animate-pulse-soft ${authentic ? 'bg-current' : 'bg-current'}`} />
-                                {authentic ? 'Doğrulandı' : 'Yanıltıcı'}
-                            </span>
-
-                            <p className={`line-clamp-3 leading-relaxed font-medium ${authentic
-                                ? 'text-[#363934] dark:text-[#c8c8d0]'
-                                : 'text-[#3a2a1a] dark:text-[#c8c8d0]'
-                                }`}>
-                                {item.text}
-                            </p>
+            <div className="divide-y divide-brutal-border/40 dark:divide-surface-solid/60">
+                {loading ? (
+                    [...Array(5)].map((_, i) => (
+                        <div key={i} className="px-4 py-3.5 space-y-2">
+                            <div className="h-2.5 w-12 rounded-full bg-black/10 dark:bg-white/10 animate-pulse" />
+                            <div className="h-3 w-full rounded bg-black/8 dark:bg-white/8 animate-pulse" />
+                            <div className="h-3 w-3/4 rounded bg-black/8 dark:bg-white/8 animate-pulse" />
                         </div>
-                    );
-                })}
+                    ))
+                ) : headlines.length === 0 ? (
+                    <p className="px-4 py-8 text-center text-xs text-tx-secondary">
+                        Henüz trend yok
+                    </p>
+                ) : (
+                    headlines.map((item) => (
+                        <a
+                            key={item.id}
+                            href={item.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group flex flex-col gap-1.5 px-4 py-3.5 hover:bg-black/[0.03] dark:hover:bg-white/[0.03] transition-colors"
+                        >
+                            {/* Kaynak */}
+                            {(item.source_domain || item.source_name) && (
+                                <span className="text-[10px] font-semibold text-tx-secondary uppercase tracking-wide">
+                                    {item.source_domain || item.source_name}
+                                </span>
+                            )}
+
+                            {/* Başlık */}
+                            <p className="text-[13px] font-medium leading-snug text-tx-primary line-clamp-2 group-hover:text-brand dark:group-hover:text-tx-primary transition-colors">
+                                {item.title}
+                            </p>
+
+                            {/* Link ikonu */}
+                            <span className="flex items-center gap-1 text-[10px] text-tx-secondary opacity-0 group-hover:opacity-100 transition-opacity">
+                                <ArrowUpRight className="w-3 h-3" />
+                                Habere git
+                            </span>
+                        </a>
+                    ))
+                )}
             </div>
         </div>
     );

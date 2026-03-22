@@ -1,7 +1,7 @@
 import React from 'react';
 
 const Skeleton = ({ className = '', variant = 'rect' }) => {
-  const baseStyles = 'animate-shimmer bg-black/5 dark:bg-white/5';
+  const baseStyles = 'animate-shimmer';
   
   const variantStyles = {
     rect: 'rounded-md',

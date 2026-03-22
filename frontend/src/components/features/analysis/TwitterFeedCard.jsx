@@ -26,9 +26,9 @@ const TwitterFeedCard = () => {
     ];
 
     return (
-        <div className="bg-base dark:bg-surface border-2 rounded-2xl flex flex-col h-full overflow-hidden border border-[#5a6058] dark:border-[#303036] shadow-sm">
-            <div className="p-4 border-b border-[#5a6058] dark:border-[#303036] flex items-center justify-center gap-2">
-                <h3 className="text-lg font-outfit font-bold text-tx-primary dark:text-[#f0f0f2]">
+        <div className="bg-surface rounded-2xl flex flex-col h-full overflow-hidden border-2 border-brutal-border dark:border-surface-solid shadow-sm">
+            <div className="p-4 border-b border-brutal-border dark:border-surface-solid flex items-center justify-center gap-2">
+                <h3 className="text-lg font-outfit font-bold text-tx-primary">
                     x'den gelenler
                 </h3>
             </div>
@@ -37,7 +37,7 @@ const TwitterFeedCard = () => {
                 {tweets.map(tweet => (
                     <div
                         key={tweet.id}
-                        className="bg-white dark:bg-surface-solid rounded-xl p-4 shadow-sm border border-[#5a6058]/10 dark:border-[#303036] transition-all duration-300 hover:shadow-md"
+                        className="bg-surface-solid rounded-xl p-4 shadow-sm border border-brutal-border dark:border-surface-solid transition-all duration-300 hover:shadow-md"
                     >
                         {/* Header */}
                         <div className="flex items-start justify-between mb-3">
@@ -46,7 +46,7 @@ const TwitterFeedCard = () => {
                                     {tweet.user.substring(0, 3).toUpperCase()}
                                 </div>
                                 <div className="flex flex-col">
-                                    <div className="font-bold text-sm text-tx-primary dark:text-[#f0f0f2] flex items-center gap-1">
+                                    <div className="font-bold text-sm text-tx-primary flex items-center gap-1">
                                         <span className="truncate max-w-[120px]">{tweet.user}</span>
                                         {tweet.hasBadge && (
                                             <svg viewBox="0 0 24 24" className="w-4 h-4 text-blue-500 fill-current shrink-0">
@@ -54,20 +54,20 @@ const TwitterFeedCard = () => {
                                             </svg>
                                         )}
                                     </div>
-                                    <div className="text-xs text-[#8e8e99]">{tweet.handle}</div>
+                                    <div className="text-xs text-muted">{tweet.handle}</div>
                                 </div>
                             </div>
-                            <Twitter className="w-4 h-4 text-[#8e8e99] shrink-0" />
+                            <Twitter className="w-4 h-4 text-muted shrink-0" />
                         </div>
 
                         {/* Body */}
-                        <p className="text-sm text-tx-primary dark:text-[#c8c8d0] whitespace-pre-line mb-3 leading-relaxed">
+                        <p className="text-sm text-tx-primary dark:text-tx-secondary whitespace-pre-line mb-3 leading-relaxed">
                             {tweet.content}
                         </p>
-                        <div className="text-xs text-[#8e8e99] mb-3">{tweet.time}</div>
+                        <div className="text-xs text-muted mb-3">{tweet.time}</div>
 
                         {/* Footer */}
-                        <div className="flex items-center justify-between text-[#8e8e99] text-xs font-medium pt-3 border-t border-[#5a6058] dark:border-[#303036]">
+                        <div className="flex items-center justify-between text-muted text-xs font-medium pt-3 border-t border-brutal-border dark:border-surface-solid">
                             <div className="flex items-center gap-1.5 hover:text-pink-400 cursor-pointer transition-colors group">
                                 <div className="p-1.5 rounded-full group-hover:bg-pink-500/10 transition-colors">
                                     <Heart className="w-4 h-4" />

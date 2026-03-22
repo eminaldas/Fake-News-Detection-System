@@ -16,43 +16,41 @@ const AnalysisResultCard = ({ result }) => {
     const scoreLabel = isUrlAnalysis ? 'Doğruluk Skoru' : 'Analiz Skoru';
 
     // 2. Güven Skoru Hesaplama (0.96 veya 96 gelme ihtimaline karşı güvenli matematik)
-    // URL analizinde truth_score (0-100) doğrudan kullanılır
     const displayScore = isUrlAnalysis
         ? parseFloat(result.truth_score).toFixed(0)
         : (() => { let r = parseFloat(result.confidence || 0); return r <= 1 ? (r * 100).toFixed(0) : r.toFixed(0); })();
     const confidence = displayScore;
 
-    // 3. Üç Aşamalı Tema Yönetimi (Authentic, Fake, Neutral)
+    // 3. Üç Aşamalı Tema Yönetimi — token tabanlı
     let theme;
 
     if (isAuthentic) {
         theme = {
-            bg: 'bg-[#dce4d5] dark:bg-[#141a14]',
-            border: 'border-[#5a6058] dark:border-[#1f3320]/80',
-            title: 'text-[#5a6058] dark:text-[#6ee7b7]',
-            progressBg: 'bg-[#b8c5b0] dark:bg-[#1c2b1c]',
-            progressFill: 'bg-[#5a6058] dark:bg-[#10b981]',
+            bg: 'bg-authentic-bg',
+            border: 'border-authentic-border',
+            title: 'text-authentic-text',
+            progressBg: 'bg-authentic-track',
+            progressFill: 'bg-authentic-fill',
             icon: <CheckCircle2 className="w-16 h-16" strokeWidth={1.5} />,
             mainTitle: 'Güvenilir İçerik Tespit Edildi'
         };
     } else if (isFake) {
         theme = {
-            bg: 'bg-[#e9ddd0] dark:bg-[#1a1210]',
-            border: 'border-[#bc6c25] dark:border-[#7c3910]/80',
-            title: 'text-[#bc6c25] dark:text-[#fb923c]',
-            progressBg: 'bg-[#d8c4b0] dark:bg-[#2a1a10]',
-            progressFill: 'bg-[#bc6c25] dark:bg-[#f59e0b]',
+            bg: 'bg-fake-bg',
+            border: 'border-fake-border',
+            title: 'text-fake-text',
+            progressBg: 'bg-fake-track',
+            progressFill: 'bg-fake-fill',
             icon: <XCircle className="w-16 h-16" strokeWidth={1.5} />,
             mainTitle: 'Yüksek Yanıltma Riski Mevcut'
         };
     } else {
-        // Yapay Zeka Kararsız Kalırsa (Neutral State)
         theme = {
-            bg: 'bg-gray-100 dark:bg-[#18181c]',
-            border: 'border-gray-400 dark:border-[#303036]',
-            title: 'text-gray-600 dark:text-[#8e8e99]',
-            progressBg: 'bg-gray-200 dark:bg-[#26262b]',
-            progressFill: 'bg-gray-500 dark:bg-[#52525b]',
+            bg: 'bg-neutral-bg',
+            border: 'border-neutral-border',
+            title: 'text-neutral-text',
+            progressBg: 'bg-neutral-track',
+            progressFill: 'bg-neutral-fill',
             icon: <HelpCircle className="w-16 h-16" strokeWidth={1.5} />,
             mainTitle: 'Analiz Sonucu Belirsiz'
         };
@@ -60,7 +58,7 @@ const AnalysisResultCard = ({ result }) => {
 
     return (
         <div className={`animate-fade-up mt-8 p-6 md:p-8 rounded-2xl border-2 shadow-lg relative ${theme.bg} ${theme.border}`}>
-            
+
             {/* Analiz Yöntemi Badge */}
             <div className={`absolute -top-3 left-8 px-3 py-1 rounded-full text-white text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 shadow-sm ${theme.progressFill}`}>
                 {badgeIcon}
@@ -95,7 +93,7 @@ const AnalysisResultCard = ({ result }) => {
                     <span className={`text-lg font-black ${theme.title}`}>%{confidence}</span>
                 </div>
                 <div className={`w-full h-3 rounded-full overflow-hidden p-0.5 ${theme.progressBg}`}>
-                    <div 
+                    <div
                         className={`h-full rounded-full transition-all duration-[1500ms] ease-out shadow-sm ${theme.progressFill}`}
                         style={{ width: `${confidence}%` }}
                     />
@@ -104,12 +102,12 @@ const AnalysisResultCard = ({ result }) => {
 
             {/* Açıklama Metni */}
             <div className="relative">
-                <span className={`absolute -left-4 -top-2 text-4xl font-serif opacity-20 ${theme.title}`}>“</span>
-                <p className="text-[#2a2c28] dark:text-[#c8c8d0] font-medium leading-relaxed text-sm md:text-lg italic px-2">
-                    {result.message || (isAuthentic 
-                        ? "Analiz edilen metin, tarafsız bir dil yapısına ve doğrulanabilir veri setlerine yüksek uyum göstermektedir." 
-                        : isFake 
-                            ? "İncelediğiniz metin, tipik yanıltıcı haber karakteristikleri taşımaktadır." 
+                <span className={`absolute -left-4 -top-2 text-4xl font-serif opacity-20 ${theme.title}`}>"</span>
+                <p className="text-tx-primary dark:text-tx-secondary font-medium leading-relaxed text-sm md:text-lg italic px-2">
+                    {result.message || (isAuthentic
+                        ? "Analiz edilen metin, tarafsız bir dil yapısına ve doğrulanabilir veri setlerine yüksek uyum göstermektedir."
+                        : isFake
+                            ? "İncelediğiniz metin, tipik yanıltıcı haber karakteristikleri taşımaktadır."
                             : "Sistem bu metin hakkında kesin bir yargıya varamadı. Lütfen farklı kaynaklardan teyit ediniz.")}
                 </p>
             </div>
