@@ -30,13 +30,15 @@ const Home = () => {
         </div>
 
         {/* Ana başlık */}
-        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-manrope font-extrabold text-tx-primary tracking-tighter leading-[0.95] animate-fade-up delay-75">
+        <h1 style={{ animationDelay: '75ms' }}
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-manrope font-extrabold text-tx-primary tracking-tighter leading-[0.95] animate-fade-up">
           Verify the{' '}
           <span className="italic text-brand dark:text-es-primary">Truth</span>.
         </h1>
 
         {/* Subtitle */}
-        <p className="text-sm md:text-base text-tx-secondary max-w-sm md:max-w-xl mx-auto leading-relaxed font-inter px-2 md:px-0 animate-fade-up delay-150">
+        <p style={{ animationDelay: '150ms', color: 'var(--color-text-secondary)' }}
+           className="text-sm md:text-base max-w-sm md:max-w-xl mx-auto leading-relaxed font-inter px-2 md:px-0 animate-fade-up">
           Bilgi kirliliğinin ötesine geçin. Şüpheli haberi, iddiayı ya da metni
           aşağıya yapıştırın — sistem dilbilimsel sinyalleri değerlendirip
           bilgi tabanıyla karşılaştırarak gerçeklik analizi yapar.
