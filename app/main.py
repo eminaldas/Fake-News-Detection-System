@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.api.v1.endpoints import auth, analysis, articles
 
 app = FastAPI(
@@ -8,30 +9,25 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS configuration
-origins = [
-    "http://localhost",
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",   # Vite dev server
     "http://localhost:3000",
-    "http://localhost:5173", # Vite Frontend dev server
+    "http://localhost",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
-# Include Routers
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
+app.include_router(auth.router,     prefix="/api/v1/auth",     tags=["Authentication"])
 app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["Analysis"])
 app.include_router(articles.router, prefix="/api/v1/articles", tags=["Articles"])
 
-@app.get("/", tags=["Health"])
-async def read_root():
-    return {
-        "status": "online",
-        "message": "FNDS API is running",
-        "docs_url": "/docs"
-    }
+
+@app.get("/health", tags=["Health"])
+async def health():
+    return {"status": "online", "version": "1.0.0"}

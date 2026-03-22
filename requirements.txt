@@ -17,8 +17,6 @@ sentence-transformers
 pandas
 scikit-learn
 feedparser
-duckduckgo_search
-google-genai
 requests
 beautifulsoup4
 lxml

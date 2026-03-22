@@ -1,69 +1,79 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List, Optional
-from uuid import UUID
+from datetime import datetime, timezone, timedelta
 
+from app.api.deps import get_current_user
+from app.core.security import TokenData  # get_articles ve get için kullanılıyor
 from app.db.session import get_db
-from app.models.models import Article
-from app.core.security import verify_token
-from fastapi.security import OAuth2PasswordBearer
-from pydantic import BaseModel
+from app.models.models import Article, AnalysisResult
+from app.schemas.schemas import (
+    ArticleResponse,
+    PaginatedArticleResponse,
+    TrendingHeadlineResponse,
+)
 
 router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
-    return verify_token(token)
 
-class ArticleResponse(BaseModel):
-    id: UUID
-    title: str
-    content: str
-    status: str
-    metadata_info: dict | None = None
-    
-    class Config:
-        from_attributes = True
+@router.get("/trending", response_model=List[TrendingHeadlineResponse])
+async def get_trending_headlines(
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Son 24 saatte google_trends_rss kaynağından eklenen en fazla 5 başlığı döndürür.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
 
-class PaginatedArticleResponse(BaseModel):
-    total: int
-    page: int
-    size: int
-    items: List[ArticleResponse]
+    stmt = (
+        select(Article, AnalysisResult.status.label("analysis_status"))
+        .outerjoin(AnalysisResult, AnalysisResult.article_id == Article.id)
+        .where(
+            Article.metadata_info.op("->>")(  "origin") == "google_trends_rss",
+            Article.created_at >= cutoff,
+        )
+        .order_by(Article.created_at.desc())
+        .limit(5)
+    )
+
+    rows = (await db.execute(stmt)).all()
+
+    return [
+        TrendingHeadlineResponse(
+            id=article.id,
+            title=article.title,
+            status=analysis_status or "belirsiz",
+            classification_label=(article.metadata_info or {}).get(
+                "classification_label", "gerçek veri"
+            ),
+            source_url=(article.metadata_info or {}).get("source_url"),
+            source_name=(article.metadata_info or {}).get("source_name"),
+            source_domain=(article.metadata_info or {}).get("source_domain"),
+        )
+        for article, analysis_status in rows
+    ]
+
 
 @router.get("/", response_model=PaginatedArticleResponse)
 async def get_articles(
-    page: int = Query(1, ge=1, description="Page number"),
-    size: int = Query(10, ge=1, le=100, description="Items per page"),
-    status_filter: Optional[str] = Query(None, description="Filter by status (e.g., 'Yanlış', 'Doğru')"),
-    db: AsyncSession = Depends(get_db)
+    page: int = Query(1, ge=1),
+    size: int = Query(10, ge=1, le=100),
+    status_filter: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    _: TokenData = Depends(get_current_user),
 ):
-    """
-    Retrieve a paginated list of articles from the Knowledge Base.
-    """
+    """Bilgi tabanındaki makaleleri sayfalı olarak döndürür."""
     skip = (page - 1) * size
-    
-    # Base query
-    query = select(Article)
-    count_query = select(func.count()).select_from(Article)
-    
+
+    base = select(Article)
+    count_q = select(func.count()).select_from(Article)
+
     if status_filter:
-        query = query.where(Article.status == status_filter)
-        count_query = count_query.where(Article.status == status_filter)
-        
-    query = query.offset(skip).limit(size)
-    
-    # Execute
-    total_result = await db.execute(count_query)
-    total_count = total_result.scalar()
-    
-    items_result = await db.execute(query)
-    articles = items_result.scalars().all()
-    
-    return PaginatedArticleResponse(
-        total=total_count,
-        page=page,
-        size=size,
-        items=articles
-    )
+        base    = base.where(Article.status == status_filter)
+        count_q = count_q.where(Article.status == status_filter)
+
+    total = (await db.execute(count_q)).scalar()
+    items = (await db.execute(base.offset(skip).limit(size))).scalars().all()
+
+    return PaginatedArticleResponse(total=total, page=page, size=size, items=items)

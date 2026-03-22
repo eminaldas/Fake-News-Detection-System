@@ -1,28 +1,40 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
-    # App Settings
+    # App
     PROJECT_NAME: str = "Fake News Detection System"
     VERSION: str = "1.0.0"
 
     # Security
-    SECRET_KEY: str # Must be provided in .env
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
+    # Admin credentials — .env'den okunur, kaynak kodda hardcode yok
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = "change-me-before-deploy"
+
     # Database
-    DATABASE_URL: str # Must be provided in .env
-    REDIS_URL: str = "redis://localhost:6379/0" # Redis can have a default
-    
-    # NLP Engine
+    DATABASE_URL: str
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_PASSWORD: str = ""
+    POSTGRES_DB: str = "fnds"
+
+    # Redis / Celery
+    REDIS_URL: str = "redis://localhost:6379/0"
+    CELERY_RATE_LIMIT: str = "10/s"
+    NEWS_AGENT_INTERVAL: int = 60  # saniye cinsinden
+
+    # NLP
     TRANSFORMER_MODEL: str = "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr"
-    SIMILARITY_THRESHOLD: float = 0.08 # Default 92% similarity match
-    CELERY_RATE_LIMIT: str = "10/s" # Default anti-OOM limit
+    SIMILARITY_THRESHOLD: float = 0.08
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        extra="ignore"
+        extra="ignore",
     )
+
 
 settings = Settings()
