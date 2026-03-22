@@ -8,6 +8,7 @@ import Home from './pages/Home';
 import Archive from './pages/Archive';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import NotFound from './pages/NotFound';
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
                   </RequireAuth>
                 }
               />
+              <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
         </BrowserRouter>
