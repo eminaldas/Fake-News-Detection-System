@@ -57,19 +57,40 @@ async def analyze_content(
     matches = result.all()
 
     if matches:
-        best_match, distance = matches[0]
-        similarity = (1 - distance) * 100
+        # ── Stage 1: Çoklu eşleşme — benzerlik ağırlıklı oylama ─────────────
+        #
+        # Tek en iyi eşleşmeyi kullanmak yerine top-3 sonucun ağırlıklı oyunu
+        # hesaplarız. Bu yaklaşım; bilgi tabanında birden fazla benzer kayıt
+        # olduğunda daha tutarlı ve güvenilir bir karar üretir.
+        #
+        # Ağırlık: w = similarity² — yakın eşleşmeler üstel olarak daha fazla oy taşır.
 
-        normalized_status = "UNKNOWN"
-        if best_match.status:
-            upper = best_match.status.upper()
+        def _normalize_status(raw: str) -> str:
+            if not raw:
+                return "UNKNOWN"
+            upper = raw.strip().upper()
             if upper in {"FAKE", "YANLIŞ", "YANLIS", "FALSE"}:
-                normalized_status = "FAKE"
-            elif upper in {"AUTHENTIC", "DOĞRU", "DOGRU", "TRUE"}:
-                normalized_status = "AUTHENTIC"
-            else:
-                normalized_status = upper
+                return "FAKE"
+            if upper in {"AUTHENTIC", "DOĞRU", "DOGRU", "TRUE"}:
+                return "AUTHENTIC"
+            return "UNKNOWN"
 
+        weighted_votes: dict[str, float] = {"FAKE": 0.0, "AUTHENTIC": 0.0}
+        for article, dist in matches:
+            sim    = max(0.0, 1.0 - dist)          # [0, 1]
+            weight = sim ** 2                       # yakın eşleşmelere üstel ağırlık
+            status = _normalize_status(article.status)
+            if status in weighted_votes:
+                weighted_votes[status] += weight
+
+        # Kazanan: en yüksek ağırlıklı oy
+        winner = max(weighted_votes, key=weighted_votes.get)
+        total_weight = sum(weighted_votes.values()) or 1.0
+        vote_confidence = round(weighted_votes[winner] / total_weight * 100, 1)
+
+        # Kanıt ve benzerlik bilgisi en iyi eşleşmeden alınır
+        best_match, best_dist = matches[0]
+        best_similarity = (1 - best_dist) * 100
         dayanak = (
             best_match.metadata_info.get("dayanak_noktalari", "Bilinmiyor")
             if best_match.metadata_info
@@ -78,13 +99,18 @@ async def analyze_content(
 
         return AnalysisResponse(
             task_id=content_id,
-            message=f"Sistemde %{similarity:.1f} oranında benzer bir kayıt bulundu.",
+            message=(
+                f"Sistemde %{best_similarity:.1f} oranında benzer {len(matches)} kayıt bulundu. "
+                f"Oylama güveni: %{vote_confidence:.1f}"
+            ),
             is_direct_match=True,
             direct_match_data={
-                "similarity": round(similarity, 2),
+                "similarity":      round(best_similarity, 2),
                 "original_status": best_match.status or "Belirtilmemiş",
-                "mapped_status": normalized_status,
-                "evidence": dayanak,
+                "mapped_status":   winner,
+                "evidence":        dayanak,
+                "match_count":     len(matches),
+                "vote_confidence": vote_confidence,
             },
         )
 
