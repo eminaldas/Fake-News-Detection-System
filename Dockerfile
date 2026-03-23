@@ -7,12 +7,15 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Bağımlılıkları yükle (Büyük kütüphaneler için timeout'u artırıyoruz)
+# Torch CPU-only kurulumu — GPU versiyonu ~1.8GB, CPU ~300MB
+# sentence-transformers torch'u bağımlılık olarak çeker;
+# önce CPU versiyonunu kurarak GPU versiyonunun indirilmesini engelliyoruz.
+RUN pip install --no-cache-dir \
+    torch \
+    --index-url https://download.pytorch.org/whl/cpu
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
-
-# Download a base spacy model if needed
-# RUN python -m spacy download en_core_web_sm
 
 COPY . .
 

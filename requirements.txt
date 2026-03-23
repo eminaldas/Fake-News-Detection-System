@@ -1,21 +1,29 @@
+# Web framework
 fastapi
 uvicorn[standard]
+
+# Database
 sqlalchemy[asyncio]
 asyncpg
 pgvector
+
+# Config & auth
 pydantic-settings
+python-jose[cryptography]
+passlib[bcrypt]==1.7.4
+
+# Task queue
 celery
 redis
-python-jose[cryptography]
-bcrypt==3.2.2
-passlib[bcrypt]==1.7.4
-spacy
-zemberek-python
-transformers
-python-multipart
+
+# ML — torch CPU-only (Dockerfile'da önce kurulur, CUDA gereksiz)
 sentence-transformers
-pandas
 scikit-learn
+
+# Data (ingest scriptleri için)
+pandas
+
+# Scraping & RSS
 feedparser
 requests
 beautifulsoup4
