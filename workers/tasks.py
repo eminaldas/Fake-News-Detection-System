@@ -10,7 +10,7 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 from app.models.models import Article, AnalysisResult
-from ml_engine.processing.cleaner import NewsCleaner
+from ml_engine.processing.cleaner import NewsCleaner, signals_to_vector
 from ml_engine.vectorizer import TurkishVectorizer
 
 logger = logging.getLogger(__name__)
@@ -63,36 +63,94 @@ async def _analyze_and_save(content_id: str, text: str) -> dict:
     cleaned     = processed["cleaned_text"]
     raw         = processed["original_text"]
 
-    # 2. BERT embedding
+    # 2. BERT embedding — tek vektör (ham metin üzerinden)
+    #
+    # NOT: Başlık+içerik ağırlıklı birleşim (get_weighted_embedding) bu pipeline için
+    # uygun değildir. Teyit verilerinde "content" alanı orijinal haber gövdesi değil,
+    # fact-check doğrulama analizidir. Bu metne ağırlık vermek modele ters sinyal üretir.
+    # get_weighted_embedding yalnızca gerçek haber başlığı + haber gövdesi çiftinin
+    # kesin olarak bilindiği senaryolarda (ör. URL scraping pipeline) kullanılmalıdır.
     embedding = vectorizer.get_embedding(cleaned)
 
-    # 3. Risk skoru (kural tabanlı)
+    # 3. Risk skoru (kural tabanlı, genişletilmiş sinyal seti)
+    #
+    # Ağırlıklar — manipülatif sinyal türüne göre katkı payları:
+    #   clickbait_score  : en güçlü sahte haber göstergesi
+    #   exclamation_ratio: duygusal manipülasyon
+    #   uppercase_ratio  : bağırma / abartı
+    #   hedge_ratio      : belirsiz kaynak → güven azalır
+    #   question_density : retorik soru yoğunluğu
+    #   number_density   : yüksek rakam → manipülatif istatistik riski
+    #   source_score     : güvenilir kaynak referansı → riski DÜŞÜRÜR (negatif katkı)
+    #   avg_word_length  : kısa kelime ortalaması → sensasyonel dil riski
+    #
+    _AVG_WORD_LEN_BASELINE = 5.5   # Türkçe haber metni beklenen ortalaması
+    avg_len = signals.get("avg_word_length", _AVG_WORD_LEN_BASELINE)
+    short_word_penalty = max(0.0, (_AVG_WORD_LEN_BASELINE - avg_len) / _AVG_WORD_LEN_BASELINE)
+
     risk = (
-        signals.get("exclamation_ratio", 0) * 0.4
-        + signals.get("uppercase_ratio",   0) * 0.4
-        + signals.get("question_density",  0) * 0.2
+        signals.get("clickbait_score",   0) * 0.30
+        + signals.get("exclamation_ratio", 0) * 0.20
+        + signals.get("uppercase_ratio",   0) * 0.15
+        + signals.get("hedge_ratio",       0) * 0.15
+        + signals.get("question_density",  0) * 0.10
+        + signals.get("number_density",    0) * 0.05
+        + short_word_penalty               * 0.10
+        - signals.get("source_score",      0) * 0.15   # kaynak varsa riski düşür
+    )
+    risk = max(0.0, min(risk, 1.0))   # [0, 1] aralığına sıkıştır
+
+    # 4. Sınıflandırma — katmanlı karar mekanizması
+    #
+    # Katman A — Hard override (kural tabanlı):
+    #   BERT semantiğe odaklanır; açık clickbait + büyük harf/ünlem kombinasyonu
+    #   semantik benzerliği geçersiz kılacak kadar güçlüdür.
+    #   Eşikler: clickbait > 0.15  VE  (uppercase > 0.12  VEYA  exclamation > 0.02)
+    #   Bu eşiklere ulaşmak için bir metinde birden fazla clickbait ifadesi + bağırma
+    #   veya ünlem gerekir — meşru haber metinlerinde bu kombinasyon nadirdir.
+    #
+    # Katman B — Ağırlıklı ensemble (model + kural):
+    #   Feature vektörü: [768-dim BERT] + [8-dim sinyal] = 776-dim
+    #   combined = 0.70 × fake_p + 0.30 × risk
+    #
+    clickbait = signals.get("clickbait_score",   0)
+    uppercase = signals.get("uppercase_ratio",   0)
+    exclaim   = signals.get("exclamation_ratio", 0)
+
+    hedge   = signals.get("hedge_ratio",       0)
+    question = signals.get("question_density", 0)
+
+    strong_manipulative = (
+        (clickbait > 0.15 and uppercase > 0.12) or   # bağırarak sensasyon
+        (clickbait > 0.15 and exclaim   > 0.02) or   # clickbait + ünlem
+        (clickbait > 0.02 and hedge     > 0.05 and question > 0.003)  # soru başlığı + komplo + anonim kaynak
     )
 
-    # 4. Sınıflandırma
-    if classifier_model and cleaned:
-        try:
-            proba    = classifier_model.predict_proba([embedding])[0]
-            fake_p   = float(proba[1])
-            max_p    = float(max(proba))
+    if strong_manipulative:
+        # Güven: sinyal yoğunluğuna göre 0.55-0.90 arası kalibre edilir
+        pred_status    = "FAKE"
+        override_conf  = 0.55 + clickbait * 0.50 + exclaim * 2.0 + uppercase * 0.30
+        confidence     = round(min(override_conf, 0.90), 4)
 
-            if max_p < 0.60 and risk > 0.03:
-                pred_status = "FAKE"
-                confidence  = round(max(max_p, min(risk * 10, 0.99)), 4)
-            else:
-                pred_status = "FAKE" if fake_p > 0.5 else "AUTHENTIC"
-                confidence  = round(max_p, 4)
+    elif classifier_model and cleaned:
+        signal_vec     = signals_to_vector(signals)       # 8-dim, normalize edilmiş
+        feature_vector = embedding + signal_vec           # 776-dim
+        try:
+            proba  = classifier_model.predict_proba([feature_vector])[0]
+            fake_p = float(proba[1])
+
+            combined    = 0.70 * fake_p + 0.30 * risk
+            pred_status = "FAKE" if combined > 0.50 else "AUTHENTIC"
+            confidence  = round(max(combined, 1.0 - combined), 4)
         except Exception as exc:
             logger.warning("Classifier tahmin hatası: %s", exc)
             pred_status = "UNKNOWN"
             confidence  = 0.0
+
     else:
-        pred_status = "FAKE" if risk > 0.05 else "AUTHENTIC"
-        confidence  = round(min(risk * 10, 0.99), 4)
+        # Classifier yok — yalnızca kural tabanlı karar
+        pred_status = "FAKE" if risk > 0.20 else "AUTHENTIC"
+        confidence  = round(min(risk if risk > 0.20 else 1.0 - risk, 0.99), 4)
 
     # 5. DB kaydı
     title_db = (text[:50] + "...") if len(text) > 50 else text
