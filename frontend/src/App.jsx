@@ -9,6 +9,7 @@ import Archive from './pages/Archive';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
+import About from './pages/About';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
             <Route path="/" element={<Layout />}>
               <Route index element={<Home />} />
               <Route path="archive" element={<Archive />} />
+              <Route path="hakkimizda" element={<About />} />
               <Route path="login" element={<Login />} />
 
               {/* Protected Admin Routes */}

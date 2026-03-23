@@ -1,9 +1,14 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 import { Github } from 'lucide-react';
 import Navbar from './common/Navbar';
 
-const FOOTER_LINKS = ['Hakkımızda', 'Gizlilik', 'İletişim', 'Kullanım Koşulları'];
+const FOOTER_LINKS = [
+    { label: 'Hakkımızda', to: '/hakkimizda', external: false },
+    { label: 'Gizlilik',   to: '#',           external: false },
+    { label: 'İletişim',   to: '/hakkimizda', external: false },
+    { label: 'Kullanım Koşulları', to: '#',   external: false },
+];
 
 const Layout = () => {
     return (
@@ -29,14 +34,14 @@ const Layout = () => {
 
                     {/* Linkler */}
                     <div className="flex flex-wrap justify-center gap-6">
-                        {FOOTER_LINKS.map((link) => (
-                            <a
-                                key={link}
-                                href="#"
+                        {FOOTER_LINKS.map(({ label, to }) => (
+                            <Link
+                                key={label}
+                                to={to}
                                 className="text-xs text-tx-secondary hover:text-tx-primary transition-colors"
                             >
-                                {link}
-                            </a>
+                                {label}
+                            </Link>
                         ))}
                     </div>
 
