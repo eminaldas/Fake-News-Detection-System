@@ -27,6 +27,7 @@ from scrapers.web_scraper import ScraperError, scrape_article
 
 # Aynı worker sürecinde zaten yüklenmiş singletonları yeniden kullan;
 # BERT modelini ikinci kez belleğe yüklemekten kaçınılır.
+from ml_engine.processing.cleaner import signals_to_vector
 from workers.tasks import celery_app, classifier_model, cleaner, vectorizer
 
 logger = logging.getLogger(__name__)
@@ -63,13 +64,26 @@ def _semantic_component(embedding: list, matches: list) -> float:
 
 
 def _ling_component(signals: dict) -> float:
-    """Linguistik risk skorunu 0-1 otantiklik bileşenine çevirir (ters)."""
+    """
+    Genişletilmiş linguistik risk skorunu 0-1 otantiklik bileşenine çevirir (ters).
+    tasks.py risk formülüyle senkronize — 8 sinyal kullanır.
+    """
+    _AVG_WORD_LEN_BASELINE = 5.5
+    avg_len = signals.get("avg_word_length", _AVG_WORD_LEN_BASELINE)
+    short_word_penalty = max(0.0, (_AVG_WORD_LEN_BASELINE - avg_len) / _AVG_WORD_LEN_BASELINE)
+
     risk = (
-        signals.get("exclamation_ratio", 0.0) * 0.4 +
-        signals.get("uppercase_ratio", 0.0) * 0.4 +
-        signals.get("question_density", 0.0) * 0.2
+        signals.get("clickbait_score",   0.0) * 0.30 +
+        signals.get("exclamation_ratio", 0.0) * 0.20 +
+        signals.get("uppercase_ratio",   0.0) * 0.15 +
+        signals.get("hedge_ratio",       0.0) * 0.15 +
+        signals.get("question_density",  0.0) * 0.10 +
+        signals.get("number_density",    0.0) * 0.05 +
+        short_word_penalty               * 0.10 -
+        signals.get("source_score",      0.0) * 0.15
     )
-    return max(0.0, 1.0 - min(risk * 5.0, 1.0))
+    risk = max(0.0, min(risk, 1.0))
+    return max(0.0, 1.0 - risk)
 
 
 def _truth_score(semantic: float, classifier: float, ling: float, style: float) -> float:
@@ -167,12 +181,14 @@ async def _async_pipeline(task_id: str, url: str) -> dict:
     style_result = _stylometrics.analyse(full_text)
     style_score: float = style_result["style_score"]
 
-    # 6. Sınıflandırıcı
+    # 6. Sınıflandırıcı — 776-dim feature (768 BERT + 8 sinyal)
     clf_authentic = 0.5
     if classifier_model is not None and cleaned_text and not is_zero_vec:
         try:
-            proba = classifier_model.predict_proba([embedding])[0]
-            clf_authentic = float(proba[0])  # proba[0] = Authentic sınıfı
+            signal_vec     = signals_to_vector(signals)
+            feature_vector = embedding + signal_vec        # 776-dim
+            proba          = classifier_model.predict_proba([feature_vector])[0]
+            clf_authentic  = float(proba[0])               # proba[0] = Authentic sınıfı
         except Exception as exc:
             logger.warning("Sınıflandırıcı hatası: %s", exc)
 
