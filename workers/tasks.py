@@ -127,7 +127,7 @@ async def _analyze_and_save(content_id: str, text: str) -> dict:
         (clickbait > 0.15 and uppercase > 0.12) or              # bağırarak sensasyon
         (clickbait > 0.15 and exclaim   > 0.02) or              # clickbait + ünlem
         (clickbait > 0.30) or                                    # çoklu komplo/sensasyon ifadesi
-        (clickbait > 0.02 and hedge > 0.05 and question > 0.003) or  # komplo + anonim + soru
+        (clickbait > 0.05 and hedge > 0.08) or                       # clickbait + anonim kaynak kombinasyonu (soru işareti gerekmez)
         (hedge > 0.15)                                           # yüksek anonim kaynak yoğunluğu
     )
 

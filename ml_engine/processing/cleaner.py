@@ -56,6 +56,8 @@ _CLICKBAIT_WORDS = {
     # Komplo / gizleme dili
     "yıllarca sakladı", "yıllardır sakladı", "yıllarca gizledi",
     "yıllardır gizliyor", "gerçeği sakladı", "gerçeği gizledi",
+    "gizleniyor",  # örtbas içeren metinlerde genel gizleme fiili
+    "örtbas",      # yıllardır gizleniyor/örtbas ediyor gibi örüntüleri yakalar
     "ana akım medya", "sansürlüyor", "sansürlendi", "sansür",
     "kimse söylemiyor", "söyleyemiyorlar", "söyletmiyorlar",
     "aslında ne oldu", "gerçek ortaya çıktı", "perde arkası",
@@ -80,7 +82,7 @@ _HEDGE_WORDS = {
 _SOURCE_KEYWORDS = {
     "kaynak", "açıkladı", "dedi ki", "söyledi", "belirtti",
     "açıklamasında", "röportajında", "basın toplantısında",
-    "resmi açıklama", "aa", "trt", "cumhurbaşkanlığı", "bakanlık",
+    "resmi açıklama", "anadolu ajansı", "trt", "cumhurbaşkanlığı", "bakanlık",
     "araştırmaya göre", "rapora göre", "verilerine göre",
 }
 
