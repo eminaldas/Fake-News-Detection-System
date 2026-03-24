@@ -146,6 +146,7 @@ class NewsCleaner:
                 "avg_word_length":   0.0,
                 "number_density":    0.0,
                 "length": 0,
+                "triggered_words": {"clickbait": [], "hedge": [], "source": []},
             }
 
         text_lower = _turkish_lower(original_text)
@@ -190,6 +191,21 @@ class NewsCleaner:
         digit_count    = sum(1 for c in original_text if c.isdigit())
         number_density = round(digit_count / length, 4) if length > 0 else 0.0
 
+        # ── Triggered words — substring arama (çok kelimeli ifadeler dahil) ─────────
+        # Uzun ifadeler önce aranır (greedy matching: "son dakika haberi" > "son dakika")
+        triggered_clickbait = sorted(
+            [phrase for phrase in _CLICKBAIT_WORDS if phrase in text_lower],
+            key=len, reverse=True
+        )
+        triggered_hedge = sorted(
+            [phrase for phrase in _HEDGE_WORDS if phrase in text_lower],
+            key=len, reverse=True
+        )
+        triggered_source = sorted(
+            [phrase for phrase in _SOURCE_KEYWORDS if phrase in text_lower],
+            key=len, reverse=True
+        )
+
         return {
             "exclamation_ratio": round(exclamation_count / length, 4) if length > 0 else 0.0,
             "uppercase_ratio":   round(uppercase_count / alpha_count, 4) if alpha_count > 0 else 0.0,
@@ -200,6 +216,11 @@ class NewsCleaner:
             "avg_word_length":   avg_word_length,
             "number_density":    number_density,
             "length": length,
+            "triggered_words": {
+                "clickbait": triggered_clickbait,
+                "hedge":     triggered_hedge,
+                "source":    triggered_source,
+            },
         }
 
     def process(self, raw_iddia: Any, detayli_analiz_raw: Any = None) -> Dict[str, Any]:
