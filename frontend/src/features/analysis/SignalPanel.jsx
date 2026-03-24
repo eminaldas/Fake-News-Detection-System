@@ -1,4 +1,5 @@
 import React from 'react';
+import { DISPLAY_THRESHOLD } from './signalConfig';
 
 const SIGNAL_CONFIG = [
     { key: 'clickbait_score',   label: 'Clickbait',             norm: v => v * 100,        color: null },
@@ -10,8 +11,6 @@ const SIGNAL_CONFIG = [
     { key: 'avg_word_length',   label: 'Kelime Uzunluğu',       norm: v => (v / 10) * 100, color: null },
     { key: 'source_score',      label: 'Kaynak Güvenilirliği',  norm: v => v * 100,        color: 'green' },
 ];
-
-const DISPLAY_THRESHOLD = 0.005;
 
 const SignalPanel = ({ signals, theme }) => {
     if (!signals) return null;

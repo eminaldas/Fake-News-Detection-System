@@ -2,6 +2,7 @@ import React from 'react';
 import { CheckCircle2, XCircle, ThumbsUp, ThumbsDown, Info, HelpCircle, Link2 } from 'lucide-react';
 import SignalPanel from './SignalPanel';
 import HighlightedText from './HighlightedText';
+import { DISPLAY_THRESHOLD } from './signalConfig';
 
 // Sinyallerden Türkçe açıklama üret
 // Ağırlık sırası: clickbait 0.30 > exclamation 0.20 > uppercase 0.15 >
@@ -10,7 +11,6 @@ const SIGNAL_WEIGHT_ORDER = [
     'clickbait_score', 'exclamation_ratio', 'uppercase_ratio',
     'hedge_ratio', 'question_density', 'avg_word_length', 'number_density',
 ];
-const DISPLAY_THRESHOLD = 0.005;
 
 function buildExplanation(signals) {
     if (!signals) return null;
