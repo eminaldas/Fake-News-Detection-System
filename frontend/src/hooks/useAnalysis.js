@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AnalysisService from '../services/analysis.service';
 
 /**
@@ -10,6 +10,7 @@ export const useAnalysis = () => {
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
     const [pollingTaskId, setPollingTaskId] = useState(null);
+    const pendingTextRef = useRef(null);
 
     useEffect(() => {
         let interval;
@@ -19,7 +20,11 @@ export const useAnalysis = () => {
                     const response = await AnalysisService.checkStatus(pollingTaskId);
 
                     if (response.status === 'SUCCESS' || response.status === 'completed') {
-                        setResult(response.result || response);
+                        setResult({
+                            ...(response.result || response),
+                            originalText: pendingTextRef.current,
+                        });
+                        pendingTextRef.current = null;
                         setLoading(false);
                         setPollingTaskId(null);
                         clearInterval(interval);
@@ -80,15 +85,18 @@ export const useAnalysis = () => {
             // Handle Immediate Matches
             if (data.is_direct_match) {
                 setResult({
-                    prediction: data.direct_match_data?.mapped_status || 'UNKNOWN',
-                    message: data.message,
+                    prediction:      data.direct_match_data?.mapped_status || 'UNKNOWN',
+                    message:         data.message,
                     directMatchData: data.direct_match_data,
-                    isDirectMatch: true
+                    isDirectMatch:   true,
+                    signals:         data.direct_match_data?.signals || {},
+                    originalText:    text,
                 });
                 setLoading(false);
             }
             // Handle Async Tasks
             else if (data.task_id) {
+                pendingTextRef.current = text;
                 setPollingTaskId(data.task_id);
             } else {
                 setError("Unexpected response from the server.");
