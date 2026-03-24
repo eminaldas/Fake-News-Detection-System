@@ -8,16 +8,18 @@ const SIGNAL_CONFIG = [
     { key: 'hedge_ratio',       label: 'Belirsiz Dil',          norm: v => v * 100,        color: null },
     { key: 'question_density',  label: 'Soru Yoğunluğu',        norm: v => v * 100,        color: null },
     { key: 'number_density',    label: 'Sayı Yoğunluğu',        norm: v => v * 100,        color: null },
-    { key: 'avg_word_length',   label: 'Kelime Uzunluğu',       norm: v => (v / 10) * 100, color: null },
+    { key: 'avg_word_length',   label: 'Kelime Uzunluğu',       norm: v => (v / 10) * 100, color: null, shouldShow: v => v < 5.5 },
     { key: 'source_score',      label: 'Kaynak Güvenilirliği',  norm: v => v * 100,        color: 'green' },
 ];
 
 const SignalPanel = ({ signals, theme }) => {
     if (!signals) return null;
 
-    const visibleSignals = SIGNAL_CONFIG.filter(
-        ({ key }) => (signals[key] || 0) > DISPLAY_THRESHOLD
-    );
+    const visibleSignals = SIGNAL_CONFIG.filter(({ key, shouldShow }) => {
+        const value = signals[key] ?? 0;
+        if (shouldShow) return shouldShow(value);
+        return value > DISPLAY_THRESHOLD;
+    });
 
     if (visibleSignals.length === 0) return null;
 
