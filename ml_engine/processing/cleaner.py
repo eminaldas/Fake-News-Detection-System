@@ -192,7 +192,8 @@ class NewsCleaner:
         number_density = round(digit_count / length, 4) if length > 0 else 0.0
 
         # ── Triggered words — substring arama (çok kelimeli ifadeler dahil) ─────────
-        # Uzun ifadeler önce aranır (greedy matching: "son dakika haberi" > "son dakika")
+        # Listeyi uzunluğa göre sırala: frontend HighlightedText'in greedy scan'ı
+        # için ön koşul; aynı zamanda UI'da tutarlı sıralama sağlar.
         triggered_clickbait = sorted(
             [phrase for phrase in _CLICKBAIT_WORDS if phrase in text_lower],
             key=len, reverse=True
