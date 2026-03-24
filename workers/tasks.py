@@ -103,15 +103,18 @@ async def _analyze_and_save(content_id: str, text: str) -> dict:
     # 4. Sınıflandırma — katmanlı karar mekanizması
     #
     # Katman A — Hard override (kural tabanlı):
-    #   BERT semantiğe odaklanır; açık clickbait + büyük harf/ünlem kombinasyonu
-    #   semantik benzerliği geçersiz kılacak kadar güçlüdür.
-    #   Eşikler: clickbait > 0.15  VE  (uppercase > 0.12  VEYA  exclamation > 0.02)
-    #   Bu eşiklere ulaşmak için bir metinde birden fazla clickbait ifadesi + bağırma
-    #   veya ünlem gerekir — meşru haber metinlerinde bu kombinasyon nadirdir.
+    #   BERT semantiğe odaklanır; güçlü sinyal kombinasyonları veya tek başına
+    #   yüksek clickbait/hedge değerleri semantik kararı geçersiz kılar.
+    #   Koşullar:
+    #     1. clickbait > 0.15 + büyük harf veya ünlem (bağırarak sensasyon)
+    #     2. clickbait > 0.30 tek başına (çoklu komplo/sensasyon ifadesi)
+    #     3. clickbait + hedge + soru kombinasyonu (komplo söylemi)
+    #     4. hedge > 0.15 tek başına (yüksek anonim kaynak yoğunluğu)
     #
     # Katman B — Ağırlıklı ensemble (model + kural):
     #   Feature vektörü: [768-dim BERT] + [8-dim sinyal] = 776-dim
-    #   combined = 0.70 × fake_p + 0.30 × risk
+    #   combined = 0.55 × fake_p + 0.45 × risk
+    #   (BERT kurumsal dile karşı önyargılı; sinyallere daha fazla ağırlık verilir)
     #
     clickbait = signals.get("clickbait_score",   0)
     uppercase = signals.get("uppercase_ratio",   0)
@@ -121,9 +124,11 @@ async def _analyze_and_save(content_id: str, text: str) -> dict:
     question = signals.get("question_density", 0)
 
     strong_manipulative = (
-        (clickbait > 0.15 and uppercase > 0.12) or   # bağırarak sensasyon
-        (clickbait > 0.15 and exclaim   > 0.02) or   # clickbait + ünlem
-        (clickbait > 0.02 and hedge     > 0.05 and question > 0.003)  # soru başlığı + komplo + anonim kaynak
+        (clickbait > 0.15 and uppercase > 0.12) or              # bağırarak sensasyon
+        (clickbait > 0.15 and exclaim   > 0.02) or              # clickbait + ünlem
+        (clickbait > 0.30) or                                    # çoklu komplo/sensasyon ifadesi
+        (clickbait > 0.02 and hedge > 0.05 and question > 0.003) or  # komplo + anonim + soru
+        (hedge > 0.15)                                           # yüksek anonim kaynak yoğunluğu
     )
 
     if strong_manipulative:
@@ -139,7 +144,7 @@ async def _analyze_and_save(content_id: str, text: str) -> dict:
             proba  = classifier_model.predict_proba([feature_vector])[0]
             fake_p = float(proba[1])
 
-            combined    = 0.70 * fake_p + 0.30 * risk
+            combined    = 0.55 * fake_p + 0.45 * risk
             pred_status = "FAKE" if combined > 0.50 else "AUTHENTIC"
             confidence  = round(max(combined, 1.0 - combined), 4)
         except Exception as exc:

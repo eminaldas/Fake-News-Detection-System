@@ -48,7 +48,7 @@ def signals_to_vector(signals: dict) -> list:
 _CLICKBAIT_WORDS = {
     # Doğrudan sensasyon
     "şok", "şokta", "şoke", "inanılmaz", "bomba", "flaş", "flash",
-    "son dakika", "acil", "dikkat", "uyarı", "tehlike", "skandal",
+    "son dakika", "skandal",
     "rezalet", "utanç", "ibret", "lanet", "dehşet", "korkunç",
     "müthiş", "tarihi", "efsane", "çarpıcı", "ezber bozan",
     "herkesi şoke etti", "kimse bilmiyordu", "gizlenen gerçek",
