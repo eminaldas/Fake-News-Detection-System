@@ -1,5 +1,67 @@
 import React from 'react';
 import { CheckCircle2, XCircle, ThumbsUp, ThumbsDown, Info, HelpCircle, Link2 } from 'lucide-react';
+import SignalPanel from './SignalPanel';
+import HighlightedText from './HighlightedText';
+
+// Sinyallerden Türkçe açıklama üret
+// Ağırlık sırası: clickbait 0.30 > exclamation 0.20 > uppercase 0.15 >
+//                 hedge 0.15 > question 0.10 > avg_word 0.10 > number 0.05
+const SIGNAL_WEIGHT_ORDER = [
+    'clickbait_score', 'exclamation_ratio', 'uppercase_ratio',
+    'hedge_ratio', 'question_density', 'avg_word_length', 'number_density',
+];
+const DISPLAY_THRESHOLD = 0.005;
+
+function buildExplanation(signals) {
+    if (!signals) return null;
+
+    const triggered = SIGNAL_WEIGHT_ORDER.filter(k => (signals[k] || 0) > DISPLAY_THRESHOLD);
+    const tw = signals.triggered_words || {};
+    const parts = [];
+
+    if (triggered.includes('clickbait_score')) {
+        const words = tw.clickbait?.slice(0, 3) || [];
+        parts.push(
+            words.length > 0
+                ? `'${words.join("', '")}' gibi clickbait ifadeler içeriyor`
+                : 'clickbait dil yapısı içeriyor'
+        );
+    }
+    if (triggered.includes('exclamation_ratio')) parts.push('yüksek ünlem oranı');
+    if (triggered.includes('uppercase_ratio'))   parts.push('anormal büyük harf kullanımı');
+    if (triggered.includes('hedge_ratio')) {
+        const words = tw.hedge?.slice(0, 2) || [];
+        parts.push(
+            words.length > 0
+                ? `'${words.join("', '")}' gibi belirsiz kaynak ifadeleri`
+                : 'belirsiz kaynak dili'
+        );
+    }
+    if (triggered.includes('question_density'))  parts.push('yüksek soru yoğunluğu');
+    if (triggered.includes('avg_word_length') && (signals.avg_word_length || 0) < 5.5)
+        parts.push('kısa kelime ağırlıklı sensasyonel dil');
+    if (triggered.includes('number_density'))    parts.push('yoğun sayısal veri kullanımı');
+
+    if (parts.length === 0) {
+        if ((signals.source_score || 0) > DISPLAY_THRESHOLD) {
+            const srcWords = tw.source?.slice(0, 2) || [];
+            return srcWords.length > 0
+                ? `Güvenilir kaynak referansı tespit edildi: '${srcWords.join("', '")}'.`
+                : 'Güvenilir kaynak referansı tespit edildi.';
+        }
+        return 'Belirgin bir manipülasyon sinyali tespit edilmedi.';
+    }
+
+    let sentence = `Bu metin ${parts.join(', ')} içeriyor.`;
+    if ((signals.source_score || 0) > DISPLAY_THRESHOLD) {
+        const srcWords = tw.source?.slice(0, 2) || [];
+        const srcNote = srcWords.length > 0
+            ? ` Ancak '${srcWords.join("', '")}' gibi kaynak referansları da mevcut.`
+            : ' Ancak güvenilir kaynak referansları da mevcut.';
+        sentence += srcNote;
+    }
+    return sentence;
+}
 
 const AnalysisResultCard = ({ result }) => {
     if (!result) return null;
@@ -52,6 +114,10 @@ const AnalysisResultCard = ({ result }) => {
         };
     }
 
+    const signals      = result.signals || null;
+    const originalText = result.originalText || null;
+    const explanation  = buildExplanation(signals);
+
     return (
         <div className={`animate-fade-up mt-6 md:mt-8 p-4 md:p-6 lg:p-8 rounded-2xl border-2 shadow-lg relative ${theme.bg} ${theme.border}`}>
 
@@ -100,13 +166,25 @@ const AnalysisResultCard = ({ result }) => {
             <div className="relative">
                 <span className={`absolute -left-3 md:-left-4 -top-2 text-3xl md:text-4xl font-serif opacity-20 ${theme.title}`}>"</span>
                 <p className="text-tx-primary dark:text-tx-secondary font-medium leading-relaxed text-sm md:text-base lg:text-lg italic px-2">
-                    {result.message || (isAuthentic
+                    {explanation || (isAuthentic
                         ? "Analiz edilen metin, tarafsız bir dil yapısına ve doğrulanabilir veri setlerine yüksek uyum göstermektedir."
                         : isFake
                             ? "İncelediğiniz metin, tipik yanıltıcı haber karakteristikleri taşımaktadır."
                             : "Sistem bu metin hakkında kesin bir yargıya varamadı. Lütfen farklı kaynaklardan teyit ediniz.")}
                 </p>
             </div>
+
+            {/* Sinyal Paneli */}
+            {signals && <SignalPanel signals={signals} theme={theme} />}
+
+            {/* Metin Highlight — URL analizinde gösterilmez */}
+            {!isUrlAnalysis && originalText && signals?.triggered_words && (
+                <HighlightedText
+                    text={originalText}
+                    triggeredWords={signals.triggered_words}
+                    theme={theme}
+                />
+            )}
 
             {/* Footer: Geri Bildirim */}
             <div className="mt-6 md:mt-10 flex items-center justify-end gap-3 md:gap-4 pt-4 border-t border-black/5 dark:border-white/5">
