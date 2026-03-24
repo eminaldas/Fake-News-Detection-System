@@ -1,20 +1,20 @@
 import React from 'react';
 
-const CATEGORY_COLORS = {
-    clickbait: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 rounded px-0.5',
-    hedge:     'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 rounded px-0.5',
-    source:    'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 rounded px-0.5',
+// Stitch tasarımıyla eşleşen kategori renkleri (sabit — karardan bağımsız)
+const CATEGORY_STYLE = {
+    clickbait: { bg: '#ff735133', text: '#ff7351', border: '#ff7351' }, // hata/kırmızı
+    hedge:     { bg: '#f9731633', text: '#fb923c', border: '#f97316' }, // turuncu
+    source:    { bg: '#3fff8b33', text: '#3fff8b', border: '#3fff8b' }, // yeşil
 };
 
 /**
- * triggered_words içindeki ifadeleri metinde renkli <mark> ile vurgular.
+ * triggered_words içindeki ifadeleri metinde vurgular.
  * Uzun ifadeler önce aranır (greedy matching).
  * dangerouslySetInnerHTML kullanılmaz — React node dizisi döner.
  */
 function buildHighlightedNodes(text, triggeredWords) {
     if (!text || !triggeredWords) return [text];
 
-    // Tüm ifadeler: [{ phrase, category }], uzunluğa göre azalan sıra
     const entries = Object.entries(triggeredWords)
         .flatMap(([category, phrases]) =>
             (phrases || []).map(phrase => ({ phrase: phrase.toLowerCase(), category }))
@@ -24,10 +24,9 @@ function buildHighlightedNodes(text, triggeredWords) {
 
     if (entries.length === 0) return [text];
 
-    // Metni tara; eşleşen span'ları React elementi, geri kalanı string olarak diz
     const nodes = [];
     let remaining = text;
-    let keyIndex = 0;
+    let keyIndex  = 0;
 
     while (remaining.length > 0) {
         let earliestIndex = Infinity;
@@ -42,26 +41,30 @@ function buildHighlightedNodes(text, triggeredWords) {
         }
 
         if (!earliestEntry) {
-            // Eşleşme kalmadı
             nodes.push(remaining);
             break;
         }
 
-        // Eşleşme öncesi düz metin
         if (earliestIndex > 0) {
             nodes.push(remaining.slice(0, earliestIndex));
         }
 
-        // Eşleşen kısım — orijinal case korunur
         const matchedText = remaining.slice(earliestIndex, earliestIndex + earliestEntry.phrase.length);
+        const style = CATEGORY_STYLE[earliestEntry.category] || CATEGORY_STYLE.source;
+
         nodes.push(
-            <mark
+            <span
                 key={keyIndex++}
-                className={CATEGORY_COLORS[earliestEntry.category] || ''}
                 title={earliestEntry.category}
+                style={{
+                    backgroundColor: style.bg,
+                    color:           style.text,
+                    borderBottom:    `2px solid ${style.border}`,
+                }}
+                className="px-1 rounded-sm font-medium"
             >
                 {matchedText}
-            </mark>
+            </span>
         );
 
         remaining = remaining.slice(earliestIndex + earliestEntry.phrase.length);
@@ -70,7 +73,7 @@ function buildHighlightedNodes(text, triggeredWords) {
     return nodes;
 }
 
-const HighlightedText = ({ text, triggeredWords, theme }) => {
+const HighlightedText = ({ text, triggeredWords }) => {
     if (!text || !triggeredWords) return null;
 
     const hasAnyTriggers = Object.values(triggeredWords).some(arr => arr && arr.length > 0);
@@ -79,13 +82,39 @@ const HighlightedText = ({ text, triggeredWords, theme }) => {
     const nodes = buildHighlightedNodes(text, triggeredWords);
 
     return (
-        <div className="mt-4">
-            <p className={`text-[10px] font-bold uppercase tracking-[0.2em] opacity-60 mb-2 ${theme.title}`}>
-                Analiz Edilen Metin
-            </p>
-            <p className="text-tx-primary dark:text-tx-secondary text-sm leading-relaxed font-medium">
-                {nodes}
-            </p>
+        <div className="space-y-3">
+            <div className="flex items-center justify-between">
+                <h3 className="text-tx-secondary font-manrope font-bold text-[10px] tracking-widest uppercase">
+                    İncelenen Metin
+                </h3>
+                {/* Kategori renk açıklaması */}
+                <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1 text-[9px] text-tx-secondary/60 uppercase tracking-wider">
+                        <span className="w-2 h-2 rounded-full bg-es-error inline-block" />
+                        Clickbait
+                    </span>
+                    <span className="flex items-center gap-1 text-[9px] text-tx-secondary/60 uppercase tracking-wider">
+                        <span className="w-2 h-2 rounded-full bg-orange-400 inline-block" />
+                        Belirsiz
+                    </span>
+                    <span className="flex items-center gap-1 text-[9px] text-tx-secondary/60 uppercase tracking-wider">
+                        <span className="w-2 h-2 rounded-full bg-es-primary inline-block" />
+                        Kaynak
+                    </span>
+                </div>
+            </div>
+            <div className="bg-surface-solid rounded-2xl p-5 sm:p-6 relative">
+                {/* Dekoratif alıntı ikonu */}
+                <span
+                    className="material-symbols-outlined absolute top-4 right-4 text-tx-secondary/20 text-4xl pointer-events-none"
+                    aria-hidden
+                >
+                    format_quote
+                </span>
+                <p className="text-tx-primary leading-loose text-sm relative z-10">
+                    {nodes}
+                </p>
+            </div>
         </div>
     );
 };

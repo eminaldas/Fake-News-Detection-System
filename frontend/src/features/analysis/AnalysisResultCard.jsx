@@ -1,10 +1,9 @@
-import React from 'react';
-import { CheckCircle2, XCircle, ThumbsUp, ThumbsDown, Info, HelpCircle, Link2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Link2, Info } from 'lucide-react';
 import SignalPanel from './SignalPanel';
 import HighlightedText from './HighlightedText';
 import { DISPLAY_THRESHOLD } from './signalConfig';
 
-// Sinyallerden Türkçe açıklama üret
 // Ağırlık sırası: clickbait 0.30 > exclamation 0.20 > uppercase 0.15 >
 //                 hedge 0.15 > question 0.10 > avg_word 0.10 > number 0.05
 const SIGNAL_WEIGHT_ORDER = [
@@ -63,140 +62,199 @@ function buildExplanation(signals) {
     return sentence;
 }
 
+// SVG halka çevresi: 2π × r(42) ≈ 264
+const RING_CIRC = 264;
+
 const AnalysisResultCard = ({ result }) => {
     if (!result) return null;
 
-    const status = result.prediction?.toUpperCase() || 'UNKNOWN';
-    const isFake = status.includes('FAKE') || status.includes('FALSE') || status.includes('YANILTICI');
+    const status     = result.prediction?.toUpperCase() || 'UNKNOWN';
+    const isFake     = status.includes('FAKE') || status.includes('FALSE') || status.includes('YANILTICI');
     const isAuthentic = status.includes('AUTHENTIC') || status.includes('TRUE') || status.includes('GÜVENİLİR') || status.includes('REAL');
 
     const isUrlAnalysis = !!result.truth_score;
-    const badgeLabel = isUrlAnalysis ? 'URL Analizi' : result.isDirectMatch ? 'Veritabanı Eşleşmesi' : 'Yapay Zeka Sınıflandırması';
-    const badgeIcon = isUrlAnalysis ? <Link2 size={10} /> : <Info size={10} />;
-    const scoreLabel = isUrlAnalysis ? 'Doğruluk Skoru' : 'Analiz Skoru';
+    const badgeLabel    = isUrlAnalysis ? 'URL Analizi' : result.isDirectMatch ? 'Veritabanı Eşleşmesi' : 'Yapay Zeka Sınıflandırması';
+    const scoreLabel    = isUrlAnalysis ? 'Doğruluk Skoru' : 'Analiz Skoru';
 
     const displayScore = isUrlAnalysis
         ? parseFloat(result.truth_score).toFixed(0)
-        : (() => { let r = parseFloat(result.confidence || 0); return r <= 1 ? (r * 100).toFixed(0) : r.toFixed(0); })();
-    const confidence = displayScore;
+        : (() => { const r = parseFloat(result.confidence || 0); return r <= 1 ? (r * 100).toFixed(0) : r.toFixed(0); })();
 
+    const targetOffset = parseFloat((RING_CIRC * (1 - parseFloat(displayScore) / 100)).toFixed(2));
+
+    // Halka animasyonu: 264 → gerçek değer
+    const [ringOffset, setRingOffset] = useState(RING_CIRC);
+    useEffect(() => {
+        const id = setTimeout(() => setRingOffset(targetOffset), 80);
+        return () => clearTimeout(id);
+    }, [targetOffset]);
+
+    // Tema — her durum için accent rengi ve sınıf isimleri
     let theme;
-
     if (isAuthentic) {
         theme = {
-            bg: 'bg-authentic-bg',
-            border: 'border-authentic-border',
-            title: 'text-authentic-text',
-            progressBg: 'bg-authentic-track',
-            progressFill: 'bg-authentic-fill',
-            icon: <CheckCircle2 className="w-10 h-10 md:w-16 md:h-16 shrink-0" strokeWidth={1.5} />,
-            mainTitle: 'Güvenilir İçerik Tespit Edildi'
+            hex:        '#3fff8b',
+            glowClass:  'authentic-glow',
+            accentText: 'text-es-primary',
+            accentBg:   'bg-es-primary',
+            onAccent:   'text-[#005d2c]',
+            icon:       'verified',
+            label:      'ANALİZ TAMAMLANDI',
+            mainTitle:  'Güvenilir İçerik Tespit Edildi',
         };
     } else if (isFake) {
         theme = {
-            bg: 'bg-fake-bg',
-            border: 'border-fake-border',
-            title: 'text-fake-text',
-            progressBg: 'bg-fake-track',
-            progressFill: 'bg-fake-fill',
-            icon: <XCircle className="w-10 h-10 md:w-16 md:h-16 shrink-0" strokeWidth={1.5} />,
-            mainTitle: 'Yüksek Yanıltma Riski Mevcut'
+            hex:        '#ff7351',
+            glowClass:  'fake-glow',
+            accentText: 'text-es-error',
+            accentBg:   'bg-es-error',
+            onAccent:   'text-[#450900]',
+            icon:       'gpp_bad',
+            label:      'RİSK TESPİT EDİLDİ',
+            mainTitle:  'Yüksek Yanıltma Riski Mevcut',
         };
     } else {
         theme = {
-            bg: 'bg-neutral-bg',
-            border: 'border-neutral-border',
-            title: 'text-neutral-text',
-            progressBg: 'bg-neutral-track',
-            progressFill: 'bg-neutral-fill',
-            icon: <HelpCircle className="w-10 h-10 md:w-16 md:h-16 shrink-0" strokeWidth={1.5} />,
-            mainTitle: 'Analiz Sonucu Belirsiz'
+            hex:        '#71717a',
+            glowClass:  '',
+            accentText: 'text-muted',
+            accentBg:   'bg-neutral-fill',
+            onAccent:   'text-white',
+            icon:       'help',
+            label:      'ANALİZ SONUCU',
+            mainTitle:  'Analiz Sonucu Belirsiz',
         };
     }
+
+    // inline renk yardımcıları (opacity modifier dinamik → inline style)
+    const hex20 = `${theme.hex}33`; // %20 opacity
+    const hex40 = `${theme.hex}66`; // %40 opacity
+    const hex0d = `${theme.hex}1a`; // %10 opacity (blob)
+    const hex08 = `${theme.hex}0d`; // %5  opacity (blob)
 
     const signals      = result.signals || null;
     const originalText = result.originalText || null;
     const explanation  = buildExplanation(signals);
 
     return (
-        <div className={`animate-fade-up mt-6 md:mt-8 p-4 md:p-6 lg:p-8 rounded-2xl border-2 shadow-lg relative ${theme.bg} ${theme.border}`}>
+        <div className={`animate-fade-up mt-6 md:mt-8 w-full result-card ${theme.glowClass} rounded-3xl overflow-hidden flex flex-col relative border border-brutal-border/10`}>
 
-            {/* Analiz Yöntemi Badge */}
-            <div className={`absolute -top-3 left-4 md:left-8 px-2.5 md:px-3 py-1 rounded-full text-white text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 shadow-sm max-w-[calc(100%-2rem)] truncate ${theme.progressFill}`}>
-                {badgeIcon}
-                {badgeLabel}
+            {/* Dekoratif arka plan ışıkları */}
+            <div className="absolute -top-24 -left-24 w-64 h-64 rounded-full blur-[100px] pointer-events-none" style={{ background: hex0d }} />
+            <div className="absolute -bottom-24 -right-24 w-64 h-64 rounded-full blur-[100px] pointer-events-none" style={{ background: hex08 }} />
+
+            {/* ── Header ── */}
+            <div className="p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-brutal-border/10">
+
+                {/* Sol: ikon + başlık */}
+                <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0" style={{ background: hex20 }}>
+                        <span
+                            className={`material-symbols-outlined ${theme.accentText} text-3xl`}
+                            style={{ fontVariationSettings: "'FILL' 1" }}
+                        >
+                            {theme.icon}
+                        </span>
+                    </div>
+                    <div>
+                        <span className={`${theme.accentText} font-manrope font-bold text-[10px] tracking-widest uppercase block mb-1`}>
+                            {theme.label}
+                        </span>
+                        <h2 className="text-tx-primary font-manrope font-extrabold text-xl sm:text-2xl tracking-tight leading-tight">
+                            {theme.mainTitle}
+                        </h2>
+                        <span className={`inline-flex items-center gap-1 mt-1 text-[10px] font-bold uppercase tracking-widest ${theme.accentText} opacity-60`}>
+                            {isUrlAnalysis ? <Link2 size={10} /> : <Info size={10} />}
+                            {badgeLabel}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Sağ: animasyonlu SVG skor halkası */}
+                <div className="relative flex items-center justify-center shrink-0 self-center sm:self-auto">
+                    <svg className="w-24 h-24 -rotate-90" viewBox="0 0 96 96">
+                        {/* Arka plan halkası */}
+                        <circle
+                            cx="48" cy="48" r="42"
+                            fill="transparent"
+                            stroke="currentColor"
+                            strokeWidth="6"
+                            className="text-surface-solid"
+                        />
+                        {/* Dolu halka */}
+                        <circle
+                            cx="48" cy="48" r="42"
+                            fill="transparent"
+                            stroke={theme.hex}
+                            strokeWidth="6"
+                            strokeDasharray={RING_CIRC}
+                            strokeDashoffset={ringOffset}
+                            strokeLinecap="round"
+                            style={{ transition: 'stroke-dashoffset 1.4s cubic-bezier(0.22, 1, 0.36, 1)' }}
+                        />
+                    </svg>
+                    <div className="absolute flex flex-col items-center">
+                        <span className="text-tx-primary font-manrope font-black text-2xl leading-none">%{displayScore}</span>
+                        <span className="text-tx-secondary text-[10px] tracking-tighter uppercase mt-0.5">{scoreLabel}</span>
+                    </div>
+                </div>
             </div>
 
-            {/* Header: Başlık ve İkon */}
-            <div className="flex justify-between items-start mb-5 md:mb-6 pt-2 gap-3">
-                <div className="flex flex-col gap-1 min-w-0">
-                    <p className={`text-[10px] font-bold uppercase tracking-[0.2em] opacity-60 ${theme.title}`}>Sistem Kararı</p>
-                    <h3 className={`text-xl sm:text-2xl md:text-4xl font-black tracking-tighter leading-tight ${theme.title}`}>
-                        {theme.mainTitle}
-                    </h3>
-                </div>
-                <div className={`${theme.title} shrink-0`}>
-                    {theme.icon}
-                </div>
-            </div>
+            {/* ── İçerik Gövdesi ── */}
+            <div className="p-6 sm:p-8 space-y-6">
 
-            {/* Scrape edilen başlık (URL analizi için) */}
-            {isUrlAnalysis && result.scraped_title && (
-                <div className="mb-4 flex items-start gap-2 opacity-70">
-                    <Link2 className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${theme.title}`} />
-                    <p className={`text-xs font-medium truncate ${theme.title}`}>{result.scraped_title}</p>
-                </div>
-            )}
+                {/* URL analizi: scrape edilen başlık */}
+                {isUrlAnalysis && result.scraped_title && (
+                    <div className="flex items-start gap-2 opacity-70">
+                        <Link2 className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${theme.accentText}`} />
+                        <p className={`text-xs font-medium truncate ${theme.accentText}`}>{result.scraped_title}</p>
+                    </div>
+                )}
 
-            {/* Progress Bar */}
-            <div className="flex flex-col gap-2 mb-6 md:mb-8">
-                <div className="flex justify-between items-end">
-                    <span className={`text-xs font-bold ${theme.title}`}>{scoreLabel}</span>
-                    <span className={`text-base md:text-lg font-black ${theme.title}`}>%{confidence}</span>
+                {/* Yapay Zeka Görüşü kutusu */}
+                <div
+                    className="bg-base rounded-2xl p-5 border-l-4"
+                    style={{ borderLeftColor: hex40 }}
+                >
+                    <div className="flex items-center gap-2 mb-3">
+                        <span className={`material-symbols-outlined ${theme.accentText} text-xl`}>psychology</span>
+                        <span className={`${theme.accentText} font-manrope font-bold text-sm`}>Yapay Zeka Görüşü</span>
+                    </div>
+                    <p className="text-tx-secondary leading-relaxed text-sm italic">
+                        "{explanation || (isAuthentic
+                            ? 'Analiz edilen metin, tarafsız bir dil yapısına ve doğrulanabilir veri setlerine yüksek uyum göstermektedir.'
+                            : isFake
+                                ? 'İncelediğiniz metin, tipik yanıltıcı haber karakteristikleri taşımaktadır.'
+                                : 'Sistem bu metin hakkında kesin bir yargıya varamadı. Lütfen farklı kaynaklardan teyit ediniz.')}"
+                    </p>
                 </div>
-                <div className={`w-full h-2.5 md:h-3 rounded-full overflow-hidden p-0.5 ${theme.progressBg}`}>
-                    <div
-                        className={`h-full rounded-full transition-all duration-[1500ms] ease-out shadow-sm ${theme.progressFill}`}
-                        style={{ width: `${confidence}%` }}
+
+                {/* Sinyal Paneli — bento grid */}
+                {signals && <SignalPanel signals={signals} theme={theme} />}
+
+                {/* Vurgulu Metin — URL analizinde gösterilmez */}
+                {!isUrlAnalysis && originalText && signals?.triggered_words && (
+                    <HighlightedText
+                        text={originalText}
+                        triggeredWords={signals.triggered_words}
                     />
+                )}
+            </div>
+
+            {/* ── Footer: Geri Bildirim ── */}
+            <div className="bg-surface px-6 sm:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-brutal-border/10">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-surface-solid flex items-center justify-center border border-brutal-border/20">
+                        <span className={`material-symbols-outlined ${theme.accentText} text-xl`}>chat_bubble</span>
+                    </div>
+                    <p className="text-tx-secondary font-medium text-sm">Bu sonuç doğru mu?</p>
                 </div>
-            </div>
-
-            {/* Açıklama Metni */}
-            <div className="relative">
-                <span className={`absolute -left-3 md:-left-4 -top-2 text-3xl md:text-4xl font-serif opacity-20 ${theme.title}`}>"</span>
-                <p className="text-tx-primary dark:text-tx-secondary font-medium leading-relaxed text-sm md:text-base lg:text-lg italic px-2">
-                    {explanation || (isAuthentic
-                        ? "Analiz edilen metin, tarafsız bir dil yapısına ve doğrulanabilir veri setlerine yüksek uyum göstermektedir."
-                        : isFake
-                            ? "İncelediğiniz metin, tipik yanıltıcı haber karakteristikleri taşımaktadır."
-                            : "Sistem bu metin hakkında kesin bir yargıya varamadı. Lütfen farklı kaynaklardan teyit ediniz.")}
-                </p>
-            </div>
-
-            {/* Sinyal Paneli */}
-            {signals && <SignalPanel signals={signals} theme={theme} />}
-
-            {/* Metin Highlight — URL analizinde gösterilmez */}
-            {!isUrlAnalysis && originalText && signals?.triggered_words && (
-                <HighlightedText
-                    text={originalText}
-                    triggeredWords={signals.triggered_words}
-                    theme={theme}
-                />
-            )}
-
-            {/* Footer: Geri Bildirim */}
-            <div className="mt-6 md:mt-10 flex items-center justify-end gap-3 md:gap-4 pt-4 border-t border-black/5 dark:border-white/5">
-                <span className={`text-xs font-bold italic uppercase tracking-wider ${theme.title} opacity-60 hidden sm:inline`}>
-                    bu sonuç doğru mu?
-                </span>
-                <div className="flex gap-2">
-                    <button className={`group p-2.5 rounded-full transition-transform hover:scale-110 text-white shadow-md min-w-[40px] min-h-[40px] flex items-center justify-center ${theme.progressFill}`}>
-                        <ThumbsUp size={16} />
+                <div className="flex gap-3 w-full sm:w-auto">
+                    <button className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl border border-brutal-border/30 text-tx-primary font-manrope font-bold text-sm hover:bg-surface-solid transition-colors active:scale-95 duration-150 uppercase tracking-wider">
+                        HAYIR
                     </button>
-                    <button className={`group p-2.5 rounded-full transition-transform hover:scale-110 text-white shadow-md min-w-[40px] min-h-[40px] flex items-center justify-center ${theme.progressFill}`}>
-                        <ThumbsDown size={16} />
+                    <button className={`flex-1 sm:flex-none px-8 py-2.5 rounded-xl ${theme.accentBg} ${theme.onAccent} font-manrope font-bold text-sm shadow-lg hover:opacity-90 transition-opacity active:scale-95 duration-150 uppercase tracking-wider`}>
+                        EVET
                     </button>
                 </div>
             </div>
