@@ -23,7 +23,7 @@ const Navbar = () => {
         <header className="fixed top-0 left-0 right-0 z-50">
 
             {/* ── Blur strip — navbar arkasını örtüyor ── */}
-            <div className="navbar-blur absolute inset-x-0 top-0 h-28 pointer-events-none -z-10" />
+            <div className="navbar-blur absolute inset-x-0 top-0 h-16 pointer-events-none -z-10" />
 
             <div className="max-w-7xl mx-auto px-4 md:px-6 pt-4 md:pt-5 flex justify-between items-center gap-3">
 

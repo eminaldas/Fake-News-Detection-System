@@ -2,6 +2,11 @@ import re
 import math
 from typing import Dict, Any
 
+# "AA" (Anadolu Ajansı) haber ajansı kısaltması — büyük harf, kelime sınırı zorunlu.
+# Türkçe harf olmayan karakter öncesi/sonrasında "AA" arar.
+# "saat" (s-a-a-t) gibi kelimelerde büyük "AA" geçmez, eşleşmez.
+_AA_AGENCY_PATTERN = re.compile(r'(?<![A-ZÇĞÜŞÖİa-zçğüşöıi])AA(?![A-ZÇĞÜŞÖİa-zçğüşöıi])')
+
 def _turkish_lower(text: str) -> str:
     """
     Python'un standart .lower() metodu Türkçe büyük İ'yi 'i\u0307' (i + birleştirici
@@ -179,7 +184,10 @@ class NewsCleaner:
         hedge_ratio = round(min(hedge_hits / word_count, 1.0), 4)
 
         # ── Kaynak güvenilirlik skoru ─────────────────────────────────────
-        source_hits  = sum(1 for phrase in _SOURCE_KEYWORDS if phrase in text_lower)
+        # "AA" (Anadolu Ajansı) orijinal metinde büyük harf + kelime sınırıyla aranır;
+        # diğer anahtar kelimeler küçük harfe dönüştürülmüş metinde substring aramasıyla bulunur.
+        aa_hits      = len(_AA_AGENCY_PATTERN.findall(original_text))
+        source_hits  = aa_hits + sum(1 for phrase in _SOURCE_KEYWORDS if phrase in text_lower)
         source_score = round(min(source_hits / word_count, 1.0), 4)
 
         # ── Ortalama kelime uzunluğu ──────────────────────────────────────

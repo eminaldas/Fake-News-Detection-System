@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 import { useAnalysis } from "../hooks/useAnalysis";
 import AnalysisForm from "../features/analysis/AnalysisForm";
@@ -11,6 +11,16 @@ import AnalysisDisclaimer from "../features/analysis/AnalysisDisclaimer";
 const Home = () => {
   const { analyze, analyzeUrl, loading, result, error, isPolling } = useAnalysis();
   const showAnalysisSkeleton = loading || isPolling;
+  const resultRef = useRef(null);
+
+  // Analiz tamamlanınca sonuca smooth scroll
+  useEffect(() => {
+    if (!showAnalysisSkeleton && result && resultRef.current) {
+      setTimeout(() => {
+        resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 120);
+    }
+  }, [result, showAnalysisSkeleton]);
 
   return (
     <div className="w-full min-h-[80vh] flex flex-col px-4 md:px-6">
@@ -93,7 +103,7 @@ const Home = () => {
           )}
 
           {/* Sonuç alanı — key değişince animate-fade-up tetiklenir */}
-          <div className="mt-4 md:mt-6 w-full">
+          <div ref={resultRef} className="mt-4 md:mt-6 w-full">
             {showAnalysisSkeleton ? (
               <AnalysisResultSkeleton key="skeleton" />
             ) : result ? (
