@@ -58,6 +58,7 @@ export const useAnalysis = () => {
         try {
             const data = await AnalysisService.analyzeUrl(url);
             if (data.task_id) {
+                pendingTextRef.current = null;
                 setPollingTaskId(data.task_id);
             } else {
                 setError("Sunucudan beklenmeyen yanıt.");
