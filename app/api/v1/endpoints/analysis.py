@@ -41,7 +41,8 @@ async def analyze_content(
     """
     content_id = str(uuid.uuid4())
 
-    cleaned_for_search = cleaner.process(raw_iddia=request.text)["cleaned_text"]
+    nlp_result         = cleaner.process(raw_iddia=request.text)
+    cleaned_for_search = nlp_result["cleaned_text"]
     embedding = vectorizer.get_embedding(cleaned_for_search)
 
     stmt = (
@@ -97,6 +98,10 @@ async def analyze_content(
             else "Bilinmiyor"
         )
 
+        # Direct match için sinyal hesapla (triggered_words dahil)
+        # cleaner zaten line 25'te tanımlı, nlp_result line 44'te hesaplandı
+        match_signals = nlp_result["signals"]
+
         return AnalysisResponse(
             task_id=content_id,
             message=(
@@ -111,6 +116,7 @@ async def analyze_content(
                 "evidence":        dayanak,
                 "match_count":     len(matches),
                 "vote_confidence": vote_confidence,
+                "signals":         match_signals,   # SignalPanel ve HighlightedText için
             },
         )
 
