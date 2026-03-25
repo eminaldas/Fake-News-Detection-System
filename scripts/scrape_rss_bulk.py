@@ -75,13 +75,14 @@ async def ingest_rss_sources(
     total_added = 0
 
     async with AsyncSessionLocal() as session:
-        batch_count = 0
+        total_committed = 0
         for source in SOURCES:
             logger.info("RSS okunuyor: %s", source["name"])
-            try:
-                feed = feedparser.parse(source["rss"])
-            except Exception as exc:
-                logger.warning("Feed parse hatası (%s): %s", source["name"], exc)
+            feed = feedparser.parse(source["rss"])
+            if feed.bozo:
+                logger.warning("Feed bozuk/erişilemiyor (%s): %s", source["name"], getattr(feed, "bozo_exception", "bilinmiyor"))
+            if not feed.entries:
+                logger.warning("Feed boş döndü, atlanıyor: %s", source["name"])
                 continue
 
             for entry in feed.entries:
@@ -142,11 +143,11 @@ async def ingest_rss_sources(
                 )
                 session.add(article)
                 total_added += 1
-                batch_count += 1
+                total_committed += 1
 
-                if batch_count % COMMIT_BATCH == 0:
+                if total_committed % COMMIT_BATCH == 0:
                     await session.commit()
-                    logger.info("%d kayıt commit edildi.", batch_count)
+                    logger.info("Toplam %d kayıt commit edildi.", total_committed)
 
         if not dry_run:
             await session.commit()
