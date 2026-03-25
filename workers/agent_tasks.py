@@ -16,9 +16,8 @@ import logging
 from celery import Celery
 
 from app.core.config import settings
-from scrapers.rss_monitor import run_agent_cycle
+from scrapers.rss_monitor import run_agent_cycle, get_vectorizer
 from scripts.scrape_rss_bulk import ingest_rss_sources
-from scrapers.rss_monitor import get_vectorizer
 
 logger = logging.getLogger("NewsAgent.Beat")
 
