@@ -207,21 +207,6 @@ def _extract_article_text(html: str, selectors: list[str]) -> str:
     return " ".join(paragraphs)
 
 
-async def is_duplicate(session, url: str, title: str) -> bool:
-    link_res = await session.execute(
-        select(Article).where(
-            Article.metadata_info["link"].astext == url
-        ).limit(1)
-    )
-    if link_res.scalars().first() is not None:
-        return True
-    truncated = title[:TITLE_MAX_LEN] + ("..." if len(title) > TITLE_MAX_LEN else "")
-    title_res = await session.execute(
-        select(Article).where(Article.title == truncated).limit(1)
-    )
-    return title_res.scalars().first() is not None
-
-
 async def ingest_sitemap_sources(
     months: int = 6,
     dry_run: bool = False,
@@ -284,17 +269,13 @@ async def ingest_sitemap_sources(
                     logger.debug("İçerik yetersiz, atlandı: %s", url[:60])
                     continue
 
-                truncated_check = raw_title[:TITLE_MAX_LEN] + ("..." if len(raw_title) > TITLE_MAX_LEN else "")
+                truncated_title = raw_title[:TITLE_MAX_LEN] + ("..." if len(raw_title) > TITLE_MAX_LEN else "")
                 title_res = await session.execute(
-                    select(Article).where(Article.title == truncated_check).limit(1)
+                    select(Article).where(Article.title == truncated_title).limit(1)
                 )
                 if title_res.scalars().first() is not None:
                     logger.debug("Title duplicate atlandı: %s", raw_title[:60])
                     continue
-
-                truncated_title = raw_title[:TITLE_MAX_LEN] + (
-                    "..." if len(raw_title) > TITLE_MAX_LEN else ""
-                )
 
                 if dry_run:
                     logger.info("[DRY-RUN] %s | %s", source_name, truncated_title)
