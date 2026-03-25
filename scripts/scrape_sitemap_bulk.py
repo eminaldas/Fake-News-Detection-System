@@ -284,10 +284,13 @@ async def ingest_sitemap_sources(
                     logger.debug("İçerik yetersiz, atlandı: %s", url[:60])
                     continue
 
-                if not dry_run:
-                    if await is_duplicate(session, url, raw_title):
-                        logger.debug("Title duplicate atlandı: %s", raw_title[:60])
-                        continue
+                truncated_check = raw_title[:TITLE_MAX_LEN] + ("..." if len(raw_title) > TITLE_MAX_LEN else "")
+                title_res = await session.execute(
+                    select(Article).where(Article.title == truncated_check).limit(1)
+                )
+                if title_res.scalars().first() is not None:
+                    logger.debug("Title duplicate atlandı: %s", raw_title[:60])
+                    continue
 
                 truncated_title = raw_title[:TITLE_MAX_LEN] + (
                     "..." if len(raw_title) > TITLE_MAX_LEN else ""
@@ -296,6 +299,7 @@ async def ingest_sitemap_sources(
                 if dry_run:
                     logger.info("[DRY-RUN] %s | %s", source_name, truncated_title)
                     total_added += 1
+                    source_added += 1
                     continue
 
                 embedding = vectorizer.get_embedding(cleaned_text[:EMBED_MAX_CHARS])
