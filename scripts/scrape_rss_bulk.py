@@ -46,6 +46,7 @@ SOURCES = [
     {"name": "Euronews Türkçe", "rss": "https://tr.euronews.com/rss"},
     {"name": "Milliyet",        "rss": "https://www.milliyet.com.tr/rss/rssNew/gundemRss.xml"},
     {"name": "Sabah",           "rss": "https://www.sabah.com.tr/rss/anasayfa.xml"},
+    {"name": "NTV",             "rss": "https://www.ntv.com.tr/son-dakika.rss"},
 ]
 
 
@@ -91,10 +92,9 @@ async def ingest_rss_sources(
                 if not url or not raw_title:
                     continue
 
-                if not dry_run:
-                    if await is_duplicate(session, url, raw_title):
-                        logger.debug("Duplicate atlandı: %s", raw_title[:60])
-                        continue
+                if await is_duplicate(session, url, raw_title):
+                    logger.debug("Duplicate atlandı: %s", raw_title[:60])
+                    continue
 
                 raw_body = (
                     entry.get("summary", "")

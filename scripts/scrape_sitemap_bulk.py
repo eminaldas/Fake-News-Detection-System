@@ -72,6 +72,13 @@ SITEMAP_SOURCES = {
         "url_filter": "ntv.com.tr/",
         "domain": "ntv.com.tr",
     },
+    # Not: BBC Türkçe geleneksel sitemap kullanmıyor; news sitemap denenecek, çalışmayabilir.
+    "BBC Türkçe": {
+        "sitemap_url": "https://www.bbc.com/sitemaps/https-index-com-turkish.xml",
+        "content_selectors": ["div[data-component='text-block']", "article", "main"],
+        "url_filter": "bbc.com/turkce",
+        "domain": "bbc.com",
+    },
 }
 
 HEADERS = {
@@ -120,10 +127,11 @@ def _parse_sitemap_urls(
     domain: str,
     url_filter: str,
     cutoff: datetime,
-) -> list[str]:
+) -> list[dict]:
     """
     Sitemap XML'den URL listesi çıkarır.
     Sitemap index (sitemapindex) ve normal sitemap (urlset) desteklenir.
+    Her öğe {"url": str, "lastmod": str} formatında döner.
     """
     resp = _fetch(sitemap_url, domain)
     if not resp:
@@ -140,7 +148,7 @@ def _parse_sitemap_urls(
     ns = root.tag.split("}")[0].strip("{") if "}" in root.tag else ""
     tag = lambda name: f"{{{ns}}}{name}" if ns else name
 
-    urls: list[str] = []
+    urls: list[dict] = []
 
     if root.tag == tag("sitemapindex"):
         for sitemap_el in root.findall(tag("sitemap")):
@@ -170,6 +178,7 @@ def _parse_sitemap_urls(
             if url_filter and url_filter not in url:
                 continue
             lastmod_el = url_el.find(tag("lastmod"))
+            lastmod_str = ""
             if lastmod_el is not None and lastmod_el.text:
                 try:
                     lastmod = datetime.fromisoformat(
@@ -177,9 +186,10 @@ def _parse_sitemap_urls(
                     ).replace(tzinfo=timezone.utc)
                     if lastmod < cutoff:
                         continue
+                    lastmod_str = lastmod_el.text[:10]
                 except ValueError:
                     pass
-            urls.append(url)
+            urls.append({"url": url, "lastmod": lastmod_str})
 
     logger.info("Sitemap'ten %d URL alındı: %s", len(urls), sitemap_url)
     return urls
@@ -232,7 +242,9 @@ async def ingest_sitemap_sources(
 
         async with AsyncSessionLocal() as session:
             source_added = 0
-            for i, url in enumerate(urls):
+            for i, item in enumerate(urls):
+                url = item["url"]
+                tarih = item["lastmod"]
                 logger.info("[%d/%d] %s", i + 1, len(urls), url[:80])
 
                 if not dry_run:
@@ -295,7 +307,7 @@ async def ingest_sitemap_sources(
                         "link": url,
                         "baslik": raw_title,
                         "source": source_name,
-                        "tarih": "",
+                        "tarih": tarih,
                         "hata_turu": "Yok (Güvenilir Kaynak)",
                         "dayanak_noktalari": source_name,
                         "detayli_analiz": processed["cleaned_detayli_analiz"],
