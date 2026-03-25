@@ -17,6 +17,8 @@ from celery import Celery
 
 from app.core.config import settings
 from scrapers.rss_monitor import run_agent_cycle
+from scripts.scrape_rss_bulk import ingest_rss_sources
+from scrapers.rss_monitor import get_vectorizer
 
 logger = logging.getLogger("NewsAgent.Beat")
 
@@ -47,6 +49,10 @@ celery_app.conf.beat_schedule = {
         "task": "workers.agent_tasks.run_news_scan",
         "schedule": settings.NEWS_AGENT_INTERVAL,  # varsayılan: 60 saniye
     },
+    "ingest-trusted-rss-daily": {
+        "task": "workers.agent_tasks.ingest_trusted_rss",
+        "schedule": 86400,  # 24 saat (saniye cinsinden)
+    },
 }
 
 
@@ -70,3 +76,22 @@ def run_news_scan(self):
     except Exception as exc:
         logger.exception("Haber taraması başarısız: %s", exc)
         raise self.retry(exc=exc, countdown=15)  # 15s sonra tekrar dene
+
+
+@celery_app.task(name="workers.agent_tasks.ingest_trusted_rss", bind=True, max_retries=2)
+def ingest_trusted_rss(self):
+    """
+    Her 24 saatte bir tetiklenir.
+    Güvenilir RSS feed'lerinden yeni haberleri Doğru etiketiyle ingest eder.
+    get_vectorizer() singleton kullanılır — OOM riskini azaltır.
+    Dedup kontrolü sayesinde idempotent çalışır.
+    """
+    logger.info("▶ Güvenilir RSS ingest başlatılıyor...")
+    try:
+        vect = get_vectorizer()
+        count = asyncio.run(ingest_rss_sources(dry_run=False, vectorizer=vect))
+        logger.info("✔ RSS ingest tamamlandı. Eklenen: %d", count)
+        return {"added": count}
+    except Exception as exc:
+        logger.exception("RSS ingest başarısız: %s", exc)
+        raise self.retry(exc=exc, countdown=300)  # 5dk sonra tekrar dene
