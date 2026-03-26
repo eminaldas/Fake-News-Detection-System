@@ -13,13 +13,11 @@ import AnalysisDisclaimer from "../features/analysis/AnalysisDisclaimer";
 const Home = () => {
   const { isAuthenticated } = useAuth();
   const [rateLimitExceeded, setRateLimitExceeded] = useState(false);
-  const [rateLimitReset, setRateLimitReset]       = useState(null);
-  const [remaining, setRemaining]                 = useState(null);
+  const [remaining] = useState(null);
 
   useEffect(() => {
-      const handler = (e) => {
+      const handler = () => {
           setRateLimitExceeded(true);
-          setRateLimitReset(e.detail.reset);
       };
       window.addEventListener('rate-limit-exceeded', handler);
       return () => window.removeEventListener('rate-limit-exceeded', handler);
