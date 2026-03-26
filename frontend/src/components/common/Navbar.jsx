@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Moon, Sun, Github, Menu, X } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 import logo from '../../assets/images/emrald.png';
 import logoDark from '../../assets/images/logoDark.png';
 
@@ -14,6 +15,7 @@ const NAV_LINKS = [
 const Navbar = () => {
     const location = useLocation();
     const { isDarkMode, toggleTheme } = useTheme();
+    const { isAuthenticated, user, isAdmin, logout } = useAuth();
     const [menuOpen, setMenuOpen] = useState(false);
     const isActive = (path) => location.pathname === path;
 
@@ -85,6 +87,50 @@ const Navbar = () => {
                         >
                             <Github size={17} />
                         </a>
+                        <div className="w-px h-4 bg-brutal-border" />
+                        {isAuthenticated ? (
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    to="/profile"
+                                    className="text-tx-primary text-xs font-bold tracking-tight hover:text-brand dark:hover:text-es-primary transition-colors"
+                                >
+                                    {user?.username}
+                                </Link>
+                                {isAdmin && (
+                                    <>
+                                        <div className="w-px h-4 bg-brutal-border" />
+                                        <Link
+                                            to="/admin/users"
+                                            className="text-[11px] font-black tracking-widest text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors"
+                                        >
+                                            ADMİN
+                                        </Link>
+                                    </>
+                                )}
+                                <div className="w-px h-4 bg-brutal-border" />
+                                <button
+                                    onClick={logout}
+                                    className="text-tx-primary text-[11px] font-black tracking-widest hover:text-brand dark:hover:text-es-primary transition-colors"
+                                >
+                                    ÇIKIŞ
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    to="/login"
+                                    className="text-[11px] font-black tracking-widest text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors"
+                                >
+                                    GİRİŞ
+                                </Link>
+                                <Link
+                                    to="/register"
+                                    className="text-[11px] font-black tracking-widest bg-brand text-surface dark:bg-es-primary dark:text-es-bg px-3 py-1 rounded-full hover:opacity-80 transition-opacity"
+                                >
+                                    KAYIT
+                                </Link>
+                            </div>
+                        )}
                     </div>
 
                     {/* Mobil: hamburger */}
@@ -119,6 +165,50 @@ const Navbar = () => {
                                 {item.name}
                             </Link>
                         ))}
+                        {/* Mobil auth linkleri */}
+                        {isAuthenticated ? (
+                            <>
+                                <Link
+                                    to="/profile"
+                                    onClick={() => setMenuOpen(false)}
+                                    className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all"
+                                >
+                                    Profilim ({user?.username})
+                                </Link>
+                                {isAdmin && (
+                                    <Link
+                                        to="/admin/users"
+                                        onClick={() => setMenuOpen(false)}
+                                        className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all"
+                                    >
+                                        Kullanıcı Yönetimi
+                                    </Link>
+                                )}
+                                <button
+                                    onClick={() => { logout(); setMenuOpen(false); }}
+                                    className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all w-full text-left"
+                                >
+                                    Çıkış Yap
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <Link
+                                    to="/login"
+                                    onClick={() => setMenuOpen(false)}
+                                    className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all"
+                                >
+                                    Giriş Yap
+                                </Link>
+                                <Link
+                                    to="/register"
+                                    onClick={() => setMenuOpen(false)}
+                                    className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary bg-brand-light dark:bg-brand-accent transition-all"
+                                >
+                                    Kayıt Ol
+                                </Link>
+                            </>
+                        )}
                         <div className="flex items-center gap-5 px-4 py-3 mt-0.5 border-t border-brutal-border/40 dark:border-surface-solid/60">
                             <button className="text-tx-primary text-[11px] font-black tracking-widest hover:text-brand dark:hover:text-es-primary transition-colors">
                                 TR
