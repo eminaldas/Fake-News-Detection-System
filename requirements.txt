@@ -1,6 +1,7 @@
 # Web framework
 fastapi
 uvicorn[standard]
+python-multipart
 
 # Database
 sqlalchemy[asyncio]
@@ -14,7 +15,10 @@ passlib[bcrypt]==1.7.4
 
 # Task queue
 celery
-redis
+redis[asyncio]
+
+# Logging
+structlog
 
 # ML — torch CPU-only (Dockerfile'da önce kurulur, CUDA gereksiz)
 sentence-transformers
