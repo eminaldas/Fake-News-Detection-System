@@ -7,38 +7,46 @@ import Layout from './components/Layout';
 import Home from './pages/Home';
 import Archive from './pages/Archive';
 import Login from './pages/Login';
+import Register from './pages/Register';
+import Profile from './pages/Profile';
+import AdminUsers from './pages/AdminUsers';
 import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 import About from './pages/About';
 
 function App() {
-  return (
-    <ThemeProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Home />} />
-              <Route path="archive" element={<Archive />} />
-              <Route path="hakkimizda" element={<About />} />
-              <Route path="login" element={<Login />} />
+    return (
+        <ThemeProvider>
+            <AuthProvider>
+                <BrowserRouter>
+                    <Routes>
+                        <Route path="/" element={<Layout />}>
+                            <Route index element={<Home />} />
+                            <Route path="archive"    element={<Archive />} />
+                            <Route path="hakkimizda" element={<About />} />
+                            <Route path="login"      element={<Login />} />
+                            <Route path="register"   element={<Register />} />
 
-              {/* Protected Admin Routes */}
-              <Route
-                path="admin"
-                element={
-                  <RequireAuth>
-                    <Dashboard />
-                  </RequireAuth>
-                }
-              />
-              <Route path="*" element={<NotFound />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </ThemeProvider>
-  );
+                            {/* Giriş yapılmış kullanıcı */}
+                            <Route path="profile" element={
+                                <RequireAuth><Profile /></RequireAuth>
+                            } />
+
+                            {/* Admin */}
+                            <Route path="admin" element={
+                                <RequireAuth><Dashboard /></RequireAuth>
+                            } />
+                            <Route path="admin/users" element={
+                                <RequireAuth><AdminUsers /></RequireAuth>
+                            } />
+
+                            <Route path="*" element={<NotFound />} />
+                        </Route>
+                    </Routes>
+                </BrowserRouter>
+            </AuthProvider>
+        </ThemeProvider>
+    );
 }
 
 export default App;
