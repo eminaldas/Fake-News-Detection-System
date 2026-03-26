@@ -331,6 +331,39 @@
     animation: shimmer 1.4s ease-in-out infinite;
   }
 
+  /* ── Auth sayfa animasyonları ── */
+  @keyframes blobFloat1 {
+    0%, 100% { transform: translate(0,    0)    scale(1); }
+    33%       { transform: translate(50px, -40px) scale(1.06); }
+    66%       { transform: translate(-30px, 25px) scale(0.96); }
+  }
+  @keyframes blobFloat2 {
+    0%, 100% { transform: translate(0,    0)    scale(1); }
+    33%       { transform: translate(-45px, 30px) scale(1.04); }
+    66%       { transform: translate(30px, -20px) scale(0.97); }
+  }
+  @keyframes blobFloat3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%       { transform: translate(20px, -35px) scale(1.08); }
+  }
+  @keyframes particleRise {
+    0%   { opacity: 0;   transform: translateY(0)     scale(0.5); }
+    15%  { opacity: 0.8; }
+    85%  { opacity: 0.4; }
+    100% { opacity: 0;   transform: translateY(-130px) scale(1); }
+  }
+  @keyframes scanLine {
+    0%   { transform: translateY(-100%); opacity: 0; }
+    5%   { opacity: 0.4; }
+    95%  { opacity: 0.4; }
+    100% { transform: translateY(100vh); opacity: 0; }
+  }
+
+  .animate-blob-1   { animation: blobFloat1 14s ease-in-out infinite; }
+  .animate-blob-2   { animation: blobFloat2 18s ease-in-out infinite; }
+  .animate-blob-3   { animation: blobFloat3 10s ease-in-out infinite; }
+  .animate-scan     { animation: scanLine   8s  linear        infinite; }
+
   /* Delay yardımcıları */
   .delay-75  { animation-delay:  75ms; }
   .delay-150 { animation-delay: 150ms; }

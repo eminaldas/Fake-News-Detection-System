@@ -1,7 +1,9 @@
 import React from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Github } from 'lucide-react';
 import Navbar from './common/Navbar';
+
+const AUTH_PATHS = ['/login', '/register'];
 
 const FOOTER_LINKS = [
     { label: 'Hakkımızda', to: '/hakkimizda', external: false },
@@ -11,6 +13,9 @@ const FOOTER_LINKS = [
 ];
 
 const Layout = () => {
+    const { pathname } = useLocation();
+    const isAuth = AUTH_PATHS.includes(pathname);
+
     return (
         <div className="min-h-screen flex flex-col transition-colors duration-300">
             <Navbar />
@@ -19,7 +24,7 @@ const Layout = () => {
                 <Outlet />
             </main>
 
-            <footer className="mt-24 border-t border-brutal-border dark:border-es-primary/10 bg-surface dark:bg-es-surface">
+            {!isAuth && <footer className="mt-24 border-t border-brutal-border dark:border-es-primary/10 bg-surface dark:bg-es-surface">
                 <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-8">
 
                     {/* Marka */}
@@ -58,7 +63,7 @@ const Layout = () => {
                     </div>
 
                 </div>
-            </footer>
+            </footer>}
         </div>
     );
 };

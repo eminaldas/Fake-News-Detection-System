@@ -47,27 +47,31 @@ const SignalPanel = ({ signals, theme }) => {
                     return (
                         <div
                             key={key}
-                            className="bg-surface rounded-xl p-4 sm:p-5 border border-brutal-border/10"
+                            className="rounded-xl p-4 sm:p-5"
+                            style={{
+                                background: 'var(--color-bg-surface)',
+                                border: `1px solid ${barFill}22`,
+                            }}
                         >
-                            <span className="text-tx-secondary text-[10px] font-bold tracking-widest uppercase block mb-2">
+                            <span className="text-tx-secondary text-[10px] font-bold tracking-widest uppercase block mb-3">
                                 {label}
                             </span>
-                            <div className="flex items-end gap-2">
+                            <div className="flex items-end gap-2 mb-2">
                                 <span
-                                    className="text-2xl font-manrope font-bold leading-none"
+                                    className="text-2xl font-manrope font-black leading-none"
                                     style={{ color: valueColor }}
                                 >
                                     %{displayPct}
                                 </span>
+                            </div>
+                            <div
+                                className="h-1.5 rounded-full overflow-hidden"
+                                style={{ background: barTrack }}
+                            >
                                 <div
-                                    className="flex-1 h-1 rounded-full mb-1 overflow-hidden"
-                                    style={{ background: barTrack }}
-                                >
-                                    <div
-                                        className="h-full rounded-full"
-                                        style={{ width: `${barWidth}%`, background: barFill }}
-                                    />
-                                </div>
+                                    className="h-full rounded-full transition-all duration-700"
+                                    style={{ width: `${barWidth}%`, background: barFill }}
+                                />
                             </div>
                         </div>
                     );

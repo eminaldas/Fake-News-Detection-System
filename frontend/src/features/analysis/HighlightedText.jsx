@@ -1,4 +1,5 @@
 import React from 'react';
+import { Quote } from 'lucide-react';
 
 // Stitch tasarımıyla eşleşen kategori renkleri (sabit — karardan bağımsız)
 const CATEGORY_STYLE = {
@@ -105,12 +106,10 @@ const HighlightedText = ({ text, triggeredWords }) => {
             </div>
             <div className="bg-surface-solid rounded-2xl p-5 sm:p-6 relative">
                 {/* Dekoratif alıntı ikonu */}
-                <span
-                    className="material-symbols-outlined absolute top-4 right-4 text-tx-secondary/20 text-4xl pointer-events-none"
+                <Quote
+                    className="absolute top-4 right-4 w-8 h-8 text-tx-secondary/15 pointer-events-none"
                     aria-hidden
-                >
-                    format_quote
-                </span>
+                />
                 <p className="text-tx-primary leading-loose text-sm relative z-10">
                     {nodes}
                 </p>
