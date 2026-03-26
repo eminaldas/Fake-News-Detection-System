@@ -1,13 +1,20 @@
-from fastapi import APIRouter, Depends, status
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from celery.result import AsyncResult
 import uuid
 import json
 
+from app.api.deps import get_optional_user
 from app.core.config import settings
+from app.core.logging import get_logger
+from app.core.rate_limit import check_rate_limit
+from app.core.security import hash_ip
+from app.db.redis import get_redis
 from app.db.session import get_db
-from app.models.models import Article, AnalysisResult
+from app.models.models import AnalysisRequest, AnalysisType, Article, AnalysisResult, User
 from app.schemas.schemas import (
     AnalysisResponse,
     ContentAnalysisRequest,
@@ -31,14 +38,21 @@ cleaner    = NewsCleaner()
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def analyze_content(
+    http_request: Request,
     request: ContentAnalysisRequest,
     db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
+    current_user: Optional[User] = Depends(get_optional_user),
 ):
     """
     Haber metni için sahte haber analizi başlatır.
     Önce anlık semantik benzerlik kontrolü yapar;
     eşleşme yoksa derin analizi Celery kuyruğuna ekler.
     """
+    log = get_logger(__name__)
+    ip = http_request.client.host if http_request.client else "unknown"
+    await check_rate_limit(http_request, redis, current_user)
+
     content_id = str(uuid.uuid4())
 
     nlp_result         = cleaner.process(raw_iddia=request.text)
@@ -102,6 +116,24 @@ async def analyze_content(
         # cleaner zaten line 25'te tanımlı, nlp_result line 44'te hesaplandı
         match_signals = nlp_result["signals"]
 
+        # Analiz isteğini logla
+        ar = AnalysisRequest(
+            user_id=current_user.id if current_user else None,
+            ip_hash=hash_ip(ip),
+            analysis_type=AnalysisType.text,
+            task_id=content_id,
+        )
+        db.add(ar)
+        await db.commit()
+
+        log.info(
+            "analysis.requested",
+            user_id=str(current_user.id) if current_user else None,
+            ip_hash=hash_ip(ip),
+            type="text",
+            task_id=content_id,
+        )
+
         return AnalysisResponse(
             task_id=content_id,
             message=(
@@ -121,6 +153,25 @@ async def analyze_content(
         )
 
     task = analyze_article.delay(content_id, text=request.text)
+
+    # Analiz isteğini logla
+    ar = AnalysisRequest(
+        user_id=current_user.id if current_user else None,
+        ip_hash=hash_ip(ip),
+        analysis_type=AnalysisType.text,
+        task_id=task.id,
+    )
+    db.add(ar)
+    await db.commit()
+
+    log.info(
+        "analysis.requested",
+        user_id=str(current_user.id) if current_user else None,
+        ip_hash=hash_ip(ip),
+        type="text",
+        task_id=task.id,
+    )
+
     return AnalysisResponse(
         task_id=task.id,
         message="Analiz görevi kuyruğa alındı. Sonuç için /status/{task_id} kullanın.",
@@ -133,14 +184,41 @@ async def analyze_content(
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def analyze_url(
+    http_request: Request,
     request: UrlAnalysisRequest,
+    db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
+    current_user: Optional[User] = Depends(get_optional_user),
 ):
     """
     Verilen URL'deki haberi scrape edip hibrit NLP pipeline'ından geçirir.
     Sonuç için /status/{task_id} endpoint'ini kullanın.
     """
+    log = get_logger(__name__)
+    ip = http_request.client.host if http_request.client else "unknown"
+    await check_rate_limit(http_request, redis, current_user)
+
     content_id = str(uuid.uuid4())
     task = analyze_article_url.delay(task_id=content_id, url=str(request.url))
+
+    # Analiz isteğini logla
+    ar = AnalysisRequest(
+        user_id=current_user.id if current_user else None,
+        ip_hash=hash_ip(ip),
+        analysis_type=AnalysisType.url,
+        task_id=task.id,
+    )
+    db.add(ar)
+    await db.commit()
+
+    log.info(
+        "analysis.requested",
+        user_id=str(current_user.id) if current_user else None,
+        ip_hash=hash_ip(ip),
+        type="url",
+        task_id=task.id,
+    )
+
     return AnalysisResponse(
         task_id=task.id,
         message="URL analiz görevi kuyruğa alındı. Sonuç için /status/{task_id} kullanın.",

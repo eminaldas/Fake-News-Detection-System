@@ -1,5 +1,7 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { AlertCircle } from "lucide-react";
+import { useAuth } from '../contexts/AuthContext';
+import { Link } from 'react-router-dom';
 import { useAnalysis } from "../hooks/useAnalysis";
 import AnalysisForm from "../features/analysis/AnalysisForm";
 import AnalysisResultCard from "../features/analysis/AnalysisResultCard";
@@ -9,6 +11,20 @@ import TwitterFeedCard from "../components/features/analysis/TwitterFeedCard";
 import AnalysisDisclaimer from "../features/analysis/AnalysisDisclaimer";
 
 const Home = () => {
+  const { isAuthenticated } = useAuth();
+  const [rateLimitExceeded, setRateLimitExceeded] = useState(false);
+  const [rateLimitReset, setRateLimitReset]       = useState(null);
+  const [remaining, setRemaining]                 = useState(null);
+
+  useEffect(() => {
+      const handler = (e) => {
+          setRateLimitExceeded(true);
+          setRateLimitReset(e.detail.reset);
+      };
+      window.addEventListener('rate-limit-exceeded', handler);
+      return () => window.removeEventListener('rate-limit-exceeded', handler);
+  }, []);
+
   const { analyze, analyzeUrl, loading, result, error, isPolling } = useAnalysis();
   const showAnalysisSkeleton = loading || isPolling;
   const resultRef = useRef(null);
@@ -24,6 +40,31 @@ const Home = () => {
 
   return (
     <div className="w-full min-h-[80vh] flex flex-col px-4 md:px-6">
+
+      {/* Rate Limit Banner */}
+      {rateLimitExceeded && (
+          <div className="mb-4 p-4 rounded-xl bg-app-burgundy bg-opacity-10 border border-app-burgundy border-opacity-20 text-app-burgundy text-sm flex flex-col gap-2">
+              <p className="font-bold">Günlük analiz limitinize ulaştınız.</p>
+              {!isAuthenticated && (
+                  <p>
+                      <Link to="/register" className="underline font-semibold">Ücretsiz kayıt olarak</Link>{' '}
+                      günde 20 analize erişebilirsiniz.
+                  </p>
+              )}
+              <p className="text-xs opacity-70">Limit gece yarısı (UTC) sıfırlanır.</p>
+          </div>
+      )}
+
+      {!isAuthenticated && remaining !== null && remaining <= 1 && !rateLimitExceeded && (
+          <div className="mb-4 p-3 rounded-xl bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs flex justify-between items-center">
+              <span>
+                  {remaining === 0
+                      ? 'Tüm ücretsiz analizlerinizi kullandınız.'
+                      : `${remaining} ücretsiz analiziniz kaldı.`}
+              </span>
+              <Link to="/register" className="font-bold underline">Kayıt Ol →</Link>
+          </div>
+      )}
 
       {/* ── Hero ── */}
       <div className="text-center mb-8 md:mb-12 mt-1 md:mt-2 flex flex-col items-center gap-3 md:gap-4">

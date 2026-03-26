@@ -1,16 +1,33 @@
-from fastapi import FastAPI
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1.endpoints import auth, analysis, articles
+from app.api.v1.endpoints import admin, analysis, articles, auth, users
+from app.core.logging import get_logger, setup_logging
+from app.db.redis import close_redis
+
+setup_logging()
+log = get_logger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    log.info("app.startup")
+    yield
+    await close_redis()
+    log.info("app.shutdown")
+
 
 app = FastAPI(
     title="Fake News Detection System (FNDS)",
     description="API for detecting fake news and misinformation using machine learning.",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 ALLOWED_ORIGINS = [
-    "http://localhost:5173",   # Vite dev server
+    "http://localhost:5173",
     "http://localhost:3000",
     "http://localhost",
 ]
@@ -19,13 +36,33 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
+    expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
 )
 
-app.include_router(auth.router,     prefix="/api/v1/auth",     tags=["Authentication"])
-app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["Analysis"])
-app.include_router(articles.router, prefix="/api/v1/articles", tags=["Articles"])
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next) -> Response:
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"]        = "DENY"
+    response.headers["Referrer-Policy"]        = "strict-origin-when-cross-origin"
+
+    # Rate limit header'larını request.state'den ekle (set edildiyse)
+    if hasattr(request.state, "rate_limit_limit"):
+        response.headers["X-RateLimit-Limit"]     = str(request.state.rate_limit_limit)
+        response.headers["X-RateLimit-Remaining"] = str(request.state.rate_limit_remaining)
+        response.headers["X-RateLimit-Reset"]     = str(request.state.rate_limit_reset)
+
+    return response
+
+
+app.include_router(auth.router,     prefix="/api/v1/auth",    tags=["Authentication"])
+app.include_router(analysis.router, prefix="/api/v1/analysis",tags=["Analysis"])
+app.include_router(articles.router, prefix="/api/v1/articles",tags=["Articles"])
+app.include_router(users.router,    prefix="/api/v1/users",   tags=["Users"])
+app.include_router(admin.router,    prefix="/api/v1/admin",   tags=["Admin"])
 
 
 @app.get("/health", tags=["Health"])

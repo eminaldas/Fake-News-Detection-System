@@ -2,23 +2,126 @@
 app/schemas/schemas.py
 =======================
 Tüm Pydantic request/response şemaları merkezi olarak burada tanımlanır.
-Endpoint dosyalarında şema tanımlanmaz.
 """
 
 import html
 import re
+from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
 from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 
+from app.models.models import UserRole
+
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Güvenlik
+# Güvenlik / Auth
 # ─────────────────────────────────────────────────────────────────────────────
 
 class TokenData(BaseModel):
+    user_id:  Optional[str] = None
     username: Optional[str] = None
+    role:     Optional[str] = None
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type:   str = "bearer"
+    expires_in:   int  # saniye cinsinden
+
+
+class RegisterRequest(BaseModel):
+    email:    str = Field(..., max_length=255)
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=8)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        v = v.strip().lower()
+        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v):
+            raise ValueError("Geçersiz email formatı")
+        return v
+
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, v: str) -> str:
+        if not re.match(r"^[a-zA-Z0-9_]{3,50}$", v):
+            raise ValueError("Kullanıcı adı yalnızca harf, rakam ve _ içerebilir (3-50 karakter)")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if not any(c.isdigit() for c in v):
+            raise ValueError("Şifre en az bir rakam içermelidir")
+        if not any(c.isalpha() for c in v):
+            raise ValueError("Şifre en az bir harf içermelidir")
+        return v
+
+
+class UserResponse(BaseModel):
+    id:            UUID
+    email:         str
+    username:      str
+    role:          UserRole
+    is_active:     bool
+    created_at:    datetime
+    last_login_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class UpdateProfileRequest(BaseModel):
+    username:         Optional[str] = Field(None, min_length=3, max_length=50)
+    current_password: Optional[str] = None
+    new_password:     Optional[str] = Field(None, min_length=8)
+
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not re.match(r"^[a-zA-Z0-9_]{3,50}$", v):
+            raise ValueError("Kullanıcı adı yalnızca harf, rakam ve _ içerebilir")
+        return v
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Admin
+# ─────────────────────────────────────────────────────────────────────────────
+
+class AdminUpdateUserRequest(BaseModel):
+    is_active: Optional[bool] = None
+    role:      Optional[UserRole] = None
+
+
+class PaginatedUserResponse(BaseModel):
+    total: int
+    page:  int
+    size:  int
+    items: List[UserResponse]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Analiz Geçmişi
+# ─────────────────────────────────────────────────────────────────────────────
+
+class AnalysisRequestResponse(BaseModel):
+    id:            UUID
+    analysis_type: str
+    task_id:       Optional[str] = None
+    created_at:    datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PaginatedAnalysisRequestResponse(BaseModel):
+    total: int
+    page:  int
+    size:  int
+    items: List[AnalysisRequestResponse]
 
 
 # ─────────────────────────────────────────────────────────────────────────────

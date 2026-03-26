@@ -10,10 +10,18 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REMEMBER_ME_EXPIRE_DAYS: int = 30
 
-    # Admin credentials — .env'den okunur, kaynak kodda hardcode yok
+    # Admin credentials — migration sonrası DB'ye taşınır
     ADMIN_USERNAME: str = "admin"
     ADMIN_PASSWORD: str = "change-me-before-deploy"
+    ADMIN_EMAIL: str = "admin@fnds.local"
+
+    # Rate limiting
+    RATE_LIMIT_ANON: int = 3
+    RATE_LIMIT_USER: int = 20
+    LOGIN_BRUTE_FORCE_MAX: int = 10
+    LOGIN_BRUTE_FORCE_WINDOW_SECONDS: int = 600  # 10 dakika
 
     # Database
     DATABASE_URL: str
@@ -24,7 +32,7 @@ class Settings(BaseSettings):
     # Redis / Celery
     REDIS_URL: str = "redis://localhost:6379/0"
     CELERY_RATE_LIMIT: str = "10/s"
-    NEWS_AGENT_INTERVAL: int = 60  # saniye cinsinden
+    NEWS_AGENT_INTERVAL: int = 60
 
     # NLP
     TRANSFORMER_MODEL: str = "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr"
