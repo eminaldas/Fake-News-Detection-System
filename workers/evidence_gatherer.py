@@ -6,7 +6,7 @@ Gemini prompt'u için doğrulanmış, erişilebilir kanıt listesi üretir.
 import re
 import logging
 import requests
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 
 logger = logging.getLogger(__name__)
 
