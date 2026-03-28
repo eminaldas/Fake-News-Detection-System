@@ -234,8 +234,8 @@ const AnalysisResultCard = ({ result }) => {
                     <HighlightedText text={origText} triggeredWords={signals.triggered_words} />
                 )}
 
-                {/* Gemini AI Yorumu */}
-                <AICommentCard aiComment={aiComment} theme={theme} />
+                {/* Gemini AI Yorumu — sadece deep analysis sonuçlarında göster */}
+                {!result.isDirectMatch && <AICommentCard aiComment={aiComment} theme={theme} />}
             </div>
 
             {/* ── Footer: Geri Bildirim ── */}

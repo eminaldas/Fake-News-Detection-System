@@ -23,11 +23,10 @@ export const useAnalysis = () => {
                     const response = await AnalysisService.checkStatus(pollingTaskId);
 
                     const isDone = response.status === 'SUCCESS' && response.result?.ai_comment !== null;
-                    const isCompleted = response.status === 'completed';
                     const isFailed = response.status === 'FAILED' || response.status === 'FAILURE';
                     const isTimedOut = Date.now() - startTime > MAX_POLL_MS;
 
-                    if (isDone || isCompleted) {
+                    if (isDone) {
                         setResult({
                             ...(response.result || response),
                             originalText: pendingTextRef.current,

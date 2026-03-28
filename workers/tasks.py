@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import pickle
+from datetime import datetime, timezone
 
 from celery import Celery
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -171,11 +172,22 @@ async def _analyze_and_save(content_id: str, text: str) -> dict:
         session.add(article)
         await session.flush()
 
+        _ai_comment_skipped = None
+        if strong_manipulative:
+            _ai_comment_skipped = {
+                "summary": "Yüksek güvenli otomatik tespit — linguistik sinyal eşiği aşıldı.",
+                "evidence": [],
+                "gemini_verdict": None,
+                "model": None,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+            }
+
         analysis = AnalysisResult(
             article_id=article.id,
             status=pred_status,
             confidence=confidence,   # artık Float
             signals=signals,         # artık JSONB — dict doğrudan
+            ai_comment=_ai_comment_skipped,
         )
         session.add(analysis)
         await session.commit()

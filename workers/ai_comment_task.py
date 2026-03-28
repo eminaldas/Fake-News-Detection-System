@@ -16,6 +16,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 from celery import Celery
 from sqlalchemy import update
@@ -53,6 +54,15 @@ def _get_gemini_client():
     return _gemini_client
 
 
+# ─── Güvenlik: URL doğrulama ──────────────────────────────────────────────────
+def _is_safe_url(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+        return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+    except Exception:
+        return False
+
+
 # ─── Güvenlik: Output validation ──────────────────────────────────────────────
 _VALID_VERDICTS = {"FAKE", "AUTHENTIC", "null", None}
 
@@ -72,6 +82,11 @@ def validate_gemini_response(raw: dict) -> dict | None:
     evidence = raw.get("evidence", [])
     if not isinstance(evidence, list):
         return None
+    # Filter out items with unsafe URLs
+    raw["evidence"] = [
+        e for e in evidence
+        if isinstance(e, dict) and _is_safe_url(e.get("url", ""))
+    ]
     return raw
 
 
@@ -95,7 +110,7 @@ def _build_prompt(
 
     if evidence:
         evidence_lines = "\n".join(
-            f"{i+1}. {e['title']} — {e['url']}"
+            f"{i+1}. {sanitize_for_prompt(e['title'], max_len=200)} — {e['url']}"
             for i, e in enumerate(evidence[:3])
         )
         evidence_block = f"""
