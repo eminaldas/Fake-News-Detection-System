@@ -8,7 +8,6 @@ import { Sparkles, ExternalLink, Loader2 } from 'lucide-react';
  */
 const AICommentCard = ({ aiComment, theme }) => {
     const hex08 = `${theme.hex}14`;
-    const hex15 = `${theme.hex}26`;
     const hex30 = `${theme.hex}4d`;
 
     return (
