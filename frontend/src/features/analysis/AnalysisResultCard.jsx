@@ -141,7 +141,9 @@ const AnalysisResultCard = ({ result }) => {
         aiComment.gemini_verdict !== aiComment.ml_status;
 
     const mlOverrideNote = mlOverridden
-        ? `NLP modeli: ${aiComment.ml_status} %${Math.round((aiComment.ml_confidence || 0) * 100)} → Gemini tarafından revize edildi`
+        ? aiComment.ml_confidence != null
+            ? `NLP modeli: ${aiComment.ml_status} %${Math.round(aiComment.ml_confidence * 100)} → Gemini tarafından revize edildi`
+            : `NLP modeli: ${aiComment.ml_status} → Gemini tarafından revize edildi`
         : null;
 
     /* opacity helpers */
