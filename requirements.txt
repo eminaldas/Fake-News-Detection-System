@@ -32,3 +32,6 @@ feedparser
 requests
 beautifulsoup4
 lxml
+
+# AI — Gemini
+google-genai

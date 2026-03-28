@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     TRANSFORMER_MODEL: str = "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr"
     SIMILARITY_THRESHOLD: float = 0.08
 
+    # Gemini AI
+    GEMINI_API_KEY:         str   = ""
+    GEMINI_MODEL:           str   = "gemini-2.5-flash"
+    GEMINI_ESCALATION_LOW:  float = 0.40
+    GEMINI_ESCALATION_HIGH: float = 0.65
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
