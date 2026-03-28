@@ -201,13 +201,16 @@ async def _analyze_and_save(content_id: str, text: str) -> dict:
     _uncertain = _LOW <= confidence <= _HIGH
 
     if not strong_manipulative and settings.GEMINI_API_KEY:
-        generate_ai_comment.delay(
-            article_id=article_id,
-            text=raw,
-            signals=signals,
-            local_verdict=pred_status,
-            local_confidence=confidence,
-            needs_decision=_uncertain,
+        generate_ai_comment.apply_async(
+            kwargs=dict(
+                article_id=article_id,
+                text=raw,
+                signals=signals,
+                local_verdict=pred_status,
+                local_confidence=confidence,
+                needs_decision=_uncertain,
+            ),
+            queue="ai_comment",
         )
         logger.info(
             "ai_comment_task spawn edildi → article_id=%s mod=%s",

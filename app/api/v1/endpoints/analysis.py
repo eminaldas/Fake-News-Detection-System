@@ -270,7 +270,37 @@ async def get_analysis_status(
 
     if task_result.ready():
         if task_result.successful():
-            response.result = task_result.result
+            celery_res = task_result.result or {}
+            db_article_id = celery_res.get("db_article_id")
+
+            # Phase-2 (ai_comment) henüz yazılmış olabilir — DB'den taze veri çek
+            if db_article_id:
+                try:
+                    db_query = (
+                        select(
+                            AnalysisResult.status,
+                            AnalysisResult.confidence,
+                            AnalysisResult.signals,
+                            AnalysisResult.ai_comment,
+                            Article.id.label("article_id"),
+                            Article.content.label("article_content"),
+                        )
+                        .join(Article, AnalysisResult.article_id == Article.id)
+                        .where(Article.id == db_article_id)
+                    )
+                    db_result = await db.execute(db_query)
+                    db_match = db_result.first()
+                    if db_match:
+                        response.status = "SUCCESS"
+                        response.result = {
+                            **celery_res,
+                            "ai_comment": db_match.ai_comment if isinstance(db_match.ai_comment, dict) else (json.loads(db_match.ai_comment) if db_match.ai_comment else None),
+                        }
+                        return response
+                except Exception:
+                    pass
+
+            response.result = celery_res
         else:
             response.status = "FAILED"
             response.result = {"error": str(task_result.info)}

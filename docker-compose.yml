@@ -25,7 +25,7 @@ services:
     depends_on:
       - redis
       - db
-    command: celery -A workers.tasks worker --include=workers.link_analysis_task --loglevel=info
+    command: celery -A workers.tasks worker --include=workers.link_analysis_task --loglevel=info -Q celery
 
   ai-comment-worker:
     build: .
@@ -36,7 +36,7 @@ services:
     depends_on:
       - redis
       - db
-    command: celery -A workers.ai_comment_task worker --loglevel=info --concurrency=2
+    command: celery -A workers.ai_comment_task worker --loglevel=info --concurrency=2 -Q ai_comment
 
   news-agent:
     image: fake-news-detection-system-app
