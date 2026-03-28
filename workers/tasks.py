@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.models.models import Article, AnalysisResult
 from ml_engine.processing.cleaner import NewsCleaner, signals_to_vector
 from ml_engine.vectorizer import TurkishVectorizer
+from workers.ai_comment_task import generate_ai_comment
 
 logger = logging.getLogger(__name__)
 
@@ -179,6 +180,28 @@ async def _analyze_and_save(content_id: str, text: str) -> dict:
         session.add(analysis)
         await session.commit()
         article_id = str(article.id)
+
+    # ── Phase 2: AI yorum task'ını spawn et ────────────────────────────────────
+    # Hard override durumunda (strong_manipulative) Gemini'ye gerek yok.
+    # Yalnızca classifier karar verdiyse veya kural bazlı fallback'te spawn edilir.
+    _LOW  = settings.GEMINI_ESCALATION_LOW
+    _HIGH = settings.GEMINI_ESCALATION_HIGH
+    _uncertain = _LOW <= confidence <= _HIGH
+
+    if not strong_manipulative and settings.GEMINI_API_KEY:
+        generate_ai_comment.delay(
+            article_id=article_id,
+            text=raw,
+            signals=signals,
+            local_verdict=pred_status,
+            local_confidence=confidence,
+            needs_decision=_uncertain,
+        )
+        logger.info(
+            "ai_comment_task spawn edildi → article_id=%s mod=%s",
+            article_id,
+            "uncertain" if _uncertain else "explanatory",
+        )
 
     await engine.dispose()
     logger.info("Analiz tamamlandı → status=%s conf=%.4f id=%s", pred_status, confidence, article_id)
