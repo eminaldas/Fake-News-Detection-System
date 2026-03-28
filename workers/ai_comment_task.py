@@ -64,16 +64,19 @@ def _is_safe_url(url: str) -> bool:
 
 
 # ─── Güvenlik: Output validation ──────────────────────────────────────────────
-_VALID_VERDICTS = {"FAKE", "AUTHENTIC", "null", None}
+_VALID_VERDICTS = {"FAKE", "AUTHENTIC"}
 
 def validate_gemini_response(raw: dict) -> dict | None:
     """
-    Gemini yanıtını doğrular. Geçersizse None döner → local ML kararı kullanılır.
+    Gemini yanıtını doğrular. Geçersizse None döner → ai_comment yazılmaz.
+    gemini_verdict None/null gelebilir (Gemini prompt'a rağmen) — bu durumda
+    verdict override yapılmaz ama summary geçerliyse ai_comment yine kaydedilir.
     """
     if not isinstance(raw, dict):
         return None
     verdict = raw.get("gemini_verdict")
-    if verdict not in _VALID_VERDICTS:
+    # None/null kabul edilir (override olmaz), ama geçersiz string reddedilir
+    if verdict is not None and verdict not in _VALID_VERDICTS:
         logger.warning("Geçersiz gemini_verdict: %r", verdict)
         return None
     summary = raw.get("summary", "")
@@ -111,13 +114,19 @@ def _build_prompt(
     if evidence:
         evidence_lines = "\n".join(
             f"{i+1}. {sanitize_for_prompt(e['title'], max_len=200)} — {e['url']}"
+            f" [{e.get('date') or 'tarih bilinmiyor'}]"
             for i, e in enumerate(evidence[:3])
         )
         evidence_block = f"""
 [İLGİLİ HABERLER - REFERANS AMAÇLI]
 [UYARI] Bu kaynakların doğruluğu garanti edilmez. Kararını
 öncelikle linguistik sinyaller ve metnin iç tutarlılığına dayandır.
-{evidence_lines}"""
+{evidence_lines}
+
+[TARİH KONTROLÜ]
+Kanıt haberlerinin tarihlerine dikkat et.
+- Haberin öne sürdüğü olayı destekleyen güncel kaynak yoksa bunu özetle belirt.
+- Kanıtlar haberin tarihinden çok önceye aitse bunu işaret et."""
     else:
         evidence_block = "[İLGİLİ HABERLER]\nBu haber için ilgili kaynak bulunamadı."
 
@@ -131,8 +140,8 @@ Yanıtı YALNIZCA JSON formatında ver."""
     else:
         task_block = f"""[GÖREV]
 Yerel model bu haberi {local_verdict} olarak sınıflandırdı (%{local_confidence*100:.0f} güven).
-Bu kararı destekleyen veya çelişen dilsel/içeriksel noktaları açıkla.
-- "gemini_verdict": null (kararı değiştirme)
+Bu kararı değerlendir: destekliyorsan aynı verdict'i, çelişiyorsan farklı verdict'i ver.
+- "gemini_verdict": "FAKE" veya "AUTHENTIC"
 - "summary": 2-3 cümle Türkçe açıklama (max 500 karakter)
 - "evidence": ilgili haberlerden en fazla 3 kanıt [{{"title":"...","url":"..."}}]
 Yanıtı YALNIZCA JSON formatında ver."""
@@ -174,16 +183,37 @@ def _call_gemini(prompt: str) -> dict | None:
 
 
 # ─── Async DB güncelleme ──────────────────────────────────────────────────────
-async def _update_ai_comment(article_id: str, ai_comment: dict) -> None:
+async def _update_ai_comment_and_status(
+    article_id: str,
+    ai_comment: dict,
+    local_verdict: str,
+) -> None:
+    """
+    ai_comment JSONB'yi günceller.
+    gemini_verdict local_verdict'ten farklıysa AnalysisResult.status da güncellenir.
+    Tek bir UPDATE sorgusuyla yapılır.
+    """
     engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    gemini_verdict = ai_comment.get("gemini_verdict")
+    values: dict = {"ai_comment": ai_comment}
+
+    if gemini_verdict and gemini_verdict != local_verdict:
+        values["status"] = gemini_verdict
+        logger.info(
+            "Gemini verdict override: %s → %s (article_id=%s)",
+            local_verdict, gemini_verdict, article_id,
+        )
+
     async with Session() as session:
         await session.execute(
             update(AnalysisResult)
             .where(AnalysisResult.article_id == article_id)
-            .values(ai_comment=ai_comment)
+            .values(**values)
         )
         await session.commit()
+
     await engine.dispose()
     logger.info("ai_comment DB'ye yazıldı — article_id=%s", article_id)
 
@@ -243,11 +273,13 @@ def generate_ai_comment(
         "summary":         gemini_result["summary"],
         "evidence":        gemini_result.get("evidence", []),
         "gemini_verdict":  gemini_result.get("gemini_verdict"),
+        "ml_status":       local_verdict,
+        "ml_confidence":   round(local_confidence, 4),
         "model":           settings.GEMINI_MODEL,
         "generated_at":    datetime.now(timezone.utc).isoformat(),
     }
 
-    # 5. DB güncelle
-    asyncio.run(_update_ai_comment(article_id, ai_comment))
+    # 5. DB güncelle (ai_comment + gerekirse status)
+    asyncio.run(_update_ai_comment_and_status(article_id, ai_comment, local_verdict))
 
     return {"success": True, "article_id": article_id}
