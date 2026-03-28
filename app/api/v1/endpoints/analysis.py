@@ -238,6 +238,7 @@ async def get_analysis_status(
             AnalysisResult.status,
             AnalysisResult.confidence,
             AnalysisResult.signals,
+            AnalysisResult.ai_comment,
             Article.id.label("article_id"),
             Article.content.label("article_content"),
         )
@@ -258,6 +259,7 @@ async def get_analysis_status(
                 "prediction": match.status,
                 "confidence": match.confidence,
                 "signals": match.signals if isinstance(match.signals, dict) else (json.loads(match.signals) if match.signals else {}),
+                "ai_comment": match.ai_comment if isinstance(match.ai_comment, dict) else (json.loads(match.ai_comment) if match.ai_comment else None),
                 "processed_text_length": len(match.article_content or ""),
             },
         )
