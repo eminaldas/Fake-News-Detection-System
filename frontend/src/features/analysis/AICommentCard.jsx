@@ -1,9 +1,9 @@
 import React from 'react';
-import { Sparkles, ExternalLink, Loader2 } from 'lucide-react';
+import { Sparkles, ExternalLink } from 'lucide-react';
 
 /**
  * Gemini AI yorumunu gösterir.
- * aiComment === null    → yükleniyor spinner
+ * aiComment === null    → mevcut değil (zaman aşımı veya atlandı)
  * aiComment === object  → özet paragraf + kanıt linkleri
  */
 const AICommentCard = ({ aiComment, theme }) => {
@@ -21,15 +21,12 @@ const AICommentCard = ({ aiComment, theme }) => {
                 <span className={`${theme.statusCls} font-manrope font-bold text-xs tracking-wide`}>
                     Gemini AI Analizi
                 </span>
-                {!aiComment && (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-tx-secondary/50 ml-1" />
-                )}
             </div>
 
-            {/* Yükleniyor */}
+            {/* Mevcut değil */}
             {!aiComment && (
                 <p className="text-tx-secondary/50 text-sm italic">
-                    AI yorumu oluşturuluyor...
+                    AI yorumu şu an mevcut değil.
                 </p>
             )}
 
@@ -60,6 +57,11 @@ const AICommentCard = ({ aiComment, theme }) => {
                                     />
                                     <span className="text-tx-secondary text-xs leading-snug group-hover:text-tx-primary transition-colors line-clamp-2">
                                         {item.title}
+                                        {item.date && (
+                                            <span className="text-tx-secondary/40 ml-1 not-italic">
+                                                ({item.date})
+                                            </span>
+                                        )}
                                     </span>
                                 </a>
                             ))}
