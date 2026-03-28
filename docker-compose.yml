@@ -27,6 +27,17 @@ services:
       - db
     command: celery -A workers.tasks worker --include=workers.link_analysis_task --loglevel=info
 
+  ai-comment-worker:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - .:/workspace
+    depends_on:
+      - redis
+      - db
+    command: celery -A workers.ai_comment_task worker --loglevel=info --concurrency=2
+
   news-agent:
     image: fake-news-detection-system-app
     env_file:
