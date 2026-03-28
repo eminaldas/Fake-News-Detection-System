@@ -29,6 +29,7 @@ pandas
 
 # Scraping & RSS
 feedparser
+duckduckgo-search>=6.0
 requests
 beautifulsoup4
 lxml
