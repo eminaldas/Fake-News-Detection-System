@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import SignalPanel from './SignalPanel';
 import HighlightedText from './HighlightedText';
+import AICommentCard from './AICommentCard';
 import { DISPLAY_THRESHOLD } from './signalConfig';
 
 /* ─── Sinyal açıklaması ────────────────────────────────────────────── */
@@ -122,6 +123,7 @@ const AnalysisResultCard = ({ result }) => {
 
     const theme      = getTheme(isAuthentic, isFake);
     const signals    = result.signals || null;
+    const aiComment  = result.ai_comment || null;
     const origText   = result.originalText || null;
     const explanation = buildExplanation(signals);
 
@@ -231,6 +233,9 @@ const AnalysisResultCard = ({ result }) => {
                 {!isUrlAnalysis && origText && signals?.triggered_words && (
                     <HighlightedText text={origText} triggeredWords={signals.triggered_words} />
                 )}
+
+                {/* Gemini AI Yorumu */}
+                <AICommentCard aiComment={aiComment} theme={theme} />
             </div>
 
             {/* ── Footer: Geri Bildirim ── */}
