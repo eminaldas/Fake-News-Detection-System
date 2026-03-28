@@ -15,11 +15,19 @@ export const useAnalysis = () => {
     useEffect(() => {
         let interval;
         if (pollingTaskId) {
+            const startTime = Date.now();
+            const MAX_POLL_MS = 30_000;
+
             interval = setInterval(async () => {
                 try {
                     const response = await AnalysisService.checkStatus(pollingTaskId);
 
-                    if (response.status === 'SUCCESS' || response.status === 'completed') {
+                    const isDone = response.status === 'SUCCESS' && response.result?.ai_comment !== null;
+                    const isCompleted = response.status === 'completed';
+                    const isFailed = response.status === 'FAILED' || response.status === 'FAILURE';
+                    const isTimedOut = Date.now() - startTime > MAX_POLL_MS;
+
+                    if (isDone || isCompleted) {
                         setResult({
                             ...(response.result || response),
                             originalText: pendingTextRef.current,
@@ -28,7 +36,17 @@ export const useAnalysis = () => {
                         setLoading(false);
                         setPollingTaskId(null);
                         clearInterval(interval);
-                    } else if (response.status === 'FAILED') {
+                    } else if (isTimedOut && response.status === 'SUCCESS') {
+                        // ai_comment null kaldı (Gemini skip/timeout) — sonucu yine de göster
+                        setResult({
+                            ...(response.result || response),
+                            originalText: pendingTextRef.current,
+                        });
+                        pendingTextRef.current = null;
+                        setLoading(false);
+                        setPollingTaskId(null);
+                        clearInterval(interval);
+                    } else if (isFailed) {
                         setError(response.result?.error || 'Analysis failed during background processing.');
                         setLoading(false);
                         setPollingTaskId(null);
