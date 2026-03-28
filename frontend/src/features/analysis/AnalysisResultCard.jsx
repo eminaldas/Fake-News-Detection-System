@@ -107,7 +107,6 @@ const AnalysisResultCard = ({ result }) => {
     const isFake      = status.includes('FAKE') || status.includes('FALSE') || status.includes('YANILTICI');
 
     const isUrlAnalysis = !!result.truth_score;
-    const badgeLabel    = isUrlAnalysis ? 'URL Analizi' : result.isDirectMatch ? 'Veritabanı Eşleşmesi' : 'Yapay Zeka Sınıflandırması';
     const scoreLabel    = isUrlAnalysis ? 'Doğruluk' : 'Güven';
 
     const displayScore = isUrlAnalysis
@@ -126,6 +125,24 @@ const AnalysisResultCard = ({ result }) => {
     const aiComment  = result.ai_comment || null;
     const origText   = result.originalText || null;
     const explanation = buildExplanation(signals);
+
+    const hasGeminiVerdict = !!aiComment?.gemini_verdict;
+    const badgeLabel = isUrlAnalysis
+        ? 'URL Analizi'
+        : result.isDirectMatch
+            ? 'Veritabanı Eşleşmesi'
+            : hasGeminiVerdict
+                ? 'Gemini AI Kararı'
+                : 'Yapay Zeka Sınıflandırması';
+
+    const mlOverridden =
+        hasGeminiVerdict &&
+        aiComment.ml_status &&
+        aiComment.gemini_verdict !== aiComment.ml_status;
+
+    const mlOverrideNote = mlOverridden
+        ? `NLP modeli: ${aiComment.ml_status} %${Math.round((aiComment.ml_confidence || 0) * 100)} → Gemini tarafından revize edildi`
+        : null;
 
     /* opacity helpers */
     const hex15 = `${theme.hex}26`;
@@ -167,32 +184,39 @@ const AnalysisResultCard = ({ result }) => {
                             {isUrlAnalysis ? <Link2 size={10} /> : <Info size={10} />}
                             {badgeLabel}
                         </span>
+                        {mlOverrideNote && (
+                            <span className="mt-1 text-[10px] text-tx-secondary/50 italic block">
+                                {mlOverrideNote}
+                            </span>
+                        )}
                     </div>
                 </div>
 
-                {/* Sağ: SVG skor halkası */}
-                <div className="relative flex items-center justify-center shrink-0 self-center sm:self-auto">
-                    <svg className="w-20 h-20 -rotate-90" viewBox="0 0 96 96">
-                        <circle cx="48" cy="48" r="42"
-                                fill="transparent" stroke={hex15}
-                                strokeWidth="7" />
-                        <circle cx="48" cy="48" r="42"
-                                fill="transparent" stroke={theme.hex}
-                                strokeWidth="7"
-                                strokeDasharray={RING_CIRC}
-                                strokeDashoffset={ringOffset}
-                                strokeLinecap="round"
-                                style={{ transition: 'stroke-dashoffset 1.4s cubic-bezier(0.22,1,0.36,1)' }} />
-                    </svg>
-                    <div className="absolute flex flex-col items-center">
-                        <span className="font-manrope font-black text-xl leading-none text-tx-primary">
-                            %{displayScore}
-                        </span>
-                        <span className="text-tx-secondary text-[9px] tracking-tight uppercase mt-0.5">
-                            {scoreLabel}
-                        </span>
+                {/* Sağ: SVG skor halkası — AI yorum varsa gizle */}
+                {!aiComment && (
+                    <div className="relative flex items-center justify-center shrink-0 self-center sm:self-auto">
+                        <svg className="w-20 h-20 -rotate-90" viewBox="0 0 96 96">
+                            <circle cx="48" cy="48" r="42"
+                                    fill="transparent" stroke={hex15}
+                                    strokeWidth="7" />
+                            <circle cx="48" cy="48" r="42"
+                                    fill="transparent" stroke={theme.hex}
+                                    strokeWidth="7"
+                                    strokeDasharray={RING_CIRC}
+                                    strokeDashoffset={ringOffset}
+                                    strokeLinecap="round"
+                                    style={{ transition: 'stroke-dashoffset 1.4s cubic-bezier(0.22,1,0.36,1)' }} />
+                        </svg>
+                        <div className="absolute flex flex-col items-center">
+                            <span className="font-manrope font-black text-xl leading-none text-tx-primary">
+                                %{displayScore}
+                            </span>
+                            <span className="text-tx-secondary text-[9px] tracking-tight uppercase mt-0.5">
+                                {scoreLabel}
+                            </span>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* ── Gövde ── */}
@@ -208,26 +232,30 @@ const AnalysisResultCard = ({ result }) => {
                     </div>
                 )}
 
-                {/* Yapay Zeka Görüşü */}
-                <div className="rounded-xl p-4 sm:p-5"
-                     style={{ background: hex08, borderLeft: `3px solid ${hex30}` }}>
-                    <div className="flex items-center gap-2 mb-3">
-                        <Brain className={`w-4 h-4 ${theme.statusCls}`} />
-                        <span className={`${theme.statusCls} font-manrope font-bold text-xs tracking-wide`}>
-                            Yapay Zeka Görüşü
-                        </span>
+                {/* NLP Görüşü — sadece AI yorum yoksa göster */}
+                {!aiComment && (
+                    <div className="rounded-xl p-4 sm:p-5"
+                         style={{ background: hex08, borderLeft: `3px solid ${hex30}` }}>
+                        <div className="flex items-center gap-2 mb-3">
+                            <Brain className={`w-4 h-4 ${theme.statusCls}`} />
+                            <span className={`${theme.statusCls} font-manrope font-bold text-xs tracking-wide`}>
+                                NLP Analizi
+                            </span>
+                        </div>
+                        <p className="text-tx-secondary leading-relaxed text-sm italic">
+                            "{explanation || (isAuthentic
+                                ? 'Analiz edilen metin, tarafsız bir dil yapısına ve doğrulanabilir veri setlerine yüksek uyum göstermektedir.'
+                                : isFake
+                                    ? 'İncelediğiniz metin, tipik yanıltıcı haber karakteristikleri taşımaktadır.'
+                                    : 'Sistem bu metin hakkında kesin bir yargıya varamadı. Lütfen farklı kaynaklardan teyit ediniz.')}"
+                        </p>
                     </div>
-                    <p className="text-tx-secondary leading-relaxed text-sm italic">
-                        "{explanation || (isAuthentic
-                            ? 'Analiz edilen metin, tarafsız bir dil yapısına ve doğrulanabilir veri setlerine yüksek uyum göstermektedir.'
-                            : isFake
-                                ? 'İncelediğiniz metin, tipik yanıltıcı haber karakteristikleri taşımaktadır.'
-                                : 'Sistem bu metin hakkında kesin bir yargıya varamadı. Lütfen farklı kaynaklardan teyit ediniz.')}"
-                    </p>
-                </div>
+                )}
 
-                {/* Sinyal Paneli */}
-                {signals && <SignalPanel signals={signals} theme={theme} />}
+                {/* Sinyal Paneli — URL analizinde ve AUTHENTIC'te gösterme, FAKE'te max 3 */}
+                {!isUrlAnalysis && isFake && signals && (
+                    <SignalPanel signals={signals} theme={theme} maxSignals={3} />
+                )}
 
                 {/* Vurgulu Metin */}
                 {!isUrlAnalysis && origText && signals?.triggered_words && (
