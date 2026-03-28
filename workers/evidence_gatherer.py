@@ -61,8 +61,13 @@ def _is_url_accessible(url: str, timeout: int = 4) -> bool:
     """
     URL'ye HEAD isteği atar. HTTP status < 400 ise erişilebilir sayar.
     Hata durumunda False döner.
+    SSRF koruması: yalnızca http/https scheme'li URL'lere istek atar.
     """
     try:
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            return False
         resp = requests.head(
             url,
             timeout=timeout,
@@ -83,7 +88,7 @@ def search_duckduckgo(query: str, max_results: int = 5) -> list[dict]:
         return []
     try:
         results = []
-        with DDGS() as ddgs:
+        with DDGS(timeout=10) as ddgs:
             for r in ddgs.text(
                 query,
                 region="tr-tr",

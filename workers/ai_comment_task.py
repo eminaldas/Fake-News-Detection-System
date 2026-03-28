@@ -189,7 +189,13 @@ async def _update_ai_comment(article_id: str, ai_comment: dict) -> None:
 
 
 # ─── Celery Task ──────────────────────────────────────────────────────────────
-@celery_app.task(name="generate_ai_comment", rate_limit="5/m", queue="ai_comment")
+@celery_app.task(
+    name="generate_ai_comment",
+    rate_limit="5/m",
+    queue="ai_comment",
+    time_limit=120,
+    soft_time_limit=90,
+)
 def generate_ai_comment(
     article_id: str,
     text: str,
