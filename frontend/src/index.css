@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Inter:wght@400;500;600&family=Outfit:wght@400;700;900&display=swap');
+@import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -55,6 +55,13 @@
     --color-neutral-track:    #e4e4e7;
     --color-neutral-fill:     #71717a;
 
+    /* ── Durum: İddia (IDDIA / UNCERTAIN) — amber ── */
+    --color-iddia-bg:     rgba(254, 243, 199, 0.55);
+    --color-iddia-border: rgba(251, 191, 36, 0.55);
+    --color-iddia-text:   #92400e;
+    --color-iddia-track:  rgba(253, 230, 138, 0.60);
+    --color-iddia-fill:   #d97706;
+
     /* ── Bilgilendirme (Disclaimer) ── */
     --color-info-bg:          rgba(239, 246, 255, 0.55);
     --color-info-border:      rgba(147, 197, 253, 0.55);
@@ -109,6 +116,13 @@
     --color-neutral-text:     #8e8e99;
     --color-neutral-track:    #26262b;
     --color-neutral-fill:     #52525b;
+
+    /* ── Durum: İddia (IDDIA / UNCERTAIN) — amber ── */
+    --color-iddia-bg:     rgba(120, 53, 15, 0.18);
+    --color-iddia-border: rgba(217, 119, 6, 0.40);
+    --color-iddia-text:   #fcd34d;
+    --color-iddia-track:  rgba(146, 64, 14, 0.30);
+    --color-iddia-fill:   #f59e0b;
 
     /* ── Bilgilendirme (Disclaimer) ── */
     --color-info-bg:          rgba(23, 37, 84, 0.22);
@@ -209,6 +223,13 @@
   --color-neutral-text:   var(--color-neutral-text);
   --color-neutral-track:  var(--color-neutral-track);
   --color-neutral-fill:   var(--color-neutral-fill);
+
+  /* ── Durum: Iddia ── */
+  --color-iddia-bg:     var(--color-iddia-bg);
+  --color-iddia-border: var(--color-iddia-border);
+  --color-iddia-text:   var(--color-iddia-text);
+  --color-iddia-track:  var(--color-iddia-track);
+  --color-iddia-fill:   var(--color-iddia-fill);
 
   /* ── Bilgilendirme ── */
   --color-info-bg:       var(--color-info-bg);
@@ -363,6 +384,17 @@
   .animate-blob-2   { animation: blobFloat2 18s ease-in-out infinite; }
   .animate-blob-3   { animation: blobFloat3 10s ease-in-out infinite; }
   .animate-scan     { animation: scanLine   8s  linear        infinite; }
+
+  @keyframes ticker {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-ticker { animation: ticker linear infinite; }
+
+  @keyframes verticalScroll {
+    0%   { transform: translateY(0); }
+    100% { transform: translateY(-50%); }
+  }
 
   /* Delay yardımcıları */
   .delay-75  { animation-delay:  75ms; }
