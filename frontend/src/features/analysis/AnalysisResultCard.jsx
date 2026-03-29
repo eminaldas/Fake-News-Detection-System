@@ -102,7 +102,7 @@ function getTheme(isAuthentic, isFake) {
 const AnalysisResultCard = ({ result }) => {
     if (!result) return null;
 
-    const status      = result.prediction?.toUpperCase() || 'UNKNOWN';
+    const status      = result.ai_comment?.gemini_verdict?.toUpperCase() || result.prediction?.toUpperCase() || 'UNKNOWN';
     const isAuthentic = status.includes('AUTHENTIC') || status.includes('TRUE') || status.includes('GÜVENİLİR') || status.includes('REAL');
     const isFake      = status.includes('FAKE') || status.includes('FALSE') || status.includes('YANILTICI');
 
