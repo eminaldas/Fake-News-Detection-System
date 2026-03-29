@@ -62,7 +62,7 @@ function buildExplanation(signals) {
 const RING_CIRC = 264;
 
 /* ─── Tema rengi seçici ────────────────────────────────────────────── */
-function getTheme(isAuthentic, isFake) {
+function getTheme(isAuthentic, isFake, isIddia) {
     if (isAuthentic) return {
         hex:       '#3fff8b',
         Icon:      ShieldCheck,
@@ -85,6 +85,17 @@ function getTheme(isAuthentic, isFake) {
         onBgCls:   'text-[#450900]',
         borderVar: '#ff7351',
     };
+    if (isIddia) return {
+        hex:       '#f59e0b',
+        Icon:      Shield,
+        label:     'İDDİA TESPİT EDİLDİ',
+        mainTitle: 'İddia / Doğrulanamadı',
+        glowRgb:   '245,158,11',
+        statusCls: 'text-amber-500',
+        bgCls:     'bg-amber-500',
+        onBgCls:   'text-[#451a03]',
+        borderVar: '#f59e0b',
+    };
     return {
         hex:       '#71717a',
         Icon:      Shield,
@@ -103,8 +114,9 @@ const AnalysisResultCard = ({ result }) => {
     if (!result) return null;
 
     const status      = result.ai_comment?.gemini_verdict?.toUpperCase() || result.prediction?.toUpperCase() || 'UNKNOWN';
-    const isAuthentic = status.includes('AUTHENTIC') || status.includes('TRUE') || status.includes('GÜVENİLİR') || status.includes('REAL');
-    const isFake      = status.includes('FAKE') || status.includes('FALSE') || status.includes('YANILTICI');
+    const isAuthentic = status === 'AUTHENTIC' || status === 'TRUE' || status === 'GÜVENİLİR' || status === 'REAL';
+    const isFake      = status === 'FAKE' || status === 'FALSE' || status === 'YANILTICI';
+    const isIddia     = status === 'IDDIA' || status === 'UNCERTAIN';
 
     const isUrlAnalysis = !!result.truth_score;
     const scoreLabel    = isUrlAnalysis ? 'Doğruluk' : 'Güven';
@@ -120,7 +132,7 @@ const AnalysisResultCard = ({ result }) => {
         return () => clearTimeout(id);
     }, [targetOffset]);
 
-    const theme      = getTheme(isAuthentic, isFake);
+    const theme      = getTheme(isAuthentic, isFake, isIddia);
     const signals    = result.signals || null;
     const aiComment  = result.ai_comment || null;
     const origText   = result.originalText || null;
