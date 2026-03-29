@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, ExternalLink } from 'lucide-react';
+import { Sparkles, ExternalLink, Search } from 'lucide-react';
 
 /**
  * Gemini AI yorumunu gösterir.
@@ -33,6 +33,23 @@ const AICommentCard = ({ aiComment, theme }) => {
             {/* İçerik */}
             {aiComment && (
                 <>
+                    {/* reason_type pill badge */}
+                    {aiComment.reason_type && (
+                        <div className="flex items-center gap-1.5 mb-3">
+                            <Search className={`w-3 h-3 shrink-0 ${theme.statusCls} opacity-70`} />
+                            <span
+                                className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
+                                style={{
+                                    background: `${theme.hex}1a`,
+                                    color: theme.hex,
+                                    border: `1px solid ${theme.hex}33`,
+                                }}
+                            >
+                                {aiComment.reason_type}
+                            </span>
+                        </div>
+                    )}
+
                     {/* Özet */}
                     <p className="text-tx-secondary leading-relaxed text-sm italic mb-3">
                         "{aiComment.summary}"
