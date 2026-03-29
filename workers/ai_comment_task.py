@@ -64,7 +64,7 @@ def _is_safe_url(url: str) -> bool:
 
 
 # ─── Güvenlik: Output validation ──────────────────────────────────────────────
-_VALID_VERDICTS = {"FAKE", "AUTHENTIC"}
+_VALID_VERDICTS = {"FAKE", "AUTHENTIC", "IDDIA"}
 
 def validate_gemini_response(raw: dict) -> dict | None:
     """
@@ -79,6 +79,10 @@ def validate_gemini_response(raw: dict) -> dict | None:
     if verdict is not None and verdict not in _VALID_VERDICTS:
         logger.warning("Geçersiz gemini_verdict: %r", verdict)
         return None
+    reason_type = raw.get("reason_type")
+    if reason_type is not None:
+        if not isinstance(reason_type, str) or len(reason_type.strip()) == 0 or len(reason_type) > 40:
+            raw["reason_type"] = None   # geçersizse None yap, response'u reddetme
     summary = raw.get("summary", "")
     if not isinstance(summary, str) or not summary.strip() or len(summary) > 500:
         return None
@@ -199,11 +203,14 @@ async def _update_ai_comment_and_status(
     gemini_verdict = ai_comment.get("gemini_verdict")
     values: dict = {"ai_comment": ai_comment}
 
-    if gemini_verdict and gemini_verdict != local_verdict:
-        values["status"] = gemini_verdict
+    # IDDIA → DB'de UNCERTAIN olarak saklanır (migration gerekmez)
+    db_status = "UNCERTAIN" if gemini_verdict == "IDDIA" else gemini_verdict
+
+    if db_status and db_status != local_verdict:
+        values["status"] = db_status
         logger.info(
-            "Gemini verdict override: %s → %s (article_id=%s)",
-            local_verdict, gemini_verdict, article_id,
+            "Gemini verdict override: %s → %s (db_status=%s, article_id=%s)",
+            local_verdict, gemini_verdict, db_status, article_id,
         )
 
     async with Session() as session:
@@ -273,6 +280,7 @@ def generate_ai_comment(
         "summary":         gemini_result["summary"],
         "evidence":        gemini_result.get("evidence", []),
         "gemini_verdict":  gemini_result.get("gemini_verdict"),
+        "reason_type":     gemini_result.get("reason_type"),   # ← YENİ
         "ml_status":       local_verdict,
         "ml_confidence":   round(local_confidence, 4),
         "model":           settings.GEMINI_MODEL,
