@@ -244,16 +244,32 @@ const Profile = () => {
                                              style={{ ...cardBorder }}
                                              onMouseEnter={e => e.currentTarget.style.borderColor = isDarkMode ? 'rgba(63,255,139,0.45)' : 'rgba(24,24,27,0.35)'}
                                              onMouseLeave={e => e.currentTarget.style.borderColor = isDarkMode ? 'rgba(63,255,139,0.2)' : 'rgba(24,24,27,0.18)'}>
-                                            <div className="flex justify-between items-start mb-2.5">
+                                            <div className="flex justify-between items-start mb-2">
                                                 <TypeBadge type={item.analysis_type} />
-                                                <span className="text-[10px] text-muted uppercase">
-                                                    {new Date(item.created_at).toLocaleDateString('tr-TR')}
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    {item.prediction && (
+                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${
+                                                            item.prediction === 'FAKE'
+                                                                ? 'bg-red-500/15 text-red-400'
+                                                                : 'bg-green-500/15 text-green-400'
+                                                        }`}>
+                                                            {item.prediction === 'FAKE' ? 'Yanıltıcı' : 'Güvenilir'}
+                                                        </span>
+                                                    )}
+                                                    <span className="text-[10px] text-muted uppercase">
+                                                        {new Date(item.created_at).toLocaleDateString('tr-TR')}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-1.5 text-xs text-muted font-mono">
-                                                <span className="opacity-40">#</span>
-                                                {item.task_id?.slice(0, 16)}…
-                                            </div>
+                                            {item.title && (
+                                                <div className="text-xs text-tx-secondary line-clamp-1 mt-1">
+                                                    {item.analysis_type === 'url' && item.source_url
+                                                        ? <a href={item.source_url} target="_blank" rel="noopener noreferrer"
+                                                             className="hover:text-tx-primary transition-colors">{item.title}</a>
+                                                        : item.title
+                                                    }
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
 

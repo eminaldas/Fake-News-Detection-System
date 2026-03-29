@@ -112,6 +112,9 @@ class AnalysisRequestResponse(BaseModel):
     analysis_type: str
     task_id:       Optional[str] = None
     created_at:    datetime
+    title:         Optional[str] = None
+    prediction:    Optional[str] = None
+    source_url:    Optional[str] = None
 
     class Config:
         from_attributes = True

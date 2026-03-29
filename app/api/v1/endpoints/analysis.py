@@ -57,6 +57,41 @@ async def analyze_content(
 
     nlp_result         = cleaner.process(raw_iddia=request.text)
     cleaned_for_search = nlp_result["cleaned_text"]
+
+    # ── Deduplication: same cleaned text already analysed? ─────────────────
+    dedup_result = await db.execute(
+        select(
+            Article.id,
+            Article.metadata_info,
+            AnalysisResult.status,
+            AnalysisResult.confidence,
+            AnalysisResult.signals,
+            AnalysisResult.ai_comment,
+        )
+        .join(AnalysisResult, AnalysisResult.article_id == Article.id)
+        .where(Article.content == cleaned_for_search)
+        .limit(1)
+    )
+    dedup_row = dedup_result.first()
+    if dedup_row:
+        existing_task_id = (
+            dedup_row.metadata_info.get("task_id") if dedup_row.metadata_info else None
+        ) or str(dedup_row.id)
+        return TaskStatusResponse(
+            task_id=existing_task_id,
+            status="SUCCESS",
+            result={
+                "content_id": existing_task_id,
+                "status": "completed",
+                "db_article_id": str(dedup_row.id),
+                "prediction": dedup_row.status,
+                "confidence": dedup_row.confidence,
+                "signals": dedup_row.signals if isinstance(dedup_row.signals, dict) else (json.loads(dedup_row.signals) if dedup_row.signals else {}),
+                "ai_comment": dedup_row.ai_comment if isinstance(dedup_row.ai_comment, dict) else (json.loads(dedup_row.ai_comment) if dedup_row.ai_comment else None),
+                "cached": True,
+            },
+        )
+
     embedding = vectorizer.get_embedding(cleaned_for_search)
 
     stmt = (
@@ -199,7 +234,44 @@ async def analyze_url(
     await check_rate_limit(http_request, redis, current_user)
 
     content_id = str(uuid.uuid4())
-    task = analyze_article_url.delay(task_id=content_id, url=str(request.url))
+
+    # ── Deduplication: same source_url already analysed? ───────────────────
+    url_str = str(request.url)
+    dedup_url_result = await db.execute(
+        select(
+            Article.id,
+            Article.metadata_info,
+            AnalysisResult.status,
+            AnalysisResult.confidence,
+            AnalysisResult.signals,
+            AnalysisResult.ai_comment,
+        )
+        .join(AnalysisResult, AnalysisResult.article_id == Article.id)
+        .where(Article.metadata_info.op("->>")(  "source_url") == url_str)
+        .limit(1)
+    )
+    dedup_url_row = dedup_url_result.first()
+    if dedup_url_row:
+        existing_task_id = (
+            dedup_url_row.metadata_info.get("task_id") if dedup_url_row.metadata_info else None
+        ) or str(dedup_url_row.id)
+        return TaskStatusResponse(
+            task_id=existing_task_id,
+            status="SUCCESS",
+            result={
+                "content_id": existing_task_id,
+                "status": "completed",
+                "db_article_id": str(dedup_url_row.id),
+                "prediction": dedup_url_row.status,
+                "confidence": dedup_url_row.confidence,
+                "signals": dedup_url_row.signals if isinstance(dedup_url_row.signals, dict) else (json.loads(dedup_url_row.signals) if dedup_url_row.signals else {}),
+                "ai_comment": dedup_url_row.ai_comment if isinstance(dedup_url_row.ai_comment, dict) else (json.loads(dedup_url_row.ai_comment) if dedup_url_row.ai_comment else None),
+                "cached": True,
+                "isDirectMatch": True,
+            },
+        )
+
+    task = analyze_article_url.delay(task_id=content_id, url=url_str)
 
     # Analiz isteğini logla
     ar = AnalysisRequest(
