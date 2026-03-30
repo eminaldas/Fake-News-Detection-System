@@ -314,31 +314,55 @@ function Spinner() {
 }
 
 const SIZE = 20;
+const POLL_INTERVAL = 3 * 60 * 1000; // 3 dakika
 
 export default function Gundem() {
-    const [articles, setArticles] = useState([]);
-    const [total, setTotal]       = useState(0);
-    const [page, setPage]         = useState(1);
-    const [category, setCategory] = useState(null);
-    const [loading, setLoading]   = useState(false);
-    const [error, setError]       = useState(null);
-    const [search, setSearch]     = useState('');
+    const [articles, setArticles]   = useState([]);
+    const [total, setTotal]         = useState(0);
+    const [page, setPage]           = useState(1);
+    const [category, setCategory]   = useState(null);
+    const [loading, setLoading]     = useState(false);
+    const [error, setError]         = useState(null);
+    const [search, setSearch]       = useState('');
+    const [newCount, setNewCount]   = useState(0); // yeni haber sayısı (banner için)
+    const totalRef = React.useRef(0);              // polling karşılaştırması için
 
-    const fetchNews = useCallback(async (cat, pg) => {
-        setLoading(true);
+    const fetchNews = useCallback(async (cat, pg, silent = false) => {
+        if (!silent) setLoading(true);
         setError(null);
         try {
             const data = await NewsService.getNews({ category: cat, page: pg, size: SIZE });
-            setArticles(data.items);
-            setTotal(data.total);
+            if (silent) {
+                // Sessiz polling: sadece yeni haber geldi mi kontrol et
+                const diff = data.total - totalRef.current;
+                if (diff > 0) setNewCount(diff);
+            } else {
+                setArticles(data.items);
+                setTotal(data.total);
+                totalRef.current = data.total;
+                setNewCount(0);
+            }
         } catch {
-            setError('Haberler yüklenemedi.');
+            if (!silent) setError('Haberler yüklenemedi.');
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, []);
 
+    // İlk yükleme + kategori/sayfa değişimi
     useEffect(() => { fetchNews(category, page); }, [category, page, fetchNews]);
+
+    // Arka plan polling — sadece sayfa 1'deyken
+    useEffect(() => {
+        if (page !== 1) return;
+        const id = setInterval(() => fetchNews(category, 1, true), POLL_INTERVAL);
+        return () => clearInterval(id);
+    }, [category, page, fetchNews]);
+
+    const applyNewArticles = () => {
+        fetchNews(category, 1);
+        setPage(1);
+    };
 
     const handleCategory = (val) => { setCategory(val); setPage(1); setSearch(''); };
 
@@ -367,6 +391,26 @@ export default function Gundem() {
 
     return (
         <div className="max-w-6xl mx-auto px-4 py-10">
+
+            {/* Yeni haber banner */}
+            {newCount > 0 && (
+                <button onClick={applyNewArticles}
+                        className="w-full mb-6 flex items-center justify-center gap-2
+                                   py-2.5 px-4 rounded-xl text-sm font-semibold
+                                   border transition-all cursor-pointer animate-pulse"
+                        style={{
+                            background: 'color-mix(in srgb, var(--color-brand-primary) 12%, transparent)',
+                            borderColor: 'color-mix(in srgb, var(--color-brand-primary) 35%, transparent)',
+                            color: 'var(--color-brand-primary)',
+                        }}>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round"
+                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    {newCount} yeni haber geldi — yüklemek için tıkla
+                </button>
+            )}
 
             {/* Editorial başlık */}
             <div className="mb-10">
