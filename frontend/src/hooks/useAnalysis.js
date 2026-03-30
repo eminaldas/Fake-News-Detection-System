@@ -16,7 +16,7 @@ export const useAnalysis = () => {
         let interval;
         if (pollingTaskId) {
             const startTime = Date.now();
-            const MAX_POLL_MS = 30_000;
+            const MAX_POLL_MS = 90_000;  // Gemini soft_time_limit=90s ile eşleştirildi
 
             interval = setInterval(async () => {
                 try {
