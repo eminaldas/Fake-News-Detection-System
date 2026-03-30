@@ -4,7 +4,7 @@ import enum
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean, Column, DateTime, Enum, Float, ForeignKey,
-    String, Text, func,
+    Integer, String, Text, func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import declarative_base, relationship
@@ -94,3 +94,24 @@ class AnalysisResult(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     article = relationship("Article", back_populates="analysis_result")
+
+
+class NewsArticle(Base):
+    __tablename__ = "news_articles"
+
+    id           = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title        = Column(Text, nullable=False)
+    content      = Column(Text, nullable=True)
+    embedding    = Column(Vector(768), nullable=True)
+    category     = Column(String(50),  nullable=True)   # "spor"
+    subcategory  = Column(String(50),  nullable=True)   # "futbol"
+    image_url    = Column(Text, nullable=True)
+    source_name  = Column(String(100), nullable=True)   # "NTV"
+    source_url   = Column(Text, nullable=True)          # orijinal makale linki
+    trust_score  = Column(Float, nullable=True)         # 0.5 – 1.0
+    pub_date     = Column(DateTime(timezone=True), nullable=True)
+    cluster_id   = Column(UUID(as_uuid=True), nullable=True, index=True)
+    source_count = Column(Integer, nullable=False, default=1)
+    label        = Column(String(20),  nullable=True)   # "FAKE"/"AUTHENTIC"/"IDDIA"/NULL
+    label_source = Column(String(50),  nullable=True)   # "teyit"/"gemini_batch"/NULL
+    created_at   = Column(DateTime(timezone=True), server_default=func.now())
