@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, text
 from celery.result import AsyncResult
 import uuid
 import json
@@ -14,7 +14,7 @@ from app.core.rate_limit import check_rate_limit
 from app.core.security import hash_ip
 from app.db.redis import get_redis
 from app.db.session import get_db
-from app.models.models import AnalysisRequest, AnalysisType, Article, AnalysisResult, User
+from app.models.models import AnalysisRequest, AnalysisType, Article, AnalysisResult, NewsArticle, User
 from app.schemas.schemas import (
     AnalysisResponse,
     ContentAnalysisRequest,
@@ -30,6 +30,38 @@ router = APIRouter()
 
 vectorizer = TurkishVectorizer()
 cleaner    = NewsCleaner()
+
+
+async def _get_news_evidence(db: AsyncSession, embedding: list) -> Optional[str]:
+    """
+    news_articles tablosunda cosine benzerliği yüksek haber var mı bak.
+    Varsa 'X kaynakta yayınlandı' bilgisini döndür.
+    Verdict VERMEZ — sadece Gemini prompt'una ek bağlam sağlar.
+    """
+    embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+    sql = text(
+        """
+        SELECT source_name, source_count, trust_score,
+               embedding <=> :emb AS dist
+        FROM news_articles
+        WHERE embedding IS NOT NULL
+        ORDER BY embedding <=> :emb
+        LIMIT 3
+        """
+    )
+    result = await db.execute(sql, {"emb": embedding_str})
+    rows = result.fetchall()
+    if not rows:
+        return None
+    close = [r for r in rows if r.dist < 0.20]
+    if not close:
+        return None
+    sources = ", ".join(
+        f"{r.source_name} (güven: {r.trust_score:.1f})"
+        for r in close
+        if r.source_name
+    )
+    return f"Bu haber şu kaynaklarda da yayınlandı: {sources}."
 
 
 @router.post(
@@ -77,19 +109,10 @@ async def analyze_content(
         existing_task_id = (
             dedup_row.metadata_info.get("task_id") if dedup_row.metadata_info else None
         ) or str(dedup_row.id)
-        return TaskStatusResponse(
+        return AnalysisResponse(
             task_id=existing_task_id,
-            status="SUCCESS",
-            result={
-                "content_id": existing_task_id,
-                "status": "completed",
-                "db_article_id": str(dedup_row.id),
-                "prediction": dedup_row.status,
-                "confidence": dedup_row.confidence,
-                "signals": dedup_row.signals if isinstance(dedup_row.signals, dict) else (json.loads(dedup_row.signals) if dedup_row.signals else {}),
-                "ai_comment": dedup_row.ai_comment if isinstance(dedup_row.ai_comment, dict) else (json.loads(dedup_row.ai_comment) if dedup_row.ai_comment else None),
-                "cached": True,
-            },
+            message="Bu içerik daha önce analiz edildi.",
+            is_direct_match=True,
         )
 
     embedding = vectorizer.get_embedding(cleaned_for_search)
@@ -151,12 +174,15 @@ async def analyze_content(
         # cleaner zaten line 25'te tanımlı, nlp_result line 44'te hesaplandı
         match_signals = nlp_result["signals"]
 
-        # Analiz isteğini logla
+        # Analiz isteğini logla — eşleşen makalenin task_id'sini sakla ki history join çalışsın
+        matched_task_id = (
+            best_match.metadata_info.get("task_id") if best_match.metadata_info else None
+        ) or str(best_match.id)
         ar = AnalysisRequest(
             user_id=current_user.id if current_user else None,
             ip_hash=hash_ip(ip),
             analysis_type=AnalysisType.text,
-            task_id=content_id,
+            task_id=matched_task_id,
         )
         db.add(ar)
         await db.commit()
@@ -187,14 +213,16 @@ async def analyze_content(
             },
         )
 
-    task = analyze_article.delay(content_id, text=request.text)
+    news_evidence = await _get_news_evidence(db, embedding)
+    task = analyze_article.delay(content_id, text=request.text, news_evidence=news_evidence)
 
-    # Analiz isteğini logla
+    # Analiz isteğini logla — content_id sakla (task.id değil) ki history join çalışsın
+    # Article metadata_info['task_id'] = content_id olarak yaratılır
     ar = AnalysisRequest(
         user_id=current_user.id if current_user else None,
         ip_hash=hash_ip(ip),
         analysis_type=AnalysisType.text,
-        task_id=task.id,
+        task_id=content_id,
     )
     db.add(ar)
     await db.commit()
@@ -255,30 +283,21 @@ async def analyze_url(
         existing_task_id = (
             dedup_url_row.metadata_info.get("task_id") if dedup_url_row.metadata_info else None
         ) or str(dedup_url_row.id)
-        return TaskStatusResponse(
+        return AnalysisResponse(
             task_id=existing_task_id,
-            status="SUCCESS",
-            result={
-                "content_id": existing_task_id,
-                "status": "completed",
-                "db_article_id": str(dedup_url_row.id),
-                "prediction": dedup_url_row.status,
-                "confidence": dedup_url_row.confidence,
-                "signals": dedup_url_row.signals if isinstance(dedup_url_row.signals, dict) else (json.loads(dedup_url_row.signals) if dedup_url_row.signals else {}),
-                "ai_comment": dedup_url_row.ai_comment if isinstance(dedup_url_row.ai_comment, dict) else (json.loads(dedup_url_row.ai_comment) if dedup_url_row.ai_comment else None),
-                "cached": True,
-                "isDirectMatch": True,
-            },
+            message="Bu URL daha önce analiz edildi.",
+            is_direct_match=True,
         )
 
     task = analyze_article_url.delay(task_id=content_id, url=url_str)
 
-    # Analiz isteğini logla
+    # Analiz isteğini logla — content_id sakla (task.id değil) ki history join çalışsın
+    # Article metadata_info['task_id'] = content_id (kwarg) olarak yaratılır
     ar = AnalysisRequest(
         user_id=current_user.id if current_user else None,
         ip_hash=hash_ip(ip),
         analysis_type=AnalysisType.url,
-        task_id=task.id,
+        task_id=content_id,
     )
     db.add(ar)
     await db.commit()

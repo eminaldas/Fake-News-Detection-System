@@ -55,7 +55,7 @@ except Exception as exc:
 # ─────────────────────────────────────────────────────────────────────────────
 # Async pipeline
 # ─────────────────────────────────────────────────────────────────────────────
-async def _analyze_and_save(content_id: str, text: str) -> dict:
+async def _analyze_and_save(content_id: str, text: str, news_evidence: str = None) -> dict:
     engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
@@ -209,6 +209,7 @@ async def _analyze_and_save(content_id: str, text: str) -> dict:
                 local_verdict=pred_status,
                 local_confidence=confidence,
                 needs_decision=_uncertain,
+                news_evidence=news_evidence,
             ),
             queue="ai_comment",
         )
@@ -236,6 +237,6 @@ async def _analyze_and_save(content_id: str, text: str) -> dict:
 # Celery task
 # ─────────────────────────────────────────────────────────────────────────────
 @celery_app.task(name="analyze_article", rate_limit=settings.CELERY_RATE_LIMIT)
-def analyze_article(content_id: str, text: str) -> dict:
+def analyze_article(content_id: str, text: str, news_evidence: str = None) -> dict:
     """Ham metin → temizlik → embedding → sınıflandırma → DB kaydı."""
-    return asyncio.run(_analyze_and_save(content_id, text))
+    return asyncio.run(_analyze_and_save(content_id, text, news_evidence=news_evidence))
