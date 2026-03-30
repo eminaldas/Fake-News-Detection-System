@@ -115,6 +115,8 @@ class AnalysisRequestResponse(BaseModel):
     title:         Optional[str] = None
     prediction:    Optional[str] = None
     source_url:    Optional[str] = None
+    confidence:    Optional[float] = None
+    ai_comment:    Optional[dict]  = None
 
     class Config:
         from_attributes = True
@@ -209,3 +211,29 @@ class TrendingHeadlineResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Haberler (RSS)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class NewsArticleResponse(BaseModel):
+    id:           UUID
+    title:        str
+    image_url:    Optional[str]      = None
+    source_name:  Optional[str]      = None
+    source_url:   Optional[str]      = None
+    category:     Optional[str]      = None
+    subcategory:  Optional[str]      = None
+    pub_date:     Optional[datetime] = None
+    source_count: Optional[int]      = None
+    trust_score:  Optional[float]    = None
+
+    class Config:
+        from_attributes = True
+
+
+class NewsListResponse(BaseModel):
+    items: List[NewsArticleResponse]
+    total: int
+    page:  int

@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1.endpoints import admin, analysis, articles, auth, users
+from app.api.v1.endpoints import admin, analysis, articles, auth, market, news, users
 from app.core.logging import get_logger, setup_logging
 from app.db.redis import close_redis
 
@@ -63,6 +63,8 @@ app.include_router(analysis.router, prefix="/api/v1/analysis",tags=["Analysis"])
 app.include_router(articles.router, prefix="/api/v1/articles",tags=["Articles"])
 app.include_router(users.router,    prefix="/api/v1/users",   tags=["Users"])
 app.include_router(admin.router,    prefix="/api/v1/admin",   tags=["Admin"])
+app.include_router(market.router,   prefix="/api/v1/market",  tags=["Market"])
+app.include_router(news.router,     prefix="/api/v1/news",    tags=["News"])
 
 
 @app.get("/health", tags=["Health"])
