@@ -125,7 +125,7 @@ class NewsCleaner:
     # NOT: Türkçe karakterler korunur ve Stemming (kök bulma) işlemi kasıtlı olarak yapılmaz 
     # (BERT'in anlam çıkarabilmesi için ekler ve kökler metinde bırakılır).
 
-    def extract_manipulative_signals(self, original_text: str) -> Dict[str, Any]:
+    def extract_manipulative_signals(self, original_text: str, trust_score: float = 0.0) -> Dict[str, Any]:
         """
         Ham metin üzerinden manipülatif ve güvenilirlik sinyallerini hesaplar.
 
@@ -180,8 +180,10 @@ class NewsCleaner:
         clickbait_score = round(min(clickbait_hits / word_count, 1.0), 4)
 
         # ── Hedge (belirsizlik) oranı ─────────────────────────────────────
+        # Güvenilir kaynaklar (AA, BBC vb.) "iddia etti" yazım tarzını
+        # kullanır ama bu onların haber dili — fake sinyal değil.
         hedge_hits  = sum(1 for phrase in _HEDGE_WORDS if phrase in text_lower)
-        hedge_ratio = round(min(hedge_hits / word_count, 1.0), 4)
+        hedge_ratio = 0.0 if trust_score >= 0.9 else round(min(hedge_hits / word_count, 1.0), 4)
 
         # ── Kaynak güvenilirlik skoru ─────────────────────────────────────
         # "AA" (Anadolu Ajansı) orijinal metinde büyük harf + kelime sınırıyla aranır;
