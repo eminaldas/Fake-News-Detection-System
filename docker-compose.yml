@@ -56,7 +56,7 @@ services:
     restart: unless-stopped
 
   rss-worker:
-    build: .
+    image: fake-news-detection-system-app
     env_file:
       - .env
     volumes:
@@ -71,7 +71,7 @@ services:
     restart: unless-stopped
 
   rss-beat:
-    build: .
+    image: fake-news-detection-system-app
     env_file:
       - .env
     volumes:

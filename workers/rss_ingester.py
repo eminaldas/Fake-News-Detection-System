@@ -207,8 +207,6 @@ RSS_SOURCES = [
     ("https://www.mynet.com/haber/rss/gundem",                 "Mynet"),
     ("https://www.mynet.com/haber/rss/ekonomi",                "Mynet"),
     ("https://www.mynet.com/haber/rss/spor",                   "Mynet"),
-    # Sputnik Türkiye
-    ("https://tr.sputniknews.com/export/rss2/archive/index.xml", "Sputnik"),
     # Takvim
     ("https://www.takvim.com.tr/rss/gundem.xml",               "Takvim"),
     ("https://www.takvim.com.tr/rss/spor.xml",                 "Takvim"),
