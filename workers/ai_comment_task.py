@@ -83,6 +83,8 @@ def validate_gemini_response(raw: dict) -> dict | None:
     if reason_type is not None:
         if not isinstance(reason_type, str) or len(reason_type.strip()) == 0 or len(reason_type) > 40:
             raw["reason_type"] = None   # geçersizse None yap, response'u reddetme
+        else:
+            raw["reason_type"] = reason_type.strip()  # baş/son boşlukları temizle
     summary = raw.get("summary", "")
     if not isinstance(summary, str) or not summary.strip() or len(summary) > 500:
         return None
@@ -278,7 +280,7 @@ def generate_ai_comment(
     evidence = gather_evidence(text)
 
     # 2. Prompt oluştur
-    today = datetime.now(timezone.utc).strftime("%d %B %Y")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")  # ISO format — locale bağımsız
     prompt = _build_prompt(
         text=text,
         signals=signals,
