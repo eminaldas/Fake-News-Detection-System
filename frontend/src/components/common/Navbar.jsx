@@ -8,6 +8,7 @@ import logoDark from '../../assets/images/logoDark.png';
 
 const NAV_LINKS = [
     { name: 'Analiz', path: '/' },
+    { name: 'Gündem', path: '/gundem' },
     { name: 'Forum', path: '/forum' },
     { name: 'Bildir', path: '/report' },
 ];
@@ -27,12 +28,12 @@ const Navbar = () => {
             {/* ── Blur strip — navbar arkasını örtüyor ── */}
             <div className="navbar-blur absolute inset-x-0 top-0 h-16 pointer-events-none -z-10" />
 
-            <div className="max-w-7xl mx-auto px-4 md:px-6 pt-4 md:pt-5 flex justify-between items-center gap-3">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 pt-4 md:pt-5 grid grid-cols-[1fr_auto_1fr] items-center">
 
-                {/* ── LOGO PILL ── */}
+                {/* ── LOGO ── */}
                 <Link
                     to="/"
-                    className="glass-pill flex items-center gap-2 px-4 py-2 md:px-5 md:py-2.5 hover:scale-[1.03] transition-transform duration-300"
+                    className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200"
                 >
                     <div className="w-7 h-7 md:w-8 md:h-8 overflow-hidden shrink-0">
                         <img src={logo}     alt="Logo" className="w-full h-full object-contain block dark:hidden" />
@@ -44,7 +45,7 @@ const Navbar = () => {
                 </Link>
 
                 {/* ── NAV PILL — yalnızca masaüstü ── */}
-                <nav className="glass-pill hidden md:flex items-center gap-0.5 px-2 py-1.5">
+                <nav className="glass-pill hidden md:flex items-center gap-0.5 px-2 py-1.5 justify-self-center">
                     {NAV_LINKS.map((item) => (
                         <Link
                             key={item.path}
@@ -63,7 +64,7 @@ const Navbar = () => {
                 </nav>
 
                 {/* ── ACTIONS PILL ── */}
-                <div className="glass-pill flex items-center gap-2 md:gap-3 px-3 py-2 md:px-5 md:py-2.5">
+                <div className="glass-pill flex items-center gap-2 md:gap-3 px-3 py-2 md:px-5 md:py-2.5 justify-self-end">
                     <button
                         onClick={toggleTheme}
                         className="text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors p-1"

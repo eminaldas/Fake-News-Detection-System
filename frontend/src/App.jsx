@@ -13,6 +13,7 @@ import AdminUsers from './pages/AdminUsers';
 import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 import About from './pages/About';
+import Gundem from './pages/Gundem';
 
 function App() {
     return (
@@ -24,6 +25,7 @@ function App() {
                             <Route index element={<Home />} />
                             <Route path="archive"    element={<Archive />} />
                             <Route path="hakkimizda" element={<About />} />
+                            <Route path="gundem"     element={<Gundem />} />
                             <Route path="login"      element={<Login />} />
                             <Route path="register"   element={<Register />} />
 
