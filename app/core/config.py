@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     TRANSFORMER_MODEL: str = "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr"
     SIMILARITY_THRESHOLD: float = 0.08
 
+    # RSS Ingest
+    RSS_DEDUP_THRESHOLD: float = 0.15
+    RSS_INGEST_QUEUE:    str   = "rss"
+    RSS_INGEST_BATCH:    int   = 50
+
     # Gemini AI
     GEMINI_API_KEY:         str   = ""
     GEMINI_MODEL:           str   = "gemini-2.5-flash"
