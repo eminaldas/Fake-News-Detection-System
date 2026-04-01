@@ -7,8 +7,12 @@ import AnalysisForm from "../features/analysis/AnalysisForm";
 import AnalysisResultCard from "../features/analysis/AnalysisResultCard";
 import AnalysisResultSkeleton from "../features/analysis/AnalysisResultSkeleton";
 import RecentHeadlines from "../components/features/analysis/RecentHeadlines";
-import TwitterFeedCard from "../components/features/analysis/TwitterFeedCard";
 import AnalysisDisclaimer from "../features/analysis/AnalysisDisclaimer";
+import LiveDataCard from "../components/features/analysis/LiveDataCard";
+import BorsaCard   from "../components/features/analysis/BorsaCard";
+import DepremCard  from "../components/features/analysis/DepremCard";
+import NamazCard   from "../components/features/analysis/NamazCard";
+import SporCard    from "../components/features/analysis/SporCard";
 
 const Home = () => {
   const { isAuthenticated } = useAuth();
@@ -98,9 +102,11 @@ const Home = () => {
       <div className="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-6
                       w-full max-w-[1400px] mx-auto pb-8 items-start">
 
-        {/* Sol: Günlük Trendler */}
-        <div className="hidden lg:flex lg:col-span-3 flex-col animate-fade-left delay-200">
+        {/* Sol: Günlük Trendler + Deprem + Namaz */}
+        <div className="hidden lg:flex lg:col-span-3 flex-col gap-3 animate-fade-left delay-200">
           <RecentHeadlines />
+          <DepremCard />
+          <NamazCard />
         </div>
 
         {/* Orta: Analiz aracı */}
@@ -154,10 +160,16 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Sağ: Twitter / Sosyal Akış */}
-        <div className="hidden lg:flex lg:col-span-3 flex-col animate-fade-right delay-300">
-          <TwitterFeedCard />
+        {/* Sağ: Hava + Piyasalar */}
+        <div className="hidden lg:flex lg:col-span-3 flex-col gap-3 animate-fade-right delay-300">
+          <LiveDataCard />
+          <BorsaCard />
         </div>
+      </div>
+
+      {/* ── Spor ── */}
+      <div className="hidden lg:block w-full max-w-350 mx-auto mt-5 pb-4 animate-fade-up delay-400">
+        <SporCard />
       </div>
     </div>
   );

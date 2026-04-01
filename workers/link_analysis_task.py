@@ -29,6 +29,7 @@ from scrapers.web_scraper import ScraperError, scrape_article
 # BERT modelini ikinci kez belleğe yüklemekten kaçınılır.
 from ml_engine.processing.cleaner import signals_to_vector
 from workers.tasks import celery_app, classifier_model, cleaner, vectorizer
+from workers.ai_comment_task import generate_ai_comment
 
 logger = logging.getLogger(__name__)
 
@@ -237,6 +238,29 @@ async def _async_pipeline(task_id: str, url: str) -> dict:
 
     await task_engine.dispose()
     logger.info("URL analizi → verdict=%s score=%.1f | %s", verdict, score, url)
+
+    # ── Phase 2: AI yorum task'ını spawn et ───────────────────────────────────
+    _LOW  = settings.GEMINI_ESCALATION_LOW
+    _HIGH = settings.GEMINI_ESCALATION_HIGH
+    _uncertain = _LOW <= confidence <= _HIGH
+
+    if settings.GEMINI_API_KEY:
+        generate_ai_comment.apply_async(
+            kwargs=dict(
+                article_id=article_id,
+                text=processed["original_text"],
+                signals=signals,
+                local_verdict=verdict,
+                local_confidence=confidence,
+                needs_decision=_uncertain,
+            ),
+            queue="ai_comment",
+        )
+        logger.info(
+            "ai_comment_task spawn edildi (URL) → article_id=%s mod=%s",
+            article_id,
+            "uncertain" if _uncertain else "explanatory",
+        )
 
     return {
         "task_id": task_id,

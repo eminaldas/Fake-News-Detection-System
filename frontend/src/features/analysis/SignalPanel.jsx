@@ -15,14 +15,24 @@ const SIGNAL_CONFIG = [
 // Kaynak güvenilirliği her zaman yeşil (pozitif sinyal)
 const SOURCE_HEX = '#3fff8b';
 
-const SignalPanel = ({ signals, theme }) => {
+const SignalPanel = ({ signals, theme, maxSignals = null }) => {
     if (!signals) return null;
 
-    const visibleSignals = SIGNAL_CONFIG.filter(({ key, shouldShow }) => {
+    let visibleSignals = SIGNAL_CONFIG.filter(({ key, shouldShow }) => {
         const value = signals[key] ?? 0;
         if (shouldShow) return shouldShow(value);
         return value > DISPLAY_THRESHOLD;
     });
+
+    if (maxSignals !== null) {
+        visibleSignals = visibleSignals
+            .sort((a, b) => {
+                const va = Math.min(a.norm(signals[a.key] || 0), 100);
+                const vb = Math.min(b.norm(signals[b.key] || 0), 100);
+                return vb - va;
+            })
+            .slice(0, maxSignals);
+    }
 
     if (visibleSignals.length === 0) return null;
 

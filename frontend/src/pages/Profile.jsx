@@ -27,6 +27,18 @@ const TypeBadge = ({ type }) =>
               <FileText className="w-3 h-3" /> METİN
           </span>;
 
+/* ─── Prediction badge ────────────────────────────────────────────── */
+const PredictionBadge = ({ prediction }) => {
+    if (!prediction) return null;
+    const map = {
+        FAKE:      { label: 'Yanıltıcı',  cls: 'bg-red-500/15 text-red-400' },
+        AUTHENTIC: { label: 'Güvenilir',  cls: 'bg-green-500/15 text-green-400' },
+        UNCERTAIN: { label: 'Belirsiz',   cls: 'bg-amber-500/15 text-amber-400' },
+    };
+    const { label, cls } = map[prediction] ?? { label: prediction, cls: 'bg-zinc-500/15 text-zinc-400' };
+    return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${cls}`}>{label}</span>;
+};
+
 /* ─── Profile ─────────────────────────────────────────────────────── */
 const Profile = () => {
     const { user, refreshUser } = useAuth();
@@ -244,30 +256,51 @@ const Profile = () => {
                                              style={{ ...cardBorder }}
                                              onMouseEnter={e => e.currentTarget.style.borderColor = isDarkMode ? 'rgba(63,255,139,0.45)' : 'rgba(24,24,27,0.35)'}
                                              onMouseLeave={e => e.currentTarget.style.borderColor = isDarkMode ? 'rgba(63,255,139,0.2)' : 'rgba(24,24,27,0.18)'}>
+
+                                            {/* Üst satır: tip + karar + tarih */}
                                             <div className="flex justify-between items-start mb-2">
                                                 <TypeBadge type={item.analysis_type} />
                                                 <div className="flex items-center gap-2">
-                                                    {item.prediction && (
-                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${
-                                                            item.prediction === 'FAKE'
-                                                                ? 'bg-red-500/15 text-red-400'
-                                                                : 'bg-green-500/15 text-green-400'
-                                                        }`}>
-                                                            {item.prediction === 'FAKE' ? 'Yanıltıcı' : 'Güvenilir'}
-                                                        </span>
-                                                    )}
+                                                    <PredictionBadge prediction={item.prediction} />
                                                     <span className="text-[10px] text-muted uppercase">
                                                         {new Date(item.created_at).toLocaleDateString('tr-TR')}
                                                     </span>
                                                 </div>
                                             </div>
+
+                                            {/* Başlık */}
                                             {item.title && (
-                                                <div className="text-xs text-tx-secondary line-clamp-1 mt-1">
+                                                <div className="text-xs font-medium text-tx-secondary line-clamp-1 mb-2">
                                                     {item.analysis_type === 'url' && item.source_url
                                                         ? <a href={item.source_url} target="_blank" rel="noopener noreferrer"
                                                              className="hover:text-tx-primary transition-colors">{item.title}</a>
                                                         : item.title
                                                     }
+                                                </div>
+                                            )}
+
+                                            {/* AI Özeti */}
+                                            {item.ai_comment?.summary && (
+                                                <p className="text-[11px] text-tx-secondary leading-relaxed line-clamp-2 mb-2">
+                                                    {item.ai_comment.summary}
+                                                </p>
+                                            )}
+
+                                            {/* Alt satır: güven skoru + reason_type */}
+                                            {(item.confidence != null || item.ai_comment?.reason_type) && (
+                                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                                    {item.confidence != null && (
+                                                        <span className="text-[10px] text-muted">
+                                                            Güven: <span className="font-bold text-tx-secondary">
+                                                                %{Math.round(item.confidence * 100)}
+                                                            </span>
+                                                        </span>
+                                                    )}
+                                                    {item.ai_comment?.reason_type && (
+                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-zinc-500/10 text-muted uppercase tracking-wide">
+                                                            {item.ai_comment.reason_type}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

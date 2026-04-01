@@ -1,6 +1,5 @@
 import asyncio
 import pandas as pd
-import json
 import os
 import sys
 
@@ -12,16 +11,15 @@ from ml_engine.processing.cleaner import NewsCleaner
 from ml_engine.vectorizer import TurkishVectorizer
 
 from app.db.session import AsyncSessionLocal
-from app.core.config import settings
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:password@localhost:5432/fnds")
-
-async def ingest_dataset(csv_path: str):
+async def ingest_aa_dataset(csv_path: str):
     """
-    Reads the CSV, processes texts, generates embeddings, 
+    Reads the Anadolu Ajansı (AA) CSV, processes texts, generates embeddings, 
     and inserts records into the PostgreSQL database.
+    AA dataset columns: baslik, ozet, detayli_analiz, etiketler, tarih, link
+    Assumes all records are AUTHENTIC ("Doğru").
     """
-    print(f"Loading dataset from {csv_path}...")
+    print(f"Loading AA dataset from {csv_path}...")
     try:
         df = pd.read_csv(csv_path)
     except FileNotFoundError:
@@ -29,25 +27,28 @@ async def ingest_dataset(csv_path: str):
         return
 
     cleaner = NewsCleaner()
-    print("Loading vectorizer (this may take a minute if downloading the model)...")
+    print("Loading vectorizer...")
     vectorizer = TurkishVectorizer()
     
-    # Optional: Batch processing can be implemented here, but for simplicity we iterate
     async with AsyncSessionLocal() as session:
         for index, row in df.iterrows():
-            # Apply cleaning
+            # For AA data, 'baslik' or 'ozet' acts like the claim ('iddia')
+            # 'detayli_analiz' contains the actual news text.
+            raw_claim = str(row.get('baslik', '')) + " " + str(row.get('ozet', ''))
+            
             processed_data = cleaner.process(
-                raw_iddia=row.get('iddia'),
+                raw_iddia=raw_claim,
                 detayli_analiz_raw=row.get('detayli_analiz')
             )
             
             content = processed_data["cleaned_text"]
             raw_content = processed_data["original_text"]
             
-            if content == "Bilgi mevcut değil" or not content:
+            if content == "Bilgi mevcut değil" or not content.strip():
                 continue
                 
-            status = str(row.get('dogruluk_etiketi', 'Unknown'))
+            # AA Data is highly reliable, so everything is Authentic/Doğru
+            status = "Doğru"
             
             # Pack all relevant CSV columns into metadata JSONB
             metadata = {
@@ -55,19 +56,20 @@ async def ingest_dataset(csv_path: str):
                 "baslik": str(row.get('baslik', '')),
                 "ozet": str(row.get('ozet', '')),
                 "tarih": str(row.get('tarih', '')),
-                "hata_turu": str(row.get('hata_turu', '')),
-                "dayanak_noktalari": str(row.get('dayanak_noktalari', '')),
+                "hata_turu": "Yok (Güvenilir Kaynak)",
+                "dayanak_noktalari": "Anadolu Ajansı Teyidi",
                 "detayli_analiz": processed_data["cleaned_detayli_analiz"],
                 "etiketler": str(row.get('etiketler', '')),
-                "linguistic_signals": processed_data["signals"]
+                "linguistic_signals": processed_data["signals"],
+                "source": "Anadolu Ajansı"
             }
             
-            # Create embedding from the cleaned text (with no stemming but stripped of URLs)
+            # Create embedding
             embedding = vectorizer.get_embedding(content)
             
             # Create DB Article
-            # Create a title from the first 50 chars of the content
-            title = content[:50] + "..." if len(content) > 50 else content
+            title_text = str(row.get('baslik', content[:50]))
+            title = title_text[:75] + "..." if len(title_text) > 75 else title_text
             
             article = Article(
                 title=title,
@@ -81,18 +83,17 @@ async def ingest_dataset(csv_path: str):
             session.add(article)
             
             # Commit occasionally or at the end
-            if index % 50 == 0:
+            if index > 0 and index % 50 == 0:
                 print(f"Processed {index} rows...")
                 await session.commit()
                 
         # Final commit
         await session.commit()
-        print(f"Successfully ingrained dataset to the database. Total rows: {len(df)}")
+        print(f"Successfully ingrained AA dataset to the database. Total rows processed: {len(df)}")
 
 if __name__ == "__main__":
-    # Ensure CSV is supplied or use default
-    csv_file = "Data/veri/teyit_dataset.csv" 
+    csv_file = "Data/veri/AA_dataset.csv" 
     if len(sys.argv) > 1:
         csv_file = sys.argv[1]
         
-    asyncio.run(ingest_dataset(csv_file))
+    asyncio.run(ingest_aa_dataset(csv_file))

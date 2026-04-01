@@ -49,6 +49,8 @@ async def my_history(
                         Article.title,
                         Article.metadata_info,
                         AnalysisResult.status,
+                        AnalysisResult.confidence,
+                        AnalysisResult.ai_comment,
                     )
                     .join(AnalysisResult, AnalysisResult.article_id == Article.id)
                     .where(Article.metadata_info.op("->>")(  "task_id") == req.task_id)
@@ -58,6 +60,8 @@ async def my_history(
                 if row:
                     item_data.title = row.title
                     item_data.prediction = row.status
+                    item_data.confidence = row.confidence
+                    item_data.ai_comment = row.ai_comment
                     item_data.source_url = (
                         row.metadata_info.get("source_url") if row.metadata_info else None
                     )

@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Github } from 'lucide-react';
 import Navbar from './common/Navbar';
+import NewsTicker from './common/NewsTicker';
 import { useTheme } from '../contexts/ThemeContext';
 
 const AUTH_PATHS = ['/login', '/register'];
@@ -116,14 +117,16 @@ const Layout = () => {
 
             <Navbar />
 
-            <main className="flex-grow pt-24 md:pt-28 overflow-x-hidden">
+            <main className="flex-grow pt-24 md:pt-28 pb-10 overflow-x-hidden">
                 <div key={pathname} className={pageClass}>
                     <Outlet />
                 </div>
             </main>
 
+            {!isAuth && <NewsTicker />}
+
             {!isAuth && (
-                <footer className="mt-24 border-t border-brutal-border dark:border-es-primary/10 bg-surface dark:bg-es-surface">
+                <footer className="mt-24 pb-10 border-t border-brutal-border dark:border-es-primary/10 bg-surface dark:bg-es-surface">
                     <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-8">
 
                         <div className="flex flex-col items-center md:items-start gap-1">
