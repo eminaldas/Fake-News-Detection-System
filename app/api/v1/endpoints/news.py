@@ -5,6 +5,8 @@ GET /api/v1/news — RSS haber listesi (paginated, kategoriye göre filtrelenebi
 Auth gerekmez.
 """
 
+from datetime import date, datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,10 +20,12 @@ router = APIRouter()
 
 @router.get("", response_model=NewsListResponse)
 async def list_news(
-    category:    str | None = Query(None, description="Kategori filtresi (gündem, spor, ekonomi...)"),
-    subcategory: str | None = Query(None, description="Alt kategori filtresi"),
-    page:        int        = Query(1, ge=1),
-    size:        int        = Query(20, ge=1, le=100),
+    category:    str | None  = Query(None, description="Kategori filtresi (gündem, spor, ekonomi...)"),
+    subcategory: str | None  = Query(None, description="Alt kategori filtresi"),
+    page:        int         = Query(1, ge=1),
+    size:        int         = Query(20, ge=1, le=100),
+    date_from:   date | None = Query(None, description="Başlangıç tarihi (YYYY-MM-DD)"),
+    date_to:     date | None = Query(None, description="Bitiş tarihi (YYYY-MM-DD)"),
     db: AsyncSession = Depends(get_db),
 ):
     offset = (page - 1) * size
@@ -31,6 +35,11 @@ async def list_news(
         base_filter.append(NewsArticle.category == category)
     if subcategory:
         base_filter.append(NewsArticle.subcategory == subcategory)
+    if date_from:
+        base_filter.append(NewsArticle.pub_date >= datetime(date_from.year, date_from.month, date_from.day, tzinfo=timezone.utc))
+    if date_to:
+        end = datetime(date_to.year, date_to.month, date_to.day, tzinfo=timezone.utc) + timedelta(days=1)
+        base_filter.append(NewsArticle.pub_date < end)
 
     total_result = await db.execute(
         select(func.count()).select_from(NewsArticle).where(*base_filter)

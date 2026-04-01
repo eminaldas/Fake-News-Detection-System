@@ -18,17 +18,27 @@ const Navbar = () => {
     const { isDarkMode, toggleTheme } = useTheme();
     const { isAuthenticated, user, isAdmin, logout } = useAuth();
     const [menuOpen, setMenuOpen] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
     const isActive = (path) => location.pathname === path;
 
     useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
+    useEffect(() => {
+        const handler = () => setScrolled(window.scrollY > 30);
+        window.addEventListener('scroll', handler, { passive: true });
+        return () => window.removeEventListener('scroll', handler);
+    }, []);
+
     return (
         <header className="fixed top-0 left-0 right-0 z-50">
-
-            {/* ── Blur strip — navbar arkasını örtüyor ── */}
-            <div className="navbar-blur absolute inset-x-0 top-0 h-16 pointer-events-none -z-10" />
-
-            <div className="max-w-7xl mx-auto px-4 md:px-6 pt-4 md:pt-5 grid grid-cols-[1fr_auto_1fr] items-center">
+            {/* Arka plan katmanı — her zaman mevcut, scroll'da görünür */}
+            <div className={`absolute inset-0 backdrop-blur-lg border-b border-brutal-border/30
+                            pointer-events-none transition-opacity duration-300 -z-10 ${
+                scrolled ? 'opacity-100' : 'opacity-0'
+            }`} />
+            <div className={`max-w-7xl mx-auto px-4 md:px-6 grid grid-cols-[1fr_auto_1fr] items-center transition-all duration-300 ${
+                scrolled ? 'py-2 md:py-2.5' : 'pt-4 md:pt-5 pb-2'
+            }`}>
 
                 {/* ── LOGO ── */}
                 <Link
@@ -44,8 +54,12 @@ const Navbar = () => {
                     </span>
                 </Link>
 
-                {/* ── NAV PILL — yalnızca masaüstü ── */}
-                <nav className="glass-pill hidden md:flex items-center gap-0.5 px-2 py-1.5 justify-self-center">
+                {/* ── NAV — yalnızca masaüstü ── */}
+                <nav className="hidden md:flex items-center gap-0.5 justify-self-center relative px-2 py-1.5">
+                    <div className={`absolute inset-0 rounded-full glass-pill pointer-events-none -z-10
+                                    transition-opacity duration-300 ${
+                        scrolled ? 'opacity-100' : 'opacity-0'
+                    }`} />
                     {NAV_LINKS.map((item) => (
                         <Link
                             key={item.path}
@@ -63,8 +77,10 @@ const Navbar = () => {
                     ))}
                 </nav>
 
-                {/* ── ACTIONS PILL ── */}
-                <div className="glass-pill flex items-center gap-2 md:gap-3 px-3 py-2 md:px-5 md:py-2.5 justify-self-end">
+                {/* ── ACTIONS ── */}
+                <div className={`flex items-center gap-2 md:gap-3 px-3 py-2 md:px-5 md:py-2.5 justify-self-end transition-all duration-300 ${
+                    scrolled ? 'glass-pill' : 'glass-pill'
+                }`}>
                     <button
                         onClick={toggleTheme}
                         className="text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors p-1"

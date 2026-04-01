@@ -1,18 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import NewsService from '../services/news.service';
 
+/* hot: true → admin tarafından kırmızı/trend olarak işaretlenebilir */
 const CATEGORIES = [
-    { label: 'Tümü',      value: null,        icon: '◈' },
-    { label: 'Gündem',    value: 'gündem',     icon: '◉' },
-    { label: 'Ekonomi',   value: 'ekonomi',    icon: '◈' },
-    { label: 'Spor',      value: 'spor',       icon: '◎' },
-    { label: 'Sağlık',    value: 'sağlık',     icon: '◇' },
-    { label: 'Teknoloji', value: 'teknoloji',  icon: '◈' },
-    { label: 'Kültür',    value: 'kültür',     icon: '◇' },
-    { label: 'Yaşam',     value: 'yaşam',      icon: '◎' },
+    { label: 'Tümü',      value: null,        hot: false },
+    { label: 'Gündem',    value: 'gündem',     hot: true  },
+    { label: 'Ekonomi',   value: 'ekonomi',    hot: false },
+    { label: 'Spor',      value: 'spor',       hot: false },
+    { label: 'Sağlık',    value: 'sağlık',     hot: false },
+    { label: 'Teknoloji', value: 'teknoloji',  hot: false },
+    { label: 'Kültür',    value: 'kültür',     hot: false },
+    { label: 'Yaşam',     value: 'yaşam',      hot: false },
 ];
 
-/* Güvenilir kaynak rozeti — sadece trust_score >= 0.9 */
 function TrustBadge({ score }) {
     if (!score || score < 0.9) return null;
     return (
@@ -43,39 +43,6 @@ function formatDate(pub_date) {
     });
 }
 
-/* Kart alt aksiyonları */
-function CardActions({ article }) {
-    return (
-        <div className="flex items-center gap-2 mt-3">
-            {article.source_url && (
-                <a
-                    href={article.source_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex-1 text-[11px] text-center py-1.5 rounded-lg
-                               border border-brutal-border text-tx-secondary
-                               hover:bg-surface-solid hover:text-tx-primary transition-colors"
-                >
-                    Haberi Oku
-                </a>
-            )}
-            {article.source_url && (
-                <a
-                    href={`/?url=${encodeURIComponent(article.source_url)}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex-1 text-[11px] text-center py-1.5 rounded-lg
-                               bg-es-primary/10 border border-es-primary/25
-                               text-es-primary hover:bg-es-primary/20 transition-colors dark:text-es-primary"
-                    style={{ color: 'var(--color-brand-primary)' }}
-                >
-                    Analiz Et
-                </a>
-            )}
-        </div>
-    );
-}
-
 /* ── Büyük öne çıkan kart ─────────────────────────────────────────── */
 function FeaturedCard({ article }) {
     const [imgErr, setImgErr] = useState(false);
@@ -83,9 +50,8 @@ function FeaturedCard({ article }) {
 
     const inner = (
         <article className="group relative flex flex-col justify-end min-h-[400px] rounded-2xl
-                            overflow-hidden cursor-pointer transition-transform duration-300
-                            hover:-translate-y-1">
-            {/* Arka plan */}
+                            overflow-hidden cursor-pointer transition-shadow duration-300
+                            hover:shadow-xl">
             {hasImg ? (
                 <img src={article.image_url} alt={article.title}
                      className="absolute inset-0 w-full h-full object-cover
@@ -102,10 +68,8 @@ function FeaturedCard({ article }) {
                     </p>
                 </div>
             )}
-            {/* Gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
 
-            {/* İçerik */}
             <div className="relative z-10 p-6 space-y-3">
                 <div className="flex items-center gap-2 flex-wrap">
                     <TrustBadge score={article.trust_score} />
@@ -119,7 +83,7 @@ function FeaturedCard({ article }) {
                     <span>{formatDate(article.pub_date)}</span>
                     <span className="opacity-0 group-hover:opacity-100 transition-opacity
                                      text-emerald-400 text-[11px] font-medium">
-                        Tıkla → Haberi Oku
+                        Haberi oku →
                     </span>
                 </div>
             </div>
@@ -139,7 +103,7 @@ function TextCard({ article }) {
     const inner = (
         <article className="group flex flex-col justify-between p-6 rounded-2xl cursor-pointer
                             bg-surface border border-brutal-border
-                            hover:border-brand/30 transition-all min-h-[240px]">
+                            hover:border-brand/30 hover:shadow-md transition-all min-h-[240px]">
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
                     <TrustBadge score={article.trust_score} />
@@ -178,8 +142,7 @@ function WideCard({ article }) {
     const inner = (
         <article className="group md:col-span-2 flex flex-col md:flex-row rounded-2xl
                             overflow-hidden bg-surface border border-brutal-border
-                            hover:border-brand/30 cursor-pointer transition-all">
-            {/* Sol: görsel veya metin arka planı */}
+                            hover:border-brand/30 hover:shadow-md cursor-pointer transition-all">
             <div className="md:w-2/5 relative h-56 md:h-auto overflow-hidden flex-shrink-0">
                 {hasImg ? (
                     <img src={article.image_url} alt={article.title}
@@ -199,7 +162,6 @@ function WideCard({ article }) {
                 )}
             </div>
 
-            {/* Sağ: metin */}
             <div className="md:w-3/5 p-7 flex flex-col justify-between">
                 <div className="space-y-3">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -215,12 +177,11 @@ function WideCard({ article }) {
                                 border-t border-brutal-border">
                     <span className="text-muted text-xs">{formatDate(article.pub_date)}</span>
                     {article.source_url && (
-                        <span className="flex items-center gap-1.5 text-sm font-semibold
-                                         transition-colors"
+                        <span className="flex items-center gap-1.5 text-sm font-semibold transition-colors"
                               style={{ color: 'var(--color-brand-primary)' }}>
                             Haberi Oku
-                            <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform"
-                                 fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
+                                 stroke="currentColor" strokeWidth={2.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round"
                                       d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                             </svg>
@@ -247,9 +208,7 @@ function NormalCard({ article }) {
     const inner = (
         <article className="group flex flex-col rounded-2xl overflow-hidden cursor-pointer
                             bg-surface border border-brutal-border
-                            hover:border-brand/30 hover:-translate-y-0.5
-                            transition-all duration-200">
-            {/* Görsel / placeholder */}
+                            hover:border-brand/30 hover:shadow-md transition-all duration-200">
             <div className="relative h-44 overflow-hidden flex-shrink-0">
                 {hasImg ? (
                     <>
@@ -272,7 +231,6 @@ function NormalCard({ article }) {
                 )}
             </div>
 
-            {/* Metin */}
             <div className="p-4 flex flex-col flex-1 gap-2">
                 <div className="flex items-center gap-2 flex-wrap">
                     <TrustBadge score={article.trust_score} />
@@ -313,29 +271,56 @@ function Spinner() {
     );
 }
 
+/* ── Sayfa numaraları algoritması ─────────────────────────────────── */
+function pageNumbers(current, total) {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const pages = new Set([1, total]);
+    for (let i = Math.max(1, current - 2); i <= Math.min(total, current + 2); i++) pages.add(i);
+    const sorted = [...pages].sort((a, b) => a - b);
+    const result = [];
+    for (let i = 0; i < sorted.length; i++) {
+        if (i > 0 && sorted[i] - sorted[i - 1] > 1) result.push('...');
+        result.push(sorted[i]);
+    }
+    return result;
+}
+
 const SIZE = 20;
-const POLL_INTERVAL = 3 * 60 * 1000; // 3 dakika
+const POLL_INTERVAL = 3 * 60 * 1000;
 
 export default function Gundem() {
-    const [articles, setArticles]   = useState([]);
-    const [total, setTotal]         = useState(0);
-    const [page, setPage]           = useState(1);
-    const [category, setCategory]   = useState(null);
-    const [loading, setLoading]     = useState(false);
-    const [error, setError]         = useState(null);
-    const [search, setSearch]       = useState('');
-    const [newCount, setNewCount]   = useState(0); // yeni haber sayısı (banner için)
-    const totalRef = React.useRef(0);              // polling karşılaştırması için
+    const [articles, setArticles] = useState([]);
+    const [total, setTotal]       = useState(0);
+    const [page, setPage]         = useState(1);
+    const [category, setCategory] = useState(null);
+    const [loading, setLoading]   = useState(false);
+    const [error, setError]       = useState(null);
+    const [search, setSearch]     = useState('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo]     = useState('');
+    const [newCount, setNewCount] = useState(0);
+    const totalRef = React.useRef(0);
 
-    const fetchNews = useCallback(async (cat, pg, silent = false) => {
+    const fetchNews = useCallback(async (cat, pg, silent = false, dfrom = dateFrom, dto = dateTo) => {
         if (!silent) setLoading(true);
         setError(null);
         try {
-            const data = await NewsService.getNews({ category: cat, page: pg, size: SIZE });
+            const data = await NewsService.getNews({
+                category: cat,
+                page: pg,
+                size: SIZE,
+                date_from: dfrom || undefined,
+                date_to:   dto   || undefined,
+            });
             if (silent) {
-                // Sessiz polling: sadece yeni haber geldi mi kontrol et
                 const diff = data.total - totalRef.current;
-                if (diff > 0) setNewCount(diff);
+                if (diff > 0) {
+                    setArticles(data.items);
+                    setTotal(data.total);
+                    totalRef.current = data.total;
+                    setNewCount(diff);
+                    setTimeout(() => setNewCount(0), 4000);
+                }
             } else {
                 setArticles(data.items);
                 setTotal(data.total);
@@ -347,41 +332,37 @@ export default function Gundem() {
         } finally {
             if (!silent) setLoading(false);
         }
-    }, []);
+    }, [dateFrom, dateTo]);
 
-    // İlk yükleme + kategori/sayfa değişimi
     useEffect(() => { fetchNews(category, page); }, [category, page, fetchNews]);
 
-    // Arka plan polling — sadece sayfa 1'deyken
     useEffect(() => {
         if (page !== 1) return;
         const id = setInterval(() => fetchNews(category, 1, true), POLL_INTERVAL);
         return () => clearInterval(id);
     }, [category, page, fetchNews]);
 
-    const applyNewArticles = () => {
-        fetchNews(category, 1);
-        setPage(1);
-    };
+    const applyNewArticles = () => { fetchNews(category, 1); setPage(1); };
 
     const handleCategory = (val) => { setCategory(val); setPage(1); setSearch(''); };
 
-    /* Sıralama: source_count en yüksek 2 tanesi öne, geri kalanlar pub_date'e göre */
+    const handleDateFilter = () => { setPage(1); fetchNews(category, 1, false, dateFrom, dateTo); };
+    const clearDateFilter  = () => { setDateFrom(''); setDateTo(''); setPage(1); fetchNews(category, 1, false, '', ''); };
+
     const sorted = useMemo(() => {
         let filtered = articles;
         if (search.trim()) {
             const q = search.trim().toLowerCase();
             filtered = articles.filter(a => a.title?.toLowerCase().includes(q));
         }
-        const sorted = [...filtered].sort((a, b) => (b.source_count || 1) - (a.source_count || 1));
-        const top2 = sorted.slice(0, 2);
+        const bySrc = [...filtered].sort((a, b) => (b.source_count || 1) - (a.source_count || 1));
+        const top2 = bySrc.slice(0, 2);
         const rest = filtered.filter(a => !top2.includes(a));
         return [...top2, ...rest];
     }, [articles, search]);
 
     const totalPages = Math.ceil(total / SIZE);
 
-    /* Kart tipini index'e göre ata */
     function renderCard(article, index) {
         if (index === 0 || index === 1) return <FeaturedCard key={article.id} article={article} />;
         if (index === 2)                return <WideCard     key={article.id} article={article} />;
@@ -389,31 +370,35 @@ export default function Gundem() {
         return                                 <NormalCard   key={article.id} article={article} />;
     }
 
-    return (
-        <div className="max-w-6xl mx-auto px-4 py-10">
+    const hasDateFilter = dateFrom || dateTo;
 
-            {/* Yeni haber banner */}
+    return (
+        <div className="max-w-6xl mx-auto px-4 pt-10 pb-16">
+
+            {/* ── Yeni haber banner ── */}
             {newCount > 0 && (
-                <button onClick={applyNewArticles}
-                        className="w-full mb-6 flex items-center justify-center gap-2
-                                   py-2.5 px-4 rounded-xl text-sm font-semibold
-                                   border transition-all cursor-pointer animate-pulse"
-                        style={{
-                            background: 'color-mix(in srgb, var(--color-brand-primary) 12%, transparent)',
-                            borderColor: 'color-mix(in srgb, var(--color-brand-primary) 35%, transparent)',
-                            color: 'var(--color-brand-primary)',
-                        }}>
+                <button
+                    onClick={applyNewArticles}
+                    className="w-full mb-6 flex items-center justify-center gap-2
+                               py-3 px-4 rounded-xl text-sm font-bold cursor-pointer
+                               border transition-colors"
+                    style={{
+                        background:   'color-mix(in srgb, var(--color-brand-primary) 10%, transparent)',
+                        borderColor:  'color-mix(in srgb, var(--color-brand-primary) 40%, transparent)',
+                        color:        'var(--color-brand-primary)',
+                    }}
+                >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24"
                          stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round"
                               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    {newCount} yeni haber geldi — yüklemek için tıkla
+                    {newCount} yeni haber — yüklemek için tıkla
                 </button>
             )}
 
-            {/* Editorial başlık */}
-            <div className="mb-10">
+            {/* ── Başlık ── */}
+            <div className="mb-8">
                 <div className="flex items-center gap-3 mb-3">
                     <span className="w-8 h-px" style={{ background: 'var(--color-brand-primary)' }} />
                     <span className="text-[10px] uppercase tracking-[0.25em] font-bold"
@@ -425,36 +410,48 @@ export default function Gundem() {
                                font-manrope tracking-tight leading-none">
                     Gündem<span style={{ color: 'var(--color-brand-primary)' }}>.</span>
                 </h1>
-                {total > 0 && (
-                    <p className="text-muted text-sm mt-2">{total} haber takip ediliyor</p>
-                )}
             </div>
 
-            {/* Kategori + arama */}
+            {/* ── Kategoriler + arama ── */}
             <div className="flex flex-col sm:flex-row gap-3 mb-8">
-                {/* Kategoriler */}
-                <div className="flex flex-wrap gap-1.5">
-                    {CATEGORIES.map((c) => (
-                        <button key={c.label} onClick={() => handleCategory(c.value)}
-                                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold
-                                            transition-all cursor-pointer ${
-                                    category === c.value
-                                        ? 'text-black font-bold shadow-lg'
-                                        : 'bg-surface border border-brutal-border text-tx-secondary hover:text-tx-primary hover:border-brand/30'
+                <div className="flex flex-wrap gap-2">
+                    {CATEGORIES.map((c) => {
+                        const isActive = category === c.value;
+                        if (c.hot && !isActive) {
+                            return (
+                                <button
+                                    key={c.label}
+                                    onClick={() => handleCategory(c.value)}
+                                    className="flex items-center gap-1.5 px-4 py-2 rounded-full
+                                               text-xs font-bold tracking-wide cursor-pointer transition-all
+                                               border border-red-500/40 text-red-500
+                                               hover:bg-red-500/10 hover:border-red-500/60"
+                                >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block shrink-0" />
+                                    {c.label}
+                                </button>
+                            );
+                        }
+                        return (
+                            <button
+                                key={c.label}
+                                onClick={() => handleCategory(c.value)}
+                                className={`px-4 py-2 rounded-full text-xs font-bold tracking-wide
+                                            cursor-pointer transition-all ${
+                                    isActive
+                                        ? 'text-white shadow-md'
+                                        : 'bg-surface border border-brutal-border text-tx-secondary hover:text-tx-primary hover:border-brand/40'
                                 }`}
-                                style={category === c.value ? {
-                                    background: 'var(--color-brand-primary)',
-                                    boxShadow: '0 0 14px color-mix(in srgb, var(--color-brand-primary) 35%, transparent)',
-                                } : {}}
-                        >
-                            {c.label}
-                        </button>
-                    ))}
+                                style={isActive ? { background: 'var(--color-brand-primary)' } : {}}
+                            >
+                                {c.label}
+                            </button>
+                        );
+                    })}
                 </div>
 
-                {/* Arama */}
-                <div className="sm:ml-auto relative">
-                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted"
+                <div className="sm:ml-auto relative self-start">
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted pointer-events-none"
                          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round"
                               d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
@@ -464,7 +461,7 @@ export default function Gundem() {
                         placeholder="Haberlerde ara..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="pl-8 pr-4 py-1.5 rounded-full text-xs
+                        className="pl-8 pr-4 py-2 rounded-full text-xs
                                    bg-surface border border-brutal-border text-tx-primary
                                    placeholder:text-muted focus:outline-none
                                    focus:border-brand/40 transition-colors w-48"
@@ -472,7 +469,7 @@ export default function Gundem() {
                 </div>
             </div>
 
-            {/* İçerik */}
+            {/* ── İçerik ── */}
             {loading && <Spinner />}
             {error && <p className="text-red-400/70 text-sm text-center py-20">{error}</p>}
             {!loading && !error && sorted.length === 0 && (
@@ -487,32 +484,88 @@ export default function Gundem() {
                 </div>
             )}
 
-            {/* Sayfalama */}
+            {/* ── Sayfalama ── */}
             {totalPages > 1 && !search && (
-                <div className="flex justify-center items-center gap-4 mt-12">
-                    <button disabled={page === 1} onClick={() => setPage(p => p - 1)}
-                            className="flex items-center gap-2 px-5 py-2 rounded-xl cursor-pointer
-                                       bg-surface border border-brutal-border text-tx-secondary
-                                       disabled:opacity-30 hover:text-tx-primary hover:border-brand/30
-                                       text-sm transition-all">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24"
-                             stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                        </svg>
-                        Önceki
-                    </button>
-                    <span className="text-muted text-xs tabular-nums">{page} / {totalPages}</span>
-                    <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)}
-                            className="flex items-center gap-2 px-5 py-2 rounded-xl cursor-pointer
-                                       bg-surface border border-brutal-border text-tx-secondary
-                                       disabled:opacity-30 hover:text-tx-primary hover:border-brand/30
-                                       text-sm transition-all">
-                        Sonraki
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24"
-                             stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                        </svg>
-                    </button>
+                <div className="mt-12 flex flex-col items-center gap-4">
+                    <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                        {/* İlk sayfa */}
+                        <button
+                            disabled={page === 1}
+                            onClick={() => setPage(1)}
+                            title="İlk sayfa"
+                            className="w-9 h-9 flex items-center justify-center rounded-lg
+                                       bg-surface border border-brutal-border text-tx-secondary text-xs
+                                       disabled:opacity-30 hover:border-brand/40 hover:text-tx-primary
+                                       transition-all cursor-pointer disabled:cursor-default"
+                        >
+                            «
+                        </button>
+
+                        {/* Önceki sayfa */}
+                        <button
+                            disabled={page === 1}
+                            onClick={() => setPage(p => p - 1)}
+                            className="w-9 h-9 flex items-center justify-center rounded-lg
+                                       bg-surface border border-brutal-border text-tx-secondary text-xs
+                                       disabled:opacity-30 hover:border-brand/40 hover:text-tx-primary
+                                       transition-all cursor-pointer disabled:cursor-default"
+                        >
+                            ‹
+                        </button>
+
+                        {/* Numara butonları */}
+                        {pageNumbers(page, totalPages).map((p, i) =>
+                            p === '...' ? (
+                                <span key={`dots-${i}`}
+                                      className="w-9 h-9 flex items-center justify-center text-muted text-xs">
+                                    …
+                                </span>
+                            ) : (
+                                <button
+                                    key={p}
+                                    onClick={() => setPage(p)}
+                                    className={`w-9 h-9 flex items-center justify-center rounded-lg
+                                                text-xs font-bold transition-all cursor-pointer ${
+                                        page === p
+                                            ? 'text-white shadow-sm'
+                                            : 'bg-surface border border-brutal-border text-tx-secondary hover:border-brand/40 hover:text-tx-primary'
+                                    }`}
+                                    style={page === p ? { background: 'var(--color-brand-primary)' } : {}}
+                                >
+                                    {p}
+                                </button>
+                            )
+                        )}
+
+                        {/* Sonraki sayfa */}
+                        <button
+                            disabled={page === totalPages}
+                            onClick={() => setPage(p => p + 1)}
+                            className="w-9 h-9 flex items-center justify-center rounded-lg
+                                       bg-surface border border-brutal-border text-tx-secondary text-xs
+                                       disabled:opacity-30 hover:border-brand/40 hover:text-tx-primary
+                                       transition-all cursor-pointer disabled:cursor-default"
+                        >
+                            ›
+                        </button>
+
+                        {/* Son sayfa */}
+                        <button
+                            disabled={page === totalPages}
+                            onClick={() => setPage(totalPages)}
+                            title="Son sayfa"
+                            className="w-9 h-9 flex items-center justify-center rounded-lg
+                                       bg-surface border border-brutal-border text-tx-secondary text-xs
+                                       disabled:opacity-30 hover:border-brand/40 hover:text-tx-primary
+                                       transition-all cursor-pointer disabled:cursor-default"
+                        >
+                            »
+                        </button>
+                    </div>
+
+                    <p className="text-muted text-xs tabular-nums">
+                        Sayfa {page} / {totalPages}
+                    </p>
                 </div>
             )}
         </div>
