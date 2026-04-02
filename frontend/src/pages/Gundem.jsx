@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import NewsService from '../services/news.service';
+import AnalysisService from '../services/analysis.service';
 
 /* hot: true → admin tarafından kırmızı/trend olarak işaretlenebilir */
 const CATEGORIES = [
@@ -82,6 +83,89 @@ function ContentTypeBadges({ types }) {
     );
 }
 
+function AnalyzeButton({ article }) {
+    const [phase, setPhase]   = useState('idle'); // idle | loading | done | error
+    const [result, setResult] = useState(null);
+
+    const handleClick = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (phase !== 'idle') return;
+        setPhase('loading');
+        try {
+            const text = [article.title, article.content].filter(Boolean).join(' ');
+            const resp = await AnalysisService.analyzeText(text);
+
+            if (resp.is_direct_match && resp.direct_match_data) {
+                setResult(resp.direct_match_data);
+                setPhase('done');
+                return;
+            }
+
+            let attempts = 0;
+            const interval = setInterval(async () => {
+                try {
+                    attempts++;
+                    if (attempts > 25) { clearInterval(interval); setPhase('error'); return; }
+                    const s = await AnalysisService.checkStatus(resp.task_id);
+                    if (s.status === 'SUCCESS' && s.result) {
+                        clearInterval(interval);
+                        setResult(s.result);
+                        setPhase('done');
+                    } else if (s.status === 'FAILED') {
+                        clearInterval(interval);
+                        setPhase('error');
+                    }
+                } catch { clearInterval(interval); setPhase('error'); }
+            }, 2000);
+        } catch { setPhase('error'); }
+    };
+
+    if (phase === 'idle') return (
+        <button onClick={handleClick}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg
+                           text-[10px] font-semibold border transition-all cursor-pointer
+                           bg-surface border-brutal-border text-muted
+                           hover:border-brand/40 hover:text-tx-primary">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 117.072 0l-.347.347A3.984 3.984 0 018.1 17H8.1a3.984 3.984 0 01-1.1-2.753L6.653 13.9z" />
+            </svg>
+            Analiz Et
+        </button>
+    );
+
+    if (phase === 'loading') return (
+        <span className="inline-flex items-center gap-1.5 text-[10px] text-muted">
+            <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+            Analiz ediliyor...
+        </span>
+    );
+
+    if (phase === 'error') return (
+        <span className="text-[10px] text-red-400/70">Analiz başarısız</span>
+    );
+
+    const prediction = result?.prediction;
+    const pct        = result?.confidence ? Math.round(result.confidence * 100) : null;
+    const isFake     = prediction === 'FAKE';
+    const isAuth     = prediction === 'AUTHENTIC';
+    const color      = isFake  ? 'bg-red-500/15 border-red-500/30 text-red-400'
+                     : isAuth  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                     :           'bg-zinc-500/15 border-zinc-500/30 text-zinc-400';
+    const label      = isFake ? 'Sahte İçerik' : isAuth ? 'Doğru İçerik' : 'Belirsiz';
+
+    return (
+        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[10px] font-bold ${color}`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-current inline-block"/>
+            {label}{pct !== null ? ` — %${pct}` : ''}
+        </span>
+    );
+}
+
 const MONTHS_TR = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
 
 function formatDate(pub_date) {
@@ -134,10 +218,7 @@ function FeaturedCard({ article }) {
                 </h3>
                 <div className="flex items-center justify-between text-white/35 text-xs pt-1">
                     <span>{formatDate(article.pub_date)}</span>
-                    <span className="opacity-0 group-hover:opacity-100 transition-opacity
-                                     text-emerald-400 text-[11px] font-medium">
-                        Haberi oku →
-                    </span>
+                    <AnalyzeButton article={article} />
                 </div>
             </div>
         </article>
@@ -171,12 +252,7 @@ function TextCard({ article }) {
             </div>
             <div className="pt-4 mt-4 border-t border-brutal-border flex items-center justify-between">
                 <span className="text-muted text-xs">{formatDate(article.pub_date)}</span>
-                {article.source_url && (
-                    <span className="text-[11px] text-muted group-hover:text-tx-secondary
-                                     transition-colors opacity-0 group-hover:opacity-100">
-                        Haberi oku →
-                    </span>
-                )}
+                <AnalyzeButton article={article} />
             </div>
         </article>
     );
@@ -233,17 +309,7 @@ function WideCard({ article }) {
                 <div className="flex items-center justify-between mt-6 pt-5
                                 border-t border-brutal-border">
                     <span className="text-muted text-xs">{formatDate(article.pub_date)}</span>
-                    {article.source_url && (
-                        <span className="flex items-center gap-1.5 text-sm font-semibold transition-colors"
-                              style={{ color: 'var(--color-brand-primary)' }}>
-                            Haberi Oku
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
-                                 stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round"
-                                      d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                            </svg>
-                        </span>
-                    )}
+                    <AnalyzeButton article={article} />
                 </div>
             </div>
         </article>
@@ -301,7 +367,7 @@ function NormalCard({ article }) {
                 <div className="flex items-center justify-between mt-auto pt-2
                                 text-xs text-muted border-t border-brutal-border">
                     <span className="italic">{article.source_name}</span>
-                    <span>{formatDate(article.pub_date)}</span>
+                    <AnalyzeButton article={article} />
                 </div>
             </div>
         </article>

@@ -365,7 +365,9 @@ def _classify_content(
     """
     types: list[str] = []
 
-    if title_signals.get("clickbait_score", 0.0) >= 0.08:
+    # Güvenilir kaynaklar (AA, BBC vb.) "son dakika" gibi ifadeler kullanır
+    # ama bu clickbait değil — haber dili. trust >= 0.9 ise atla.
+    if title_signals.get("clickbait_score", 0.0) >= 0.08 and trust_score < 0.9:
         types.append("clickbait")
 
     if title_signals.get("hedge_ratio", 0.0) >= 0.05:
