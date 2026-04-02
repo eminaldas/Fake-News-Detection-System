@@ -318,33 +318,56 @@ def _extract_image(entry) -> str | None:
             url = mc.get("url") or mc.get("href")
             if url:
                 return url
+
     # 2. <media:thumbnail>
     media_thumbnail = getattr(entry, "media_thumbnail", None)
     if media_thumbnail and isinstance(media_thumbnail, list):
         url = media_thumbnail[0].get("url") or media_thumbnail[0].get("href")
         if url:
             return url
+
     # 3. <enclosure type="image/...">
     enclosures = getattr(entry, "enclosures", None)
     if enclosures:
         for enc in enclosures:
             if "image" in enc.get("type", ""):
                 return enc.get("href") or enc.get("url")
-    # 4. <image> tag'i (AA, Yeni Şafak gibi custom) — feedparser dict veya string döner
-    image_tag = getattr(entry, "image", None)
+
+    # 4. <image> tag'i — AA, CNN Türk, Yeni Şafak custom field
+    #    feedparser bunu dict, string ya da FeedParserDict olarak döndürebilir
+    image_tag = entry.get("image") if hasattr(entry, "get") else getattr(entry, "image", None)
     if image_tag:
         if isinstance(image_tag, dict):
-            url = image_tag.get("href") or image_tag.get("url")
-            if url:
+            url = (image_tag.get("href") or image_tag.get("url")
+                   or image_tag.get("value") or image_tag.get("content"))
+            if url and url.startswith("http"):
                 return url
         elif isinstance(image_tag, str) and image_tag.startswith("http"):
             return image_tag
+
     # 5. links içinde image ilişkisi
     links = getattr(entry, "links", None)
     if links:
         for lnk in links:
             if "image" in lnk.get("type", "") and lnk.get("href"):
                 return lnk["href"]
+
+    # 6. Fallback: summary / description / content içindeki <img src="..."> tag
+    for field in ("summary", "description"):
+        text = getattr(entry, field, None) or ""
+        if text:
+            m = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', text, re.IGNORECASE)
+            if m and m.group(1).startswith("http"):
+                return m.group(1)
+    content_list = getattr(entry, "content", None)
+    if content_list and isinstance(content_list, list):
+        for c in content_list:
+            text = c.get("value", "") if isinstance(c, dict) else ""
+            if text:
+                m = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', text, re.IGNORECASE)
+                if m and m.group(1).startswith("http"):
+                    return m.group(1)
+
     return None
 
 
@@ -415,6 +438,14 @@ async def _run_ingest():
                 duplicate = await _find_duplicate(db, embedding)
                 if duplicate:
                     duplicate.source_count = duplicate.source_count + 1
+                    # Görseli yoksa yeni kaynaktan al
+                    if not duplicate.image_url and image_url:
+                        duplicate.image_url = image_url
+                    # Daha güvenilir kaynak geldiyse güncelle
+                    if trust_score > (duplicate.trust_score or 0):
+                        duplicate.trust_score  = trust_score
+                        duplicate.source_name  = source_name
+                        duplicate.source_url   = source_url
                     await db.commit()
                     source_dup += 1
                     total_dup  += 1
