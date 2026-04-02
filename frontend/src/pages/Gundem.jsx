@@ -36,11 +36,16 @@ function SourcePill({ count }) {
     );
 }
 
+const MONTHS_TR = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+
 function formatDate(pub_date) {
     if (!pub_date) return '';
-    return new Date(pub_date).toLocaleString('tr-TR', {
-        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
-    });
+    const d = new Date(pub_date);
+    const day = d.getDate();
+    const mon = MONTHS_TR[d.getMonth()];
+    const h   = String(d.getHours()).padStart(2, '0');
+    const m   = String(d.getMinutes()).padStart(2, '0');
+    return `${day} ${mon} ${h}:${m}`;
 }
 
 /* ── Büyük öne çıkan kart ─────────────────────────────────────────── */
