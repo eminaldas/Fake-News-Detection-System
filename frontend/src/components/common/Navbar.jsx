@@ -32,24 +32,19 @@ const Navbar = () => {
     return (
         <header className="fixed top-0 left-0 right-0 z-50">
 
-            {/* ── Scrolled arka plan: solid renk, slide-down + fade ── */}
-            <div
-                className="absolute inset-0 -z-10 pointer-events-none border-b border-brutal-border/50
-                           transition-all duration-350 ease-out bg-surface"
-                style={{
-                    opacity:    scrolled ? 1 : 0,
-                    transform:  scrolled ? 'translateY(0)' : 'translateY(-6px)',
-                    boxShadow:  scrolled ? '0 1px 24px rgba(0,0,0,0.07)' : 'none',
-                }}
-            />
+            {/* Arka plan: her zaman mevcut, scroll'da opacity ile görünür */}
+            <div className={`absolute inset-0 backdrop-blur-lg border-b border-brutal-border/30
+                            pointer-events-none -z-10 transition-opacity duration-300 ${
+                scrolled ? 'opacity-100' : 'opacity-0'
+            }`} />
 
             <div className={`max-w-7xl mx-auto px-4 md:px-6 grid grid-cols-[1fr_auto_1fr] items-center
                             transition-all duration-300 ${
-                scrolled ? 'py-2.5' : 'pt-4 md:pt-5 pb-2'
+                scrolled ? 'py-2 md:py-2.5' : 'pt-4 md:pt-5 pb-2'
             }`}>
 
                 {/* ── LOGO ── */}
-                <Link to="/" className="flex items-center gap-2 hover:opacity-75 transition-opacity duration-200">
+                <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200">
                     <div className="w-7 h-7 md:w-8 md:h-8 overflow-hidden shrink-0">
                         <img src={logo}     alt="Logo" className="w-full h-full object-contain block dark:hidden" />
                         <img src={logoDark} alt="Logo" className="w-full h-full object-contain hidden dark:block" />
@@ -60,131 +55,97 @@ const Navbar = () => {
                 </Link>
 
                 {/* ── NAV — masaüstü ── */}
-                <nav className="hidden md:flex items-center justify-self-center relative">
-                    {/* At-top glass-pill arka planı */}
-                    <div
-                        className="absolute inset-0 rounded-full glass-pill pointer-events-none -z-10
-                                   transition-opacity duration-300"
-                        style={{ opacity: scrolled ? 0 : 1 }}
-                    />
-
-                    <div className={`flex items-center transition-all duration-300 ${
-                        scrolled ? 'gap-1 px-0 py-0' : 'gap-0.5 px-2 py-1.5'
-                    }`}>
-                        {NAV_LINKS.map((item) => (
-                            <Link
-                                key={item.path}
-                                to={item.path}
-                                className={`
-                                    relative px-4 py-1.5 text-sm font-bold tracking-tight
-                                    transition-all duration-200 rounded-full
-                                    ${scrolled
-                                        ? isActive(item.path)
-                                            ? 'text-tx-primary'
-                                            : 'text-tx-secondary hover:text-tx-primary'
-                                        : isActive(item.path)
-                                            ? 'bg-brand text-surface dark:bg-es-primary dark:text-es-bg shadow-sm'
-                                            : 'text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent'
-                                    }
-                                `}
-                            >
-                                {item.name}
-                                {/* Scrolled aktif göstergesi: alt çizgi */}
-                                {scrolled && isActive(item.path) && (
-                                    <span
-                                        className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full"
-                                        style={{ background: 'var(--color-brand-primary)' }}
-                                    />
-                                )}
-                            </Link>
-                        ))}
-                    </div>
+                <nav className="hidden md:flex items-center gap-0.5 justify-self-center relative px-2 py-1.5">
+                    <div className={`absolute inset-0 rounded-full glass-pill pointer-events-none -z-10
+                                    transition-opacity duration-300 ${
+                        scrolled ? 'opacity-100' : 'opacity-0'
+                    }`} />
+                    {NAV_LINKS.map((item) => (
+                        <Link
+                            key={item.path}
+                            to={item.path}
+                            className={`
+                                px-5 py-1.5 rounded-full text-sm font-bold tracking-tight transition-all duration-200
+                                ${isActive(item.path)
+                                    ? 'bg-brand text-surface dark:bg-es-primary dark:text-es-bg shadow-sm'
+                                    : 'text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent'
+                                }
+                            `}
+                        >
+                            {item.name}
+                        </Link>
+                    ))}
                 </nav>
 
                 {/* ── ACTIONS ── */}
-                <div className="flex items-center gap-2 md:gap-3 justify-self-end">
-                    {/* At-top pill wrapper */}
-                    <div
-                        className="absolute right-4 md:right-6 flex items-center gap-2 md:gap-3
-                                   glass-pill px-3 py-2 md:px-5 md:py-2.5 pointer-events-none
-                                   transition-opacity duration-300 -z-10"
-                        style={{ opacity: scrolled ? 0 : 1 }}
-                        aria-hidden
-                    />
+                <div className="glass-pill flex items-center gap-2 md:gap-3 px-3 py-2 md:px-5 md:py-2.5 justify-self-end">
+                    <button
+                        onClick={toggleTheme}
+                        className="text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors p-1"
+                        aria-label="Toggle Theme"
+                    >
+                        {isDarkMode ? <Sun size={17} /> : <Moon size={17} />}
+                    </button>
 
-                    <div className={`flex items-center gap-2 md:gap-3 transition-all duration-300 ${
-                        scrolled ? 'px-0 py-1' : 'px-3 py-2 md:px-5 md:py-2.5'
-                    }`}>
-                        <button
-                            onClick={toggleTheme}
-                            className="text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors p-1"
-                            aria-label="Toggle Theme"
-                        >
-                            {isDarkMode ? <Sun size={17} /> : <Moon size={17} />}
+                    <div className="hidden md:flex items-center gap-3">
+                        <div className="w-px h-4 bg-brutal-border" />
+                        <button className="text-tx-primary text-[11px] font-black tracking-widest hover:text-brand dark:hover:text-es-primary transition-colors">
+                            TR
                         </button>
-
-                        {/* Masaüstü: TR + auth */}
-                        <div className="hidden md:flex items-center gap-3">
-                            <div className="w-px h-4 bg-brutal-border" />
-                            <button className="text-tx-primary text-[11px] font-black tracking-widest hover:text-brand dark:hover:text-es-primary transition-colors">
-                                TR
-                            </button>
-                            <div className="w-px h-4 bg-brutal-border" />
-                            {isAuthenticated ? (
-                                <div className="flex items-center gap-2">
-                                    <Link
-                                        to="/profile"
-                                        className="text-tx-primary text-xs font-bold tracking-tight hover:text-brand dark:hover:text-es-primary transition-colors"
-                                    >
-                                        {user?.username}
-                                    </Link>
-                                    {isAdmin && (
-                                        <>
-                                            <div className="w-px h-4 bg-brutal-border" />
-                                            <Link
-                                                to="/admin/users"
-                                                className="text-[11px] font-black tracking-widest text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors"
-                                            >
-                                                ADMİN
-                                            </Link>
-                                        </>
-                                    )}
-                                    <div className="w-px h-4 bg-brutal-border" />
-                                    <button
-                                        onClick={logout}
-                                        className="text-tx-primary text-[11px] font-black tracking-widest hover:text-brand dark:hover:text-es-primary transition-colors"
-                                    >
-                                        ÇIKIŞ
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-2">
-                                    <Link
-                                        to="/login"
-                                        className="text-[11px] font-black tracking-widest text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors"
-                                    >
-                                        GİRİŞ
-                                    </Link>
-                                    <Link
-                                        to="/register"
-                                        className="text-[11px] font-black tracking-widest bg-brand text-surface dark:bg-es-primary dark:text-es-bg px-3 py-1 rounded-full hover:opacity-80 transition-opacity"
-                                    >
-                                        KAYIT
-                                    </Link>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Mobil: hamburger */}
-                        <div className="w-px h-4 bg-brutal-border md:hidden" />
-                        <button
-                            onClick={() => setMenuOpen((o) => !o)}
-                            className="md:hidden text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors p-1"
-                            aria-label={menuOpen ? 'Menüyü kapat' : 'Menüyü aç'}
-                        >
-                            {menuOpen ? <X size={18} /> : <Menu size={18} />}
-                        </button>
+                        <div className="w-px h-4 bg-brutal-border" />
+                        {isAuthenticated ? (
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    to="/profile"
+                                    className="text-tx-primary text-xs font-bold tracking-tight hover:text-brand dark:hover:text-es-primary transition-colors"
+                                >
+                                    {user?.username}
+                                </Link>
+                                {isAdmin && (
+                                    <>
+                                        <div className="w-px h-4 bg-brutal-border" />
+                                        <Link
+                                            to="/admin/users"
+                                            className="text-[11px] font-black tracking-widest text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors"
+                                        >
+                                            ADMİN
+                                        </Link>
+                                    </>
+                                )}
+                                <div className="w-px h-4 bg-brutal-border" />
+                                <button
+                                    onClick={logout}
+                                    className="text-tx-primary text-[11px] font-black tracking-widest hover:text-brand dark:hover:text-es-primary transition-colors"
+                                >
+                                    ÇIKIŞ
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    to="/login"
+                                    className="text-[11px] font-black tracking-widest text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors"
+                                >
+                                    GİRİŞ
+                                </Link>
+                                <Link
+                                    to="/register"
+                                    className="text-[11px] font-black tracking-widest bg-brand text-surface dark:bg-es-primary dark:text-es-bg px-3 py-1 rounded-full hover:opacity-80 transition-opacity"
+                                >
+                                    KAYIT
+                                </Link>
+                            </div>
+                        )}
                     </div>
+
+                    <div className="w-px h-4 bg-brutal-border md:hidden" />
+                    <button
+                        onClick={() => setMenuOpen((o) => !o)}
+                        className="md:hidden text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors p-1"
+                        aria-label={menuOpen ? 'Menüyü kapat' : 'Menüyü aç'}
+                    >
+                        {menuOpen ? <X size={18} /> : <Menu size={18} />}
+                    </button>
                 </div>
             </div>
 
@@ -210,48 +171,34 @@ const Navbar = () => {
                         ))}
                         {isAuthenticated ? (
                             <>
-                                <Link
-                                    to="/profile"
-                                    onClick={() => setMenuOpen(false)}
-                                    className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all"
-                                >
+                                <Link to="/profile" onClick={() => setMenuOpen(false)}
+                                    className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all">
                                     Profilim ({user?.username})
                                 </Link>
                                 {isAdmin && (
-                                    <Link
-                                        to="/admin/users"
-                                        onClick={() => setMenuOpen(false)}
-                                        className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all"
-                                    >
+                                    <Link to="/admin/users" onClick={() => setMenuOpen(false)}
+                                        className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all">
                                         Kullanıcı Yönetimi
                                     </Link>
                                 )}
-                                <button
-                                    onClick={() => { logout(); setMenuOpen(false); }}
-                                    className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all w-full text-left"
-                                >
+                                <button onClick={() => { logout(); setMenuOpen(false); }}
+                                    className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all w-full text-left">
                                     Çıkış Yap
                                 </button>
                             </>
                         ) : (
                             <>
-                                <Link
-                                    to="/login"
-                                    onClick={() => setMenuOpen(false)}
-                                    className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all"
-                                >
+                                <Link to="/login" onClick={() => setMenuOpen(false)}
+                                    className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all">
                                     Giriş Yap
                                 </Link>
-                                <Link
-                                    to="/register"
-                                    onClick={() => setMenuOpen(false)}
-                                    className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary bg-brand-light dark:bg-brand-accent transition-all"
-                                >
+                                <Link to="/register" onClick={() => setMenuOpen(false)}
+                                    className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary bg-brand-light dark:bg-brand-accent transition-all">
                                     Kayıt Ol
                                 </Link>
                             </>
                         )}
-                        <div className="flex items-center gap-5 px-4 py-3 mt-0.5 border-t border-brutal-border/40">
+                        <div className="flex items-center px-4 py-3 mt-0.5 border-t border-brutal-border/40">
                             <button className="text-tx-primary text-[11px] font-black tracking-widest hover:text-brand dark:hover:text-es-primary transition-colors">
                                 TR
                             </button>

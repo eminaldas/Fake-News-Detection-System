@@ -2,6 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { Sun, Cloud, CloudSun, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Wind, MapPin } from 'lucide-react';
 import WeatherService, { ISTANBUL } from '../../../services/weather.service';
 
+/* ── Hava durumu koduna göre renk teması ───────────────────────── */
+function wmoTheme(code) {
+    if (code === 0)                               return { accent: '#FBBF24', glow: 'rgba(251,191,36,0.18)',  border: 'rgba(251,191,36,0.22)' }; // Açık → sarı
+    if (code <= 2)                                return { accent: '#FCD34D', glow: 'rgba(252,211,77,0.14)',  border: 'rgba(252,211,77,0.20)' }; // Az bulutlu → soluk sarı
+    if (code === 3)                               return { accent: '#CBD5E1', glow: 'rgba(203,213,225,0.10)', border: 'rgba(203,213,225,0.18)' }; // Bulutlu → gri
+    if (code <= 48)                               return { accent: '#94A3B8', glow: 'rgba(148,163,184,0.10)', border: 'rgba(148,163,184,0.18)' }; // Sisli → gri/beyaz
+    if (code <= 55)                               return { accent: '#7DD3FC', glow: 'rgba(125,211,252,0.12)', border: 'rgba(125,211,252,0.20)' }; // Çisenti → açık mavi
+    if (code <= 65 || (code >= 80 && code <= 82)) return { accent: '#60A5FA', glow: 'rgba(96,165,250,0.14)',  border: 'rgba(96,165,250,0.22)' }; // Yağmurlu → mavi
+    if (code <= 77 || (code >= 85 && code <= 86)) return { accent: '#BAE6FD', glow: 'rgba(186,230,253,0.12)', border: 'rgba(186,230,253,0.20)' }; // Karlı → buz mavisi
+    return                                               { accent: '#A78BFA', glow: 'rgba(167,139,250,0.14)', border: 'rgba(167,139,250,0.22)' }; // Fırtına → mor
+}
+
 function wmoIcon(code, cls = 'w-5 h-5') {
     if (code === 0)                               return <Sun             className={cls} />;
     if (code <= 2)                                return <CloudSun        className={cls} />;
@@ -42,25 +54,29 @@ const LiveDataCard = () => {
         load();
     }, []);
 
+    const theme = weather ? wmoTheme(weather.code) : wmoTheme(0);
+
     return (
         <div
-            className="rounded-2xl overflow-hidden relative animate-fade-right"
+            className="rounded-2xl overflow-hidden relative"
             style={{
-                background:  'linear-gradient(135deg, rgba(20,80,55,0.95) 0%, rgba(10,50,38,0.98) 100%)',
-                border:      '1px solid rgba(63,255,139,0.20)',
-                boxShadow:   '0 8px 32px rgba(63,255,139,0.08), 0 2px 8px rgba(0,0,0,0.4)',
+                background: 'linear-gradient(135deg, rgba(10,20,55,0.97) 0%, rgba(5,12,40,0.99) 100%)',
+                border:     `1px solid ${theme.border}`,
+                boxShadow:  `0 8px 32px ${theme.glow}, 0 2px 8px rgba(0,0,0,0.4)`,
+                transition: 'border-color 0.6s ease, box-shadow 0.6s ease',
             }}
         >
+            {/* Dekoratif glow */}
             <div className="absolute -top-10 -right-10 w-36 h-36 rounded-full pointer-events-none"
-                 style={{ background: 'rgba(63,255,139,0.12)', filter: 'blur(40px)' }} />
+                 style={{ background: theme.glow, filter: 'blur(40px)', transition: 'background 0.6s ease' }} />
 
             {/* Şehir + saat */}
             <div className="px-5 pt-5 pb-2 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-es-primary/80" />
+                    <MapPin className="w-3.5 h-3.5" style={{ color: theme.accent, opacity: 0.8 }} />
                     <span className="text-sm font-manrope font-bold text-white/90">{city}</span>
                 </div>
-                <span className="text-[10px] text-white/40 font-mono">
+                <span className="text-[10px] text-white/30 font-mono">
                     {new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                 </span>
             </div>
@@ -69,14 +85,21 @@ const LiveDataCard = () => {
             {weather ? (
                 <div className="px-5 pb-3 flex items-end justify-between">
                     <div>
-                        <div className="text-6xl font-manrope font-black text-white leading-none">{weather.temp}°</div>
-                        <div className="text-xs text-white/60 mt-1.5 flex items-center gap-2">
-                            <span>{wmoLabel(weather.code)}</span>
-                            <span className="opacity-40">·</span>
-                            <span className="flex items-center gap-1"><Wind className="w-3 h-3" />{weather.wind} km/h</span>
+                        <div className="text-6xl font-manrope font-black leading-none"
+                             style={{ color: theme.accent }}>
+                            {weather.temp}°
+                        </div>
+                        <div className="text-xs text-white/55 mt-1.5 flex items-center gap-2">
+                            <span style={{ color: theme.accent, opacity: 0.9 }}>{wmoLabel(weather.code)}</span>
+                            <span className="opacity-30">·</span>
+                            <span className="flex items-center gap-1 text-white/40">
+                                <Wind className="w-3 h-3" />{weather.wind} km/h
+                            </span>
                         </div>
                     </div>
-                    <div className="text-white/70 mb-1">{wmoIcon(weather.code, 'w-14 h-14 opacity-80')}</div>
+                    <div className="mb-1" style={{ color: theme.accent, opacity: 0.75 }}>
+                        {wmoIcon(weather.code, 'w-14 h-14')}
+                    </div>
                 </div>
             ) : (
                 <div className="px-5 pb-3 h-24 flex items-center">
@@ -86,17 +109,22 @@ const LiveDataCard = () => {
 
             {/* 7 günlük tahmin */}
             <div className="px-3 py-3 grid grid-cols-7 gap-0.5"
-                 style={{ borderTop: '1px solid rgba(63,255,139,0.10)', background: 'rgba(0,0,0,0.15)' }}>
-                {weather ? weather.daily.map((d, i) => (
-                    <div key={i} className="flex flex-col items-center gap-1 py-1">
-                        <span className="text-[9px] font-bold text-white/50 uppercase tracking-wide">
-                            {i === 0 ? 'Bug.' : d.day}
-                        </span>
-                        <div className="text-white/70">{wmoIcon(d.code, 'w-4 h-4')}</div>
-                        <span className="text-[10px] font-bold text-white/90">{d.max}°</span>
-                        <span className="text-[9px] text-white/35">{d.min}°</span>
-                    </div>
-                )) : Array.from({ length: 7 }).map((_, i) => (
+                 style={{ borderTop: `1px solid ${theme.border}`, background: 'rgba(0,0,0,0.20)' }}>
+                {weather ? weather.daily.map((d, i) => {
+                    const dt = wmoTheme(d.code);
+                    return (
+                        <div key={i} className="flex flex-col items-center gap-1 py-1">
+                            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wide">
+                                {i === 0 ? 'Bug.' : d.day}
+                            </span>
+                            <div style={{ color: dt.accent, opacity: 0.8 }}>
+                                {wmoIcon(d.code, 'w-4 h-4')}
+                            </div>
+                            <span className="text-[10px] font-bold text-white/85">{d.max}°</span>
+                            <span className="text-[9px] text-white/30">{d.min}°</span>
+                        </div>
+                    );
+                }) : Array.from({ length: 7 }).map((_, i) => (
                     <div key={i} className="flex flex-col items-center gap-1.5 py-1">
                         <div className="h-2 w-4 rounded bg-white/10 animate-pulse" />
                         <div className="h-4 w-4 rounded bg-white/10 animate-pulse" />
