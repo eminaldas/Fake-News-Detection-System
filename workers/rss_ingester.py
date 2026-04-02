@@ -401,8 +401,8 @@ async def _run_ingest():
         total_dup = 0
 
         for rss_url, source_name in RSS_SOURCES:
-            source_new = 0
-            source_dup = 0
+            source_new       = 0
+            source_clustered = 0
             try:
                 feed = feedparser.parse(rss_url)
                 entries = feed.entries[: settings.RSS_INGEST_BATCH]
@@ -436,22 +436,23 @@ async def _run_ingest():
                     continue
 
                 duplicate = await _find_duplicate(db, embedding)
+
+                # cluster_id: yeni haber ise kendi id'si, duplicate ise canonical'ın cluster_id'si
                 if duplicate:
-                    duplicate.source_count = duplicate.source_count + 1
-                    # Görseli yoksa yeni kaynaktan al
+                    cluster_id = duplicate.cluster_id or duplicate.id
+                    # Canonical kaydı güncelle: sayaç, görsel, güvenilirlik
+                    duplicate.source_count += 1
                     if not duplicate.image_url and image_url:
                         duplicate.image_url = image_url
-                    # Daha güvenilir kaynak geldiyse güncelle
                     if trust_score > (duplicate.trust_score or 0):
-                        duplicate.trust_score  = trust_score
-                        duplicate.source_name  = source_name
-                        duplicate.source_url   = source_url
-                    await db.commit()
-                    source_dup += 1
-                    total_dup  += 1
-                    continue
+                        duplicate.trust_score = trust_score
+                else:
+                    cluster_id = None  # aşağıda article_id ile dolacak
 
                 article_id = uuid_module.uuid4()
+                if cluster_id is None:
+                    cluster_id = article_id
+
                 article = NewsArticle(
                     id           = article_id,
                     title        = title,
@@ -464,7 +465,7 @@ async def _run_ingest():
                     source_url   = source_url,
                     trust_score  = trust_score,
                     pub_date     = pub_date,
-                    cluster_id   = article_id,
+                    cluster_id   = cluster_id,
                     source_count = 1,
                     label        = None,
                     label_source = None,
@@ -472,14 +473,16 @@ async def _run_ingest():
                 db.add(article)
                 source_new += 1
                 total_new  += 1
+                if duplicate:
+                    source_clustered += 1
 
             await db.commit()
             logger.info(
-                "rss.source_done source=%s new=%d dup=%d",
-                source_name, source_new, source_dup,
+                "rss.source_done source=%s new=%d clustered=%d",
+                source_name, source_new, source_clustered,
             )
 
-        logger.info("rss.ingest_complete total_new=%d total_dup=%d", total_new, total_dup)
+        logger.info("rss.ingest_complete total_new=%d", total_new)
 
 
 # ── Celery task ───────────────────────────────────────────────────────────────
