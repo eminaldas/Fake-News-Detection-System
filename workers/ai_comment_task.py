@@ -87,8 +87,11 @@ def validate_gemini_response(raw: dict) -> dict | None:
         else:
             raw["reason_type"] = reason_type.strip()  # baş/son boşlukları temizle
     summary = raw.get("summary", "")
-    if not isinstance(summary, str) or not summary.strip() or len(summary) > 500:
+    if not isinstance(summary, str) or not summary.strip():
         return None
+    # Limit aşılırsa kes, reddetme — gemini-2.5-flash uzun özet üretebilir
+    if len(summary) > 800:
+        raw["summary"] = summary[:797] + "..."
     evidence = raw.get("evidence", [])
     if not isinstance(evidence, list):
         return None
@@ -288,8 +291,8 @@ async def _update_ai_comment_and_status(
     name="generate_ai_comment",
     rate_limit="5/m",
     queue="ai_comment",
-    time_limit=120,
-    soft_time_limit=90,
+    time_limit=240,
+    soft_time_limit=200,
 )
 def generate_ai_comment(
     article_id: str,
