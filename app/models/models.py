@@ -114,4 +114,7 @@ class NewsArticle(Base):
     source_count = Column(Integer, nullable=False, default=1)
     label        = Column(String(20),  nullable=True)   # "FAKE"/"AUTHENTIC"/"IDDIA"/NULL
     label_source = Column(String(50),  nullable=True)   # "teyit"/"gemini_batch"/NULL
+    nlp_score    = Column(Float,   nullable=True)        # 0.0–1.0
+    nlp_signals  = Column(JSONB,   nullable=True)        # {title:{...}, content:{...}}
+    content_type = Column(JSONB,   nullable=True)        # ["claim","clickbait"] vb.
     created_at   = Column(DateTime(timezone=True), server_default=func.now())

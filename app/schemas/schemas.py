@@ -228,6 +228,8 @@ class NewsArticleResponse(BaseModel):
     pub_date:     Optional[datetime] = None
     source_count: Optional[int]      = None
     trust_score:  Optional[float]    = None
+    nlp_score:    Optional[float]     = None
+    content_type: Optional[List[str]] = None
 
     class Config:
         from_attributes = True

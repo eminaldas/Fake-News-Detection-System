@@ -76,7 +76,7 @@ def _ling_component(signals: dict) -> float:
     risk = (
         signals.get("clickbait_score",   0.0) * 0.30 +
         signals.get("exclamation_ratio", 0.0) * 0.20 +
-        signals.get("uppercase_ratio",   0.0) * 0.15 +
+        signals.get("caps_ratio",        0.0) * 0.15 +
         signals.get("hedge_ratio",       0.0) * 0.15 +
         signals.get("question_density",  0.0) * 0.10 +
         signals.get("number_density",    0.0) * 0.05 +

@@ -18,7 +18,9 @@ from email.utils import mktime_tz, parsedate_tz
 from urllib.parse import urlparse
 
 import feedparser
+import requests as _requests
 import sqlalchemy
+from sqlalchemy import select
 from celery import Celery
 from celery.schedules import crontab
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -28,8 +30,10 @@ from sqlalchemy.pool import NullPool
 from app.core.config import settings
 from app.models.models import NewsArticle
 from ml_engine.vectorizer import TurkishVectorizer
+from ml_engine.processing.cleaner import NewsCleaner, _compute_risk, _classify_content
 
 vectorizer = TurkishVectorizer()
+_cleaner = NewsCleaner()
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +109,7 @@ def setup_periodic_tasks(sender, **kwargs):
 # ── Domain → trust score ──────────────────────────────────────────────────────
 TRUST_SCORES = {
     "aa.com.tr":          1.0,
+    "bbc.com":            1.0,
     "bbc.co.uk":          1.0,
     "trtworld.com":       1.0,
     "reuters.com":        1.0,
@@ -192,6 +197,10 @@ SLUG_MAP = {
 
 # ── RSS kaynakları: (url, source_name) ───────────────────────────────────────
 RSS_SOURCES = [
+    # ── BBC Türkçe (güvenilir, görselli) ─────────────────────────────────────
+    ("https://www.bbc.com/turkce/index.xml",                       "BBC Türkçe"),
+    ("https://www.bbc.com/turkce/ekonomi/index.xml",               "BBC Türkçe"),
+    ("https://www.bbc.com/turkce/spor/index.xml",                  "BBC Türkçe"),
     # ── Anadolu Ajansı (güvenilir, görselli) ─────────────────────────────────
     ("https://www.aa.com.tr/tr/rss/default?cat=gundem",            "AA"),
     ("https://www.aa.com.tr/tr/rss/default?cat=ekonomi",           "AA"),
@@ -371,6 +380,50 @@ def _extract_image(entry) -> str | None:
     return None
 
 
+# ── Yardımcı: ham RSS XML'den item-level <image> tag'lerini çıkar ─────────────
+# feedparser item-level custom <image> tag'ini (CNN Türk, AA, Yeni Şafak gibi)
+# parse etmiyor. Bu fonksiyon ham XML'i regex ile tarar ve link→url map'i döner.
+def _raw_image_map(rss_url: str) -> dict:
+    try:
+        resp = _requests.get(
+            rss_url, timeout=15,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; NewsBot/1.0)"},
+        )
+        raw = resp.text
+    except Exception:
+        return {}
+
+    result = {}
+    items = re.findall(r"<item[^>]*>(.*?)</item>", raw, re.DOTALL | re.IGNORECASE)
+    for item_xml in items:
+        # link veya guid'den entry key'i çıkar
+        lm = re.search(
+            r"<link[^>]*>(?:<!\[CDATA\[)?\s*(https?://[^\]\s<]+)",
+            item_xml, re.IGNORECASE,
+        ) or re.search(
+            r"<guid[^>]*>(?:<!\[CDATA\[)?\s*(https?://[^\]\s<]+)",
+            item_xml, re.IGNORECASE,
+        )
+        if not lm:
+            continue
+        link = lm.group(1).strip().rstrip("]]>").strip()
+
+        # <image>URL</image>  (CNN Türk, AA)
+        m = re.search(r"<image[^>]*>\s*(https?://[^\s<]+)\s*</image>",
+                      item_xml, re.IGNORECASE)
+        if m:
+            result[link] = m.group(1).strip()
+            continue
+
+        # <image><url>URL</url></image>  (Yeni Şafak)
+        m = re.search(r"<image[^>]*>.*?<url[^>]*>\s*(https?://[^\s<]+)",
+                      item_xml, re.DOTALL | re.IGNORECASE)
+        if m:
+            result[link] = m.group(1).strip()
+
+    return result
+
+
 # ── Yardımcı: cosine similarity ile dedup kontrol ────────────────────────────
 async def _find_duplicate(db: AsyncSession, embedding: list) -> NewsArticle | None:
     """
@@ -410,6 +463,10 @@ async def _run_ingest():
                 logger.warning("rss.fetch_error url=%s err=%s", rss_url, exc)
                 continue
 
+            # feedparser item-level <image> tag'ini parse etmiyor;
+            # ham XML'den ayrıca çıkar (CNN Türk, AA, Yeni Şafak için)
+            img_map = _raw_image_map(rss_url)
+
             trust_score = _get_trust_score(rss_url)
             category, subcategory = _get_category(rss_url)
 
@@ -425,7 +482,16 @@ async def _run_ingest():
                 ).strip()
 
                 source_url = getattr(entry, "link", "") or ""
-                image_url  = _extract_image(entry)
+
+                # URL daha önce alınmışsa atla (aynı kaynak tekrar ingest / farklı feed)
+                if source_url:
+                    exists = await db.execute(
+                        select(NewsArticle.id).where(NewsArticle.source_url == source_url).limit(1)
+                    )
+                    if exists.scalar_one_or_none():
+                        continue
+
+                image_url  = _extract_image(entry) or img_map.get(source_url)
 
                 pub_date = _parse_pub_date(entry)
 
@@ -434,6 +500,33 @@ async def _run_ingest():
                 except Exception as exc:
                     logger.warning("rss.embed_error title=%s err=%s", title[:60], exc)
                     continue
+
+                # NLP sinyal hesabı
+                content_words   = " ".join(content.split()[:400])
+                title_signals   = _cleaner.extract_manipulative_signals(title,         trust_score)
+                content_signals = _cleaner.extract_manipulative_signals(content_words, trust_score)
+                title_nlp   = _compute_risk(title_signals,   source_url)
+                content_nlp = _compute_risk(content_signals, source_url)
+                nlp_signals_data = {
+                    "title":         {k: v for k, v in title_signals.items() if k != "triggered_words"},
+                    "content":       {k: v for k, v in content_signals.items() if k != "triggered_words"},
+                    "title_score":   title_nlp,
+                    "content_score": content_nlp,
+                }
+                # Metin uzunluğu cezası — title + content toplam kelimesine göre
+                total_words = len(title.split()) + len(content.split())
+                if total_words < 30:
+                    length_penalty = 0.15
+                elif total_words < 80:
+                    length_penalty = 0.05
+                else:
+                    length_penalty = 0.0
+                nlp_score = round(min(1.0, title_nlp * 0.55 + content_nlp * 0.45 + length_penalty), 4)
+
+                content_type = _classify_content(
+                    title_signals, content_signals,
+                    trust_score=trust_score, nlp_score=nlp_score,
+                )
 
                 duplicate = await _find_duplicate(db, embedding)
 
@@ -469,6 +562,9 @@ async def _run_ingest():
                     source_count = 1,
                     label        = None,
                     label_source = None,
+                    nlp_score    = nlp_score,
+                    nlp_signals  = nlp_signals_data,
+                    content_type = content_type,
                 )
                 db.add(article)
                 source_new += 1

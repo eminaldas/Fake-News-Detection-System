@@ -243,7 +243,7 @@ def classify(
       +0.20 × authority_hits      (max 2 hit)
       +0.20   güvenilir domain
       −0.20   exclamation_ratio > 0.02
-      −0.15   uppercase_ratio   > 0.35
+      −0.15   caps_ratio        > 0.35
       ±0.25   pgvector benzer makale sinyali
 
     score > +0.20 → dogru   | conf = 0.55 + score × 0.40
@@ -269,7 +269,7 @@ def classify(
         score += 0.20
     if nlp["exclamation_ratio"] > 0.02:
         score -= 0.20
-    if nlp["uppercase_ratio"] > 0.35:
+    if nlp["caps_ratio"] > 0.35:
         score -= 0.15
     if similar_status == "dogru":
         score += 0.25
@@ -297,7 +297,7 @@ def classify(
         "authority_markers":     auth_hits,
         "trusted_source":        trusted_src,
         "exclamation_ratio":     nlp["exclamation_ratio"],
-        "uppercase_ratio":       nlp["uppercase_ratio"],
+        "caps_ratio":            nlp["caps_ratio"],
         "question_density":      nlp["question_density"],
         "score":                 round(score, 3),
         "similar_article_used":  similar_status is not None,

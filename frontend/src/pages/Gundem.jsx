@@ -36,6 +36,52 @@ function SourcePill({ count }) {
     );
 }
 
+const NLP_LEVELS = [
+    { max: 0.20, label: 'Güvenilir İçerik',        color: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' },
+    { max: 0.40, label: 'Genel Olarak Güvenilir',  color: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500/70' },
+    { max: 0.60, label: 'Değerlendirme Gerekli',   color: 'bg-yellow-500/15 border-yellow-500/30 text-yellow-400' },
+    { max: 0.80, label: 'Dikkatli Olun',            color: 'bg-orange-500/15 border-orange-500/30 text-orange-400' },
+    { max: 1.01, label: 'Yüksek Riskli İçerik',    color: 'bg-red-500/15 border-red-500/30 text-red-400' },
+];
+
+function NlpBadge({ score }) {
+    if (score === null || score === undefined) return null;
+    const level = NLP_LEVELS.find(l => score < l.max) || NLP_LEVELS[NLP_LEVELS.length - 1];
+    return (
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full
+                         border text-[9px] font-bold tracking-wider uppercase ${level.color}`}>
+            <span className="w-1 h-1 rounded-full bg-current inline-block" />
+            {level.label}
+        </span>
+    );
+}
+
+const CONTENT_TYPE_CONFIG = {
+    claim:     { label: 'İddia',     color: 'bg-purple-500/15 border-purple-500/30 text-purple-400' },
+    clickbait: { label: 'Clickbait', color: 'bg-orange-500/15 border-orange-500/30 text-orange-400' },
+    high_risk: { label: 'Riskli',    color: 'bg-red-500/15 border-red-500/30 text-red-400' },
+};
+
+function ContentTypeBadges({ types }) {
+    if (!types || types.length === 0) return null;
+    const filtered = types.filter(t => t !== 'news' && CONTENT_TYPE_CONFIG[t]);
+    if (filtered.length === 0) return null;
+    return (
+        <>
+            {filtered.map(t => {
+                const cfg = CONTENT_TYPE_CONFIG[t];
+                return (
+                    <span key={t}
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full
+                                     border text-[9px] font-bold tracking-wider uppercase ${cfg.color}`}>
+                        {cfg.label}
+                    </span>
+                );
+            })}
+        </>
+    );
+}
+
 const MONTHS_TR = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
 
 function formatDate(pub_date) {
@@ -78,6 +124,8 @@ function FeaturedCard({ article }) {
             <div className="relative z-10 p-6 space-y-3">
                 <div className="flex items-center gap-2 flex-wrap">
                     <TrustBadge score={article.trust_score} />
+                    <NlpBadge score={article.nlp_score} />
+                    <ContentTypeBadges types={article.content_type} />
                     <SourcePill count={article.source_count} />
                 </div>
                 <p className="text-white/50 text-xs italic">{article.source_name}</p>
@@ -110,8 +158,10 @@ function TextCard({ article }) {
                             bg-surface border border-brutal-border
                             hover:border-brand/30 hover:shadow-md transition-all min-h-[240px]">
             <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 flex-wrap">
                     <TrustBadge score={article.trust_score} />
+                    <NlpBadge score={article.nlp_score} />
+                    <ContentTypeBadges types={article.content_type} />
                     <SourcePill count={article.source_count} />
                 </div>
                 <p className="text-muted italic text-xs">{article.source_name}</p>
@@ -171,6 +221,8 @@ function WideCard({ article }) {
                 <div className="space-y-3">
                     <div className="flex items-center gap-2 flex-wrap">
                         <TrustBadge score={article.trust_score} />
+                        <NlpBadge score={article.nlp_score} />
+                        <ContentTypeBadges types={article.content_type} />
                         <SourcePill count={article.source_count} />
                     </div>
                     <p className="text-muted italic text-xs">{article.source_name}</p>
@@ -239,6 +291,8 @@ function NormalCard({ article }) {
             <div className="p-4 flex flex-col flex-1 gap-2">
                 <div className="flex items-center gap-2 flex-wrap">
                     <TrustBadge score={article.trust_score} />
+                    <NlpBadge score={article.nlp_score} />
+                    <ContentTypeBadges types={article.content_type} />
                     <SourcePill count={article.source_count} />
                 </div>
                 <h3 className="text-sm font-semibold text-tx-primary leading-snug line-clamp-3">

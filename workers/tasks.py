@@ -79,7 +79,7 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
     # Ağırlıklar — manipülatif sinyal türüne göre katkı payları:
     #   clickbait_score  : en güçlü sahte haber göstergesi
     #   exclamation_ratio: duygusal manipülasyon
-    #   uppercase_ratio  : bağırma / abartı
+    #   caps_ratio       : bağırma / abartı
     #   hedge_ratio      : belirsiz kaynak → güven azalır
     #   question_density : retorik soru yoğunluğu
     #   number_density   : yüksek rakam → manipülatif istatistik riski
@@ -93,7 +93,7 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
     risk = (
         signals.get("clickbait_score",   0) * 0.30
         + signals.get("exclamation_ratio", 0) * 0.20
-        + signals.get("uppercase_ratio",   0) * 0.15
+        + signals.get("caps_ratio",        0) * 0.15
         + signals.get("hedge_ratio",       0) * 0.15
         + signals.get("question_density",  0) * 0.10
         + signals.get("number_density",    0) * 0.05
@@ -119,7 +119,7 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
     #   (BERT kurumsal dile karşı önyargılı; sinyallere daha fazla ağırlık verilir)
     #
     clickbait = signals.get("clickbait_score",   0)
-    uppercase = signals.get("uppercase_ratio",   0)
+    uppercase = signals.get("caps_ratio",        0)
     exclaim   = signals.get("exclamation_ratio", 0)
 
     hedge   = signals.get("hedge_ratio",       0)

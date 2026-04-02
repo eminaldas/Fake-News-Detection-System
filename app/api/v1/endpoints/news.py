@@ -30,7 +30,11 @@ async def list_news(
 ):
     offset = (page - 1) * size
 
-    base_filter = [NewsArticle.embedding.is_not(None)]
+    base_filter = [
+        NewsArticle.embedding.is_not(None),
+        # Sadece canonical kayıtları göster (cluster içindeki diğer kaynaklar gizli)
+        NewsArticle.id == NewsArticle.cluster_id,
+    ]
     if category:
         base_filter.append(NewsArticle.category == category)
     if subcategory:
@@ -68,6 +72,8 @@ async def list_news(
                 pub_date    = a.pub_date,
                 source_count = a.source_count,
                 trust_score = a.trust_score,
+                nlp_score    = a.nlp_score,
+                content_type = a.content_type,
             )
             for a in items
         ],
