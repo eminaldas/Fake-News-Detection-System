@@ -27,7 +27,7 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 from app.models.models import AnalysisResult
-from workers.evidence_gatherer import gather_evidence, sanitize_for_prompt
+from workers.evidence_gatherer import sanitize_for_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -233,6 +233,9 @@ def _call_gemini(prompt: str) -> dict | None:
             contents=prompt,
             config=types.GenerateContentConfig(
                 tools=[types.Tool(google_search=types.GoogleSearch())],
+                automatic_function_calling=types.AutomaticFunctionCallingConfig(
+                    maximum_remote_calls=5,
+                ),
                 # response_mime_type="application/json" grounding ile uyumsuz —
                 # JSON'u prompt talimatı + _extract_json_from_text ile alıyoruz.
             ),
@@ -304,7 +307,7 @@ def generate_ai_comment(
     news_evidence: str = None,
 ) -> dict:
     """
-    Phase-2: kanıt topla → Gemini çağır → DB güncelle.
+    Phase-2: Gemini çağır (AFC ile kendi araştırmasını yapar) → DB güncelle.
 
     Args:
         article_id:       AnalysisResult.article_id (UUID string)
@@ -318,15 +321,12 @@ def generate_ai_comment(
         logger.warning("GEMINI_API_KEY ayarlanmamış, ai_comment_task atlanıyor.")
         return {"skipped": True, "reason": "no_api_key"}
 
-    # 1. Kanıt topla
-    evidence = gather_evidence(text)
-
-    # 2. Prompt oluştur
+    # 1. Prompt oluştur (Gemini AFC ile kendi araştırmasını yapıyor)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")  # ISO format — locale bağımsız
     prompt = _build_prompt(
         text=text,
         signals=signals,
-        evidence=evidence,
+        evidence=[],
         needs_decision=needs_decision,
         local_verdict=local_verdict,
         local_confidence=local_confidence,

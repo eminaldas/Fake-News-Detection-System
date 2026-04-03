@@ -1,144 +1,127 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import NewsService from '../services/news.service';
 import AnalysisService from '../services/analysis.service';
+import { useTheme } from '../contexts/ThemeContext';
 
-/* hot: true → admin tarafından kırmızı/trend olarak işaretlenebilir */
 const CATEGORIES = [
-    { label: 'Tümü',      value: null,        hot: false },
-    { label: 'Gündem',    value: 'gündem',     hot: true  },
-    { label: 'Ekonomi',   value: 'ekonomi',    hot: false },
-    { label: 'Spor',      value: 'spor',       hot: false },
-    { label: 'Sağlık',    value: 'sağlık',     hot: false },
-    { label: 'Teknoloji', value: 'teknoloji',  hot: false },
-    { label: 'Kültür',    value: 'kültür',     hot: false },
-    { label: 'Yaşam',     value: 'yaşam',      hot: false },
+    { label: 'Tümü',      value: null,       hot: false },
+    { label: 'Gündem',    value: 'gündem',    hot: true  },
+    { label: 'Ekonomi',   value: 'ekonomi',   hot: false },
+    { label: 'Spor',      value: 'spor',      hot: false },
+    { label: 'Sağlık',    value: 'sağlık',    hot: false },
+    { label: 'Teknoloji', value: 'teknoloji', hot: false },
+    { label: 'Kültür',    value: 'kültür',    hot: false },
+    { label: 'Yaşam',     value: 'yaşam',     hot: false },
 ];
 
-function TrustBadge({ score }) {
-    if (!score || score < 0.9) return null;
+/* ── NLP güven skoru dairesi ──────────────────────────────────── */
+function ScoreCircle({ nlpScore, large = false }) {
+    if (nlpScore == null) return null;
+    const score = Math.round((1 - nlpScore) * 100);
+    const color = nlpScore < 0.20 ? '#3fff8b'
+                : nlpScore < 0.40 ? '#86efac'
+                : nlpScore < 0.60 ? '#facc15'
+                : nlpScore < 0.80 ? '#f97316'
+                :                   '#ef4444';
     return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full
-                         bg-authentic-bg border border-authentic-border
-                         text-authentic-text text-[9px] font-bold tracking-wider uppercase">
-            <span className="w-1 h-1 rounded-full bg-authentic-fill inline-block" />
-            Güvenilir Kaynak
+        <div
+            className={`${large ? 'w-14 h-14 border-4' : 'w-11 h-11 border-2'} rounded-full flex items-center justify-center bg-black/60 backdrop-blur-md shrink-0`}
+            style={{ borderColor: color }}
+        >
+            <span
+                className={`font-manrope font-extrabold ${large ? 'text-xl' : 'text-sm'} leading-none`}
+                style={{ color }}
+            >
+                {score}
+            </span>
+        </div>
+    );
+}
+
+/* ── Kaynak adı + onay ikonu ──────────────────────────────────── */
+function SourceBadge({ name, trusted }) {
+    if (!name) return null;
+    return (
+        <div
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full shrink-0"
+            style={{
+                background: trusted ? 'rgba(63,255,139,0.10)' : 'rgba(255,255,255,0.08)',
+                border: `1px solid ${trusted ? 'rgba(63,255,139,0.28)' : 'rgba(255,255,255,0.14)'}`,
+            }}
+        >
+            <span className="text-white/85 text-[11px] font-semibold max-w-[140px] truncate">{name}</span>
+            {trusted && (
+                <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none"
+                     stroke="var(--color-brand-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+            )}
+        </div>
+    );
+}
+
+/* ── Birincil içerik etiketi ──────────────────────────────────── */
+function ContentTag({ types, category }) {
+    const tag = types?.includes('high_risk') ? { text: 'Yüksek Risk', color: '#ef4444' }
+              : types?.includes('clickbait') ? { text: 'Clickbait',   color: '#f97316' }
+              : types?.includes('claim')     ? { text: 'İddia',       color: '#a855f7' }
+              : category                     ? { text: category,      color: 'var(--color-brand-primary)' }
+              : null;
+    if (!tag) return null;
+    return (
+        <span className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: tag.color }}>
+            {tag.text}
         </span>
     );
 }
 
-function SourcePill({ count }) {
+/* ── Çoklu kaynak sayacı ──────────────────────────────────────── */
+function MultiSourceBadge({ count }) {
     if (!count || count <= 1) return null;
     return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full
-                         bg-surface-solid border border-brutal-border
-                         text-muted text-[9px] font-semibold">
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.55)' }}>
             {count} kaynak
         </span>
     );
 }
 
-const NLP_LEVELS = [
-    { max: 0.20, label: 'Güvenilir İçerik',        color: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' },
-    { max: 0.40, label: 'Genel Olarak Güvenilir',  color: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500/70' },
-    { max: 0.60, label: 'Değerlendirme Gerekli',   color: 'bg-yellow-500/15 border-yellow-500/30 text-yellow-400' },
-    { max: 0.80, label: 'Dikkatli Olun',            color: 'bg-orange-500/15 border-orange-500/30 text-orange-400' },
-    { max: 1.01, label: 'Yüksek Riskli İçerik',    color: 'bg-red-500/15 border-red-500/30 text-red-400' },
-];
-
-function NlpBadge({ score }) {
-    if (score === null || score === undefined) return null;
-    const level = NLP_LEVELS.find(l => score < l.max) || NLP_LEVELS[NLP_LEVELS.length - 1];
-    return (
-        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full
-                         border text-[9px] font-bold tracking-wider uppercase ${level.color}`}>
-            <span className="w-1 h-1 rounded-full bg-current inline-block" />
-            {level.label}
-        </span>
-    );
-}
-
-const CONTENT_TYPE_CONFIG = {
-    claim:     { label: 'İddia',     color: 'bg-purple-500/15 border-purple-500/30 text-purple-400' },
-    clickbait: { label: 'Clickbait', color: 'bg-orange-500/15 border-orange-500/30 text-orange-400' },
-    high_risk: { label: 'Riskli',    color: 'bg-red-500/15 border-red-500/30 text-red-400' },
-};
-
-function ContentTypeBadges({ types }) {
-    if (!types || types.length === 0) return null;
-    const filtered = types.filter(t => t !== 'news' && CONTENT_TYPE_CONFIG[t]);
-    if (filtered.length === 0) return null;
-    return (
-        <>
-            {filtered.map(t => {
-                const cfg = CONTENT_TYPE_CONFIG[t];
-                return (
-                    <span key={t}
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full
-                                     border text-[9px] font-bold tracking-wider uppercase ${cfg.color}`}>
-                        {cfg.label}
-                    </span>
-                );
-            })}
-        </>
-    );
-}
-
+/* ── Analiz butonu (ikon → hover'da genişler) ─────────────────── */
 function AnalyzeButton({ article }) {
-    const [phase, setPhase]   = useState('idle'); // idle | loading | done | error
+    const { isDarkMode }      = useTheme();
+    const [phase,  setPhase]  = useState('idle');
     const [result, setResult] = useState(null);
+    const [hov,    setHov]    = useState(false);
 
     const handleClick = async (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         if (phase !== 'idle') return;
         setPhase('loading');
         try {
             const text = [article.title, article.content].filter(Boolean).join(' ');
             const resp = await AnalysisService.analyzeText(text);
-
             if (resp.is_direct_match && resp.direct_match_data) {
-                setResult(resp.direct_match_data);
-                setPhase('done');
-                return;
+                setResult(resp.direct_match_data); setPhase('done'); return;
             }
-
             let attempts = 0;
-            const interval = setInterval(async () => {
+            const iv = setInterval(async () => {
                 try {
-                    attempts++;
-                    if (attempts > 25) { clearInterval(interval); setPhase('error'); return; }
+                    if (++attempts > 25) { clearInterval(iv); setPhase('error'); return; }
                     const s = await AnalysisService.checkStatus(resp.task_id);
                     if (s.status === 'SUCCESS' && s.result) {
-                        clearInterval(interval);
-                        setResult(s.result);
-                        setPhase('done');
+                        clearInterval(iv); setResult(s.result); setPhase('done');
                     } else if (s.status === 'FAILED') {
-                        clearInterval(interval);
-                        setPhase('error');
+                        clearInterval(iv); setPhase('error');
                     }
-                } catch { clearInterval(interval); setPhase('error'); }
+                } catch { clearInterval(iv); setPhase('error'); }
             }, 2000);
         } catch { setPhase('error'); }
     };
 
-    if (phase === 'idle') return (
-        <button onClick={handleClick}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg
-                           text-[10px] font-semibold border transition-all cursor-pointer
-                           bg-surface border-brutal-border text-muted
-                           hover:border-brand/40 hover:text-tx-primary">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round"
-                      d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 117.072 0l-.347.347A3.984 3.984 0 018.1 17H8.1a3.984 3.984 0 01-1.1-2.753L6.653 13.9z" />
-            </svg>
-            Analiz Et
-        </button>
-    );
-
     if (phase === 'loading') return (
-        <span className="inline-flex items-center gap-1.5 text-[10px] text-muted">
-            <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+        <span className="flex items-center gap-1.5 text-[10px] text-white/50">
+            <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
             </svg>
             Analiz ediliyor...
@@ -149,166 +132,116 @@ function AnalyzeButton({ article }) {
         <span className="text-[10px] text-red-400/70">Analiz başarısız</span>
     );
 
-    const prediction = result?.prediction;
-    const pct        = result?.confidence ? Math.round(result.confidence * 100) : null;
-    const isFake     = prediction === 'FAKE';
-    const isAuth     = prediction === 'AUTHENTIC';
-    const color      = isFake  ? 'bg-red-500/15 border-red-500/30 text-red-400'
-                     : isAuth  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-                     :           'bg-zinc-500/15 border-zinc-500/30 text-zinc-400';
-    const label      = isFake ? 'Sahte İçerik' : isAuth ? 'Doğru İçerik' : 'Belirsiz';
+    if (phase === 'done') {
+        const pred  = result?.prediction;
+        const pct   = result?.confidence ? Math.round(result.confidence * 100) : null;
+        const color = pred === 'FAKE' ? '#ef4444' : pred === 'AUTHENTIC' ? '#3fff8b' : '#facc15';
+        const label = pred === 'FAKE' ? 'Sahte' : pred === 'AUTHENTIC' ? 'Güvenilir' : 'Belirsiz';
+        return (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                 style={{ background: `${color}1a`, border: `1px solid ${color}40` }}>
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
+                <span className="text-[10px] font-bold" style={{ color }}>
+                    {label}{pct != null ? ` %${pct}` : ''}
+                </span>
+            </div>
+        );
+    }
+
+    /* idle: ikon, hover'da "Derin Analiz" metni açılır */
+    const iconColor   = hov ? (isDarkMode ? '#070f12' : '#ffffff') : 'rgba(255,255,255,0.80)';
+    const expandColor = isDarkMode ? '#070f12' : '#ffffff';
+    const idleBg      = isDarkMode ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.40)';
+    const idleBorder  = isDarkMode ? 'rgba(255,255,255,0.20)' : 'rgba(0,0,0,0.25)';
 
     return (
-        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[10px] font-bold ${color}`}>
-            <span className="w-1.5 h-1.5 rounded-full bg-current inline-block"/>
-            {label}{pct !== null ? ` — %${pct}` : ''}
-        </span>
+        <button
+            onClick={handleClick}
+            onMouseEnter={() => setHov(true)}
+            onMouseLeave={() => setHov(false)}
+            className="flex items-center rounded-xl transition-all duration-200 cursor-pointer"
+            style={{
+                padding: '7px 10px',
+                gap: hov ? '6px' : '0px',
+                background: hov ? 'var(--color-brand-primary)' : idleBg,
+                border: `1px solid ${hov ? 'var(--color-brand-primary)' : idleBorder}`,
+            }}
+        >
+            <svg
+                className="w-3.5 h-3.5 shrink-0"
+                style={{ color: iconColor, transition: 'color 0.15s ease' }}
+                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}
+            >
+                <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 117.072 0l-.347.347A3.984 3.984 0 0115.9 17H8.1a3.984 3.984 0 01-2.828-2.834z" />
+            </svg>
+            <span style={{
+                maxWidth: hov ? '90px' : '0px',
+                opacity: hov ? 1 : 0,
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                transition: 'max-width 0.2s ease, opacity 0.15s ease',
+                fontSize: '11px',
+                fontWeight: '700',
+                color: expandColor,
+            }}>
+                Derin Analiz
+            </span>
+        </button>
     );
 }
 
 const MONTHS_TR = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
-
 function formatDate(pub_date) {
     if (!pub_date) return '';
     const d = new Date(pub_date);
-    const day = d.getDate();
-    const mon = MONTHS_TR[d.getMonth()];
-    const h   = String(d.getHours()).padStart(2, '0');
-    const m   = String(d.getMinutes()).padStart(2, '0');
-    return `${day} ${mon} ${h}:${m}`;
+    return `${d.getDate()} ${MONTHS_TR[d.getMonth()]} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
-/* ── Büyük öne çıkan kart ─────────────────────────────────────────── */
+/* ── Büyük öne çıkan kart (grid col-span-2) ──────────────────── */
 function FeaturedCard({ article }) {
     const [imgErr, setImgErr] = useState(false);
     const hasImg = article.image_url && !imgErr;
+    const trusted = (article.trust_score ?? 0) >= 0.9;
 
     const inner = (
-        <article className="group relative flex flex-col justify-end min-h-[400px] rounded-2xl
-                            overflow-hidden cursor-pointer transition-shadow duration-300
-                            hover:shadow-xl">
+        <article
+            className="group relative h-[480px] rounded-xl overflow-hidden cursor-pointer border transition-all duration-500"
+            style={{ borderColor: 'var(--color-border)' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-brand-primary)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
+        >
             {hasImg ? (
                 <img src={article.image_url} alt={article.title}
-                     className="absolute inset-0 w-full h-full object-cover
-                                transition-transform duration-700 group-hover:scale-105"
+                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                      onError={() => setImgErr(true)} />
             ) : (
-                <div className="absolute inset-0 bg-gradient-to-br
-                                from-emerald-950 via-zinc-900 to-zinc-800
-                                dark:from-emerald-950 dark:via-[#111b1f] dark:to-zinc-900
-                                flex items-center justify-center p-8">
-                    <p className="text-white/20 text-2xl font-bold font-manrope
-                                  leading-snug text-center line-clamp-4">
-                        {article.title}
-                    </p>
+                <div className="absolute inset-0 bg-gradient-to-br from-zinc-100 to-slate-200 dark:from-emerald-950 dark:via-zinc-900 dark:to-zinc-800 flex items-center justify-center p-10">
+                    <p className="text-zinc-400 dark:text-white/12 text-3xl font-bold font-manrope text-center line-clamp-4">{article.title}</p>
                 </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent" />
 
-            <div className="relative z-10 p-6 space-y-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                    <TrustBadge score={article.trust_score} />
-                    <NlpBadge score={article.nlp_score} />
-                    <ContentTypeBadges types={article.content_type} />
-                    <SourcePill count={article.source_count} />
-                </div>
-                <p className="text-white/50 text-xs italic">{article.source_name}</p>
-                <h3 className="text-xl font-bold text-white leading-snug line-clamp-3">
-                    {article.title}
-                </h3>
-                <div className="flex items-center justify-between text-white/35 text-xs pt-1">
-                    <span>{formatDate(article.pub_date)}</span>
-                    <AnalyzeButton article={article} />
-                </div>
+            {/* Skor dairesi */}
+            <div className="absolute top-5 right-5">
+                <ScoreCircle nlpScore={article.nlp_score} large />
             </div>
-        </article>
-    );
 
-    return article.source_url ? (
-        <a href={article.source_url} target="_blank" rel="noopener noreferrer"
-           className="block" style={{ textDecoration: 'none' }}>
-            {inner}
-        </a>
-    ) : inner;
-}
-
-/* ── Metin kartı ──────────────────────────────────────────────────── */
-function TextCard({ article }) {
-    const inner = (
-        <article className="group flex flex-col justify-between p-6 rounded-2xl cursor-pointer
-                            bg-surface border border-brutal-border
-                            hover:border-brand/30 hover:shadow-md transition-all min-h-[240px]">
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                    <TrustBadge score={article.trust_score} />
-                    <NlpBadge score={article.nlp_score} />
-                    <ContentTypeBadges types={article.content_type} />
-                    <SourcePill count={article.source_count} />
-                </div>
-                <p className="text-muted italic text-xs">{article.source_name}</p>
-                <h3 className="text-lg font-bold text-tx-primary leading-snug line-clamp-4">
-                    {article.title}
-                </h3>
-            </div>
-            <div className="pt-4 mt-4 border-t border-brutal-border flex items-center justify-between">
-                <span className="text-muted text-xs">{formatDate(article.pub_date)}</span>
-                <AnalyzeButton article={article} />
-            </div>
-        </article>
-    );
-
-    return article.source_url ? (
-        <a href={article.source_url} target="_blank" rel="noopener noreferrer"
-           className="block" style={{ textDecoration: 'none' }}>
-            {inner}
-        </a>
-    ) : inner;
-}
-
-/* ── Geniş yatay bento kart ───────────────────────────────────────── */
-function WideCard({ article }) {
-    const [imgErr, setImgErr] = useState(false);
-    const hasImg = article.image_url && !imgErr;
-
-    const inner = (
-        <article className="group md:col-span-2 flex flex-col md:flex-row rounded-2xl
-                            overflow-hidden bg-surface border border-brutal-border
-                            hover:border-brand/30 hover:shadow-md cursor-pointer transition-all">
-            <div className="md:w-2/5 relative h-56 md:h-auto overflow-hidden flex-shrink-0">
-                {hasImg ? (
-                    <img src={article.image_url} alt={article.title}
-                         className="w-full h-full object-cover
-                                    transition-transform duration-500 group-hover:scale-105"
-                         onError={() => setImgErr(true)} />
-                ) : (
-                    <div className="w-full h-full bg-gradient-to-br
-                                    from-emerald-950 to-zinc-900
-                                    dark:from-emerald-950 dark:to-[#0a1a1a]
-                                    flex items-center justify-center p-8">
-                        <p className="text-white/25 text-lg font-bold font-manrope
-                                      leading-snug text-center line-clamp-4">
-                            {article.title}
-                        </p>
+            {/* Alt içerik */}
+            <div className="absolute bottom-0 left-0 right-0 p-7 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2.5 mb-4 flex-wrap">
+                        <ContentTag types={article.content_type} category={article.category} />
+                        <SourceBadge name={article.source_name} trusted={trusted} />
+                        <MultiSourceBadge count={article.source_count} />
                     </div>
-                )}
-            </div>
-
-            <div className="md:w-3/5 p-7 flex flex-col justify-between">
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <TrustBadge score={article.trust_score} />
-                        <NlpBadge score={article.nlp_score} />
-                        <ContentTypeBadges types={article.content_type} />
-                        <SourcePill count={article.source_count} />
-                    </div>
-                    <p className="text-muted italic text-xs">{article.source_name}</p>
-                    <h3 className="text-2xl font-bold text-tx-primary leading-tight line-clamp-3">
+                    <h2 className="font-manrope text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-white line-clamp-3">
                         {article.title}
-                    </h3>
+                    </h2>
+                    <p className="text-white/35 text-[11px] mt-2">{formatDate(article.pub_date)}</p>
                 </div>
-                <div className="flex items-center justify-between mt-6 pt-5
-                                border-t border-brutal-border">
-                    <span className="text-muted text-xs">{formatDate(article.pub_date)}</span>
+                <div className="shrink-0"
+                     onClick={e => { e.preventDefault(); e.stopPropagation(); }}>
                     <AnalyzeButton article={article} />
                 </div>
             </div>
@@ -316,87 +249,78 @@ function WideCard({ article }) {
     );
 
     return article.source_url ? (
-        <a href={article.source_url} target="_blank" rel="noopener noreferrer"
-           className="block md:col-span-2" style={{ textDecoration: 'none' }}>
-            {inner}
-        </a>
+        <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="block">{inner}</a>
     ) : inner;
 }
 
-/* ── Normal kart ──────────────────────────────────────────────────── */
-function NormalCard({ article }) {
+/* ── Normal kart ──────────────────────────────────────────────── */
+function NormalCard({ article, tall = false }) {
     const [imgErr, setImgErr] = useState(false);
     const hasImg = article.image_url && !imgErr;
+    const trusted = (article.trust_score ?? 0) >= 0.9;
+    const height = tall ? 'h-[480px]' : 'h-[400px]';
 
     const inner = (
-        <article className="group flex flex-col rounded-2xl overflow-hidden cursor-pointer
-                            bg-surface border border-brutal-border
-                            hover:border-brand/30 hover:shadow-md transition-all duration-200">
-            <div className="relative h-44 overflow-hidden flex-shrink-0">
-                {hasImg ? (
-                    <>
-                        <img src={article.image_url} alt={article.title}
-                             className="w-full h-full object-cover
-                                        transition-transform duration-500 group-hover:scale-105"
-                             onError={() => setImgErr(true)} />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                    </>
-                ) : (
-                    <div className="w-full h-full bg-gradient-to-br
-                                    from-surface-solid to-surface
-                                    border-b border-brutal-border
-                                    flex items-center justify-center p-5">
-                        <p className="text-tx-primary/30 text-base font-bold font-manrope
-                                      leading-snug text-center line-clamp-4">
-                            {article.title}
-                        </p>
-                    </div>
-                )}
+        <article
+            className={`group relative ${height} rounded-xl overflow-hidden cursor-pointer border transition-all duration-500`}
+            style={{ borderColor: 'rgba(65,73,77,0.20)' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(63,255,139,0.40)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
+        >
+            {hasImg ? (
+                <img src={article.image_url} alt={article.title}
+                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                     onError={() => setImgErr(true)} />
+            ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-950 via-zinc-900 to-zinc-800 flex items-center justify-center p-8">
+                    <p className="text-white/12 text-xl font-bold font-manrope text-center line-clamp-4">{article.title}</p>
+                </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-transparent" />
+
+            {/* Skor dairesi */}
+            <div className="absolute top-4 right-4">
+                <ScoreCircle nlpScore={article.nlp_score} />
             </div>
 
-            <div className="p-4 flex flex-col flex-1 gap-2">
+            <div className="absolute bottom-0 left-0 right-0 p-5 space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
-                    <TrustBadge score={article.trust_score} />
-                    <NlpBadge score={article.nlp_score} />
-                    <ContentTypeBadges types={article.content_type} />
-                    <SourcePill count={article.source_count} />
+                    <ContentTag types={article.content_type} category={article.category} />
+                    <SourceBadge name={article.source_name} trusted={trusted} />
+                    <MultiSourceBadge count={article.source_count} />
                 </div>
-                <h3 className="text-sm font-semibold text-tx-primary leading-snug line-clamp-3">
+                <h3 className="font-manrope text-xl font-extrabold tracking-tight leading-snug text-white line-clamp-3">
                     {article.title}
                 </h3>
-                <div className="flex items-center justify-between mt-auto pt-2
-                                text-xs text-muted border-t border-brutal-border">
-                    <span className="italic">{article.source_name}</span>
-                    <AnalyzeButton article={article} />
+                <div className="flex items-center justify-between pt-1">
+                    <span className="text-white/35 text-[11px]">{formatDate(article.pub_date)}</span>
+                    <div onClick={e => { e.preventDefault(); e.stopPropagation(); }}>
+                        <AnalyzeButton article={article} />
+                    </div>
                 </div>
             </div>
         </article>
     );
 
     return article.source_url ? (
-        <a href={article.source_url} target="_blank" rel="noopener noreferrer"
-           className="block" style={{ textDecoration: 'none' }}>
-            {inner}
-        </a>
+        <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="block">{inner}</a>
     ) : inner;
 }
 
-/* ── Spinner ──────────────────────────────────────────────────────── */
+/* ── Spinner ──────────────────────────────────────────────────── */
 function Spinner() {
     return (
         <div className="flex items-center justify-center py-24 gap-3 text-muted">
             <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-20" cx="12" cy="12" r="10"
-                        stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
             <span className="text-sm">Yükleniyor...</span>
         </div>
     );
 }
 
-/* ── Sayfa numaraları algoritması ─────────────────────────────────── */
+/* ── Sayfalama algoritması ────────────────────────────────────── */
 function pageNumbers(current, total) {
     if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
     const pages = new Set([1, total]);
@@ -414,6 +338,8 @@ const SIZE = 20;
 const POLL_INTERVAL = 3 * 60 * 1000;
 
 export default function Gundem() {
+    const { isDarkMode } = useTheme();
+
     const [articles, setArticles] = useState([]);
     const [total, setTotal]       = useState(0);
     const [page, setPage]         = useState(1);
@@ -431,24 +357,20 @@ export default function Gundem() {
         setError(null);
         try {
             const data = await NewsService.getNews({
-                category: cat,
-                page: pg,
-                size: SIZE,
+                category: cat, page: pg, size: SIZE,
                 date_from: dfrom || undefined,
                 date_to:   dto   || undefined,
             });
             if (silent) {
                 const diff = data.total - totalRef.current;
                 if (diff > 0) {
-                    setArticles(data.items);
-                    setTotal(data.total);
+                    setArticles(data.items); setTotal(data.total);
                     totalRef.current = data.total;
                     setNewCount(diff);
                     setTimeout(() => setNewCount(0), 4000);
                 }
             } else {
-                setArticles(data.items);
-                setTotal(data.total);
+                setArticles(data.items); setTotal(data.total);
                 totalRef.current = data.total;
                 setNewCount(0);
             }
@@ -468,11 +390,11 @@ export default function Gundem() {
     }, [category, page, fetchNews]);
 
     const applyNewArticles = () => { fetchNews(category, 1); setPage(1); };
-
-    const handleCategory = (val) => { setCategory(val); setPage(1); setSearch(''); };
-
-    const handleDateFilter = () => { setPage(1); fetchNews(category, 1, false, dateFrom, dateTo); };
-    const clearDateFilter  = () => { setDateFrom(''); setDateTo(''); setPage(1); fetchNews(category, 1, false, '', ''); };
+    const handleCategory   = (val) => { setCategory(val); setPage(1); setSearch(''); };
+    const clearDateFilter  = () => {
+        setDateFrom(''); setDateTo(''); setPage(1);
+        fetchNews(category, 1, false, '', '');
+    };
 
     const sorted = useMemo(() => {
         let filtered = articles;
@@ -489,13 +411,13 @@ export default function Gundem() {
     const totalPages = Math.ceil(total / SIZE);
 
     function renderCard(article, index) {
-        if (index === 0 || index === 1) return <FeaturedCard key={article.id} article={article} />;
-        if (index === 2)                return <WideCard     key={article.id} article={article} />;
-        if (index === 3)                return <TextCard     key={article.id} article={article} />;
-        return                                 <NormalCard   key={article.id} article={article} />;
+        if (index === 0) return (
+            <div key={article.id} className="lg:col-span-2">
+                <FeaturedCard article={article} />
+            </div>
+        );
+        return <NormalCard key={article.id} article={article} tall={index === 1} />;
     }
-
-    const hasDateFilter = dateFrom || dateTo;
 
     return (
         <div className="max-w-6xl mx-auto px-4 pt-10 pb-16">
@@ -504,17 +426,14 @@ export default function Gundem() {
             {newCount > 0 && (
                 <button
                     onClick={applyNewArticles}
-                    className="w-full mb-6 flex items-center justify-center gap-2
-                               py-3 px-4 rounded-xl text-sm font-bold cursor-pointer
-                               border transition-colors"
+                    className="w-full mb-6 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold cursor-pointer border transition-colors"
                     style={{
-                        background:   'color-mix(in srgb, var(--color-brand-primary) 10%, transparent)',
-                        borderColor:  'color-mix(in srgb, var(--color-brand-primary) 40%, transparent)',
-                        color:        'var(--color-brand-primary)',
+                        background:  'color-mix(in srgb, var(--color-brand-primary) 10%, transparent)',
+                        borderColor: 'color-mix(in srgb, var(--color-brand-primary) 40%, transparent)',
+                        color:       'var(--color-brand-primary)',
                     }}
                 >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24"
-                         stroke="currentColor" strokeWidth={2}>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round"
                               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
@@ -531,51 +450,47 @@ export default function Gundem() {
                         Güncel Haberler
                     </span>
                 </div>
-                <h1 className="text-4xl md:text-5xl font-extrabold text-tx-primary
-                               font-manrope tracking-tight leading-none">
+                <h1 className="text-4xl md:text-5xl font-extrabold text-tx-primary font-manrope tracking-tight leading-none">
                     Gündem<span style={{ color: 'var(--color-brand-primary)' }}>.</span>
                 </h1>
             </div>
 
             {/* ── Kategoriler + arama ── */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-8">
-                <div className="flex flex-wrap gap-2">
-                    {CATEGORIES.map((c) => {
-                        const isActive = category === c.value;
-                        if (c.hot && !isActive) {
+            <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 mb-8">
+
+                {/* Tab strip */}
+                <div className="flex-1" style={{ borderBottom: '3px solid var(--color-brand-primary)' }}>
+                    <div className="flex flex-wrap">
+                        {CATEGORIES.map((c) => {
+                            const isActive = category === c.value;
                             return (
                                 <button
                                     key={c.label}
                                     onClick={() => handleCategory(c.value)}
-                                    className="flex items-center gap-1.5 px-4 py-2 rounded-full
-                                               text-xs font-bold tracking-wide cursor-pointer transition-all
-                                               border border-red-500/40 text-red-500
-                                               hover:bg-red-500/10 hover:border-red-500/60"
+                                    className="relative px-4 py-2.5 text-sm font-bold cursor-pointer transition-all duration-200 whitespace-nowrap"
+                                    style={{
+                                        background:   isActive ? 'var(--color-brand-primary)' : 'transparent',
+                                        color:        isActive
+                                                          ? (isDarkMode ? '#070f12' : '#ffffff')
+                                                          : 'var(--color-text-secondary)',
+                                        borderRadius: '6px 6px 0 0',
+                                        marginBottom: '-3px',
+                                    }}
+                                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--color-text-primary)'; }}
+                                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
                                 >
-                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block shrink-0" />
                                     {c.label}
+                                    {c.hot && !isActive && (
+                                        <span className="absolute top-1.5 right-1 w-1.5 h-1.5 rounded-full bg-red-500" />
+                                    )}
                                 </button>
                             );
-                        }
-                        return (
-                            <button
-                                key={c.label}
-                                onClick={() => handleCategory(c.value)}
-                                className={`px-4 py-2 rounded-full text-xs font-bold tracking-wide
-                                            cursor-pointer transition-all ${
-                                    isActive
-                                        ? 'text-white shadow-md'
-                                        : 'bg-surface border border-brutal-border text-tx-secondary hover:text-tx-primary hover:border-brand/40'
-                                }`}
-                                style={isActive ? { background: 'var(--color-brand-primary)' } : {}}
-                            >
-                                {c.label}
-                            </button>
-                        );
-                    })}
+                        })}
+                    </div>
                 </div>
 
-                <div className="sm:ml-auto relative self-start">
+                {/* Arama */}
+                <div className="relative shrink-0 pb-1">
                     <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted pointer-events-none"
                          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round"
@@ -586,13 +501,20 @@ export default function Gundem() {
                         placeholder="Haberlerde ara..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="pl-8 pr-4 py-2 rounded-full text-xs
-                                   bg-surface border border-brutal-border text-tx-primary
-                                   placeholder:text-muted focus:outline-none
-                                   focus:border-brand/40 transition-colors w-48"
+                        className="pl-8 pr-4 py-2 rounded-full text-xs bg-surface border border-brutal-border
+                                   text-tx-primary placeholder:text-muted focus:outline-none
+                                   focus:border-brand/40 transition-colors w-44"
                     />
                 </div>
             </div>
+
+            {/* ── Tarih filtresi aktifse temizle butonu ── */}
+            {(dateFrom || dateTo) && (
+                <div className="flex items-center gap-3 mb-4 text-xs text-muted">
+                    <span>Tarih filtresi: {dateFrom || '…'} → {dateTo || '…'}</span>
+                    <button onClick={clearDateFilter} className="text-brand hover:underline">Temizle</button>
+                </div>
+            )}
 
             {/* ── İçerik ── */}
             {loading && <Spinner />}
@@ -613,84 +535,42 @@ export default function Gundem() {
             {totalPages > 1 && !search && (
                 <div className="mt-12 flex flex-col items-center gap-4">
                     <div className="flex items-center gap-1.5 flex-wrap justify-center">
-                        {/* İlk sayfa */}
-                        <button
-                            disabled={page === 1}
-                            onClick={() => setPage(1)}
-                            title="İlk sayfa"
-                            className="w-9 h-9 flex items-center justify-center rounded-lg
-                                       bg-surface border border-brutal-border text-tx-secondary text-xs
-                                       disabled:opacity-30 hover:border-brand/40 hover:text-tx-primary
-                                       transition-all cursor-pointer disabled:cursor-default"
-                        >
+                        <button disabled={page === 1} onClick={() => setPage(1)} title="İlk sayfa"
+                                className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-brutal-border text-tx-secondary text-xs disabled:opacity-30 hover:border-brand/40 hover:text-tx-primary transition-all cursor-pointer disabled:cursor-default">
                             «
                         </button>
-
-                        {/* Önceki sayfa */}
-                        <button
-                            disabled={page === 1}
-                            onClick={() => setPage(p => p - 1)}
-                            className="w-9 h-9 flex items-center justify-center rounded-lg
-                                       bg-surface border border-brutal-border text-tx-secondary text-xs
-                                       disabled:opacity-30 hover:border-brand/40 hover:text-tx-primary
-                                       transition-all cursor-pointer disabled:cursor-default"
-                        >
+                        <button disabled={page === 1} onClick={() => setPage(p => p - 1)}
+                                className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-brutal-border text-tx-secondary text-xs disabled:opacity-30 hover:border-brand/40 hover:text-tx-primary transition-all cursor-pointer disabled:cursor-default">
                             ‹
                         </button>
-
-                        {/* Numara butonları */}
                         {pageNumbers(page, totalPages).map((p, i) =>
                             p === '...' ? (
-                                <span key={`dots-${i}`}
-                                      className="w-9 h-9 flex items-center justify-center text-muted text-xs">
-                                    …
-                                </span>
+                                <span key={`dots-${i}`} className="w-9 h-9 flex items-center justify-center text-muted text-xs">…</span>
                             ) : (
                                 <button
                                     key={p}
                                     onClick={() => setPage(p)}
-                                    className={`w-9 h-9 flex items-center justify-center rounded-lg
-                                                text-xs font-bold transition-all cursor-pointer ${
+                                    className={`w-9 h-9 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${
                                         page === p
-                                            ? 'text-white shadow-sm'
+                                            ? 'shadow-sm'
                                             : 'bg-surface border border-brutal-border text-tx-secondary hover:border-brand/40 hover:text-tx-primary'
                                     }`}
-                                    style={page === p ? { background: 'var(--color-brand-primary)' } : {}}
+                                    style={page === p ? { background: 'var(--color-brand-primary)', color: isDarkMode ? '#070f12' : '#ffffff' } : {}}
                                 >
                                     {p}
                                 </button>
                             )
                         )}
-
-                        {/* Sonraki sayfa */}
-                        <button
-                            disabled={page === totalPages}
-                            onClick={() => setPage(p => p + 1)}
-                            className="w-9 h-9 flex items-center justify-center rounded-lg
-                                       bg-surface border border-brutal-border text-tx-secondary text-xs
-                                       disabled:opacity-30 hover:border-brand/40 hover:text-tx-primary
-                                       transition-all cursor-pointer disabled:cursor-default"
-                        >
+                        <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)}
+                                className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-brutal-border text-tx-secondary text-xs disabled:opacity-30 hover:border-brand/40 hover:text-tx-primary transition-all cursor-pointer disabled:cursor-default">
                             ›
                         </button>
-
-                        {/* Son sayfa */}
-                        <button
-                            disabled={page === totalPages}
-                            onClick={() => setPage(totalPages)}
-                            title="Son sayfa"
-                            className="w-9 h-9 flex items-center justify-center rounded-lg
-                                       bg-surface border border-brutal-border text-tx-secondary text-xs
-                                       disabled:opacity-30 hover:border-brand/40 hover:text-tx-primary
-                                       transition-all cursor-pointer disabled:cursor-default"
-                        >
+                        <button disabled={page === totalPages} onClick={() => setPage(totalPages)} title="Son sayfa"
+                                className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-brutal-border text-tx-secondary text-xs disabled:opacity-30 hover:border-brand/40 hover:text-tx-primary transition-all cursor-pointer disabled:cursor-default">
                             »
                         </button>
                     </div>
-
-                    <p className="text-muted text-xs tabular-nums">
-                        Sayfa {page} / {totalPages}
-                    </p>
+                    <p className="text-muted text-xs tabular-nums">Sayfa {page} / {totalPages}</p>
                 </div>
             )}
         </div>

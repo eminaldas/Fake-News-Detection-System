@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
     Clock, Shield, Lock, Loader2, CheckCircle2, AlertCircle,
     Link2, FileText, ShieldCheck, Search, Cpu, Star, Zap, Award,
+    ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -243,90 +244,114 @@ const Profile = () => {
                                 <div className="glass rounded-xl p-8 flex justify-center" style={cardBorder}>
                                     <Loader2 className="w-5 h-5 animate-spin text-muted" />
                                 </div>
-                            ) : history.length === 0 ? (
-                                <div className="glass rounded-xl p-8 text-center" style={cardBorder}>
-                                    <Clock className="w-8 h-8 text-muted opacity-40 mx-auto mb-2" />
-                                    <p className="text-muted text-sm">Henüz analiz yapılmadı.</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {history.slice(0, 5).map(item => (
-                                        <div key={item.id}
-                                             className="glass rounded-xl p-4 transition-all duration-300"
-                                             style={{ ...cardBorder }}
-                                             onMouseEnter={e => e.currentTarget.style.borderColor = isDarkMode ? 'rgba(63,255,139,0.45)' : 'rgba(24,24,27,0.35)'}
-                                             onMouseLeave={e => e.currentTarget.style.borderColor = isDarkMode ? 'rgba(63,255,139,0.2)' : 'rgba(24,24,27,0.18)'}>
+                            ) : (() => {
+                                const visible = history.filter(i => i.ai_comment?.summary);
+                                if (visible.length === 0) return (
+                                    <div className="glass rounded-xl p-8 text-center" style={cardBorder}>
+                                        <Clock className="w-8 h-8 text-muted opacity-40 mx-auto mb-2" />
+                                        <p className="text-muted text-sm">
+                                            {history.length === 0 ? 'Henüz analiz yapılmadı.' : 'AI yorumu tamamlanmış analiz bulunamadı.'}
+                                        </p>
+                                    </div>
+                                );
+                                return (
+                                    <div className="space-y-3">
+                                        {visible.map(item => {
+                                            const pred = item.prediction;
+                                            const predColor = pred === 'FAKE'
+                                                ? { bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.25)', bar: '#ef4444' }
+                                                : pred === 'AUTHENTIC'
+                                                    ? { bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.25)', bar: '#22c55e' }
+                                                    : { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', bar: '#f59e0b' };
+                                            return (
+                                                <div key={item.id}
+                                                     className="glass rounded-xl overflow-hidden transition-all duration-300"
+                                                     style={{ ...cardBorder }}
+                                                     onMouseEnter={e => e.currentTarget.style.borderColor = isDarkMode ? 'rgba(63,255,139,0.45)' : 'rgba(24,24,27,0.35)'}
+                                                     onMouseLeave={e => e.currentTarget.style.borderColor = isDarkMode ? 'rgba(63,255,139,0.2)' : 'rgba(24,24,27,0.18)'}>
 
-                                            {/* Üst satır: tip + karar + tarih */}
-                                            <div className="flex justify-between items-start mb-2">
-                                                <TypeBadge type={item.analysis_type} />
-                                                <div className="flex items-center gap-2">
-                                                    <PredictionBadge prediction={item.prediction} />
-                                                    <span className="text-[10px] text-muted uppercase">
-                                                        {new Date(item.created_at).toLocaleDateString('tr-TR')}
-                                                    </span>
-                                                </div>
-                                            </div>
+                                                    {/* Üst renkli şerit */}
+                                                    <div className="h-0.5 w-full" style={{ background: predColor.bar }} />
 
-                                            {/* Başlık */}
-                                            {item.title && (
-                                                <div className="text-xs font-medium text-tx-secondary line-clamp-1 mb-2">
-                                                    {item.analysis_type === 'url' && item.source_url
-                                                        ? <a href={item.source_url} target="_blank" rel="noopener noreferrer"
-                                                             className="hover:text-tx-primary transition-colors">{item.title}</a>
-                                                        : item.title
-                                                    }
-                                                </div>
-                                            )}
-
-                                            {/* AI Özeti */}
-                                            {item.ai_comment?.summary && (
-                                                <p className="text-[11px] text-tx-secondary leading-relaxed line-clamp-2 mb-2">
-                                                    {item.ai_comment.summary}
-                                                </p>
-                                            )}
-
-                                            {/* Alt satır: güven skoru + reason_type */}
-                                            {(item.confidence != null || item.ai_comment?.reason_type) && (
-                                                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                                    {item.confidence != null && (
-                                                        <span className="text-[10px] text-muted">
-                                                            Güven: <span className="font-bold text-tx-secondary">
-                                                                %{Math.round(item.confidence * 100)}
+                                                    <div className="p-4 space-y-3">
+                                                        {/* Üst satır: tip + karar + tarih */}
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <TypeBadge type={item.analysis_type} />
+                                                                <PredictionBadge prediction={item.prediction} />
+                                                                {item.ai_comment?.reason_type && (
+                                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-zinc-500/10 text-muted uppercase tracking-wide">
+                                                                        {item.ai_comment.reason_type}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <span className="text-[10px] text-muted shrink-0">
+                                                                {new Date(item.created_at).toLocaleDateString('tr-TR')}
                                                             </span>
-                                                        </span>
-                                                    )}
-                                                    {item.ai_comment?.reason_type && (
-                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-zinc-500/10 text-muted uppercase tracking-wide">
-                                                            {item.ai_comment.reason_type}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
+                                                        </div>
 
-                                    {historyTotal > 5 && (
-                                        <div className="flex justify-between items-center pt-2">
-                                            <button
-                                                disabled={historyPage === 1}
-                                                onClick={() => setHistoryPage(p => p - 1)}
-                                                className="text-xs font-medium text-tx-secondary hover:text-tx-primary disabled:opacity-30 transition-colors">
-                                                ← Önceki
-                                            </button>
-                                            <span className="text-xs text-muted">
-                                                {historyPage} / {Math.ceil(historyTotal / 10) || 1}
-                                            </span>
-                                            <button
-                                                disabled={historyPage * 10 >= historyTotal}
-                                                onClick={() => setHistoryPage(p => p + 1)}
-                                                className="text-xs font-medium text-tx-secondary hover:text-tx-primary disabled:opacity-30 transition-colors">
-                                                Sonraki →
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                                                        {/* Başlık + kaynak linki */}
+                                                        {item.title && (
+                                                            <div className="flex items-start gap-2">
+                                                                <p className="text-sm font-semibold text-tx-primary line-clamp-2 flex-1 leading-snug">
+                                                                    {item.title}
+                                                                </p>
+                                                                {item.source_url && (
+                                                                    <a href={item.source_url} target="_blank" rel="noopener noreferrer"
+                                                                       className="shrink-0 mt-0.5 text-muted hover:text-brand transition-colors"
+                                                                       title="Kaynağa git">
+                                                                        <ExternalLink className="w-3.5 h-3.5" />
+                                                                    </a>
+                                                                )}
+                                                            </div>
+                                                        )}
+
+                                                        {/* AI Özeti */}
+                                                        <p className="text-[11px] text-tx-secondary leading-relaxed line-clamp-3"
+                                                           style={{ borderLeft: `2px solid ${predColor.bar}`, paddingLeft: '8px' }}>
+                                                            {item.ai_comment.summary}
+                                                        </p>
+
+                                                        {/* Alt satır: güven */}
+                                                        {item.confidence != null && (
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="flex-1 h-1 rounded-full overflow-hidden"
+                                                                     style={{ background: 'var(--color-bg-surface-solid)' }}>
+                                                                    <div className="h-full rounded-full transition-all"
+                                                                         style={{ width: `${Math.round(item.confidence * 100)}%`, background: predColor.bar }} />
+                                                                </div>
+                                                                <span className="text-[10px] text-muted shrink-0">
+                                                                    %{Math.round(item.confidence * 100)} güven
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+
+                                        {historyTotal > 10 && (
+                                            <div className="flex justify-between items-center pt-2">
+                                                <button
+                                                    disabled={historyPage === 1}
+                                                    onClick={() => setHistoryPage(p => p - 1)}
+                                                    className="text-xs font-medium text-tx-secondary hover:text-tx-primary disabled:opacity-30 transition-colors">
+                                                    ← Önceki
+                                                </button>
+                                                <span className="text-xs text-muted">
+                                                    {historyPage} / {Math.ceil(historyTotal / 10) || 1}
+                                                </span>
+                                                <button
+                                                    disabled={historyPage * 10 >= historyTotal}
+                                                    onClick={() => setHistoryPage(p => p + 1)}
+                                                    className="text-xs font-medium text-tx-secondary hover:text-tx-primary disabled:opacity-30 transition-colors">
+                                                    Sonraki →
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
                         </div>
 
                         {/* Güvenlik — Şifre Değiştir */}

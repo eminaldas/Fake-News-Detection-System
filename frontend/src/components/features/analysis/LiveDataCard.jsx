@@ -58,25 +58,19 @@ const LiveDataCard = () => {
 
     return (
         <div
-            className="rounded-2xl overflow-hidden relative"
+            className="glass rounded-2xl overflow-hidden relative"
             style={{
-                background: 'linear-gradient(135deg, rgba(10,20,55,0.97) 0%, rgba(5,12,40,0.99) 100%)',
-                border:     `1px solid ${theme.border}`,
-                boxShadow:  `0 8px 32px ${theme.glow}, 0 2px 8px rgba(0,0,0,0.4)`,
-                transition: 'border-color 0.6s ease, box-shadow 0.6s ease',
+                borderColor:  theme.border,
+                transition:   'border-color 0.6s ease',
             }}
         >
-            {/* Dekoratif glow */}
-            <div className="absolute -top-10 -right-10 w-36 h-36 rounded-full pointer-events-none"
-                 style={{ background: theme.glow, filter: 'blur(40px)', transition: 'background 0.6s ease' }} />
-
             {/* Şehir + saat */}
             <div className="px-5 pt-5 pb-2 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5" style={{ color: theme.accent, opacity: 0.8 }} />
-                    <span className="text-sm font-manrope font-bold text-white/90">{city}</span>
+                    <span className="text-sm font-manrope font-bold text-tx-primary">{city}</span>
                 </div>
-                <span className="text-[10px] text-white/30 font-mono">
+                <span className="text-[10px] text-muted font-mono">
                     {new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                 </span>
             </div>
@@ -89,10 +83,10 @@ const LiveDataCard = () => {
                              style={{ color: theme.accent }}>
                             {weather.temp}°
                         </div>
-                        <div className="text-xs text-white/55 mt-1.5 flex items-center gap-2">
+                        <div className="text-xs text-tx-secondary mt-1.5 flex items-center gap-2">
                             <span style={{ color: theme.accent, opacity: 0.9 }}>{wmoLabel(weather.code)}</span>
-                            <span className="opacity-30">·</span>
-                            <span className="flex items-center gap-1 text-white/40">
+                            <span className="text-muted">·</span>
+                            <span className="flex items-center gap-1 text-muted">
                                 <Wind className="w-3 h-3" />{weather.wind} km/h
                             </span>
                         </div>
@@ -103,32 +97,32 @@ const LiveDataCard = () => {
                 </div>
             ) : (
                 <div className="px-5 pb-3 h-24 flex items-center">
-                    <div className="h-12 w-28 rounded-xl bg-white/10 animate-pulse" />
+                    <div className="h-12 w-28 rounded-xl bg-surface-solid animate-pulse" />
                 </div>
             )}
 
             {/* 7 günlük tahmin */}
             <div className="px-3 py-3 grid grid-cols-7 gap-0.5"
-                 style={{ borderTop: `1px solid ${theme.border}`, background: 'rgba(0,0,0,0.20)' }}>
+                 style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-surface-solid)' }}>
                 {weather ? weather.daily.map((d, i) => {
                     const dt = wmoTheme(d.code);
                     return (
                         <div key={i} className="flex flex-col items-center gap-1 py-1">
-                            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wide">
+                            <span className="text-[9px] font-bold text-muted uppercase tracking-wide">
                                 {i === 0 ? 'Bug.' : d.day}
                             </span>
                             <div style={{ color: dt.accent, opacity: 0.8 }}>
                                 {wmoIcon(d.code, 'w-4 h-4')}
                             </div>
-                            <span className="text-[10px] font-bold text-white/85">{d.max}°</span>
-                            <span className="text-[9px] text-white/30">{d.min}°</span>
+                            <span className="text-[10px] font-bold text-tx-primary">{d.max}°</span>
+                            <span className="text-[9px] text-muted">{d.min}°</span>
                         </div>
                     );
                 }) : Array.from({ length: 7 }).map((_, i) => (
                     <div key={i} className="flex flex-col items-center gap-1.5 py-1">
-                        <div className="h-2 w-4 rounded bg-white/10 animate-pulse" />
-                        <div className="h-4 w-4 rounded bg-white/10 animate-pulse" />
-                        <div className="h-2 w-5 rounded bg-white/10 animate-pulse" />
+                        <div className="h-2 w-4 rounded bg-surface-solid animate-pulse" />
+                        <div className="h-4 w-4 rounded bg-surface-solid animate-pulse" />
+                        <div className="h-2 w-5 rounded bg-surface-solid animate-pulse" />
                     </div>
                 ))}
             </div>
