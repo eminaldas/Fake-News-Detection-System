@@ -38,21 +38,22 @@ function ScoreCircle({ nlpScore, large = false }) {
     );
 }
 
-/* ── Kaynak adı + onay ikonu ──────────────────────────────────── */
+/* ── Kaynak adı + onay ikonu (kart overlay üstünde — renk sabit) ── */
 function SourceBadge({ name, trusted }) {
     if (!name) return null;
     return (
         <div
             className="flex items-center gap-1 px-2 py-0.5 rounded-full shrink-0"
             style={{
-                background: trusted ? 'rgba(63,255,139,0.10)' : 'rgba(255,255,255,0.08)',
-                border: `1px solid ${trusted ? 'rgba(63,255,139,0.28)' : 'rgba(255,255,255,0.14)'}`,
+                background: trusted ? 'rgba(63,255,139,0.18)' : 'rgba(255,255,255,0.15)',
+                border: `1px solid ${trusted ? 'rgba(63,255,139,0.40)' : 'rgba(255,255,255,0.28)'}`,
             }}
         >
-            <span className="text-white/85 text-[11px] font-semibold max-w-[140px] truncate">{name}</span>
+            <span className="text-white text-[11px] font-semibold max-w-[140px] truncate">{name}</span>
             {trusted && (
+                /* Checkmark her zaman parlak yeşil — dark overlay üstünde */
                 <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none"
-                     stroke="var(--color-brand-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                     stroke="#3fff8b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                 </svg>
             )}
@@ -60,12 +61,12 @@ function SourceBadge({ name, trusted }) {
     );
 }
 
-/* ── Birincil içerik etiketi ──────────────────────────────────── */
+/* ── Birincil içerik etiketi (kart overlay üstünde — renk sabit) ── */
 function ContentTag({ types, category }) {
-    const tag = types?.includes('high_risk') ? { text: 'Yüksek Risk', color: '#ef4444' }
-              : types?.includes('clickbait') ? { text: 'Clickbait',   color: '#f97316' }
-              : types?.includes('claim')     ? { text: 'İddia',       color: '#a855f7' }
-              : category                     ? { text: category,      color: 'var(--color-brand-primary)' }
+    const tag = types?.includes('high_risk') ? { text: 'Yüksek Risk', color: '#f87171' }
+              : types?.includes('clickbait') ? { text: 'Clickbait',   color: '#fb923c' }
+              : types?.includes('claim')     ? { text: 'İddia',       color: '#c084fc' }
+              : category                     ? { text: category,      color: 'rgba(255,255,255,0.90)' }
               : null;
     if (!tag) return null;
     return (
@@ -80,7 +81,11 @@ function MultiSourceBadge({ count }) {
     if (!count || count <= 1) return null;
     return (
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-              style={{ background: 'rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.55)' }}>
+              style={{
+                  background: 'rgba(255,255,255,0.18)',
+                  border: '1px solid rgba(255,255,255,0.30)',
+                  color: 'rgba(255,255,255,0.85)',
+              }}>
             {count} kaynak
         </span>
     );
@@ -192,10 +197,15 @@ function AnalyzeButton({ article }) {
 }
 
 const MONTHS_TR = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
-function formatDate(pub_date) {
+function formatRelativeTime(pub_date) {
     if (!pub_date) return '';
+    const diff = Math.floor((Date.now() - new Date(pub_date)) / 1000);
+    if (diff < 60)     return 'Az önce';
+    if (diff < 3600)   return `${Math.floor(diff / 60)} dk önce`;
+    if (diff < 86400)  return `${Math.floor(diff / 3600)} saat önce`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)} gün önce`;
     const d = new Date(pub_date);
-    return `${d.getDate()} ${MONTHS_TR[d.getMonth()]} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    return `${d.getDate()} ${MONTHS_TR[d.getMonth()]}`;
 }
 
 /* ── Büyük öne çıkan kart (grid col-span-2) ──────────────────── */
@@ -220,7 +230,7 @@ function FeaturedCard({ article }) {
                     <p className="text-zinc-400 dark:text-white/12 text-3xl font-bold font-manrope text-center line-clamp-4">{article.title}</p>
                 </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
             {/* Skor dairesi */}
             <div className="absolute top-5 right-5">
@@ -238,7 +248,7 @@ function FeaturedCard({ article }) {
                     <h2 className="font-manrope text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-white line-clamp-3">
                         {article.title}
                     </h2>
-                    <p className="text-white/35 text-[11px] mt-2">{formatDate(article.pub_date)}</p>
+                    <p className="text-white/35 text-[11px] mt-2">{formatRelativeTime(article.pub_date)}</p>
                 </div>
                 <div className="shrink-0"
                      onClick={e => { e.preventDefault(); e.stopPropagation(); }}>
@@ -293,7 +303,7 @@ function NormalCard({ article, tall = false }) {
                     {article.title}
                 </h3>
                 <div className="flex items-center justify-between pt-1">
-                    <span className="text-white/35 text-[11px]">{formatDate(article.pub_date)}</span>
+                    <span className="text-white/35 text-[11px]">{formatRelativeTime(article.pub_date)}</span>
                     <div onClick={e => { e.preventDefault(); e.stopPropagation(); }}>
                         <AnalyzeButton article={article} />
                     </div>
@@ -501,9 +511,13 @@ export default function Gundem() {
                         placeholder="Haberlerde ara..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="pl-8 pr-4 py-2 rounded-full text-xs bg-surface border border-brutal-border
-                                   text-tx-primary placeholder:text-muted focus:outline-none
-                                   focus:border-brand/40 transition-colors w-44"
+                        className="pl-8 pr-4 py-2.5 rounded-lg text-xs font-medium
+                                   bg-surface border border-brutal-border
+                                   text-tx-primary placeholder:text-muted
+                                   focus:outline-none transition-all w-48"
+                        style={{ borderRadius: '6px 6px 0 0' }}
+                        onFocus={e  => { e.target.style.borderColor = 'var(--color-brand-primary)'; }}
+                        onBlur={e   => { e.target.style.borderColor = 'var(--color-border)'; }}
                     />
                 </div>
             </div>
