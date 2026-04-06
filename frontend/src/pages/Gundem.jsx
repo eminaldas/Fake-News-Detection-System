@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { X } from 'lucide-react';
 import NewsService from '../services/news.service';
 import AnalysisService from '../services/analysis.service';
 import { useTheme } from '../contexts/ThemeContext';
+import AnalysisResultCard from '../features/analysis/AnalysisResultCard';
 
 const CATEGORIES = [
     { label: 'Tümü',      value: null,       hot: false },
@@ -91,110 +93,6 @@ function MultiSourceBadge({ count }) {
     );
 }
 
-/* ── Analiz butonu (ikon → hover'da genişler) ─────────────────── */
-function AnalyzeButton({ article }) {
-    const { isDarkMode }      = useTheme();
-    const [phase,  setPhase]  = useState('idle');
-    const [result, setResult] = useState(null);
-    const [hov,    setHov]    = useState(false);
-
-    const handleClick = async (e) => {
-        e.preventDefault(); e.stopPropagation();
-        if (phase !== 'idle') return;
-        setPhase('loading');
-        try {
-            const text = [article.title, article.content].filter(Boolean).join(' ');
-            const resp = await AnalysisService.analyzeText(text);
-            if (resp.is_direct_match && resp.direct_match_data) {
-                setResult(resp.direct_match_data); setPhase('done'); return;
-            }
-            let attempts = 0;
-            const iv = setInterval(async () => {
-                try {
-                    if (++attempts > 25) { clearInterval(iv); setPhase('error'); return; }
-                    const s = await AnalysisService.checkStatus(resp.task_id);
-                    if (s.status === 'SUCCESS' && s.result) {
-                        clearInterval(iv); setResult(s.result); setPhase('done');
-                    } else if (s.status === 'FAILED') {
-                        clearInterval(iv); setPhase('error');
-                    }
-                } catch { clearInterval(iv); setPhase('error'); }
-            }, 2000);
-        } catch { setPhase('error'); }
-    };
-
-    if (phase === 'loading') return (
-        <span className="flex items-center gap-1.5 text-[10px] text-white/50">
-            <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-            </svg>
-            Analiz ediliyor...
-        </span>
-    );
-
-    if (phase === 'error') return (
-        <span className="text-[10px] text-red-400/70">Analiz başarısız</span>
-    );
-
-    if (phase === 'done') {
-        const pred  = result?.prediction;
-        const pct   = result?.confidence ? Math.round(result.confidence * 100) : null;
-        const color = pred === 'FAKE' ? '#ef4444' : pred === 'AUTHENTIC' ? '#3fff8b' : '#facc15';
-        const label = pred === 'FAKE' ? 'Sahte' : pred === 'AUTHENTIC' ? 'Güvenilir' : 'Belirsiz';
-        return (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-                 style={{ background: `${color}1a`, border: `1px solid ${color}40` }}>
-                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
-                <span className="text-[10px] font-bold" style={{ color }}>
-                    {label}{pct != null ? ` %${pct}` : ''}
-                </span>
-            </div>
-        );
-    }
-
-    /* idle: ikon, hover'da "Derin Analiz" metni açılır */
-    const iconColor   = hov ? (isDarkMode ? '#070f12' : '#ffffff') : 'rgba(255,255,255,0.80)';
-    const expandColor = isDarkMode ? '#070f12' : '#ffffff';
-    const idleBg      = isDarkMode ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.40)';
-    const idleBorder  = isDarkMode ? 'rgba(255,255,255,0.20)' : 'rgba(0,0,0,0.25)';
-
-    return (
-        <button
-            onClick={handleClick}
-            onMouseEnter={() => setHov(true)}
-            onMouseLeave={() => setHov(false)}
-            className="flex items-center rounded-xl transition-all duration-200 cursor-pointer"
-            style={{
-                padding: '7px 10px',
-                gap: hov ? '6px' : '0px',
-                background: hov ? 'var(--color-brand-primary)' : idleBg,
-                border: `1px solid ${hov ? 'var(--color-brand-primary)' : idleBorder}`,
-            }}
-        >
-            <svg
-                className="w-3.5 h-3.5 shrink-0"
-                style={{ color: iconColor, transition: 'color 0.15s ease' }}
-                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}
-            >
-                <path strokeLinecap="round" strokeLinejoin="round"
-                      d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 117.072 0l-.347.347A3.984 3.984 0 0115.9 17H8.1a3.984 3.984 0 01-2.828-2.834z" />
-            </svg>
-            <span style={{
-                maxWidth: hov ? '90px' : '0px',
-                opacity: hov ? 1 : 0,
-                overflow: 'hidden',
-                whiteSpace: 'nowrap',
-                transition: 'max-width 0.2s ease, opacity 0.15s ease',
-                fontSize: '11px',
-                fontWeight: '700',
-                color: expandColor,
-            }}>
-                Derin Analiz
-            </span>
-        </button>
-    );
-}
 
 const MONTHS_TR = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
 function formatRelativeTime(pub_date) {
@@ -213,6 +111,53 @@ function FeaturedCard({ article }) {
     const [imgErr, setImgErr] = useState(false);
     const hasImg = article.image_url && !imgErr;
     const trusted = (article.trust_score ?? 0) >= 0.9;
+
+    const [phase,      setPhase]  = useState('idle');
+    const [result,     setResult] = useState(null);
+    const [expandOpen, setExpand] = useState(false);
+    const intervalRef             = useRef(null);
+
+    useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
+
+    const handleAnalyze = async (e) => {
+        e.preventDefault(); e.stopPropagation();
+        if (phase !== 'idle' || !article.source_url) return;
+        setPhase('loading');
+        try {
+            const data = await AnalysisService.analyzeUrl(article.source_url);
+            if (!data.task_id) { setPhase('error'); return; }
+            const startTime = Date.now();
+            const MAX_MS    = 90_000;
+            intervalRef.current = setInterval(async () => {
+                try {
+                    const s         = await AnalysisService.checkStatus(data.task_id);
+                    const elapsed   = Date.now() - startTime;
+                    const isDone    = s.status === 'SUCCESS' && s.result != null && s.result.ai_comment != null;
+                    const isTimeout = elapsed > MAX_MS;
+                    const isFailed  = s.status === 'FAILED' || s.status === 'FAILURE';
+                    if (isDone) {
+                        clearInterval(intervalRef.current);
+                        intervalRef.current = null;
+                        setResult(s.result);
+                        setPhase('done');
+                    } else if (isFailed || isTimeout) {
+                        clearInterval(intervalRef.current);
+                        intervalRef.current = null;
+                        if (isTimeout && s.status === 'SUCCESS' && s.result) {
+                            setResult(s.result);
+                            setPhase('done');
+                        } else {
+                            setPhase('error');
+                        }
+                    }
+                } catch {
+                    clearInterval(intervalRef.current);
+                    intervalRef.current = null;
+                    setPhase('error');
+                }
+            }, 2000);
+        } catch { intervalRef.current = null; setPhase('error'); }
+    };
 
     const inner = (
         <article
@@ -245,22 +190,170 @@ function FeaturedCard({ article }) {
                         <SourceBadge name={article.source_name} trusted={trusted} />
                         <MultiSourceBadge count={article.source_count} />
                     </div>
-                    <h2 className="font-manrope text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-white line-clamp-3">
+                    <h2 className={`font-manrope font-extrabold tracking-tight leading-tight text-white transition-all duration-300 ${
+                        phase === 'done' ? 'text-sm line-clamp-2 mb-1' : 'text-3xl md:text-4xl line-clamp-3'
+                    }`}>
                         {article.title}
                     </h2>
+                    {phase === 'done' && result && (
+                        <AiSnippet result={result} onExpand={() => setExpand(true)} />
+                    )}
                     <p className="text-white/35 text-[11px] mt-2">{formatRelativeTime(article.pub_date)}</p>
                 </div>
-                <div className="shrink-0"
+                <div className="shrink-0 flex items-center gap-2"
                      onClick={e => { e.preventDefault(); e.stopPropagation(); }}>
-                    <AnalyzeButton article={article} />
+                    {phase === 'loading' && (
+                        <span className="flex items-center gap-1.5 text-[10px] text-white/50">
+                            <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                            </svg>
+                            Analiz ediliyor...
+                        </span>
+                    )}
+                    {phase === 'error'  && <span className="text-[10px] text-red-400/70">Analiz başarısız</span>}
+                    {phase === 'idle'   && <NormalAnalyzeBtn onClick={handleAnalyze} disabled={!article.source_url} />}
+                    {phase === 'done' && result && <ResultBadge result={result} />}
                 </div>
             </div>
         </article>
     );
 
-    return article.source_url ? (
-        <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="block">{inner}</a>
-    ) : inner;
+    return (
+        <>
+            {article.source_url ? (
+                <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="block">{inner}</a>
+            ) : inner}
+            {expandOpen && result && (
+                <AnalysisModal result={result} onClose={() => setExpand(false)} />
+            )}
+        </>
+    );
+}
+
+/* ── Normal kart — yardımcı buton bileşenleri ─────────────────── */
+function NormalAnalyzeBtn({ onClick, disabled }) {
+    const { isDarkMode } = useTheme();
+    const [hov, setHov]  = useState(false);
+    const iconColor   = hov ? (isDarkMode ? '#070f12' : '#ffffff') : 'rgba(255,255,255,0.80)';
+    const expandColor = isDarkMode ? '#070f12' : '#ffffff';
+    const idleBg      = isDarkMode ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.40)';
+    const idleBorder  = isDarkMode ? 'rgba(255,255,255,0.20)' : 'rgba(0,0,0,0.25)';
+    return (
+        <button
+            onClick={onClick}
+            onMouseEnter={() => { if (!disabled) setHov(true); }}
+            onMouseLeave={() => { if (!disabled) setHov(false); }}
+            disabled={disabled}
+            title={disabled ? 'Kaynak URL bulunamadı' : 'Derin Analiz'}
+            className="flex items-center rounded-xl transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+                padding: '7px 10px',
+                gap: hov ? '6px' : '0px',
+                background: hov && !disabled ? 'var(--color-brand-primary)' : idleBg,
+                border: `1px solid ${hov && !disabled ? 'var(--color-brand-primary)' : idleBorder}`,
+            }}
+        >
+            <svg className="w-3.5 h-3.5 shrink-0" style={{ color: iconColor, transition: 'color 0.15s ease' }}
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 117.072 0l-.347.347A3.984 3.984 0 0115.9 17H8.1a3.984 3.984 0 01-2.828-2.834z"/>
+            </svg>
+            <span style={{
+                maxWidth: hov ? '90px' : '0px', opacity: hov ? 1 : 0,
+                overflow: 'hidden', whiteSpace: 'nowrap',
+                transition: 'max-width 0.2s ease, opacity 0.15s ease',
+                fontSize: '11px', fontWeight: '700', color: expandColor,
+            }}>
+                Derin Analiz
+            </span>
+        </button>
+    );
+}
+
+function ResultBadge({ result }) {
+    const status = result?.ai_comment?.gemini_verdict?.toUpperCase() || result?.prediction?.toUpperCase();
+    const pct    = result?.confidence  ? Math.round(result.confidence * 100)
+                 : result?.truth_score ? Math.round(parseFloat(result.truth_score))
+                 : null;
+    const isFake = status === 'FAKE' || status === 'FALSE';
+    const color  = isFake ? '#ef4444' : status === 'AUTHENTIC' || status === 'TRUE' ? '#3fff8b' : '#facc15';
+    const label  = isFake ? 'Sahte' : status === 'AUTHENTIC' || status === 'TRUE' ? 'Güvenilir' : 'Belirsiz';
+    return (
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+             style={{ background: `${color}1a`, border: `1px solid ${color}40` }}>
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
+            <span className="text-[10px] font-bold" style={{ color }}>
+                {label}{pct != null ? ` %${pct}` : ''}
+            </span>
+        </div>
+    );
+}
+
+function AiSnippet({ result, onExpand }) {
+    const status  = result?.ai_comment?.gemini_verdict?.toUpperCase() || result?.prediction?.toUpperCase();
+    const isFake  = status === 'FAKE' || status === 'FALSE';
+    const color   = isFake ? '#ff7351' : status === 'AUTHENTIC' || status === 'TRUE' ? '#3fff8b' : '#facc15';
+    const summary = result?.ai_comment?.summary || 'Detaylı analiz tamamlandı.';
+    return (
+        <div className="mb-2 px-2.5 py-2 rounded-lg flex flex-col gap-1"
+             style={{ background: `${color}0d`, borderLeft: `2px solid ${color}66` }}>
+            <div className="flex items-center gap-1" style={{ color }}>
+                <svg className="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round"
+                          d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"/>
+                </svg>
+                <span className="text-[9px] font-extrabold uppercase tracking-widest" style={{ color }}>
+                    Gemini AI
+                </span>
+            </div>
+            <p className="text-[10px] text-white/60 leading-relaxed line-clamp-2">{summary}</p>
+            <button
+                onClick={e => { e.preventDefault(); e.stopPropagation(); onExpand(); }}
+                className="self-end text-[9px] font-extrabold uppercase tracking-wider flex items-center gap-1 transition-opacity hover:opacity-100 opacity-70"
+                style={{ color }}
+            >
+                Tam analizi gör
+                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"/>
+                </svg>
+            </button>
+        </div>
+    );
+}
+
+function AnalysisModal({ result, onClose }) {
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        const handler = (e) => { if (e.key === 'Escape') onClose(); };
+        document.addEventListener('keydown', handler);
+        return () => {
+            document.body.style.overflow = '';
+            document.removeEventListener('keydown', handler);
+        };
+    }, [onClose]);
+
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+            onClick={onClose}
+        >
+            <div
+                className="w-full max-w-xl max-h-[88vh] overflow-y-auto rounded-2xl relative"
+                onClick={e => e.stopPropagation()}
+            >
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 z-10 text-white/40 hover:text-white transition-colors"
+                    style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '6px', padding: '4px' }}
+                >
+                    <X size={16} />
+                </button>
+                <AnalysisResultCard result={result} />
+            </div>
+        </div>
+    );
 }
 
 /* ── Normal kart ──────────────────────────────────────────────── */
@@ -269,6 +362,49 @@ function NormalCard({ article, tall = false }) {
     const hasImg = article.image_url && !imgErr;
     const trusted = (article.trust_score ?? 0) >= 0.9;
     const height = tall ? 'h-[480px]' : 'h-[400px]';
+
+    const [phase,      setPhase]  = useState('idle');   // idle | loading | done | error
+    const [result,     setResult] = useState(null);
+    const [expandOpen, setExpand] = useState(false);
+    const intervalRef             = useRef(null);
+
+    useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
+
+    const handleAnalyze = async (e) => {
+        e.preventDefault(); e.stopPropagation();
+        if (phase !== 'idle' || !article.source_url) return;
+        setPhase('loading');
+        try {
+            const data = await AnalysisService.analyzeUrl(article.source_url);
+            if (!data.task_id) { setPhase('error'); return; }
+            const startTime = Date.now();
+            const MAX_MS    = 90_000;
+            intervalRef.current = setInterval(async () => {
+                try {
+                    const s         = await AnalysisService.checkStatus(data.task_id);
+                    const elapsed   = Date.now() - startTime;
+                    const isDone    = s.status === 'SUCCESS' && s.result != null && s.result.ai_comment != null;
+                    const isTimeout = elapsed > MAX_MS;
+                    const isFailed  = s.status === 'FAILED' || s.status === 'FAILURE';
+                    if (isDone) {
+                        clearInterval(intervalRef.current);
+                        intervalRef.current = null;
+                        setResult(s.result);
+                        setPhase('done');
+                    } else if (isFailed || isTimeout) {
+                        clearInterval(intervalRef.current);
+                        intervalRef.current = null;
+                        if (isTimeout && s.status === 'SUCCESS' && s.result) {
+                            setResult(s.result);
+                            setPhase('done');
+                        } else {
+                            setPhase('error');
+                        }
+                    }
+                } catch { clearInterval(intervalRef.current); intervalRef.current = null; setPhase('error'); }
+            }, 2000);
+        } catch { intervalRef.current = null; setPhase('error'); }
+    };
 
     const inner = (
         <article
@@ -299,22 +435,51 @@ function NormalCard({ article, tall = false }) {
                     <SourceBadge name={article.source_name} trusted={trusted} />
                     <MultiSourceBadge count={article.source_count} />
                 </div>
-                <h3 className="font-manrope text-xl font-extrabold tracking-tight leading-snug text-white line-clamp-3">
+                <h3 className={`font-manrope font-extrabold tracking-tight leading-snug text-white transition-all duration-300 ${
+                    phase === 'done' ? 'text-xs line-clamp-2 mb-1' : 'text-xl line-clamp-3'
+                }`}>
                     {article.title}
                 </h3>
+                {phase === 'done' && result && (
+                    <AiSnippet result={result} onExpand={() => setExpand(true)} />
+                )}
                 <div className="flex items-center justify-between pt-1">
                     <span className="text-white/35 text-[11px]">{formatRelativeTime(article.pub_date)}</span>
                     <div onClick={e => { e.preventDefault(); e.stopPropagation(); }}>
-                        <AnalyzeButton article={article} />
+                        {phase === 'loading' && (
+                            <span className="flex items-center gap-1.5 text-[10px] text-white/50">
+                                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                </svg>
+                                Analiz ediliyor...
+                            </span>
+                        )}
+                        {phase === 'error' && (
+                            <span className="text-[10px] text-red-400/70">Analiz başarısız</span>
+                        )}
+                        {phase === 'idle' && (
+                            <NormalAnalyzeBtn onClick={handleAnalyze} disabled={!article.source_url} />
+                        )}
+                        {phase === 'done' && result && (
+                            <ResultBadge result={result} />
+                        )}
                     </div>
                 </div>
             </div>
         </article>
     );
 
-    return article.source_url ? (
-        <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="block">{inner}</a>
-    ) : inner;
+    return (
+        <>
+            {article.source_url ? (
+                <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="block">{inner}</a>
+            ) : inner}
+            {expandOpen && result && (
+                <AnalysisModal result={result} onClose={() => setExpand(false)} />
+            )}
+        </>
+    );
 }
 
 /* ── Spinner ──────────────────────────────────────────────────── */
@@ -360,7 +525,7 @@ export default function Gundem() {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo]     = useState('');
     const [newCount, setNewCount] = useState(0);
-    const totalRef = React.useRef(0);
+    const totalRef = useRef(0);
 
     const fetchNews = useCallback(async (cat, pg, silent = false, dfrom = dateFrom, dto = dateTo) => {
         if (!silent) setLoading(true);
