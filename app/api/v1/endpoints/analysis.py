@@ -7,7 +7,6 @@ from PIL import Image, UnidentifiedImageError
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
-from sqlalchemy import select as sa_select
 from celery.result import AsyncResult
 import uuid
 import json
@@ -406,13 +405,14 @@ async def analyze_image_endpoint(
 
     # ── Layer 1: pHash lookup ───────────────────────────────────────────────
     phash_str = _compute_phash(image)
-    cache_rows_result = await db.execute(sa_select(ImageCache))
+    cache_rows_result = await db.execute(select(ImageCache))
     cache_rows = cache_rows_result.scalars().all()
 
     for row in cache_rows:
         try:
             dist = _phash_distance(phash_str, row.phash)
-        except Exception:
+        except Exception as e:
+            log.warning("image.cache_invalid_phash", phash=row.phash, error=str(e))
             continue
         if dist <= _PHASH_MATCH_THRESHOLD and row.gemini_result:
             log.info("image.cache_hit", phash=phash_str, distance=dist)
@@ -459,6 +459,7 @@ async def analyze_image_endpoint(
     return ImageAnalysisResponse(
         task_id=task.id,
         message="Görsel analiz kuyruğa alındı.",
+        is_direct_match=False,
         exif_flags=exif_flags if exif_flags else None,
     )
 
