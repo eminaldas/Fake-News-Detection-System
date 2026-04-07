@@ -129,6 +129,13 @@ class PaginatedAnalysisRequestResponse(BaseModel):
     items: List[AnalysisRequestResponse]
 
 
+class QuotaResponse(BaseModel):
+    used:      int
+    limit:     int
+    remaining: int
+    reset_at:  int   # Unix timestamp (UTC midnight)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Yardımcı
 # ─────────────────────────────────────────────────────────────────────────────
@@ -176,6 +183,14 @@ class TaskStatusResponse(BaseModel):
     task_id: str
     status: str
     result: Optional[dict] = None
+
+
+class ImageAnalysisResponse(BaseModel):
+    task_id:           str
+    message:           str
+    is_direct_match:   bool = False
+    exif_flags:        Optional[dict] = None
+    direct_match_data: Optional[dict] = None
 
 
 # ─────────────────────────────────────────────────────────────────────────────

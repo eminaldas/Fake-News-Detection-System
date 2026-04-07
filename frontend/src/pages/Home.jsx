@@ -3,7 +3,9 @@ import { AlertCircle } from "lucide-react";
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { useAnalysis } from "../hooks/useAnalysis";
+import { useImageAnalysis } from '../hooks/useImageAnalysis';
 import AnalysisForm from "../features/analysis/AnalysisForm";
+import ImageResultCard from '../features/analysis/ImageResultCard';
 import AnalysisResultCard from "../features/analysis/AnalysisResultCard";
 import AnalysisResultSkeleton from "../features/analysis/AnalysisResultSkeleton";
 import RecentHeadlines from "../components/features/analysis/RecentHeadlines";
@@ -28,8 +30,24 @@ const Home = () => {
   }, []);
 
   const { analyze, analyzeUrl, loading, result, error, isPolling } = useAnalysis();
+  const {
+    loading: imgLoading,
+    isPolling: imgPolling,
+    result: imgResult,
+    exifFlags,
+    error: imgError,
+    submitImage,
+  } = useImageAnalysis();
+  const [imagePreview, setImagePreview] = useState(null);
   const showAnalysisSkeleton = loading || isPolling;
   const resultRef = useRef(null);
+
+  const handleAnalyzeImage = (file) => {
+    if (!file) return;
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(URL.createObjectURL(file));
+    submitImage(file);
+  };
 
   // Analiz tamamlanınca sonuca smooth scroll
   useEffect(() => {
@@ -122,8 +140,9 @@ const Home = () => {
               <AnalysisForm
                 onAnalyze={analyze}
                 onAnalyzeUrl={analyzeUrl}
-                loading={loading}
-                isPolling={isPolling}
+                onAnalyzeImage={handleAnalyzeImage}
+                loading={loading || imgLoading}
+                isPolling={isPolling || imgPolling}
                 _error={error}
               />
             </div>
@@ -158,6 +177,18 @@ const Home = () => {
               />
             ) : null}
           </div>
+
+          {(imgResult || imgPolling || exifFlags) && (
+            <ImageResultCard
+              result={imgResult}
+              exifFlags={exifFlags}
+              previewUrl={imagePreview}
+              isPolling={imgPolling}
+            />
+          )}
+          {imgError && (
+            <p className="text-sm text-es-error text-center py-2">{imgError}</p>
+          )}
         </div>
 
         {/* Sağ: Hava + Piyasalar */}

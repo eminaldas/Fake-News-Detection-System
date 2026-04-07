@@ -240,3 +240,7 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
 def analyze_article(content_id: str, text: str, news_evidence: str = None) -> dict:
     """Ham metin → temizlik → embedding → sınıflandırma → DB kaydı."""
     return asyncio.run(_analyze_and_save(content_id, text, news_evidence=news_evidence))
+
+
+# Görsel analiz task'ını kaydet — worker startup'ta keşfedilsin
+from workers.image_analysis_task import analyze_image as _analyze_image_task  # noqa: F401
