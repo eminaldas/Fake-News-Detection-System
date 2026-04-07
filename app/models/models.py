@@ -18,8 +18,9 @@ class UserRole(str, enum.Enum):
 
 
 class AnalysisType(str, enum.Enum):
-    text = "text"
-    url  = "url"
+    text  = "text"
+    url   = "url"
+    image = "image"
 
 
 class User(Base):
@@ -94,6 +95,16 @@ class AnalysisResult(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     article = relationship("Article", back_populates="analysis_result")
+
+
+class ImageCache(Base):
+    __tablename__ = "image_cache"
+
+    id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    phash         = Column(String(64), nullable=False, index=True)
+    exif_flags    = Column(JSONB, nullable=True)
+    gemini_result = Column(JSONB, nullable=True)
+    created_at    = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class NewsArticle(Base):
