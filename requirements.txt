@@ -28,6 +28,11 @@ scikit-learn
 # Data (ingest scriptleri için)
 pandas
 
+# Görsel analiz
+Pillow>=10.0.0
+imagehash>=4.3.1
+exifread>=3.0.0
+
 # Scraping & RSS
 feedparser
 ddgs>=8.0
