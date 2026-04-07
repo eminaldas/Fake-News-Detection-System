@@ -101,9 +101,9 @@ class ImageCache(Base):
     __tablename__ = "image_cache"
 
     id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    phash         = Column(String(64), nullable=False, index=True)
-    exif_flags    = Column(JSONB, nullable=True)
-    gemini_result = Column(JSONB, nullable=True)
+    phash         = Column(String(64), nullable=False, index=True)   # 64-bit perceptual hash (hex)
+    exif_flags    = Column(JSONB, nullable=True)                      # {"Software": "Midjourney", ...}
+    gemini_result = Column(JSONB, nullable=True)                      # Layer 3 Gemini analiz sonucu
     created_at    = Column(DateTime(timezone=True), server_default=func.now())
 
 
