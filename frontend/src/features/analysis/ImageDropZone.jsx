@@ -1,5 +1,5 @@
 // frontend/src/features/analysis/ImageDropZone.jsx
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Image as ImageIcon, X } from 'lucide-react';
 
 const MAX_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -13,18 +13,7 @@ const ImageDropZone = ({ onFileSelect, disabled }) => {
 
     useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
-    useEffect(() => {
-        const handlePaste = (e) => {
-            if (disabled) return;
-            const items = Array.from(e.clipboardData?.items || []);
-            const imageItem = items.find(i => i.type.startsWith('image/'));
-            if (imageItem) _processFile(imageItem.getAsFile());
-        };
-        window.addEventListener('paste', handlePaste);
-        return () => window.removeEventListener('paste', handlePaste);
-    }, [disabled]);
-
-    const _processFile = (file) => {
+    const _processFile = useCallback((file) => {
         if (!file) return;
         setError('');
         if (file.size > MAX_BYTES) {
@@ -35,7 +24,18 @@ const ImageDropZone = ({ onFileSelect, disabled }) => {
         setPreview(URL.createObjectURL(file));
         setFileName(file.name || 'pano görseli');
         onFileSelect(file);
-    };
+    }, [onFileSelect, preview]);
+
+    useEffect(() => {
+        const handlePaste = (e) => {
+            if (disabled) return;
+            const items = Array.from(e.clipboardData?.items || []);
+            const imageItem = items.find(i => i.type.startsWith('image/'));
+            if (imageItem) _processFile(imageItem.getAsFile());
+        };
+        window.addEventListener('paste', handlePaste);
+        return () => window.removeEventListener('paste', handlePaste);
+    }, [disabled, _processFile]);
 
     const handleDrop = (e) => {
         e.preventDefault();
