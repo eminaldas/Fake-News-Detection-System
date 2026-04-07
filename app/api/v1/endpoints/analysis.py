@@ -1,8 +1,13 @@
 from typing import Optional
+import base64
+import io
 
-from fastapi import APIRouter, Depends, Request, status
+import imagehash
+from PIL import Image, UnidentifiedImageError
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
+from sqlalchemy import select as sa_select
 from celery.result import AsyncResult
 import uuid
 import json
@@ -14,15 +19,17 @@ from app.core.rate_limit import check_rate_limit
 from app.core.security import hash_ip
 from app.db.redis import get_redis
 from app.db.session import get_db
-from app.models.models import AnalysisRequest, AnalysisType, Article, AnalysisResult, NewsArticle, User
+from app.models.models import AnalysisRequest, AnalysisType, Article, AnalysisResult, ImageCache, NewsArticle, User
 from app.schemas.schemas import (
     AnalysisResponse,
     ContentAnalysisRequest,
+    ImageAnalysisResponse,
     TaskStatusResponse,
     UrlAnalysisRequest,
 )
 from ml_engine.processing.cleaner import NewsCleaner
 from ml_engine.vectorizer import TurkishVectorizer
+from workers.image_analysis_task import analyze_image as celery_analyze_image
 from workers.link_analysis_task import analyze_article_url
 from workers.tasks import analyze_article
 
@@ -30,6 +37,48 @@ router = APIRouter()
 
 vectorizer = TurkishVectorizer()
 cleaner    = NewsCleaner()
+
+_MAX_IMAGE_BYTES = 25 * 1024 * 1024  # 25 MB
+_PHASH_MATCH_THRESHOLD = 10           # Hamming distance ≤ 10 → eşleşme
+_AI_KEYWORDS = [
+    "midjourney", "stable diffusion", "dall-e", "dall·e",
+    "firefly", "adobe photoshop", "runway", "imagen",
+    "bing image", "nightcafe", "leonardo.ai",
+]
+
+
+def _compute_phash(image: Image.Image) -> str:
+    return str(imagehash.phash(image))
+
+
+def _phash_distance(h1: str, h2: str) -> int:
+    return imagehash.hex_to_hash(h1) - imagehash.hex_to_hash(h2)
+
+
+def _extract_exif_flags(image: Image.Image) -> dict:
+    """Pillow ile EXIF okur, AI yazılım izlerini döndürür."""
+    flags = {}
+    try:
+        exif_raw = image._getexif()
+        if not exif_raw:
+            return flags
+        from PIL.ExifTags import TAGS
+        for tag_id, value in exif_raw.items():
+            tag_name = TAGS.get(tag_id, str(tag_id))
+            if tag_name in ("Software", "Make", "Model", "Artist", "Copyright"):
+                flags[tag_name] = str(value)
+    except Exception:
+        pass
+    return flags
+
+
+def _detect_ai_software(exif_flags: dict) -> Optional[str]:
+    """Varsa AI yazılım adını döndürür, yoksa None."""
+    for val in exif_flags.values():
+        for kw in _AI_KEYWORDS:
+            if kw in val.lower():
+                return val
+    return None
 
 
 async def _get_news_evidence(db: AsyncSession, embedding: list) -> Optional[str]:
@@ -313,6 +362,104 @@ async def analyze_url(
     return AnalysisResponse(
         task_id=task.id,
         message="URL analiz görevi kuyruğa alındı. Sonuç için /status/{task_id} kullanın.",
+    )
+
+
+@router.post(
+    "/analyze/image",
+    response_model=ImageAnalysisResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def analyze_image_endpoint(
+    http_request: Request,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
+    current_user: Optional[User] = Depends(get_optional_user),
+):
+    """
+    Görsel sahtelik analizi — 3 katmanlı escalation.
+    Layer 1 (pHash) ve Layer 2 (EXIF) kotadan düşmez.
+    Layer 3 (Gemini) kotadan düşer ve Celery kuyruğuna girer.
+    """
+    log = get_logger(__name__)
+    ip = http_request.client.host if http_request.client else "unknown"
+    content_id = str(uuid.uuid4())
+
+    # ── Boyut kontrolü ─────────────────────────────────────────────────────
+    contents = await file.read()
+    if len(contents) > _MAX_IMAGE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Görsel 25 MB'dan büyük olamaz.",
+        )
+
+    # ── Görsel aç ──────────────────────────────────────────────────────────
+    try:
+        image = Image.open(io.BytesIO(contents))
+        image.load()
+    except (UnidentifiedImageError, IOError, SyntaxError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Bu format desteklenmiyor, lütfen farklı bir görsel deneyin.",
+        )
+
+    # ── Layer 1: pHash lookup ───────────────────────────────────────────────
+    phash_str = _compute_phash(image)
+    cache_rows_result = await db.execute(sa_select(ImageCache))
+    cache_rows = cache_rows_result.scalars().all()
+
+    for row in cache_rows:
+        try:
+            dist = _phash_distance(phash_str, row.phash)
+        except Exception:
+            continue
+        if dist <= _PHASH_MATCH_THRESHOLD and row.gemini_result:
+            log.info("image.cache_hit", phash=phash_str, distance=dist)
+            return ImageAnalysisResponse(
+                task_id=content_id,
+                message="Bu görsel daha önce analiz edildi.",
+                is_direct_match=True,
+                direct_match_data={
+                    "layer": 1,
+                    "hamming_distance": dist,
+                    **row.gemini_result,
+                },
+            )
+
+    # ── Layer 2: EXIF metadata ──────────────────────────────────────────────
+    exif_flags = _extract_exif_flags(image)
+    ai_software = _detect_ai_software(exif_flags)
+    if ai_software:
+        log.info("image.exif_ai_detected", software=ai_software)
+
+    # ── Layer 3: Gemini — kota burada düşer ────────────────────────────────
+    await check_rate_limit(http_request, redis, current_user)
+
+    image_b64 = base64.b64encode(contents).decode("utf-8")
+    task = celery_analyze_image.delay(content_id, image_b64, phash_str, exif_flags)
+
+    # ── Analiz isteğini logla ───────────────────────────────────────────────
+    ar = AnalysisRequest(
+        user_id=current_user.id if current_user else None,
+        ip_hash=hash_ip(ip),
+        analysis_type=AnalysisType.image,
+        task_id=content_id,
+    )
+    db.add(ar)
+    await db.commit()
+
+    log.info(
+        "image_analysis.requested",
+        user_id=str(current_user.id) if current_user else None,
+        task_id=task.id,
+        exif_ai=ai_software,
+    )
+
+    return ImageAnalysisResponse(
+        task_id=task.id,
+        message="Görsel analiz kuyruğa alındı.",
+        exif_flags=exif_flags if exif_flags else None,
     )
 
 

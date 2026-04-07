@@ -185,6 +185,14 @@ class TaskStatusResponse(BaseModel):
     result: Optional[dict] = None
 
 
+class ImageAnalysisResponse(BaseModel):
+    task_id:           str
+    message:           str
+    is_direct_match:   bool = False
+    exif_flags:        Optional[dict] = None
+    direct_match_data: Optional[dict] = None
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Makaleler
 # ─────────────────────────────────────────────────────────────────────────────
