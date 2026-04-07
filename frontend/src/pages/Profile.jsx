@@ -50,6 +50,8 @@ const Profile = () => {
     const [historyTotal, setHistoryTotal]     = useState(0);
     const [historyLoading, setHistoryLoading] = useState(true);
 
+    const [quota, setQuota] = useState(null);
+
     const [pwForm, setPwForm]       = useState({ current_password: '', new_password: '', confirm: '' });
     const [pwLoading, setPwLoading] = useState(false);
     const [pwError, setPwError]     = useState('');
@@ -70,6 +72,12 @@ const Profile = () => {
             .finally(() => { if (!cancelled) setHistoryLoading(false); });
         return () => { cancelled = true; };
     }, [historyPage]);
+
+    useEffect(() => {
+        AuthService.getQuota()
+            .then(setQuota)
+            .catch(() => {});
+    }, []);
 
     /* Cleanup: unmount'ta timer iptal */
     useEffect(() => () => { clearTimeout(successTimerRef.current); }, []);
@@ -95,7 +103,7 @@ const Profile = () => {
     if (!user) return null;
 
     const initials   = user.username?.slice(0, 2).toUpperCase() || 'U';
-    const quotaUsed  = Math.min((historyTotal / 20) * 100, 100);
+    const quotaUsed  = quota ? Math.min((quota.used / quota.limit) * 100, 100) : 0;
     /* Analiz sayfasıyla aynı border — dark: rgba(63,255,139,0.2), light: rgba(24,24,27,0.18) */
     const cardBorder = { borderColor: isDarkMode ? 'rgba(63,255,139,0.2)' : 'rgba(24,24,27,0.18)' };
 
@@ -178,7 +186,7 @@ const Profile = () => {
                                              background: 'var(--color-brand-primary)',
                                          }} />
                                 </div>
-                                <p className="text-[10px] text-muted">Günlük kota: {Math.min(historyTotal, 20)}/20</p>
+                                <p className="text-[10px] text-muted">Günlük kota: {quota ? `${quota.used}/${quota.limit}` : '…'}</p>
                             </div>
 
                             <div className="flex justify-between items-center py-3"

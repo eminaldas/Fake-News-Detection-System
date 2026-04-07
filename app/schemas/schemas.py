@@ -129,6 +129,13 @@ class PaginatedAnalysisRequestResponse(BaseModel):
     items: List[AnalysisRequestResponse]
 
 
+class QuotaResponse(BaseModel):
+    used:      int
+    limit:     int
+    remaining: int
+    reset_at:  int   # Unix timestamp (UTC midnight)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Yardımcı
 # ─────────────────────────────────────────────────────────────────────────────

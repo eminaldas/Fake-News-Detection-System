@@ -64,6 +64,11 @@ class AuthService {
         return response.data;
     }
 
+    static async getQuota() {
+        const response = await axiosInstance.get('/users/me/quota');
+        return response.data;
+    }
+
     static logout() {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(REMEMBER_KEY);

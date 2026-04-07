@@ -1,11 +1,17 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, Query
+from redis.asyncio import Redis
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.core.config import settings
+from app.core.rate_limit import _midnight_epoch
+from app.db.redis import get_redis
 from app.db.session import get_db
 from app.models.models import AnalysisRequest, AnalysisResult, Article, User
-from app.schemas.schemas import AnalysisRequestResponse, PaginatedAnalysisRequestResponse
+from app.schemas.schemas import AnalysisRequestResponse, PaginatedAnalysisRequestResponse, QuotaResponse
 
 router = APIRouter()
 
@@ -70,3 +76,21 @@ async def my_history(
         enriched.append(item_data)
 
     return PaginatedAnalysisRequestResponse(total=total, page=page, size=size, items=enriched)
+
+
+@router.get("/me/quota", response_model=QuotaResponse)
+async def my_quota(
+    current_user: User = Depends(get_current_user),
+    redis: Redis = Depends(get_redis),
+):
+    """Kullanıcının bugünkü analiz kota kullanımını döndürür."""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    key   = f"rl:user:{current_user.id}:{today}"
+    count = int(await redis.get(key) or 0)
+    limit = settings.RATE_LIMIT_USER
+    return QuotaResponse(
+        used=count,
+        limit=limit,
+        remaining=max(0, limit - count),
+        reset_at=_midnight_epoch(),
+    )
