@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import NewsService from '../services/news.service';
 import AnalysisService from '../services/analysis.service';
@@ -116,6 +117,27 @@ function FeaturedCard({ article }) {
     const [result,     setResult] = useState(null);
     const [expandOpen, setExpand] = useState(false);
     const intervalRef             = useRef(null);
+    const lsKey                   = article.source_url ? `g_analysis_${article.source_url}` : null;
+
+    /* localStorage restore on mount */
+    useEffect(() => {
+        if (!lsKey) return;
+        try {
+            const raw = localStorage.getItem(lsKey);
+            if (!raw) return;
+            const { result: r, ts } = JSON.parse(raw);
+            if (Date.now() - ts < 86400000) { setResult(r); setPhase('done'); }
+            else localStorage.removeItem(lsKey);
+        } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [lsKey]);
+
+    /* localStorage save on done */
+    useEffect(() => {
+        if (phase === 'done' && result && lsKey) {
+            try { localStorage.setItem(lsKey, JSON.stringify({ result, ts: Date.now() })); } catch {}
+        }
+    }, [phase, result, lsKey]);
 
     useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
 
@@ -296,21 +318,26 @@ function AiSnippet({ result, onExpand }) {
     const color   = isFake ? '#ff7351' : status === 'AUTHENTIC' || status === 'TRUE' ? '#3fff8b' : '#facc15';
     const summary = result?.ai_comment?.summary || 'Detaylı analiz tamamlandı.';
     return (
-        <div className="mb-2 px-2.5 py-2 rounded-lg flex flex-col gap-1"
-             style={{ background: `${color}0d`, borderLeft: `2px solid ${color}66` }}>
-            <div className="flex items-center gap-1" style={{ color }}>
-                <svg className="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+        <div className="mb-2 px-3 py-2.5 rounded-lg flex flex-col gap-1.5"
+             style={{
+                 background: 'rgba(0,0,0,0.55)',
+                 border: `1px solid ${color}55`,
+                 borderLeft: `3px solid ${color}`,
+                 animation: 'gSnippetIn 0.28s cubic-bezier(0.22,1,0.36,1)',
+             }}>
+            <div className="flex items-center gap-1.5" style={{ color }}>
+                <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round"
                           d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"/>
                 </svg>
                 <span className="text-[9px] font-extrabold uppercase tracking-widest" style={{ color }}>
-                    Gemini AI
+                    Gemini AI Analizi
                 </span>
             </div>
-            <p className="text-[10px] text-white/60 leading-relaxed line-clamp-2">{summary}</p>
+            <p className="text-[11px] text-white/80 leading-relaxed line-clamp-2">{summary}</p>
             <button
                 onClick={e => { e.preventDefault(); e.stopPropagation(); onExpand(); }}
-                className="self-end text-[9px] font-extrabold uppercase tracking-wider flex items-center gap-1 transition-opacity hover:opacity-100 opacity-70"
+                className="self-end text-[9px] font-extrabold uppercase tracking-wider flex items-center gap-1 hover:opacity-100 opacity-80 transition-opacity"
                 style={{ color }}
             >
                 Tam analizi gör
@@ -333,26 +360,28 @@ function AnalysisModal({ result, onClose }) {
         };
     }, [onClose]);
 
-    return (
+    return createPortal(
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6"
+            style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(8px)', animation: 'gModalFade 0.18s ease-out' }}
             onClick={onClose}
         >
             <div
                 className="w-full max-w-xl max-h-[88vh] overflow-y-auto rounded-2xl relative"
+                style={{ animation: 'gModalSlide 0.22s cubic-bezier(0.22,1,0.36,1)' }}
                 onClick={e => e.stopPropagation()}
             >
                 <button
                     onClick={onClose}
                     className="absolute top-4 right-4 z-10 text-white/40 hover:text-white transition-colors"
-                    style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '6px', padding: '4px' }}
+                    style={{ background: 'rgba(0,0,0,0.5)', borderRadius: '6px', padding: '4px' }}
                 >
                     <X size={16} />
                 </button>
                 <AnalysisResultCard result={result} />
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 
@@ -367,6 +396,27 @@ function NormalCard({ article, tall = false }) {
     const [result,     setResult] = useState(null);
     const [expandOpen, setExpand] = useState(false);
     const intervalRef             = useRef(null);
+    const lsKey                   = article.source_url ? `g_analysis_${article.source_url}` : null;
+
+    /* localStorage restore on mount */
+    useEffect(() => {
+        if (!lsKey) return;
+        try {
+            const raw = localStorage.getItem(lsKey);
+            if (!raw) return;
+            const { result: r, ts } = JSON.parse(raw);
+            if (Date.now() - ts < 86400000) { setResult(r); setPhase('done'); }
+            else localStorage.removeItem(lsKey);
+        } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [lsKey]);
+
+    /* localStorage save on done */
+    useEffect(() => {
+        if (phase === 'done' && result && lsKey) {
+            try { localStorage.setItem(lsKey, JSON.stringify({ result, ts: Date.now() })); } catch {}
+        }
+    }, [phase, result, lsKey]);
 
     useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
 
@@ -596,6 +646,11 @@ export default function Gundem() {
 
     return (
         <div className="max-w-6xl mx-auto px-4 pt-10 pb-16">
+        <style>{`
+            @keyframes gModalFade  { from { opacity:0 } to { opacity:1 } }
+            @keyframes gModalSlide { from { opacity:0; transform:translateY(22px) scale(0.96) } to { opacity:1; transform:translateY(0) scale(1) } }
+            @keyframes gSnippetIn  { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }
+        `}</style>
 
             {/* ── Yeni haber banner ── */}
             {newCount > 0 && (
