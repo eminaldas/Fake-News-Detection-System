@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.core.audit import audit_log, check_credential_stuffing, update_ip_history
 from app.core.rate_limit import check_login_limit, clear_login_limit, record_failed_login
 from app.core.security import (
     create_access_token,
@@ -56,6 +57,20 @@ async def login(
             ip_hash=hash_ip(ip),
             reason="invalid_credentials",
         )
+        is_stuffing = await check_credential_stuffing(redis, ip)
+        crit_sev    = "CRITICAL" if is_stuffing else "WARNING"
+        await audit_log(
+            redis, "SECURITY", "auth.login_failed",
+            ip=ip,
+            severity=crit_sev,
+            details={"reason": "invalid_credentials", "credential_stuffing": is_stuffing},
+        )
+        if is_stuffing:
+            await audit_log(
+                redis, "SECURITY", "security.credential_stuffing_detected",
+                ip=ip, severity="CRITICAL",
+                details={"subnet": ".".join(ip.split(".")[:3])},
+            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=_GENERIC_AUTH_ERROR,
@@ -91,6 +106,18 @@ async def login(
     await db.commit()
 
     log.info("user.login.success", user_id=str(user.id), ip_hash=hash_ip(ip), remember_me=remember_me_param)
+    is_new_ip = await update_ip_history(redis, str(user.id), ip)
+    if is_new_ip:
+        await audit_log(
+            redis, "SECURITY", "security.geo_anomaly",
+            ip=ip, user_id=str(user.id), severity="WARNING",
+            details={"first_seen_ip": True},
+        )
+    await audit_log(
+        redis, "SECURITY", "auth.login_success",
+        ip=ip, user_id=str(user.id), severity="INFO",
+        details={"remember_me": remember_me_param},
+    )
 
     return TokenResponse(access_token=token, token_type="bearer", expires_in=expires_in)
 
