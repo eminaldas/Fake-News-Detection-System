@@ -32,9 +32,10 @@ class TokenResponse(BaseModel):
 
 
 class RegisterRequest(BaseModel):
-    email:    str = Field(..., max_length=255)
-    username: str = Field(..., min_length=3, max_length=50)
-    password: str = Field(..., min_length=8)
+    email:     str       = Field(..., max_length=255)
+    username:  str       = Field(..., min_length=3, max_length=50)
+    password:  str       = Field(..., min_length=8)
+    interests: List[str] = Field(default_factory=list, description="Seçilen kategori listesi")
 
     @field_validator("email")
     @classmethod

@@ -40,6 +40,16 @@ const InputWrap = ({ children, hasError, hasSuccess }) => {
     );
 };
 
+const INTEREST_OPTIONS = [
+    { value: 'gündem',    label: '📰 Gündem' },
+    { value: 'ekonomi',   label: '📈 Ekonomi' },
+    { value: 'spor',      label: '⚽ Spor' },
+    { value: 'sağlık',    label: '🏥 Sağlık' },
+    { value: 'teknoloji', label: '💻 Teknoloji' },
+    { value: 'kültür',    label: '🎭 Kültür' },
+    { value: 'yaşam',     label: '🌱 Yaşam' },
+];
+
 /* ─── Register ───────────────────────────────────────────────────── */
 const Register = () => {
     const [email, setEmail]               = useState('');
@@ -52,6 +62,8 @@ const Register = () => {
     const [error, setError]               = useState('');
     const [success, setSuccess]           = useState(false);
     const [pwTouched, setPwTouched]       = useState(false);
+    const [step, setStep]                 = useState(1);
+    const [interests, setInterests]       = useState([]);
 
     const { register }   = useAuth();
     const { isDarkMode } = useTheme();
@@ -61,20 +73,32 @@ const Register = () => {
     const allPassed      = ruleResults.every(r => r.passed);
     const passwordsMatch = confirm.length > 0 && password === confirm;
 
-    const handleRegister = async (e) => {
+    const handleStep1 = (e) => {
         e.preventDefault();
         setError('');
         if (!allPassed)           { setError('Şifre gereksinimlerini karşılamıyor.'); return; }
         if (password !== confirm) { setError('Şifreler eşleşmiyor.'); return; }
+        setStep(2);
+    };
+
+    const handleRegister = async (e) => {
+        e.preventDefault();
         setLoading(true);
-        const result = await register(email, username, password);
+        const result = await register(email, username, password, interests);
         if (result.success) {
             setSuccess(true);
             setTimeout(() => navigate('/login'), 2500);
         } else {
             setError(result.error || 'Kayıt sırasında bir hata oluştu.');
+            setStep(1);
             setLoading(false);
         }
+    };
+
+    const toggleInterest = (val) => {
+        setInterests(prev =>
+            prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]
+        );
     };
 
     return (
@@ -178,8 +202,9 @@ const Register = () => {
                                     <p className="text-sm text-tx-secondary font-inter">Giriş sayfasına yönlendiriliyorsunuz…</p>
                                 </div>
                             ) : (
-                                <form className="space-y-4" onSubmit={handleRegister} autoComplete="on">
+                                <form className="space-y-4" onSubmit={step === 1 ? handleStep1 : handleRegister} autoComplete="on">
 
+                                {step === 1 && (<>
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-manrope font-black uppercase tracking-[0.18em] text-tx-secondary">Email</label>
                                         <InputWrap>
@@ -273,8 +298,44 @@ const Register = () => {
                                             }}>
                                         {loading
                                             ? <Loader2 className="w-4 h-4 animate-spin"/>
-                                            : <><span>Hesap Oluştur</span><ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform"/></>}
+                                            : <><span>Devam Et</span><ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform"/></>}
                                     </button>
+                                </>)}
+
+                                {step === 2 && (
+                                    <div className="space-y-4 animate-fade-up">
+                                        <p className="text-sm text-tx-secondary text-center">
+                                            İlgi alanlarını seç — öneriler buna göre kişiselleşir. Atlamak için direkt devam edebilirsin.
+                                        </p>
+                                        <div className="flex flex-wrap gap-2 justify-center">
+                                            {INTEREST_OPTIONS.map(opt => (
+                                                <button
+                                                    key={opt.value}
+                                                    type="button"
+                                                    onClick={() => toggleInterest(opt.value)}
+                                                    className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-200 ${
+                                                        interests.includes(opt.value)
+                                                            ? 'bg-brand text-surface border-brand'
+                                                            : 'border-brutal-border text-tx-secondary hover:border-brand'
+                                                    }`}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <button type="button" onClick={() => setStep(1)}
+                                                className="flex-1 py-2 rounded-xl border border-brutal-border text-tx-secondary text-sm hover:bg-base transition-colors">
+                                                Geri
+                                            </button>
+                                            <button type="submit" disabled={loading}
+                                                className="flex-1 py-2 rounded-xl text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+                                                style={{ background: 'var(--color-brand-primary)', color: isDarkMode ? '#070f12' : '#ffffff' }}>
+                                                {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Kaydı Tamamla'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                                 </form>
                             )}
                         </div>

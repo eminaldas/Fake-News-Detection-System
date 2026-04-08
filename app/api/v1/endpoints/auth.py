@@ -156,6 +156,19 @@ async def register(
     await db.commit()
     await db.refresh(user)
 
+    # İlgi alanı beyanı varsa preference profili oluştur
+    if body.interests:
+        from app.models.models import UserPreferenceProfile
+        weights = {cat: 1.0 for cat in body.interests}
+        profile = UserPreferenceProfile(
+            user_id            = user.id,
+            declared_interests = weights,
+            category_weights   = weights,
+            interaction_count  = 0,
+        )
+        db.add(profile)
+        await db.commit()
+
     log.info("user.register", username=body.username, ip_hash=hash_ip(ip))
 
     return user
