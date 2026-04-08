@@ -4,7 +4,9 @@ import { X } from 'lucide-react';
 import NewsService from '../services/news.service';
 import AnalysisService from '../services/analysis.service';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import AnalysisResultCard from '../features/analysis/AnalysisResultCard';
+import { trackInteraction } from '../services/interaction.service';
 
 const CATEGORIES = [
     { label: 'Tümü',      value: null,       hot: false },
@@ -244,7 +246,14 @@ function FeaturedCard({ article }) {
     return (
         <>
             {article.source_url ? (
-                <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="block">{inner}</a>
+                <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="block"
+                   onClick={() => trackInteraction({
+                       content_id:        article.id,
+                       interaction_type:  'click',
+                       category:          article.category,
+                       source_domain:     (() => { try { return new URL(article.source_url).hostname; } catch { return null; } })(),
+                       nlp_score_at_time: article.nlp_score,
+                   })}>{inner}</a>
             ) : inner}
             {expandOpen && result && (
                 <AnalysisModal result={result} onClose={() => setExpand(false)} />
@@ -523,7 +532,14 @@ function NormalCard({ article, tall = false }) {
     return (
         <>
             {article.source_url ? (
-                <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="block">{inner}</a>
+                <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="block"
+                   onClick={() => trackInteraction({
+                       content_id:        article.id,
+                       interaction_type:  'click',
+                       category:          article.category,
+                       source_domain:     (() => { try { return new URL(article.source_url).hostname; } catch { return null; } })(),
+                       nlp_score_at_time: article.nlp_score,
+                   })}>{inner}</a>
             ) : inner}
             {expandOpen && result && (
                 <AnalysisModal result={result} onClose={() => setExpand(false)} />
@@ -696,7 +712,16 @@ export default function Gundem() {
                             return (
                                 <button
                                     key={c.label}
-                                    onClick={() => handleCategory(c.value)}
+                                    onClick={() => {
+                                        handleCategory(c.value);
+                                        if (c.value) {
+                                            trackInteraction({
+                                                content_id:       null,
+                                                interaction_type: 'filter_used',
+                                                category:         c.value,
+                                            });
+                                        }
+                                    }}
                                     className="relative px-4 py-2.5 text-sm font-bold cursor-pointer transition-all duration-200 whitespace-nowrap"
                                     style={{
                                         background:   isActive ? 'var(--color-brand-primary)' : 'transparent',
