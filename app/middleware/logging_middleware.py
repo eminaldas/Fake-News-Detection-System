@@ -28,9 +28,10 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
         try:
             redis = await get_redis()
+            event_type = "SECURITY" if response.status_code in {401, 403, 429} else "USER_ACTION"
             await audit_log(
                 redis=redis,
-                event_type="USER_ACTION",
+                event_type=event_type,
                 event_name=f"http.{request.method.lower()}",
                 ip=ip,
                 path=str(request.url.path),
