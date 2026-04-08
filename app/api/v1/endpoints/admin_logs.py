@@ -9,6 +9,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
+from redis.asyncio import Redis
 from sqlalchemy import func, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -87,7 +88,7 @@ async def get_security_logs(
 @router.get("/logs/alerts")
 async def get_alerts(
     _admin: User = Depends(require_admin),
-    redis=Depends(get_redis),
+    redis: Redis = Depends(get_redis),
 ):
     """Redis'teki aktif CRITICAL alert'leri döner (max 50, en yeni önce)."""
     raw_pairs = await redis.zrevrange(ALERTS_KEY, 0, 49, withscores=True)
@@ -95,7 +96,7 @@ async def get_alerts(
     for event_json, score in raw_pairs:
         try:
             alerts.append({**json.loads(event_json), "alert_ts": score})
-        except Exception:
+        except json.JSONDecodeError:
             pass
     return {"alerts": alerts}
 
