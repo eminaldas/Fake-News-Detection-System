@@ -6,6 +6,7 @@ import {
 import SignalPanel from './SignalPanel';
 import HighlightedText from './HighlightedText';
 import AICommentCard from './AICommentCard';
+import FeedbackBar from './FeedbackBar';
 import { DISPLAY_THRESHOLD } from './signalConfig';
 
 /* ─── Sinyal açıklaması ────────────────────────────────────────────── */
@@ -311,6 +312,7 @@ const AnalysisResultCard = ({ result }) => {
                 </div>
             </div>
         </div>
+        <FeedbackBar result={result} />
     );
 };
 
