@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.endpoints import admin, analysis, articles, auth, market, news, users
 from app.core.logging import get_logger, setup_logging
 from app.db.redis import close_redis
+from app.middleware.logging_middleware import LoggingMiddleware
 
 setup_logging()
 log = get_logger(__name__)
@@ -32,6 +33,7 @@ ALLOWED_ORIGINS = [
     "http://localhost",
 ]
 
+app.add_middleware(LoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
