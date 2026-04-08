@@ -69,7 +69,7 @@ async def login(
             await audit_log(
                 redis, "SECURITY", "security.credential_stuffing_detected",
                 ip=ip, severity="CRITICAL",
-                details={"subnet": ".".join(ip.split(".")[:3])},
+                details={"subnet_hash": hash_ip(".".join(ip.split(".")[:3]))},
             )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -79,6 +79,11 @@ async def login(
 
     if not user.is_active:
         log.warning("user.login.failed", ip_hash=hash_ip(ip), reason="inactive_account")
+        await audit_log(
+            redis, "SECURITY", "auth.login_failed",
+            ip=ip, severity="WARNING",
+            details={"reason": "inactive_account"},
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=_GENERIC_AUTH_ERROR,
