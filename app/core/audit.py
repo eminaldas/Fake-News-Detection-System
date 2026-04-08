@@ -78,7 +78,7 @@ async def audit_log(
 
 async def check_credential_stuffing(redis: Redis, ip: str) -> bool:
     """
-    Aynı /24 subnet'ten 10 dakika içinde >20 farklı hesap denemesi → True.
+    Aynı /24 subnet'ten 10 dakika içinde >20 istek → True.
     """
     ip_prefix = ".".join(ip.split(".")[:3]) if "." in ip else ip[:8]
     window    = int(time.time()) // 600        # 10 dakikalık pencere
@@ -110,6 +110,7 @@ async def update_ip_history(redis: Redis, user_id: str, ip: str) -> bool:
     key     = f"user:ip_history:{user_id}"
     is_new  = not bool(await redis.sismember(key, ip_hash))
     await redis.sadd(key, ip_hash)
+    await redis.expire(key, 30 * 86_400)  # 30 gün TTL
     members = await redis.smembers(key)
     if len(members) > 10:
         excess = list(members)[10:]
