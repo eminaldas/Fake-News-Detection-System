@@ -18,6 +18,7 @@ from celery import Celery
 from app.core.config import settings
 from scrapers.rss_monitor import run_agent_cycle, get_vectorizer
 from scripts.scrape_rss_bulk import ingest_rss_sources
+from workers.audit_flush_task import flush_audit_buffer
 
 logger = logging.getLogger("NewsAgent.Beat")
 
@@ -51,6 +52,10 @@ celery_app.conf.beat_schedule = {
     "ingest-trusted-rss-daily": {
         "task": "workers.agent_tasks.ingest_trusted_rss",
         "schedule": 86400,  # 24 saat (saniye cinsinden)
+    },
+    "flush-audit-buffer-every-5s": {
+        "task": "workers.agent_tasks.run_audit_flush",
+        "schedule": 5,
     },
 }
 
@@ -94,3 +99,9 @@ def ingest_trusted_rss(self):
     except Exception as exc:
         logger.exception("RSS ingest başarısız: %s", exc)
         raise self.retry(exc=exc, countdown=300)  # 5dk sonra tekrar dene
+
+
+@celery_app.task(name="workers.agent_tasks.run_audit_flush")
+def run_audit_flush() -> None:
+    """Redis audit buffer'ını PostgreSQL'e flush eder."""
+    flush_audit_buffer()
