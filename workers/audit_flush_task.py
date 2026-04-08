@@ -13,10 +13,10 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
+from app.core.audit import BUFFER_KEY
 from app.core.config import settings
 
 logger     = logging.getLogger(__name__)
-BUFFER_KEY = "audit:buffer"
 BATCH_SIZE = 500
 
 
@@ -43,36 +43,37 @@ async def _flush_async() -> None:
         if not raw_events:
             return
 
-        engine         = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
-        async_session  = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        engine        = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
+        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
-        logs = []
-        for raw in raw_events:
-            try:
-                data    = json.loads(raw)
-                uid_str = data.get("user_id")
-                logs.append(AuditLog(
-                    event_type      = data.get("event_type",  "SYSTEM"),
-                    event_name      = data.get("event_name",  "unknown"),
-                    user_id         = _uuid.UUID(uid_str) if uid_str else None,
-                    ip_hash         = data.get("ip_hash",     ""),
-                    session_id      = data.get("session_id"),
-                    path            = data.get("path"),
-                    http_method     = data.get("http_method"),
-                    status_code     = data.get("status_code"),
-                    process_time_ms = data.get("process_time_ms"),
-                    severity        = data.get("severity",    "INFO"),
-                    details         = data.get("details",     {}),
-                ))
-            except Exception as exc:
-                logger.warning("audit flush: bad event skipped: %s", exc)
+        try:
+            logs = []
+            for raw in raw_events:
+                try:
+                    data    = json.loads(raw)
+                    uid_str = data.get("user_id")
+                    logs.append(AuditLog(
+                        event_type      = data.get("event_type",  "SYSTEM"),
+                        event_name      = data.get("event_name",  "unknown"),
+                        user_id         = _uuid.UUID(uid_str) if uid_str else None,
+                        ip_hash         = data.get("ip_hash",     ""),
+                        session_id      = data.get("session_id"),
+                        path            = data.get("path"),
+                        http_method     = data.get("http_method"),
+                        status_code     = data.get("status_code"),
+                        process_time_ms = data.get("process_time_ms"),
+                        severity        = data.get("severity",    "INFO"),
+                        details         = data.get("details",     {}),
+                    ))
+                except Exception as exc:
+                    logger.warning("audit flush: bad event skipped: %s", exc)
 
-        if logs:
-            async with async_session() as session:
-                session.add_all(logs)
-                await session.commit()
-            logger.info("audit flush: %d events → PostgreSQL", len(logs))
-
-        await engine.dispose()
+            if logs:
+                async with async_session() as session:
+                    session.add_all(logs)
+                    await session.commit()
+                logger.info("audit flush: %d events → PostgreSQL", len(logs))
+        finally:
+            await engine.dispose()
     finally:
         await redis.aclose()
