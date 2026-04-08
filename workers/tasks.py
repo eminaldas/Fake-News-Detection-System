@@ -249,7 +249,10 @@ from workers.image_analysis_task import analyze_image as _analyze_image_task  # 
 # ─────────────────────────────────────────────────────────────────────────────
 # Audit flush task + beat schedule
 # ─────────────────────────────────────────────────────────────────────────────
+from celery.schedules import crontab
 from workers.audit_flush_task import flush_audit_buffer as _flush_audit_buffer  # noqa: F401
+from workers.preference_updater import update_preference_profiles as _update_prefs
+from workers.similarity_cache import build_similarity_cache as _build_sim_cache
 
 
 @celery_app.task(name="workers.tasks.flush_audit_buffer")
@@ -257,9 +260,27 @@ def flush_audit_buffer_task() -> None:
     _flush_audit_buffer()
 
 
+@celery_app.task(name="workers.tasks.update_preference_profiles")
+def update_preference_profiles_task() -> None:
+    _update_prefs()
+
+
+@celery_app.task(name="workers.tasks.build_similarity_cache")
+def build_similarity_cache_task() -> None:
+    _build_sim_cache()
+
+
 celery_app.conf.beat_schedule = {
     "flush-audit-buffer-every-5s": {
         "task": "workers.tasks.flush_audit_buffer",
         "schedule": 5.0,
+    },
+    "update-preference-profiles-nightly": {
+        "task":     "workers.tasks.update_preference_profiles",
+        "schedule": crontab(hour=2, minute=0),
+    },
+    "build-similarity-cache-daily": {
+        "task":     "workers.tasks.build_similarity_cache",
+        "schedule": crontab(hour=3, minute=0),
     },
 }
