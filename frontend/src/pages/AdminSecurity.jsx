@@ -31,7 +31,9 @@ const AdminSecurity = () => {
         try {
             const res = await axiosInstance.get('/admin/logs/alerts');
             setAlerts(res.data.alerts || []);
-        } catch { /* sessizce geç */ }
+        } catch (err) {
+            console.error('Alerts yüklenemedi:', err.message);
+        }
     }, []);
 
     const fetchEvents = useCallback(async () => {
@@ -172,7 +174,7 @@ const AdminSecurity = () => {
                             {page} / {totalPages || 1}
                         </span>
                         <button
-                            disabled={page >= totalPages}
+                            disabled={page * PAGE_SIZE >= total}
                             onClick={() => setPage((p) => p + 1)}
                             className="flex items-center gap-1 text-sm text-app-charcoal opacity-60 hover:opacity-100 disabled:opacity-20 transition-opacity"
                         >
