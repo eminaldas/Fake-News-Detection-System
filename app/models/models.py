@@ -3,7 +3,7 @@ import enum
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
-    Boolean, Column, DateTime, Enum, Float, ForeignKey,
+    Boolean, CheckConstraint, Column, DateTime, Enum, Float, ForeignKey,
     Integer, String, Text, func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -147,3 +147,14 @@ class AuditLog(Base):
     severity        = Column(String(20),  nullable=False, server_default="INFO")
     details         = Column(JSONB,       nullable=True)
     created_at      = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            "event_type IN ('SECURITY','USER_ACTION','SYSTEM')",
+            name="ck_audit_event_type",
+        ),
+        CheckConstraint(
+            "severity IN ('INFO','WARNING','CRITICAL')",
+            name="ck_audit_severity",
+        ),
+    )
