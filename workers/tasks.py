@@ -244,3 +244,22 @@ def analyze_article(content_id: str, text: str, news_evidence: str = None) -> di
 
 # Görsel analiz task'ını kaydet — worker startup'ta keşfedilsin
 from workers.image_analysis_task import analyze_image as _analyze_image_task  # noqa: F401
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Audit flush task + beat schedule
+# ─────────────────────────────────────────────────────────────────────────────
+from workers.audit_flush_task import flush_audit_buffer as _flush_audit_buffer  # noqa: F401
+
+
+@celery_app.task(name="workers.tasks.flush_audit_buffer")
+def flush_audit_buffer_task() -> None:
+    _flush_audit_buffer()
+
+
+celery_app.conf.beat_schedule = {
+    "flush-audit-buffer-every-5s": {
+        "task": "workers.tasks.flush_audit_buffer",
+        "schedule": 5.0,
+    },
+}
