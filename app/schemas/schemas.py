@@ -254,3 +254,51 @@ class NewsListResponse(BaseModel):
     items: List[NewsArticleResponse]
     total: int
     page:  int
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Interactions (Kullanıcı Davranış Takibi)
+# ─────────────────────────────────────────────────────────────────────────────
+
+import uuid as _uuid
+
+
+class InteractionTrackRequest(BaseModel):
+    content_id:        Optional[str]   = Field(None, description="NewsArticle UUID")
+    interaction_type:  str             = Field(..., description="click|feedback_positive|feedback_negative|filter_used|impression")
+    category:          Optional[str]   = None
+    source_domain:     Optional[str]   = None
+    nlp_score_at_time: Optional[float] = Field(None, ge=0.0, le=1.0)
+    visibility_weight: float           = Field(1.0, ge=0.0, le=1.0)
+    details:           Optional[dict]  = None
+
+    @field_validator("interaction_type")
+    @classmethod
+    def validate_type(cls, v: str) -> str:
+        allowed = {"click", "feedback_positive", "feedback_negative", "filter_used", "impression"}
+        if v not in allowed:
+            raise ValueError(f"interaction_type must be one of {allowed}")
+        return v
+
+    @field_validator("content_id")
+    @classmethod
+    def validate_uuid(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        try:
+            _uuid.UUID(v)
+        except ValueError:
+            raise ValueError("content_id must be a valid UUID")
+        return v
+
+    @field_validator("details")
+    @classmethod
+    def sanitize_details(cls, v: Optional[dict]) -> Optional[dict]:
+        """Yalnızca sayısal, bool, None değerlere izin ver — serbest metin yasak."""
+        if v is None:
+            return v
+        clean = {}
+        for k, val in v.items():
+            if isinstance(val, (int, float, bool)) or val is None:
+                clean[k] = val
+        return clean or None
