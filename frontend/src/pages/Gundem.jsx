@@ -3,9 +3,11 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import NewsService from '../services/news.service';
 import AnalysisService from '../services/analysis.service';
+import axiosInstance from '../api/axios';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import AnalysisResultCard from '../features/analysis/AnalysisResultCard';
+import RecommendationPanel from '../features/recommendations/RecommendationPanel';
 import { trackInteraction } from '../services/interaction.service';
 
 const CATEGORIES = [
@@ -579,7 +581,11 @@ const SIZE = 20;
 const POLL_INTERVAL = 3 * 60 * 1000;
 
 export default function Gundem() {
-    const { isDarkMode } = useTheme();
+    const { isDarkMode }           = useTheme();
+    const { isAuthenticated }      = useAuth();
+    const [forYou, setForYou]      = useState(false);
+    const [recItems, setRecItems]  = useState([]);
+    const [recLoading, setRecLoading] = useState(false);
 
     const [articles, setArticles] = useState([]);
     const [total, setTotal]       = useState(0);
@@ -766,6 +772,40 @@ export default function Gundem() {
                     />
                 </div>
             </div>
+
+            {/* ── Sizin için toggle ── */}
+            {isAuthenticated && (
+                <div className="mb-4">
+                    <button
+                        onClick={() => {
+                            const next = !forYou;
+                            setForYou(next);
+                            if (next && recItems.length === 0) {
+                                setRecLoading(true);
+                                axiosInstance.get('/recommendations/?context=feed&limit=10')
+                                    .then(r => setRecItems(r.data.items || []))
+                                    .catch(() => {})
+                                    .finally(() => setRecLoading(false));
+                            }
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                            forYou
+                                ? 'bg-brand text-surface border-brand'
+                                : 'border-brutal-border text-tx-secondary hover:border-brand'
+                        }`}
+                    >
+                        ✨ Sizin için
+                    </button>
+                    {forYou && recLoading && (
+                        <div className="mt-3 space-y-2">
+                            {[1,2,3].map(i => <div key={i} className="h-10 rounded-lg bg-base animate-pulse" />)}
+                        </div>
+                    )}
+                    {forYou && !recLoading && recItems.length > 0 && (
+                        <RecommendationPanel context="feed" title="Sizin için Seçilenler" />
+                    )}
+                </div>
+            )}
 
             {/* ── Tarih filtresi aktifse temizle butonu ── */}
             {(dateFrom || dateTo) && (

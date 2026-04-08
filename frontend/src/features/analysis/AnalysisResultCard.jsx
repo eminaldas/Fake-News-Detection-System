@@ -7,6 +7,7 @@ import SignalPanel from './SignalPanel';
 import HighlightedText from './HighlightedText';
 import AICommentCard from './AICommentCard';
 import FeedbackBar from './FeedbackBar';
+import RecommendationPanel from '../recommendations/RecommendationPanel';
 import { DISPLAY_THRESHOLD } from './signalConfig';
 
 /* ─── Sinyal açıklaması ────────────────────────────────────────────── */
@@ -313,6 +314,7 @@ const AnalysisResultCard = ({ result }) => {
             </div>
         </div>
         <FeedbackBar result={result} />
+        <RecommendationPanel context="post_analysis" title="İlgili Haberler" />
     );
 };
 
