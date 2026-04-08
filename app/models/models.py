@@ -129,3 +129,21 @@ class NewsArticle(Base):
     nlp_signals  = Column(JSONB,   nullable=True)        # {title:{...}, content:{...}}
     content_type = Column(JSONB,   nullable=True)        # ["claim","clickbait"] vb.
     created_at   = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id              = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    event_type      = Column(String(50),  nullable=False)
+    event_name      = Column(String(100), nullable=False, index=True)
+    user_id         = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    ip_hash         = Column(String(64),  nullable=False, index=True)
+    session_id      = Column(String(128), nullable=True)
+    path            = Column(String(255), nullable=True)
+    http_method     = Column(String(10),  nullable=True)
+    status_code     = Column(Integer,     nullable=True)
+    process_time_ms = Column(Float,       nullable=True)
+    severity        = Column(String(20),  nullable=False, server_default="INFO")
+    details         = Column(JSONB,       nullable=True)
+    created_at      = Column(DateTime(timezone=True), server_default=func.now(), index=True)
