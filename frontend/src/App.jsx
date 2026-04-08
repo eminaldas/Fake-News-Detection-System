@@ -11,6 +11,7 @@ import Register from './pages/Register';
 import Profile from './pages/Profile';
 import AdminUsers from './pages/AdminUsers';
 import AdminSecurity from './pages/AdminSecurity';
+import AdminAnalytics from './pages/AdminAnalytics';
 import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 import About from './pages/About';
@@ -44,6 +45,9 @@ function App() {
                             } />
                             <Route path="admin/security" element={
                                 <RequireAuth><AdminSecurity /></RequireAuth>
+                            } />
+                            <Route path="admin/analytics" element={
+                                <RequireAuth><AdminAnalytics /></RequireAuth>
                             } />
 
                             <Route path="*" element={<NotFound />} />
