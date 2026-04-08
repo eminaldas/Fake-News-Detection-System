@@ -3,9 +3,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1.endpoints import admin, analysis, articles, auth, market, news, users
+from app.api.v1.endpoints import admin, admin_logs, analysis, articles, auth, market, news, users
 from app.core.logging import get_logger, setup_logging
 from app.db.redis import close_redis
+from app.middleware.logging_middleware import LoggingMiddleware
 
 setup_logging()
 log = get_logger(__name__)
@@ -32,6 +33,7 @@ ALLOWED_ORIGINS = [
     "http://localhost",
 ]
 
+app.add_middleware(LoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -63,6 +65,7 @@ app.include_router(analysis.router, prefix="/api/v1/analysis",tags=["Analysis"])
 app.include_router(articles.router, prefix="/api/v1/articles",tags=["Articles"])
 app.include_router(users.router,    prefix="/api/v1/users",   tags=["Users"])
 app.include_router(admin.router,    prefix="/api/v1/admin",   tags=["Admin"])
+app.include_router(admin_logs.router, prefix="/api/v1/admin", tags=["Admin Logs"])
 app.include_router(market.router,   prefix="/api/v1/market",  tags=["Market"])
 app.include_router(news.router,     prefix="/api/v1/news",    tags=["News"])
 

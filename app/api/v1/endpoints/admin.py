@@ -1,11 +1,13 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_admin
+from app.core.audit import audit_log
 from app.core.logging import get_logger
+from app.db.redis import get_redis
 from app.db.session import get_db
 from app.models.models import User, UserRole
 from app.schemas.schemas import AdminUpdateUserRequest, PaginatedUserResponse, UserResponse
@@ -35,8 +37,10 @@ async def list_users(
 async def update_user(
     user_id: UUID,
     body: AdminUpdateUserRequest,
+    request: Request,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
 ):
     user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
     if user is None:
@@ -75,14 +79,22 @@ async def update_user(
 
     await db.commit()
     await db.refresh(user)
+    await audit_log(
+        redis, "USER_ACTION", "admin.action",
+        ip=request.client.host if request.client else "unknown",
+        user_id=str(admin.id), severity="INFO",
+        details={"action": "update_user", "target_user_id": str(user_id), "changes": body.model_dump(exclude_none=True)},
+    )
     return user
 
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
     user_id: UUID,
+    request: Request,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
 ):
     if user_id == admin.id:
         raise HTTPException(status_code=400, detail="Kendi hesabınızı silemezsiniz")
@@ -105,3 +117,9 @@ async def delete_user(
     await db.delete(user)
     await db.commit()
     log.info("user.deleted", user_id=str(user_id), by_admin_id=str(admin.id))
+    await audit_log(
+        redis, "USER_ACTION", "admin.action",
+        ip=request.client.host if request.client else "unknown",
+        user_id=str(admin.id), severity="WARNING",
+        details={"action": "delete_user", "target_user_id": str(user_id)},
+    )
