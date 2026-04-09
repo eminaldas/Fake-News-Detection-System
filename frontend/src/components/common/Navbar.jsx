@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Moon, Sun, Menu, X } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWebSocket } from '../../contexts/WebSocketContext';
 import logo from '../../assets/images/emrald.png';
 import logoDark from '../../assets/images/logoDark.png';
 
@@ -20,6 +21,16 @@ const Navbar = () => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const isActive = (path) => location.pathname === path;
+    const { subscribe } = useWebSocket();
+
+    // TODO (Faz 4-5): bildirim bell ikonu eklenince bu stub'ı tam implementasyonla değiştir
+    useEffect(() => {
+        const unsub = subscribe('new_notification', (payload) => {
+            // Faz 4-5 tamamlandığında: setNotifUnread(payload.unread_count ?? prev + 1)
+            console.debug('[WS] new_notification:', payload);
+        });
+        return unsub;
+    }, [subscribe]);
 
     useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
