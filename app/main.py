@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1.endpoints import admin, admin_logs, analysis, articles, auth, insights, interactions, market, news, recommendations, users
+from app.api.v1.endpoints import admin, admin_logs, analysis, articles, auth, insights, interactions, market, news, notifications, recommendations, users
 from app.core.logging import get_logger, setup_logging
 from app.db.redis import close_redis
 from app.middleware.logging_middleware import LoggingMiddleware
@@ -71,6 +71,7 @@ app.include_router(news.router,     prefix="/api/v1/news",    tags=["News"])
 app.include_router(interactions.router,    prefix="/api/v1/interactions",   tags=["Interactions"])
 app.include_router(recommendations.router, prefix="/api/v1/recommendations", tags=["Recommendations"])
 app.include_router(insights.router,        prefix="/api/v1/insights",        tags=["Insights"])
+app.include_router(notifications.router,   prefix="/api/v1/notifications",   tags=["Notifications"])
 
 
 @app.get("/health", tags=["Health"])

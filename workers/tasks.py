@@ -253,6 +253,7 @@ from celery.schedules import crontab
 from workers.audit_flush_task import flush_audit_buffer as _flush_audit_buffer  # noqa: F401
 from workers.preference_updater import update_preference_profiles as _update_prefs
 from workers.similarity_cache import build_similarity_cache as _build_sim_cache
+from workers.digest_task import run_weekly_digest as _run_weekly_digest
 
 
 @celery_app.task(name="workers.tasks.flush_audit_buffer")
@@ -270,6 +271,12 @@ def build_similarity_cache_task() -> None:
     _build_sim_cache()
 
 
+@celery_app.task(name="workers.tasks.weekly_digest")
+def weekly_digest_task() -> dict:
+    sent = _run_weekly_digest()
+    return {"sent": sent}
+
+
 celery_app.conf.beat_schedule = {
     "flush-audit-buffer-every-5s": {
         "task": "workers.tasks.flush_audit_buffer",
@@ -282,5 +289,9 @@ celery_app.conf.beat_schedule = {
     "build-similarity-cache-daily": {
         "task":     "workers.tasks.build_similarity_cache",
         "schedule": crontab(hour=3, minute=0),
+    },
+    "weekly-digest-monday-morning": {
+        "task":     "workers.tasks.weekly_digest",
+        "schedule": crontab(hour=8, minute=0, day_of_week=1),
     },
 }

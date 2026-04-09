@@ -194,6 +194,8 @@ class UserPreferenceProfile(Base):
     preferred_sources  = Column(JSONB, default=list)
     declared_interests = Column(JSONB, default=dict)
     interaction_count  = Column(Integer, default=0)
+    blocked_sources    = Column(JSONB, default=list)
+    hidden_categories  = Column(JSONB, default=list)
     last_updated       = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
@@ -203,3 +205,28 @@ class ContentSimilarityCache(Base):
     content_id   = Column(UUID(as_uuid=True), ForeignKey("news_articles.id", ondelete="CASCADE"), primary_key=True)
     similar_ids  = Column(JSONB, nullable=False)
     computed_at  = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class UserNotificationPrefs(Base):
+    __tablename__ = "user_notification_prefs"
+
+    user_id         = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    high_risk_alert = Column(Boolean, nullable=False, default=True)
+    email_digest    = Column(Boolean, nullable=False, default=False)
+    updated_at      = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class UserNotification(Base):
+    __tablename__ = "user_notifications"
+
+    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title      = Column(String(255), nullable=False)
+    body       = Column(Text, nullable=True)
+    link_url   = Column(Text, nullable=True)
+    is_read    = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_un_user_created", "user_id", "created_at"),
+    )

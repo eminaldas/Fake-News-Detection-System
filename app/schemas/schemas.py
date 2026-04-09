@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
 
 from app.models.models import UserRole
 
@@ -304,3 +304,55 @@ class InteractionTrackRequest(BaseModel):
             if isinstance(val, (int, float, bool)) or val is None:
                 clean[k] = val
         return clean or None
+
+
+# ── Faz 4: Bildirimler ────────────────────────────────────────────────────────
+
+class NotificationPrefsResponse(BaseModel):
+    high_risk_alert: bool
+    email_digest:    bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class NotificationPrefsUpdate(BaseModel):
+    high_risk_alert: Optional[bool] = None
+    email_digest:    Optional[bool] = None
+
+
+class NotificationResponse(BaseModel):
+    id:         UUID
+    title:      str
+    body:       Optional[str] = None
+    link_url:   Optional[str] = None
+    is_read:    bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class NotificationListResponse(BaseModel):
+    items:        list[NotificationResponse]
+    unread_count: int
+
+
+# ── Faz 5: Kullanıcı Kontrolü ─────────────────────────────────────────────────
+
+class FeedPreferencesResponse(BaseModel):
+    blocked_sources:   list[str]
+    hidden_categories: list[str]
+
+
+class FeedPreferencesUpdate(BaseModel):
+    add_blocked_source:     Optional[str] = None
+    remove_blocked_source:  Optional[str] = None
+    add_hidden_category:    Optional[str] = None
+    remove_hidden_category: Optional[str] = None
+
+
+class DataExportResponse(BaseModel):
+    user:               dict
+    preference_profile: Optional[dict] = None
+    interactions:       list[dict]
+    notifications:      list[dict]
+    exported_at:        datetime
