@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useWebSocket } from '../contexts/WebSocketContext';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import NewsService from '../services/news.service';
@@ -564,6 +565,7 @@ const POLL_INTERVAL = 3 * 60 * 1000;
 
 export default function Gundem() {
     const { isDarkMode } = useTheme();
+    const { subscribe } = useWebSocket();
 
     const [articles, setArticles] = useState([]);
     const [total, setTotal]       = useState(0);
@@ -613,6 +615,13 @@ export default function Gundem() {
         const id = setInterval(() => fetchNews(category, 1, true), POLL_INTERVAL);
         return () => clearInterval(id);
     }, [category, page, fetchNews]);
+
+    useEffect(() => {
+        const unsub = subscribe('recommendations_updated', () => {
+            if (page === 1) fetchNews(category, 1, true);
+        });
+        return unsub;
+    }, [subscribe, category, page, fetchNews]);
 
     const applyNewArticles = () => { fetchNews(category, 1); setPage(1); };
     const handleCategory   = (val) => { setCategory(val); setPage(1); setSearch(''); };
