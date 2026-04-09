@@ -244,8 +244,9 @@ class NewsArticleResponse(BaseModel):
     pub_date:     Optional[datetime] = None
     source_count: Optional[int]      = None
     trust_score:  Optional[float]    = None
-    nlp_score:    Optional[float]     = None
+    nlp_score:    Optional[float]    = None
     content_type: Optional[List[str]] = None
+    community:    Optional[dict]     = None   # {"view_count": int, "positive_count": int}
 
     class Config:
         from_attributes = True
