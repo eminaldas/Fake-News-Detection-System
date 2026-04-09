@@ -7,25 +7,28 @@
  *   const unsub = subscribe('analysis_complete', handler);
  *   return unsub; // cleanup
  */
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import wsService from '../services/websocket';
 
 const WebSocketContext = createContext(null);
+
+// Stable reference — singleton never changes, bind once at module level
+const wsSubscribe = wsService.subscribe.bind(wsService);
 
 export function WebSocketProvider({ children }) {
     const [connected, setConnected] = useState(false);
 
     useEffect(() => {
-        const unsubOpen  = wsService.subscribe('reconnected', () => setConnected(true));
+        const unsubReconnected = wsSubscribe('reconnected', () => setConnected(true));
         return () => {
-            unsubOpen();
+            unsubReconnected();
         };
     }, []);
 
-    const value = {
+    const value = useMemo(() => ({
         connected,
-        subscribe: wsService.subscribe.bind(wsService),
-    };
+        subscribe: wsSubscribe,
+    }), [connected]);
 
     return (
         <WebSocketContext.Provider value={value}>
