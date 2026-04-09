@@ -5,11 +5,11 @@ Redis Pub/Sub publish yardımcısı.
 Hem FastAPI (async context) hem Celery worker (asyncio.run içinde) tarafından çağrılır.
 """
 import json
-import logging
 
+from app.core.logging import get_logger
 from app.db.redis import get_redis
 
-logger = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
 async def publish_async(channel: str, msg_type: str, payload: dict) -> None:
@@ -20,6 +20,6 @@ async def publish_async(channel: str, msg_type: str, payload: dict) -> None:
     """
     try:
         r = await get_redis()
-        await r.publish(channel, json.dumps({"type": msg_type, "payload": payload}))
+        await r.publish(channel, json.dumps({"type": msg_type, "payload": payload}, ensure_ascii=False))
     except Exception as exc:
-        logger.warning("publish_async başarısız channel=%s type=%s: %s", channel, msg_type, exc)
+        log.warning("publish_async.failed", channel=channel, msg_type=msg_type, error=str(exc))
