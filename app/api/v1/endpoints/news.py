@@ -13,8 +13,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_optional_user
 from app.db.session import get_db
-from app.models.models import ContentInteraction, NewsArticle
+from app.models.models import ContentInteraction, NewsArticle, User, UserPreferenceProfile
 from app.schemas.schemas import NewsArticleResponse, NewsListResponse
 
 router = APIRouter()
@@ -29,6 +30,7 @@ async def list_news(
     date_from:   date | None = Query(None, description="Başlangıç tarihi (YYYY-MM-DD)"),
     date_to:     date | None = Query(None, description="Bitiş tarihi (YYYY-MM-DD)"),
     db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_optional_user),
 ):
     offset = (page - 1) * size
 
@@ -46,6 +48,17 @@ async def list_news(
     if date_to:
         end = datetime(date_to.year, date_to.month, date_to.day, tzinfo=timezone.utc) + timedelta(days=1)
         base_filter.append(NewsArticle.pub_date < end)
+
+    # Faz 5: Kullanıcı tercihlerine göre filtrele (opsiyonel)
+    if current_user:
+        user_profile = (await db.execute(
+            select(UserPreferenceProfile).where(UserPreferenceProfile.user_id == current_user.id)
+        )).scalar_one_or_none()
+        if user_profile:
+            for domain in (user_profile.blocked_sources or []):
+                base_filter.append(~NewsArticle.source_url.contains(domain))
+            if user_profile.hidden_categories:
+                base_filter.append(~NewsArticle.category.in_(user_profile.hidden_categories))
 
     total_result = await db.execute(
         select(func.count()).select_from(NewsArticle).where(*base_filter)
