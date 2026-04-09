@@ -334,3 +334,25 @@ class NotificationResponse(BaseModel):
 class NotificationListResponse(BaseModel):
     items:        list[NotificationResponse]
     unread_count: int
+
+
+# ── Faz 5: Kullanıcı Kontrolü ─────────────────────────────────────────────────
+
+class FeedPreferencesResponse(BaseModel):
+    blocked_sources:   list[str]
+    hidden_categories: list[str]
+
+
+class FeedPreferencesUpdate(BaseModel):
+    add_blocked_source:     Optional[str] = None
+    remove_blocked_source:  Optional[str] = None
+    add_hidden_category:    Optional[str] = None
+    remove_hidden_category: Optional[str] = None
+
+
+class DataExportResponse(BaseModel):
+    user:               dict
+    preference_profile: Optional[dict] = None
+    interactions:       list[dict]
+    notifications:      list[dict]
+    exported_at:        datetime

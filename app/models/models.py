@@ -194,6 +194,8 @@ class UserPreferenceProfile(Base):
     preferred_sources  = Column(JSONB, default=list)
     declared_interests = Column(JSONB, default=dict)
     interaction_count  = Column(Integer, default=0)
+    blocked_sources    = Column(JSONB, default=list)
+    hidden_categories  = Column(JSONB, default=list)
     last_updated       = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
