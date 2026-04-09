@@ -36,6 +36,10 @@ async def init_db():
             "ON content_interactions (user_id, content_id) "
             "WHERE interaction_type IN ('feedback_positive','feedback_negative')"
         ))
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS idx_un_user_created "
+            "ON user_notifications (user_id, created_at DESC)"
+        ))
     print("audit_logs index'leri oluşturuldu.")
 
     async with AsyncSessionLocal() as session:
