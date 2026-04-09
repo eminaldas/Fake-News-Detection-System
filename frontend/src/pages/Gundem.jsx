@@ -83,6 +83,19 @@ function ContentTag({ types, category }) {
     );
 }
 
+/* ── Topluluk zekası rozeti ───────────────────────────────────── */
+function CommunityBadge({ community }) {
+    if (!community || community.view_count < 5) return null;
+    return (
+        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/30 backdrop-blur-sm">
+            <svg className="w-3 h-3 text-white/60" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
+            </svg>
+            <span className="text-[9px] text-white/70 font-bold">{community.view_count}</span>
+        </div>
+    );
+}
+
 /* ── Çoklu kaynak sayacı ──────────────────────────────────────── */
 function MultiSourceBadge({ count }) {
     if (!count || count <= 1) return null;
@@ -215,6 +228,7 @@ function FeaturedCard({ article }) {
                         <ContentTag types={article.content_type} category={article.category} />
                         <SourceBadge name={article.source_name} trusted={trusted} />
                         <MultiSourceBadge count={article.source_count} />
+                        <CommunityBadge community={article.community} />
                     </div>
                     <h2 className={`font-manrope font-extrabold tracking-tight leading-tight text-white transition-all duration-300 ${
                         phase === 'done' ? 'text-sm line-clamp-2 mb-1' : 'text-3xl md:text-4xl line-clamp-3'
@@ -495,6 +509,7 @@ function NormalCard({ article, tall = false }) {
                     <ContentTag types={article.content_type} category={article.category} />
                     <SourceBadge name={article.source_name} trusted={trusted} />
                     <MultiSourceBadge count={article.source_count} />
+                    <CommunityBadge community={article.community} />
                 </div>
                 <h3 className={`font-manrope font-extrabold tracking-tight leading-snug text-white transition-all duration-300 ${
                     phase === 'done' ? 'text-xs line-clamp-2 mb-1' : 'text-xl line-clamp-3'
@@ -581,11 +596,13 @@ const SIZE = 20;
 const POLL_INTERVAL = 3 * 60 * 1000;
 
 export default function Gundem() {
-    const { isDarkMode }           = useTheme();
-    const { isAuthenticated }      = useAuth();
-    const [forYou, setForYou]      = useState(false);
-    const [recItems, setRecItems]  = useState([]);
+    const { isDarkMode }              = useTheme();
+    const { isAuthenticated }         = useAuth();
+    const [forYou, setForYou]         = useState(false);
+    const [recItems, setRecItems]     = useState([]);
     const [recLoading, setRecLoading] = useState(false);
+    const [showRiskBanner, setShowRiskBanner] = useState(false);
+    const riskBannerDismissed = useRef(typeof sessionStorage !== 'undefined' && sessionStorage.getItem('risk_banner_dismissed') === 'true');
 
     const [articles, setArticles] = useState([]);
     const [total, setTotal]       = useState(0);
@@ -620,6 +637,11 @@ export default function Gundem() {
                 setArticles(data.items); setTotal(data.total);
                 totalRef.current = data.total;
                 setNewCount(0);
+                // Risk banner kontrolü
+                if (data.items && !riskBannerDismissed.current) {
+                    const highRisk = data.items.filter(a => (a.nlp_score || 0) >= 0.6).length;
+                    setShowRiskBanner(highRisk / data.items.length >= 0.3);
+                }
             }
         } catch {
             if (!silent) setError('Haberler yüklenemedi.');
@@ -772,6 +794,29 @@ export default function Gundem() {
                     />
                 </div>
             </div>
+
+            {/* ── Risk uyarı banner'ı ── */}
+            {showRiskBanner && (
+                <div className="mb-4 flex items-center justify-between px-4 py-3 rounded-xl bg-iddia-bg border border-iddia-border"
+                     style={{ animation: 'slideUp 0.3s ease' }}>
+                    <div className="flex items-center gap-2">
+                        <span>⚠️</span>
+                        <span className="text-xs font-semibold text-iddia-text">
+                            Gündemde yoğun dezenformasyon tespit edildi. Dikkatli ol.
+                        </span>
+                    </div>
+                    <button
+                        onClick={() => {
+                            setShowRiskBanner(false);
+                            sessionStorage.setItem('risk_banner_dismissed', 'true');
+                            riskBannerDismissed.current = true;
+                        }}
+                        className="text-iddia-text opacity-60 hover:opacity-100 transition-opacity text-xs ml-4"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
 
             {/* ── Sizin için toggle ── */}
             {isAuthenticated && (
