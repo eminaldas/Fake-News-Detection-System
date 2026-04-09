@@ -55,7 +55,7 @@ except Exception as exc:
 # ─────────────────────────────────────────────────────────────────────────────
 # Async pipeline
 # ─────────────────────────────────────────────────────────────────────────────
-async def _analyze_and_save(content_id: str, text: str, news_evidence: str = None) -> dict:
+async def _analyze_and_save(content_id: str, text: str, news_evidence: str = None, user_id: str = None) -> dict:
     engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
@@ -220,6 +220,23 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
         )
 
     await engine.dispose()
+
+    # ── WebSocket push ─────────────────────────────────────────────────────
+    if user_id:
+        try:
+            from app.core.pubsub import publish_async
+            await publish_async(
+                f"user:{user_id}:events",
+                "analysis_complete",
+                {
+                    "task_id":    content_id,
+                    "status":     pred_status,
+                    "confidence": confidence,
+                },
+            )
+        except Exception as exc:
+            logger.warning("analysis_complete publish hatası: %s", exc)
+
     logger.info("Analiz tamamlandı → status=%s conf=%.4f id=%s", pred_status, confidence, article_id)
 
     return {
@@ -237,9 +254,9 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
 # Celery task
 # ─────────────────────────────────────────────────────────────────────────────
 @celery_app.task(name="analyze_article", rate_limit=settings.CELERY_RATE_LIMIT)
-def analyze_article(content_id: str, text: str, news_evidence: str = None) -> dict:
+def analyze_article(content_id: str, text: str, news_evidence: str = None, user_id: str = None) -> dict:
     """Ham metin → temizlik → embedding → sınıflandırma → DB kaydı."""
-    return asyncio.run(_analyze_and_save(content_id, text, news_evidence=news_evidence))
+    return asyncio.run(_analyze_and_save(content_id, text, news_evidence=news_evidence, user_id=user_id))
 
 
 # Görsel analiz task'ını kaydet — worker startup'ta keşfedilsin

@@ -262,7 +262,12 @@ async def analyze_content(
         )
 
     news_evidence = await _get_news_evidence(db, embedding)
-    task = analyze_article.delay(content_id, text=request.text, news_evidence=news_evidence)
+    task = analyze_article.delay(
+        content_id,
+        text=request.text,
+        news_evidence=news_evidence,
+        user_id=str(current_user.id) if current_user else None,
+    )
 
     # Analiz isteğini logla — content_id sakla (task.id değil) ki history join çalışsın
     # Article metadata_info['task_id'] = content_id olarak yaratılır
