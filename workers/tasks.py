@@ -222,18 +222,32 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
     await engine.dispose()
 
     # ── WebSocket push ─────────────────────────────────────────────────────
+    # Celery worker'lar her task için asyncio.run() ile yeni event loop açar.
+    # app.db.redis singleton'u önceki loop'a bağlı olur — transient bağlantı kullanılır.
     if user_id:
         try:
-            from app.core.pubsub import publish_async
-            await publish_async(
-                f"user:{user_id}:events",
-                "analysis_complete",
-                {
-                    "task_id":    content_id,
-                    "status":     pred_status,
-                    "confidence": confidence,
-                },
+            import json as _json
+            from redis.asyncio import from_url as _redis_from_url
+            _r = await _redis_from_url(
+                settings.REDIS_URL, encoding="utf-8", decode_responses=True
             )
+            try:
+                await _r.publish(
+                    f"user:{user_id}:events",
+                    _json.dumps(
+                        {
+                            "type": "analysis_complete",
+                            "payload": {
+                                "task_id":    content_id,
+                                "status":     pred_status,
+                                "confidence": confidence,
+                            },
+                        },
+                        ensure_ascii=False,
+                    ),
+                )
+            finally:
+                await _r.aclose()
         except Exception as exc:
             logger.warning("analysis_complete publish hatası: %s", exc)
 
