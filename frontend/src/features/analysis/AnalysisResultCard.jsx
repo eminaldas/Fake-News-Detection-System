@@ -166,6 +166,7 @@ const AnalysisResultCard = ({ result }) => {
     const hex08 = `${theme.hex}14`;
 
     return (
+        <>
         <div
             className="animate-fade-up mt-6 md:mt-8 w-full rounded-2xl overflow-hidden flex flex-col"
             style={{
@@ -315,6 +316,7 @@ const AnalysisResultCard = ({ result }) => {
         </div>
         <FeedbackBar result={result} />
         <RecommendationPanel context="post_analysis" title="İlgili Haberler" />
+        </>
     );
 };
 
