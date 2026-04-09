@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { WebSocketProvider } from './contexts/WebSocketContext';
+import { useAuth } from './contexts/AuthContext';
+import AuthService from './services/auth.service';
+import wsService from './services/websocket';
 import RequireAuth from './components/RequireAuth';
 import Layout from './components/Layout';
 import Home from './pages/Home';
@@ -17,10 +21,26 @@ import NotFound from './pages/NotFound';
 import About from './pages/About';
 import Gundem from './pages/Gundem';
 
+// Listens to auth state and manages the WS connection lifecycle
+function WsLifecycle() {
+    const { isAuthenticated } = useAuth();
+    useEffect(() => {
+        if (isAuthenticated) {
+            const token = AuthService.getToken();
+            if (token) wsService.connect(token);
+        } else {
+            wsService.disconnect();
+        }
+    }, [isAuthenticated]);
+    return null;
+}
+
 function App() {
     return (
         <ThemeProvider>
             <AuthProvider>
+                <WebSocketProvider>
+                <WsLifecycle />
                 <BrowserRouter>
                     <Routes>
                         <Route path="/" element={<Layout />}>
@@ -54,6 +74,7 @@ function App() {
                         </Route>
                     </Routes>
                 </BrowserRouter>
+                </WebSocketProvider>
             </AuthProvider>
         </ThemeProvider>
     );
