@@ -22,7 +22,10 @@ class WebSocketService {
     }
 
     connect(token) {
-        if (this._ws && this._ws.readyState === WebSocket.OPEN) return;
+        if (this._ws && (
+            this._ws.readyState === WebSocket.OPEN ||
+            this._ws.readyState === WebSocket.CONNECTING
+        )) return;
         this._token       = token;
         this._intentional = false;
         this._open();
@@ -49,6 +52,7 @@ class WebSocketService {
         };
 
         this._ws.onclose = () => {
+            this._ws = null;
             if (this._intentional) return;
             const delay = BACKOFF_STEPS[Math.min(this._retryCount, BACKOFF_STEPS.length - 1)];
             this._retryCount++;
