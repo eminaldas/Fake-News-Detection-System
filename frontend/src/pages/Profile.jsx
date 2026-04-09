@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import InsightsPanel from '../features/insights/InsightsPanel';
 import {
     Clock, Shield, Lock, Loader2, CheckCircle2, AlertCircle,
     Link2, FileText, ShieldCheck, Search, Cpu, Star, Zap, Award,
@@ -457,6 +458,12 @@ const Profile = () => {
                     </div>
 
                 </section>
+
+                {/* ── Kişisel İstatistikler ── */}
+                <section className="mt-8">
+                    <InsightsPanel />
+                </section>
+
             </div>
         </div>
     );
