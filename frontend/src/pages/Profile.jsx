@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import AuthService from '../services/auth.service';
+import axiosInstance from '../api/axios';
 
 /* ─── Mock rozetler ───────────────────────────────────────────────── */
 const BADGES = [
@@ -53,6 +54,8 @@ const Profile = () => {
 
     const [quota, setQuota] = useState(null);
 
+    const [notifPrefs, setNotifPrefs] = useState({ high_risk_alert: true, email_digest: false });
+
     const [pwForm, setPwForm]       = useState({ current_password: '', new_password: '', confirm: '' });
     const [pwLoading, setPwLoading] = useState(false);
     const [pwError, setPwError]     = useState('');
@@ -80,8 +83,19 @@ const Profile = () => {
             .catch(() => {});
     }, []);
 
+    useEffect(() => {
+        axiosInstance.get('/notifications/prefs')
+            .then(r => setNotifPrefs(r.data))
+            .catch(() => {});
+    }, []);
+
     /* Cleanup: unmount'ta timer iptal */
     useEffect(() => () => { clearTimeout(successTimerRef.current); }, []);
+
+    const updateNotifPref = async (key, value) => {
+        setNotifPrefs(prev => ({ ...prev, [key]: value }));
+        await axiosInstance.patch('/notifications/prefs', { [key]: value }).catch(() => {});
+    };
 
     const handlePasswordChange = async (e) => {
         e.preventDefault();
@@ -462,6 +476,34 @@ const Profile = () => {
                 {/* ── Kişisel İstatistikler ── */}
                 <section className="mt-8">
                     <InsightsPanel />
+                </section>
+
+                {/* ── Bildirim Tercihleri ── */}
+                <section className="mt-8">
+                    <h2 className="text-sm font-extrabold uppercase tracking-wider text-tx-secondary mb-4">
+                        🔔 Bildirim Tercihleri
+                    </h2>
+                    <div className="space-y-3">
+                        {[
+                            { key: 'high_risk_alert', label: 'Sahte haber uyarısı', desc: 'İlgi alanlarında yüksek riskli haber artışında bildir' },
+                            { key: 'email_digest',    label: 'Haftalık email özeti', desc: 'Her Pazartesi kişisel haftalık özetini gönder' },
+                        ].map(({ key, label, desc }) => (
+                            <div key={key} className="flex items-center justify-between p-4 rounded-xl bg-base border border-brutal-border">
+                                <div>
+                                    <p className="text-sm font-bold text-tx-primary">{label}</p>
+                                    <p className="text-xs text-tx-secondary mt-0.5">{desc}</p>
+                                </div>
+                                <button
+                                    onClick={() => updateNotifPref(key, !notifPrefs[key])}
+                                    className={`relative w-11 h-6 rounded-full transition-colors focus:outline-none
+                                        ${notifPrefs[key] ? 'bg-brand' : 'bg-brutal-border'}`}
+                                >
+                                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform
+                                        ${notifPrefs[key] ? 'translate-x-5' : 'translate-x-0'}`} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
                 </section>
 
             </div>
