@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
 
 from app.models.models import UserRole
 
@@ -32,9 +32,10 @@ class TokenResponse(BaseModel):
 
 
 class RegisterRequest(BaseModel):
-    email:    str = Field(..., max_length=255)
-    username: str = Field(..., min_length=3, max_length=50)
-    password: str = Field(..., min_length=8)
+    email:     str       = Field(..., max_length=255)
+    username:  str       = Field(..., min_length=3, max_length=50)
+    password:  str       = Field(..., min_length=8)
+    interests: List[str] = Field(default_factory=list, description="Seçilen kategori listesi")
 
     @field_validator("email")
     @classmethod
@@ -243,8 +244,9 @@ class NewsArticleResponse(BaseModel):
     pub_date:     Optional[datetime] = None
     source_count: Optional[int]      = None
     trust_score:  Optional[float]    = None
-    nlp_score:    Optional[float]     = None
+    nlp_score:    Optional[float]    = None
     content_type: Optional[List[str]] = None
+    community:    Optional[dict]     = None   # {"view_count": int, "positive_count": int}
 
     class Config:
         from_attributes = True
@@ -254,3 +256,103 @@ class NewsListResponse(BaseModel):
     items: List[NewsArticleResponse]
     total: int
     page:  int
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Interactions (Kullanıcı Davranış Takibi)
+# ─────────────────────────────────────────────────────────────────────────────
+
+import uuid as _uuid
+
+
+class InteractionTrackRequest(BaseModel):
+    content_id:        Optional[str]   = Field(None, description="NewsArticle UUID")
+    interaction_type:  str             = Field(..., description="click|feedback_positive|feedback_negative|filter_used|impression")
+    category:          Optional[str]   = None
+    source_domain:     Optional[str]   = None
+    nlp_score_at_time: Optional[float] = Field(None, ge=0.0, le=1.0)
+    visibility_weight: float           = Field(1.0, ge=0.0, le=1.0)
+    details:           Optional[dict]  = None
+
+    @field_validator("interaction_type")
+    @classmethod
+    def validate_type(cls, v: str) -> str:
+        allowed = {"click", "feedback_positive", "feedback_negative", "filter_used", "impression"}
+        if v not in allowed:
+            raise ValueError(f"interaction_type must be one of {allowed}")
+        return v
+
+    @field_validator("content_id")
+    @classmethod
+    def validate_uuid(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        try:
+            _uuid.UUID(v)
+        except ValueError:
+            raise ValueError("content_id must be a valid UUID")
+        return v
+
+    @field_validator("details")
+    @classmethod
+    def sanitize_details(cls, v: Optional[dict]) -> Optional[dict]:
+        """Yalnızca sayısal, bool, None değerlere izin ver — serbest metin yasak."""
+        if v is None:
+            return v
+        clean = {}
+        for k, val in v.items():
+            if isinstance(val, (int, float, bool)) or val is None:
+                clean[k] = val
+        return clean or None
+
+
+# ── Faz 4: Bildirimler ────────────────────────────────────────────────────────
+
+class NotificationPrefsResponse(BaseModel):
+    high_risk_alert: bool
+    email_digest:    bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class NotificationPrefsUpdate(BaseModel):
+    high_risk_alert: Optional[bool] = None
+    email_digest:    Optional[bool] = None
+
+
+class NotificationResponse(BaseModel):
+    id:         UUID
+    title:      str
+    body:       Optional[str] = None
+    link_url:   Optional[str] = None
+    is_read:    bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class NotificationListResponse(BaseModel):
+    items:        list[NotificationResponse]
+    unread_count: int
+
+
+# ── Faz 5: Kullanıcı Kontrolü ─────────────────────────────────────────────────
+
+class FeedPreferencesResponse(BaseModel):
+    blocked_sources:   list[str]
+    hidden_categories: list[str]
+
+
+class FeedPreferencesUpdate(BaseModel):
+    add_blocked_source:     Optional[str] = None
+    remove_blocked_source:  Optional[str] = None
+    add_hidden_category:    Optional[str] = None
+    remove_hidden_category: Optional[str] = None
+
+
+class DataExportResponse(BaseModel):
+    user:               dict
+    preference_profile: Optional[dict] = None
+    interactions:       list[dict]
+    notifications:      list[dict]
+    exported_at:        datetime

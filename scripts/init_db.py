@@ -23,6 +23,31 @@ async def init_db():
             "CREATE INDEX IF NOT EXISTS idx_audit_severity_created "
             "ON audit_logs (severity, created_at DESC)"
         ))
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS idx_ci_user_created "
+            "ON content_interactions (user_id, created_at DESC)"
+        ))
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS idx_ci_content "
+            "ON content_interactions (content_id)"
+        ))
+        await conn.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_ci_feedback "
+            "ON content_interactions (user_id, content_id) "
+            "WHERE interaction_type IN ('feedback_positive','feedback_negative')"
+        ))
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS idx_un_user_created "
+            "ON user_notifications (user_id, created_at DESC)"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE user_preference_profiles "
+            "ADD COLUMN IF NOT EXISTS blocked_sources JSONB DEFAULT '[]'::jsonb"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE user_preference_profiles "
+            "ADD COLUMN IF NOT EXISTS hidden_categories JSONB DEFAULT '[]'::jsonb"
+        ))
     print("audit_logs index'leri oluşturuldu.")
 
     async with AsyncSessionLocal() as session:

@@ -4,7 +4,7 @@ import enum
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean, CheckConstraint, Column, DateTime, Enum, Float, ForeignKey,
-    Integer, String, Text, func,
+    Index, Integer, String, Text, UniqueConstraint, func, text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import declarative_base, relationship
@@ -157,4 +157,76 @@ class AuditLog(Base):
             "severity IN ('INFO','WARNING','CRITICAL')",
             name="ck_audit_severity",
         ),
+    )
+
+
+class ContentInteraction(Base):
+    __tablename__ = "content_interactions"
+
+    id                = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id           = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    ip_hash           = Column(String(64), nullable=False)
+    content_id        = Column(UUID(as_uuid=True), ForeignKey("news_articles.id", ondelete="CASCADE"), nullable=True)
+    interaction_type  = Column(String(32), nullable=False)
+    category          = Column(String(64), nullable=True)
+    source_domain     = Column(String(128), nullable=True)
+    nlp_score_at_time = Column(Float, nullable=True)
+    visibility_weight = Column(Float, default=1.0)
+    details           = Column(JSONB, nullable=True)
+    created_at        = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        CheckConstraint(
+            "interaction_type IN ('click','feedback_positive','feedback_negative','filter_used','impression')",
+            name="ck_ci_interaction_type",
+        ),
+        Index("idx_ci_user_created", "user_id", "created_at"),
+        Index("idx_ci_content",      "content_id"),
+    )
+
+
+class UserPreferenceProfile(Base):
+    __tablename__ = "user_preference_profiles"
+
+    user_id            = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    category_weights   = Column(JSONB, default=dict)
+    avg_nlp_tolerance  = Column(Float, default=0.5)
+    preferred_sources  = Column(JSONB, default=list)
+    declared_interests = Column(JSONB, default=dict)
+    interaction_count  = Column(Integer, default=0)
+    blocked_sources    = Column(JSONB, default=list)
+    hidden_categories  = Column(JSONB, default=list)
+    last_updated       = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class ContentSimilarityCache(Base):
+    __tablename__ = "content_similarity_cache"
+
+    content_id   = Column(UUID(as_uuid=True), ForeignKey("news_articles.id", ondelete="CASCADE"), primary_key=True)
+    similar_ids  = Column(JSONB, nullable=False)
+    computed_at  = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class UserNotificationPrefs(Base):
+    __tablename__ = "user_notification_prefs"
+
+    user_id         = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    high_risk_alert = Column(Boolean, nullable=False, default=True)
+    email_digest    = Column(Boolean, nullable=False, default=False)
+    updated_at      = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class UserNotification(Base):
+    __tablename__ = "user_notifications"
+
+    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title      = Column(String(255), nullable=False)
+    body       = Column(Text, nullable=True)
+    link_url   = Column(Text, nullable=True)
+    is_read    = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_un_user_created", "user_id", "created_at"),
     )

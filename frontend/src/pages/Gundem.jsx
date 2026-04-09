@@ -4,8 +4,12 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import NewsService from '../services/news.service';
 import AnalysisService from '../services/analysis.service';
+import axiosInstance from '../api/axios';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import AnalysisResultCard from '../features/analysis/AnalysisResultCard';
+import RecommendationPanel from '../features/recommendations/RecommendationPanel';
+import { trackInteraction } from '../services/interaction.service';
 
 const CATEGORIES = [
     { label: 'Tümü',      value: null,       hot: false },
@@ -77,6 +81,19 @@ function ContentTag({ types, category }) {
         <span className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: tag.color }}>
             {tag.text}
         </span>
+    );
+}
+
+/* ── Topluluk zekası rozeti ───────────────────────────────────── */
+function CommunityBadge({ community }) {
+    if (!community || community.view_count < 5) return null;
+    return (
+        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/30 backdrop-blur-sm">
+            <svg className="w-3 h-3 text-white/60" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
+            </svg>
+            <span className="text-[9px] text-white/70 font-bold">{community.view_count}</span>
+        </div>
     );
 }
 
@@ -212,6 +229,7 @@ function FeaturedCard({ article }) {
                         <ContentTag types={article.content_type} category={article.category} />
                         <SourceBadge name={article.source_name} trusted={trusted} />
                         <MultiSourceBadge count={article.source_count} />
+                        <CommunityBadge community={article.community} />
                     </div>
                     <h2 className={`font-manrope font-extrabold tracking-tight leading-tight text-white transition-all duration-300 ${
                         phase === 'done' ? 'text-sm line-clamp-2 mb-1' : 'text-3xl md:text-4xl line-clamp-3'
@@ -245,7 +263,14 @@ function FeaturedCard({ article }) {
     return (
         <>
             {article.source_url ? (
-                <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="block">{inner}</a>
+                <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="block"
+                   onClick={() => trackInteraction({
+                       content_id:        article.id,
+                       interaction_type:  'click',
+                       category:          article.category,
+                       source_domain:     (() => { try { return new URL(article.source_url).hostname; } catch { return null; } })(),
+                       nlp_score_at_time: article.nlp_score,
+                   })}>{inner}</a>
             ) : inner}
             {expandOpen && result && (
                 <AnalysisModal result={result} onClose={() => setExpand(false)} />
@@ -485,6 +510,7 @@ function NormalCard({ article, tall = false }) {
                     <ContentTag types={article.content_type} category={article.category} />
                     <SourceBadge name={article.source_name} trusted={trusted} />
                     <MultiSourceBadge count={article.source_count} />
+                    <CommunityBadge community={article.community} />
                 </div>
                 <h3 className={`font-manrope font-extrabold tracking-tight leading-snug text-white transition-all duration-300 ${
                     phase === 'done' ? 'text-xs line-clamp-2 mb-1' : 'text-xl line-clamp-3'
@@ -524,7 +550,14 @@ function NormalCard({ article, tall = false }) {
     return (
         <>
             {article.source_url ? (
-                <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="block">{inner}</a>
+                <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="block"
+                   onClick={() => trackInteraction({
+                       content_id:        article.id,
+                       interaction_type:  'click',
+                       category:          article.category,
+                       source_domain:     (() => { try { return new URL(article.source_url).hostname; } catch { return null; } })(),
+                       nlp_score_at_time: article.nlp_score,
+                   })}>{inner}</a>
             ) : inner}
             {expandOpen && result && (
                 <AnalysisModal result={result} onClose={() => setExpand(false)} />
@@ -564,8 +597,14 @@ const SIZE = 20;
 const POLL_INTERVAL = 3 * 60 * 1000;
 
 export default function Gundem() {
-    const { isDarkMode } = useTheme();
-    const { subscribe } = useWebSocket();
+    const { isDarkMode }              = useTheme();
+    const { isAuthenticated }         = useAuth();
+    const { subscribe }               = useWebSocket();
+    const [forYou, setForYou]         = useState(false);
+    const [recItems, setRecItems]     = useState([]);
+    const [recLoading, setRecLoading] = useState(false);
+    const [showRiskBanner, setShowRiskBanner] = useState(false);
+    const riskBannerDismissed = useRef(typeof sessionStorage !== 'undefined' && sessionStorage.getItem('risk_banner_dismissed') === 'true');
 
     const [articles, setArticles] = useState([]);
     const [total, setTotal]       = useState(0);
@@ -600,6 +639,11 @@ export default function Gundem() {
                 setArticles(data.items); setTotal(data.total);
                 totalRef.current = data.total;
                 setNewCount(0);
+                // Risk banner kontrolü
+                if (data.items && !riskBannerDismissed.current) {
+                    const highRisk = data.items.filter(a => (a.nlp_score || 0) >= 0.6).length;
+                    setShowRiskBanner(highRisk / data.items.length >= 0.3);
+                }
             }
         } catch {
             if (!silent) setError('Haberler yüklenemedi.');
@@ -705,7 +749,16 @@ export default function Gundem() {
                             return (
                                 <button
                                     key={c.label}
-                                    onClick={() => handleCategory(c.value)}
+                                    onClick={() => {
+                                        handleCategory(c.value);
+                                        if (c.value) {
+                                            trackInteraction({
+                                                content_id:       null,
+                                                interaction_type: 'filter_used',
+                                                category:         c.value,
+                                            });
+                                        }
+                                    }}
                                     className="relative px-4 py-2.5 text-sm font-bold cursor-pointer transition-all duration-200 whitespace-nowrap"
                                     style={{
                                         background:   isActive ? 'var(--color-brand-primary)' : 'transparent',
@@ -750,6 +803,63 @@ export default function Gundem() {
                     />
                 </div>
             </div>
+
+            {/* ── Risk uyarı banner'ı ── */}
+            {showRiskBanner && (
+                <div className="mb-4 flex items-center justify-between px-4 py-3 rounded-xl bg-iddia-bg border border-iddia-border"
+                     style={{ animation: 'slideUp 0.3s ease' }}>
+                    <div className="flex items-center gap-2">
+                        <span>⚠️</span>
+                        <span className="text-xs font-semibold text-iddia-text">
+                            Gündemde yoğun dezenformasyon tespit edildi. Dikkatli ol.
+                        </span>
+                    </div>
+                    <button
+                        onClick={() => {
+                            setShowRiskBanner(false);
+                            sessionStorage.setItem('risk_banner_dismissed', 'true');
+                            riskBannerDismissed.current = true;
+                        }}
+                        className="text-iddia-text opacity-60 hover:opacity-100 transition-opacity text-xs ml-4"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
+
+            {/* ── Sizin için toggle ── */}
+            {isAuthenticated && (
+                <div className="mb-4">
+                    <button
+                        onClick={() => {
+                            const next = !forYou;
+                            setForYou(next);
+                            if (next && recItems.length === 0) {
+                                setRecLoading(true);
+                                axiosInstance.get('/recommendations/?context=feed&limit=10')
+                                    .then(r => setRecItems(r.data.items || []))
+                                    .catch(() => {})
+                                    .finally(() => setRecLoading(false));
+                            }
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                            forYou
+                                ? 'bg-brand text-surface border-brand'
+                                : 'border-brutal-border text-tx-secondary hover:border-brand'
+                        }`}
+                    >
+                        ✨ Sizin için
+                    </button>
+                    {forYou && recLoading && (
+                        <div className="mt-3 space-y-2">
+                            {[1,2,3].map(i => <div key={i} className="h-10 rounded-lg bg-base animate-pulse" />)}
+                        </div>
+                    )}
+                    {forYou && !recLoading && recItems.length > 0 && (
+                        <RecommendationPanel context="feed" title="Sizin için Seçilenler" />
+                    )}
+                </div>
+            )}
 
             {/* ── Tarih filtresi aktifse temizle butonu ── */}
             {(dateFrom || dateTo) && (
