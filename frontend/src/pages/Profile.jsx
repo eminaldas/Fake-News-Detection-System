@@ -56,6 +56,10 @@ const Profile = () => {
 
     const [notifPrefs, setNotifPrefs] = useState({ high_risk_alert: true, email_digest: false });
 
+    const [feedPrefs, setFeedPrefs] = useState({ blocked_sources: [], hidden_categories: [] });
+    const [newSource, setNewSource] = useState('');
+    const [prefMsg,   setPrefMsg]   = useState('');
+
     const [pwForm, setPwForm]       = useState({ current_password: '', new_password: '', confirm: '' });
     const [pwLoading, setPwLoading] = useState(false);
     const [pwError, setPwError]     = useState('');
@@ -89,8 +93,44 @@ const Profile = () => {
             .catch(() => {});
     }, []);
 
+    useEffect(() => {
+        axiosInstance.get('/users/me/feed-preferences')
+            .then(r => setFeedPrefs(r.data))
+            .catch(() => {});
+    }, []);
+
     /* Cleanup: unmount'ta timer iptal */
     useEffect(() => () => { clearTimeout(successTimerRef.current); }, []);
+
+    const addBlockedSource = async () => {
+        const domain = newSource.trim().toLowerCase();
+        if (!domain) return;
+        const res = await axiosInstance.patch('/users/me/feed-preferences', { add_blocked_source: domain }).catch(() => null);
+        if (res) { setFeedPrefs(res.data); setNewSource(''); }
+    };
+
+    const removeBlockedSource = async (domain) => {
+        const res = await axiosInstance.patch('/users/me/feed-preferences', { remove_blocked_source: domain }).catch(() => null);
+        if (res) setFeedPrefs(res.data);
+    };
+
+    const resetProfile = async () => {
+        if (!window.confirm('Öneri profilin sıfırlanacak. Emin misin?')) return;
+        await axiosInstance.delete('/users/me/preference-profile').catch(() => {});
+        setFeedPrefs({ blocked_sources: [], hidden_categories: [] });
+        setPrefMsg('Profil sıfırlandı.');
+        setTimeout(() => setPrefMsg(''), 3000);
+    };
+
+    const downloadExport = async () => {
+        const res = await axiosInstance.get('/users/me/data-export').catch(() => null);
+        if (!res) return;
+        const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url; a.download = 'fnds-data-export.json'; a.click();
+        URL.revokeObjectURL(url);
+    };
 
     const updateNotifPref = async (key, value) => {
         setNotifPrefs(prev => ({ ...prev, [key]: value }));
@@ -504,6 +544,57 @@ const Profile = () => {
                             </div>
                         ))}
                     </div>
+                </section>
+
+                {/* ── Feed Kontrolü ── */}
+                <section className="mt-8">
+                    <h2 className="text-sm font-extrabold uppercase tracking-wider text-tx-secondary mb-4">
+                        ⚙️ Feed Kontrolü
+                    </h2>
+
+                    {/* Kaynak Engelleme */}
+                    <div className="p-4 rounded-xl bg-base border border-brutal-border mb-3">
+                        <p className="text-sm font-bold text-tx-primary mb-3">Engellenen Kaynaklar</p>
+                        <div className="flex gap-2 mb-3">
+                            <input
+                                value={newSource}
+                                onChange={e => setNewSource(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && addBlockedSource()}
+                                placeholder="ornek.com"
+                                className="flex-1 text-xs px-3 py-2 rounded-lg bg-surface border border-brutal-border text-tx-primary placeholder:text-tx-secondary/50 outline-none focus:border-brand"
+                            />
+                            <button onClick={addBlockedSource}
+                                    className="px-3 py-2 rounded-lg bg-brand text-white text-xs font-bold hover:opacity-80 transition-opacity">
+                                Ekle
+                            </button>
+                        </div>
+                        {feedPrefs.blocked_sources.length === 0 && (
+                            <p className="text-[10px] text-tx-secondary opacity-50">Engellenen kaynak yok</p>
+                        )}
+                        <div className="flex flex-wrap gap-2">
+                            {feedPrefs.blocked_sources.map(domain => (
+                                <span key={domain}
+                                      className="flex items-center gap-1 px-2 py-1 rounded-full bg-fake-bg border border-fake-border text-[10px] text-fake-text font-bold">
+                                    {domain}
+                                    <button onClick={() => removeBlockedSource(domain)}
+                                            className="ml-0.5 opacity-60 hover:opacity-100">×</button>
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Sıfırla + Export */}
+                    <div className="flex gap-3">
+                        <button onClick={resetProfile}
+                                className="flex-1 py-2.5 rounded-xl border border-brutal-border text-xs font-bold text-tx-secondary hover:border-fake-border hover:text-fake-text transition-colors">
+                            🔄 Profili Sıfırla
+                        </button>
+                        <button onClick={downloadExport}
+                                className="flex-1 py-2.5 rounded-xl border border-brutal-border text-xs font-bold text-tx-secondary hover:border-brand hover:text-brand transition-colors">
+                            📥 Verilerimi İndir
+                        </button>
+                    </div>
+                    {prefMsg && <p className="text-xs text-authentic-text mt-2 text-center">{prefMsg}</p>}
                 </section>
 
             </div>
