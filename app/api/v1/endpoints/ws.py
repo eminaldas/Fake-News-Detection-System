@@ -6,13 +6,14 @@ WebSocket endpoint — JWT auth, Redis Pub/Sub mesajlarını browser'a iletir.
 Bağlantı: ws://localhost:8000/api/v1/ws?token=<jwt>
 """
 import asyncio
-import logging
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
+from app.core.logging import get_logger
 from app.core.security import verify_token
+from app.db.redis import get_redis
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 
@@ -29,10 +30,7 @@ async def websocket_endpoint(ws: WebSocket, token: str = Query(...)):
     logger.info("WS bağlantı kuruldu user_id=%s", token_data.user_id)
 
     # ── Redis Pub/Sub ──────────────────────────────────────────────────────
-    from redis.asyncio import from_url
-    from app.core.config import settings
-
-    r = await from_url(settings.REDIS_URL, encoding="utf-8", decode_responses=True)
+    r = await get_redis()
     pubsub = r.pubsub()
 
     channels = [f"user:{token_data.user_id}:events"]
@@ -46,16 +44,23 @@ async def websocket_endpoint(ws: WebSocket, token: str = Query(...)):
     # redis_task : Redis mesajı gelince WebSocket'e ilet (sonsuz döngü)
     # closer_task: İstemci bağlantıyı koparınca döngüyü sonlandır
     async def _redis_to_ws():
-        async for msg in pubsub.listen():
-            if msg.get("type") == "message":
-                await ws.send_text(msg["data"])
+        try:
+            async for msg in pubsub.listen():
+                if msg.get("type") == "message":
+                    await ws.send_text(msg["data"])
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.warning("WS redis_to_ws hatası user_id=%s hata=%s", token_data.user_id, exc)
 
     async def _wait_disconnect():
         try:
             while True:
-                await ws.receive_text()   # client'tan gelen frame'ler yok sayılır
-        except (WebSocketDisconnect, Exception):
+                await ws.receive()   # receive() accepts any frame type (text or binary)
+        except WebSocketDisconnect:
             pass
+        except Exception as exc:
+            logger.warning("WS closer_task beklenmedik hata user_id=%s hata=%s", token_data.user_id, exc)
 
     redis_task  = asyncio.create_task(_redis_to_ws())
     closer_task = asyncio.create_task(_wait_disconnect())
@@ -72,7 +77,6 @@ async def websocket_endpoint(ws: WebSocket, token: str = Query(...)):
             except (asyncio.CancelledError, Exception):
                 pass
     finally:
-        await pubsub.unsubscribe(*channels)
-        await pubsub.close()
-        await r.aclose()
+        await pubsub.aclose()
+        # Don't close r — it's the shared singleton
         logger.info("WS bağlantı kapandı user_id=%s", token_data.user_id)
