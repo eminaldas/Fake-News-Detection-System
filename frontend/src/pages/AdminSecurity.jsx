@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ShieldAlert, AlertTriangle, RefreshCw, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import axiosInstance from '../api/axios';
+import { useWebSocket } from '../contexts/WebSocketContext';
 
 const SEVERITY_STYLES = {
     CRITICAL: 'bg-red-100 text-red-700',
@@ -19,6 +20,7 @@ const EVENT_LABELS = {
 };
 
 const AdminSecurity = () => {
+    const { subscribe } = useWebSocket();
     const [events,   setEvents]   = useState([]);
     const [alerts,   setAlerts]   = useState([]);
     const [total,    setTotal]    = useState(0);
@@ -53,6 +55,18 @@ const AdminSecurity = () => {
 
     useEffect(() => { fetchAlerts(); }, [fetchAlerts]);
     useEffect(() => { fetchEvents(); }, [fetchEvents]);
+
+    useEffect(() => {
+        const unsub = subscribe('admin_alert', (payload) => {
+            setAlerts(prev => [{
+                event_name: 'admin_alert',
+                severity:   payload.severity || 'CRITICAL',
+                details:    { message: payload.message },
+                ...payload,
+            }, ...prev]);
+        });
+        return unsub;
+    }, [subscribe]);
 
     const totalPages = Math.ceil(total / PAGE_SIZE);
 
