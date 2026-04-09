@@ -135,12 +135,12 @@ async def update_feed_preferences(
 
     if body.add_blocked_source and body.add_blocked_source not in blocked:
         blocked.append(body.add_blocked_source.lower().strip())
-    if body.remove_blocked_source and body.remove_blocked_source in blocked:
-        blocked.remove(body.remove_blocked_source)
+    if body.remove_blocked_source and body.remove_blocked_source.lower().strip() in blocked:
+        blocked.remove(body.remove_blocked_source.lower().strip())
     if body.add_hidden_category and body.add_hidden_category not in hidden:
         hidden.append(body.add_hidden_category.lower().strip())
-    if body.remove_hidden_category and body.remove_hidden_category in hidden:
-        hidden.remove(body.remove_hidden_category)
+    if body.remove_hidden_category and body.remove_hidden_category.lower().strip() in hidden:
+        hidden.remove(body.remove_hidden_category.lower().strip())
 
     profile.blocked_sources   = blocked
     profile.hidden_categories = hidden
