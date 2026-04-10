@@ -8,7 +8,7 @@ import json
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, status
 from redis.asyncio import Redis
 from sqlalchemy import func, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +17,9 @@ from app.api.deps import require_admin
 from app.core.audit import ALERTS_KEY
 from app.db.redis import get_redis
 from app.db.session import get_db
-from app.models.models import AuditLog, AnalysisRequest, User
+from app.models.models import AuditLog, AnalysisRequest, User, ModelFeedback, ModelTrainingRun
+from app.schemas.schemas import FeedbackStatsResponse, TrainingRunResponse
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -231,3 +233,46 @@ async def get_system_health(
         "errors_last_1h":   error_count,
         "critical_last_1h": recent_critical,
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Model Feedback İstatistikleri
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/logs/feedback/stats", response_model=FeedbackStatsResponse)
+async def get_feedback_stats(
+    _admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Feedback consensus durumu ve son eğitim çalışması bilgisi."""
+    threshold = settings.FEEDBACK_CONSENSUS_THRESHOLD
+
+    # consensus_ready: en az bir etiket için oy sayısı >= threshold olan article sayısı
+    consensus_ready_result = await db.execute(
+        select(func.count()).select_from(
+            select(ModelFeedback.article_id)
+            .group_by(ModelFeedback.article_id, ModelFeedback.submitted_label)
+            .having(func.count() >= threshold)
+            .subquery()
+        )
+    )
+    consensus_ready = consensus_ready_result.scalar_one() or 0
+
+    # pending_consensus: en az bir feedback olan ama henüz consensus'e ulaşmamış article sayısı
+    all_articles_result = await db.execute(
+        select(func.count(func.distinct(ModelFeedback.article_id)))
+    )
+    all_articles_with_feedback = all_articles_result.scalar_one() or 0
+    pending_consensus = max(0, all_articles_with_feedback - consensus_ready)
+
+    # Son eğitim çalışması
+    last_run_result = await db.execute(
+        select(ModelTrainingRun).order_by(ModelTrainingRun.created_at.desc()).limit(1)
+    )
+    last_run = last_run_result.scalar_one_or_none()
+
+    return FeedbackStatsResponse(
+        pending_consensus=pending_consensus,
+        consensus_ready=consensus_ready,
+        last_training_run=TrainingRunResponse.model_validate(last_run) if last_run else None,
+    )
