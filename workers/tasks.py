@@ -285,6 +285,7 @@ from workers.audit_flush_task import flush_audit_buffer as _flush_audit_buffer  
 from workers.preference_updater import update_preference_profiles as _update_prefs
 from workers.similarity_cache import build_similarity_cache as _build_sim_cache
 from workers.digest_task import run_weekly_digest as _run_weekly_digest
+from workers.retrain_task import retrain_model as _retrain_model
 
 
 @celery_app.task(name="workers.tasks.flush_audit_buffer")
@@ -308,6 +309,11 @@ def weekly_digest_task() -> dict:
     return {"sent": sent}
 
 
+@celery_app.task(name="workers.tasks.nightly_model_retrain")
+def nightly_model_retrain_task() -> None:
+    _retrain_model()
+
+
 celery_app.conf.beat_schedule = {
     "flush-audit-buffer-every-5s": {
         "task": "workers.tasks.flush_audit_buffer",
@@ -324,5 +330,9 @@ celery_app.conf.beat_schedule = {
     "weekly-digest-monday-morning": {
         "task":     "workers.tasks.weekly_digest",
         "schedule": crontab(hour=8, minute=0, day_of_week=1),
+    },
+    "nightly-model-retrain": {
+        "task":     "workers.tasks.nightly_model_retrain",
+        "schedule": crontab(hour=4, minute=30),
     },
 }

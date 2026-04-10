@@ -356,3 +356,34 @@ class DataExportResponse(BaseModel):
     interactions:       list[dict]
     notifications:      list[dict]
     exported_at:        datetime
+
+
+# ── Faz 6-C: Model Feedback Loop ─────────────────────────────────────────────────
+
+class FeedbackRequest(BaseModel):
+    task_id:         str = Field(..., description="Article'ın metadata_info.task_id değeri")
+    submitted_label: str = Field(..., description="'FAKE' veya 'AUTHENTIC'")
+
+    @field_validator("submitted_label")
+    @classmethod
+    def validate_label(cls, v: str) -> str:
+        if v not in ("FAKE", "AUTHENTIC"):
+            raise ValueError("submitted_label 'FAKE' veya 'AUTHENTIC' olmalı")
+        return v
+
+
+class TrainingRunResponse(BaseModel):
+    triggered_at:   Optional[datetime] = None
+    accuracy:       Optional[float]    = None
+    prev_accuracy:  Optional[float]    = None
+    status:         Optional[str]      = None
+    sample_count:   Optional[int]      = None
+    feedback_count: Optional[int]      = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FeedbackStatsResponse(BaseModel):
+    pending_consensus: int
+    consensus_ready:   int
+    last_training_run: Optional[TrainingRunResponse] = None

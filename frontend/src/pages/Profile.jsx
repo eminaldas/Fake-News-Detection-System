@@ -60,6 +60,8 @@ const Profile = () => {
     const [newSource, setNewSource] = useState('');
     const [prefMsg,   setPrefMsg]   = useState('');
 
+    const [feedbackSent, setFeedbackSent] = useState({});
+
     const [pwForm, setPwForm]       = useState({ current_password: '', new_password: '', confirm: '' });
     const [pwLoading, setPwLoading] = useState(false);
     const [pwError, setPwError]     = useState('');
@@ -135,6 +137,19 @@ const Profile = () => {
     const updateNotifPref = async (key, value) => {
         setNotifPrefs(prev => ({ ...prev, [key]: value }));
         await axiosInstance.patch('/notifications/prefs', { [key]: value }).catch(() => {});
+    };
+
+    const handleFeedback = async (task_id, submitted_label) => {
+        try {
+            await axiosInstance.post('/analysis/feedback', { task_id, submitted_label });
+            setFeedbackSent(prev => ({ ...prev, [task_id]: true }));
+        } catch (err) {
+            const errStatus = err?.response?.status;
+            if (errStatus === 409) {
+                setFeedbackSent(prev => ({ ...prev, [task_id]: true }));
+            }
+            // 422 (yüksek güven) — sessizce yoksay
+        }
     };
 
     const handlePasswordChange = async (e) => {
@@ -302,6 +317,9 @@ const Profile = () => {
                                     {historyTotal} toplam
                                 </span>
                             </div>
+                            <p className="text-[10px] text-muted px-1 -mt-2 mb-1">
+                                Sonuçları doğrulayıp bildirirsen modeli geliştirmemize yardımcı olursun.
+                            </p>
 
                             {historyLoading ? (
                                 <div className="glass rounded-xl p-8 flex justify-center" style={cardBorder}>
@@ -386,6 +404,34 @@ const Profile = () => {
                                                                 <span className="text-[10px] text-muted shrink-0">
                                                                     %{Math.round(item.confidence * 100)} güven
                                                                 </span>
+                                                            </div>
+                                                        )}
+                                                        {/* Feedback paneli */}
+                                                        {item.task_id && (
+                                                            <div style={{ borderTop: '1px solid var(--color-border)', marginTop: '8px', paddingTop: '8px' }}>
+                                                                {feedbackSent[item.task_id] ? (
+                                                                    <p className="text-[10px] text-brand font-medium text-center">✓ Bildirildi</p>
+                                                                ) : item.confidence != null && item.confidence >= 0.80 ? (
+                                                                    <p className="text-[10px] text-muted text-center"
+                                                                       title="Bu sonuç için geri bildirim alınmıyor">
+                                                                        Yüksek güvenli — geri bildirim alınmıyor
+                                                                    </p>
+                                                                ) : (
+                                                                    <div className="flex gap-2 justify-center">
+                                                                        <button
+                                                                            onClick={() => handleFeedback(item.task_id, 'AUTHENTIC')}
+                                                                            className="text-[10px] font-semibold px-3 py-1 rounded-lg transition-colors"
+                                                                            style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.25)' }}>
+                                                                            ✓ Aslında gerçek
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleFeedback(item.task_id, 'FAKE')}
+                                                                            className="text-[10px] font-semibold px-3 py-1 rounded-lg transition-colors"
+                                                                            style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }}>
+                                                                            ✗ Aslında sahte
+                                                                        </button>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>
