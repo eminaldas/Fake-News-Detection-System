@@ -230,3 +230,42 @@ class UserNotification(Base):
     __table_args__ = (
         Index("idx_un_user_created", "user_id", "created_at"),
     )
+
+
+class ModelFeedback(Base):
+    __tablename__ = "model_feedback"
+
+    id              = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    article_id      = Column(UUID(as_uuid=True), ForeignKey("articles.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id         = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    submitted_label = Column(String(20), nullable=False)   # 'FAKE' | 'AUTHENTIC'
+    created_at      = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("article_id", "user_id", name="uq_model_feedback_article_user"),
+        CheckConstraint(
+            "submitted_label IN ('FAKE', 'AUTHENTIC')",
+            name="ck_model_feedback_label",
+        ),
+    )
+
+
+class ModelTrainingRun(Base):
+    __tablename__ = "model_training_runs"
+
+    id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    triggered_at   = Column(DateTime(timezone=True), server_default=func.now())
+    sample_count   = Column(Integer, nullable=True)
+    feedback_count = Column(Integer, nullable=True)
+    accuracy       = Column(Float, nullable=True)
+    prev_accuracy  = Column(Float, nullable=True)
+    status         = Column(String(20), nullable=False)   # 'success' | 'skipped' | 'failed'
+    notes          = Column(Text, nullable=True)
+    created_at     = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('success', 'skipped', 'failed')",
+            name="ck_model_training_run_status",
+        ),
+    )
