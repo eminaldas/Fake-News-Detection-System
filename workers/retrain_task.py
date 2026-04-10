@@ -169,8 +169,9 @@ async def _retrain_async() -> None:
             X_np = np.array(X)
             y_np = np.array(y)
 
+            stratify_arg = y_np if len(np.unique(y_np)) > 1 else None
             X_train, X_test, y_train, y_test = train_test_split(
-                X_np, y_np, test_size=0.2, random_state=42, stratify=y_np
+                X_np, y_np, test_size=0.2, random_state=42, stratify=stratify_arg
             )
 
             # ── 6. Mevcut modelin accuracy'si ────────────────────────────────
