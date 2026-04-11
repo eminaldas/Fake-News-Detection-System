@@ -563,7 +563,7 @@ class ForumVoteResult(BaseModel):
     vote_authentic:    int
     vote_investigate:  int
     status:            str
-    current_user_vote: Optional[str]
+    current_user_vote: Optional[str] = None
 
 
 class ForumTagSearchResponse(BaseModel):
