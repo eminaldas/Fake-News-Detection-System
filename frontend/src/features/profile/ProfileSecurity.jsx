@@ -32,7 +32,7 @@ const ProfileSecurity = () => {
         setPwLoading(true);
         setPwError('');
         try {
-            await axiosInstance.post('/auth/change-password', {
+            await axiosInstance.patch('/users/me', {
                 current_password: pwForm.current_password,
                 new_password: pwForm.new_password,
             });
@@ -115,7 +115,7 @@ const ProfileSecurity = () => {
                     <div className="space-y-2">
                         {sessions.map((s, i) => (
                             <div
-                                key={i}
+                                key={s.created_at}
                                 className="flex items-center gap-3 p-3 rounded-lg"
                                 style={{
                                     background: 'var(--color-base)',

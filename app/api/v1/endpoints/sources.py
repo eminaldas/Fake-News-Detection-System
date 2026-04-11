@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.get("/", response_model=List[SourceSearchItem])
 async def search_sources(
-    search: str = Query("", min_length=1, max_length=50),
+    search: str = Query(..., min_length=1, max_length=50),
     limit:  int = Query(5, ge=1, le=10),
     db:     AsyncSession = Depends(get_db),
     _:      User = Depends(get_current_user),
