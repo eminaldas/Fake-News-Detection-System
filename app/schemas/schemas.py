@@ -416,3 +416,19 @@ class SessionItem(BaseModel):
 class SessionListResponse(BaseModel):
     sessions: List[SessionItem]
     anomaly_detected: bool
+
+
+# ── Profile Hub: Geri Bildirimlerim ──────────────────────────────────────────
+
+class FeedbackHistoryItem(BaseModel):
+    article_title:   str
+    submitted_label: str
+    model_status:    Optional[str]
+    accepted:        bool
+    created_at:      datetime
+
+
+class FeedbackHistoryResponse(BaseModel):
+    items:          List[FeedbackHistoryItem]
+    total_sent:     int
+    total_accepted: int

@@ -11,9 +11,10 @@ from app.core.rate_limit import _midnight_epoch
 from app.core.security import hash_ip
 from app.db.redis import get_redis
 from app.db.session import get_db
-from app.models.models import AnalysisRequest, AnalysisResult, Article, AuditLog, ContentInteraction, User, UserNotification, UserPreferenceProfile
+from app.models.models import AnalysisRequest, AnalysisResult, Article, AuditLog, ContentInteraction, ModelFeedback, User, UserNotification, UserPreferenceProfile
 from app.schemas.schemas import (
-    AnalysisRequestResponse, DataExportResponse, FeedPreferencesResponse,
+    AnalysisRequestResponse, DataExportResponse, FeedbackHistoryItem,
+    FeedbackHistoryResponse, FeedPreferencesResponse,
     FeedPreferencesUpdate, PaginatedAnalysisRequestResponse, QuotaResponse,
     SessionItem, SessionListResponse, UserStatsResponse,
 )
@@ -317,3 +318,84 @@ async def my_sessions(
     anomaly_detected = anomaly_result.scalar_one() > 0
 
     return SessionListResponse(sessions=sessions, anomaly_detected=anomaly_detected)
+
+
+# ── Profile Hub: Geri Bildirimlerim ──────────────────────────────────────────
+
+_LABEL_TR = {"FAKE": "Yanıltıcı", "AUTHENTIC": "Güvenilir"}
+
+
+@router.get("/me/feedback", response_model=FeedbackHistoryResponse)
+async def my_feedback(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Kullanıcının gönderdiği model düzeltmelerini ve kabul durumlarını döndürür."""
+    # Kullanıcının kendi feedback'lerini al
+    result = await db.execute(
+        select(
+            ModelFeedback.article_id,
+            ModelFeedback.submitted_label,
+            ModelFeedback.created_at,
+            Article.title,
+            AnalysisResult.status,
+        )
+        .join(Article, ModelFeedback.article_id == Article.id)
+        .outerjoin(AnalysisResult, AnalysisResult.article_id == Article.id)
+        .where(ModelFeedback.user_id == current_user.id)
+        .order_by(ModelFeedback.created_at.desc())
+        .limit(50)
+    )
+    rows = result.all()
+
+    if not rows:
+        return FeedbackHistoryResponse(items=[], total_sent=0, total_accepted=0)
+
+    # Tüm ilgili article_id'ler için consensus oyu say (filtersiz — tüm kullanıcılar)
+    article_ids = [r.article_id for r in rows]
+    threshold = settings.FEEDBACK_CONSENSUS_THRESHOLD
+
+    vote_result = await db.execute(
+        select(
+            ModelFeedback.article_id,
+            ModelFeedback.submitted_label,
+            func.count().label("cnt"),
+        )
+        .where(ModelFeedback.article_id.in_(article_ids))
+        .group_by(ModelFeedback.article_id, ModelFeedback.submitted_label)
+    )
+    # vote_map[article_id][label] = count
+    vote_map: dict = {}
+    for vr in vote_result.all():
+        aid = str(vr.article_id)
+        vote_map.setdefault(aid, {})[vr.submitted_label] = vr.cnt
+
+    items = []
+    total_accepted = 0
+
+    for row in rows:
+        aid = str(row.article_id)
+        votes_for_article = vote_map.get(aid, {})
+        # Consensus: bu article için kullanıcının oyu etkin çoğunluğa ulaştı mı?
+        user_label_count = votes_for_article.get(row.submitted_label, 0)
+        total_votes = sum(votes_for_article.values())
+        accepted = (
+            user_label_count >= threshold
+            and (total_votes == 0 or user_label_count / total_votes > 0.60)
+        )
+        if accepted:
+            total_accepted += 1
+
+        items.append(FeedbackHistoryItem(
+            article_title=row.title,
+            submitted_label=_LABEL_TR.get(row.submitted_label, row.submitted_label),
+            model_status=_LABEL_TR.get(row.status) if row.status else None,
+            accepted=accepted,
+            created_at=row.created_at,
+        ))
+
+    return FeedbackHistoryResponse(
+        items=items,
+        total_sent=len(items),
+        total_accepted=total_accepted,
+    )
