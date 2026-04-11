@@ -424,3 +424,118 @@ async def vote_thread(
         status=thread.status,
         current_user_vote=current_vote,
     )
+
+
+@router.post("/threads/{thread_id}/comments", response_model=ForumCommentItem, status_code=status.HTTP_201_CREATED)
+async def add_comment(
+    thread_id:    _uuid.UUID,
+    body:         ForumCommentCreate,
+    current_user: User         = Depends(get_current_user),
+    db: AsyncSession           = Depends(get_db),
+):
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == thread_id)
+    )).scalar_one_or_none()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
+
+    depth = 0
+    if body.parent_id:
+        parent = (await db.execute(
+            select(ForumComment).where(
+                ForumComment.id == body.parent_id,
+                ForumComment.thread_id == thread_id,
+            )
+        )).scalar_one_or_none()
+        if not parent:
+            raise HTTPException(status_code=404, detail="Yanıtlanacak yorum bulunamadı")
+        depth = min(parent.depth + 1, 3)
+
+    comment = ForumComment(
+        thread_id=thread_id,
+        parent_id=body.parent_id,
+        user_id=current_user.id,
+        body=body.body,
+        evidence_urls=body.evidence_urls,
+        depth=depth,
+    )
+    db.add(comment)
+
+    thread.comment_count += 1
+
+    await db.flush()
+
+    # Notify followers: distinct user_ids that have commented on this thread (excluding self)
+    follower_rows = await db.execute(
+        select(ForumComment.user_id)
+        .where(
+            ForumComment.thread_id == thread_id,
+            ForumComment.user_id != current_user.id,
+            ForumComment.id != comment.id,
+        )
+        .distinct()
+    )
+    follower_ids = [str(r[0]) for r in follower_rows.all()]
+
+    await db.commit()
+    await db.refresh(comment)
+
+    comment_payload = {
+        "thread_id": str(thread_id),
+        "comment": {
+            "id": str(comment.id),
+            "username": current_user.username,
+            "body": comment.body,
+            "depth": comment.depth,
+            "parent_id": str(comment.parent_id) if comment.parent_id else None,
+            "created_at": comment.created_at.isoformat(),
+        },
+    }
+    for fid in follower_ids:
+        await publish_async(
+            channel=f"user:{fid}:events",
+            msg_type="forum.new_comment",
+            payload=comment_payload,
+        )
+
+    return ForumCommentItem(
+        id=comment.id,
+        thread_id=comment.thread_id,
+        parent_id=comment.parent_id,
+        username=current_user.username,
+        body=comment.body,
+        evidence_urls=comment.evidence_urls or [],
+        helpful_count=comment.helpful_count,
+        depth=comment.depth,
+        is_highlighted=comment.is_highlighted,
+        created_at=comment.created_at,
+    )
+
+
+@router.post("/comments/{comment_id}/vote", status_code=status.HTTP_204_NO_CONTENT)
+async def helpful_vote(
+    comment_id:   _uuid.UUID,
+    current_user: User         = Depends(get_current_user),
+    db: AsyncSession           = Depends(get_db),
+):
+    comment = (await db.execute(
+        select(ForumComment).where(ForumComment.id == comment_id)
+    )).scalar_one_or_none()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Yorum bulunamadı")
+
+    existing = (await db.execute(
+        select(ForumCommentVote).where(
+            ForumCommentVote.comment_id == comment_id,
+            ForumCommentVote.user_id == current_user.id,
+        )
+    )).scalar_one_or_none()
+
+    if existing:
+        await db.delete(existing)
+        comment.helpful_count = max(0, comment.helpful_count - 1)
+    else:
+        db.add(ForumCommentVote(comment_id=comment_id, user_id=current_user.id))
+        comment.helpful_count += 1
+
+    await db.commit()
