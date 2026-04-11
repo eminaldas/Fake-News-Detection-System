@@ -331,28 +331,36 @@ async def my_feedback(
     db: AsyncSession = Depends(get_db),
 ):
     """Kullanıcının gönderdiği model düzeltmelerini ve kabul durumlarını döndürür."""
-    # Kullanıcının kendi feedback'lerini al
+    # Subquery: her article için en son AnalysisResult status'u
+    latest_status_sq = (
+        select(AnalysisResult.status)
+        .where(AnalysisResult.article_id == Article.id)
+        .order_by(AnalysisResult.created_at.desc())
+        .limit(1)
+        .correlate(Article)
+        .scalar_subquery()
+    )
+
     result = await db.execute(
-        select(
-            ModelFeedback.article_id,
-            ModelFeedback.submitted_label,
-            ModelFeedback.created_at,
-            Article.title,
-            AnalysisResult.status,
-        )
+        select(ModelFeedback, Article.title, latest_status_sq.label("status"))
         .join(Article, ModelFeedback.article_id == Article.id)
-        .outerjoin(AnalysisResult, AnalysisResult.article_id == Article.id)
         .where(ModelFeedback.user_id == current_user.id)
         .order_by(ModelFeedback.created_at.desc())
         .limit(50)
     )
     rows = result.all()
 
+    # Gerçek toplam sayı (limit'ten bağımsız)
+    total_count_result = await db.execute(
+        select(func.count()).select_from(ModelFeedback).where(ModelFeedback.user_id == current_user.id)
+    )
+    true_total = total_count_result.scalar_one()
+
     if not rows:
         return FeedbackHistoryResponse(items=[], total_sent=0, total_accepted=0)
 
     # Tüm ilgili article_id'ler için consensus oyu say (filtersiz — tüm kullanıcılar)
-    article_ids = [r.article_id for r in rows]
+    article_ids = [row[0].article_id for row in rows]
     threshold = settings.FEEDBACK_CONSENSUS_THRESHOLD
 
     vote_result = await db.execute(
@@ -373,11 +381,11 @@ async def my_feedback(
     items = []
     total_accepted = 0
 
-    for row in rows:
-        aid = str(row.article_id)
+    for fb, title, status in rows:
+        aid = str(fb.article_id)
         votes_for_article = vote_map.get(aid, {})
         # Consensus: bu article için kullanıcının oyu etkin çoğunluğa ulaştı mı?
-        user_label_count = votes_for_article.get(row.submitted_label, 0)
+        user_label_count = votes_for_article.get(fb.submitted_label, 0)
         total_votes = sum(votes_for_article.values())
         accepted = (
             user_label_count >= threshold
@@ -387,15 +395,15 @@ async def my_feedback(
             total_accepted += 1
 
         items.append(FeedbackHistoryItem(
-            article_title=row.title,
-            submitted_label=_LABEL_TR.get(row.submitted_label, row.submitted_label),
-            model_status=_LABEL_TR.get(row.status) if row.status else None,
+            article_title=title,
+            submitted_label=_LABEL_TR.get(fb.submitted_label, fb.submitted_label),
+            model_status=_LABEL_TR.get(status) if status else None,
             accepted=accepted,
-            created_at=row.created_at,
+            created_at=fb.created_at,
         ))
 
     return FeedbackHistoryResponse(
         items=items,
-        total_sent=len(items),
+        total_sent=true_total,
         total_accepted=total_accepted,
     )

@@ -5,15 +5,17 @@ import axiosInstance from '../../api/axios';
 const ProfileFeedback = () => {
     const [data, setData]       = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError]     = useState(false);
 
     useEffect(() => {
         axiosInstance.get('/users/me/feedback')
             .then(r => setData(r.data))
-            .catch(() => {})
+            .catch(() => setError(true))
             .finally(() => setLoading(false));
     }, []);
 
     if (loading) return <div className="text-sm text-muted p-4">Yükleniyor...</div>;
+    if (error) return <div className="text-sm text-red-400 p-4">Veriler yüklenemedi, lütfen sayfayı yenile.</div>;
 
     if (!data || data.total_sent === 0) return (
         <div className="text-sm text-muted p-4">
@@ -42,8 +44,8 @@ const ProfileFeedback = () => {
                     <p className="text-[10px] font-black uppercase tracking-wider text-muted">Düzeltme Geçmişi</p>
                 </div>
                 <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
-                    {data.items.map((item, i) => (
-                        <div key={i} className="px-4 py-3">
+                    {data.items.map((item) => (
+                        <div key={`${item.article_title}-${item.created_at}`} className="px-4 py-3">
                             <div className="flex items-center justify-between mb-1">
                                 <p className="text-xs text-tx-secondary truncate max-w-[260px]">{item.article_title}</p>
                                 <p className="text-[10px] text-muted flex-shrink-0 ml-2">
