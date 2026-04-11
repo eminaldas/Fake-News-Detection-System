@@ -36,7 +36,7 @@ class RegisterRequest(BaseModel):
     username:         str            = Field(..., min_length=3, max_length=50)
     password:         str            = Field(..., min_length=8)
     interests:        List[str]      = Field(default_factory=list, description="Seçilen kategori listesi")
-    marketing_source: Optional[str]  = Field(None, description="Bizi nereden duydunuz?")
+    marketing_source: Optional[str]  = Field(None, max_length=100, description="Bizi nereden duydunuz?")
 
     @field_validator("email")
     @classmethod

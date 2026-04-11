@@ -218,7 +218,7 @@ const Register = () => {
                                     <p className="text-sm text-tx-secondary font-inter">Giriş sayfasına yönlendiriliyorsunuz…</p>
                                 </div>
                             ) : (
-                                <form className="space-y-4" onSubmit={step === 1 ? handleStep1 : step === 2 ? (e) => { e.preventDefault(); setStep(3); } : handleRegister} autoComplete="on">
+                                <form className="space-y-4" onSubmit={step === 1 ? handleStep1 : handleRegister} autoComplete="on">
 
                                 {step === 1 && (<>
                                     <div className="space-y-1.5">
