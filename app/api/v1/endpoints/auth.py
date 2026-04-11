@@ -132,6 +132,7 @@ async def register(
     request: Request,
     body: RegisterRequest,
     db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
 ):
     ip = request.client.host if request.client else "unknown"
 
@@ -170,6 +171,14 @@ async def register(
         await db.commit()
 
     log.info("user.register", username=body.username, ip_hash=hash_ip(ip))
+
+    if body.marketing_source:
+        await audit_log(
+            redis, "USER_ACTION", "onboarding.marketing_source",
+            ip=ip,
+            user_id=str(user.id),
+            details={"source": body.marketing_source},
+        )
 
     return user
 
