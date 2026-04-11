@@ -441,3 +441,153 @@ class SourceSearchItem(BaseModel):
     name:              str
     url:               str
     credibility_score: Optional[str] = None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Forum
+# ─────────────────────────────────────────────────────────────────────────────
+
+FORUM_CATEGORIES = ["gündem", "ekonomi", "sağlık", "teknoloji", "spor", "kültür", "yaşam"]
+
+
+class TagItem(BaseModel):
+    id:          UUID
+    name:        str
+    is_system:   bool
+    usage_count: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ForumArticleSummary(BaseModel):
+    id:         UUID
+    title:      str
+    ai_verdict: Optional[str] = None
+    confidence: Optional[float] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ForumCommentCreate(BaseModel):
+    body:          str       = Field(..., min_length=1, max_length=5000)
+    parent_id:     Optional[UUID] = None
+    evidence_urls: List[str] = Field(default_factory=list, max_length=10)
+
+    @field_validator("evidence_urls", mode="before")
+    @classmethod
+    def sanitize_urls(cls, v):
+        return [html.escape(u)[:512] for u in (v or [])]
+
+
+class ForumCommentItem(BaseModel):
+    id:             UUID
+    thread_id:      UUID
+    parent_id:      Optional[UUID] = None
+    username:       str
+    body:           str
+    evidence_urls:  List[str]
+    helpful_count:  int
+    depth:          int
+    is_highlighted: bool
+    created_at:     datetime
+    replies:        List["ForumCommentItem"] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+ForumCommentItem.model_rebuild()
+
+
+class ForumThreadCreate(BaseModel):
+    title:      str            = Field(..., min_length=3, max_length=300)
+    body:       str            = Field(..., min_length=10, max_length=10000)
+    category:   Optional[str]  = None
+    article_id: Optional[UUID] = None
+    tag_names:  List[str]      = Field(default_factory=list, max_length=10)
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, v):
+        if v and v not in FORUM_CATEGORIES:
+            raise ValueError(f"Geçersiz kategori. Seçenekler: {', '.join(FORUM_CATEGORIES)}")
+        return v
+
+    @field_validator("tag_names", mode="before")
+    @classmethod
+    def normalize_tags(cls, v):
+        tags = []
+        for t in (v or []):
+            t = t.strip()
+            if not t.startswith("#"):
+                t = "#" + t
+            tags.append(t[:100].lower())
+        return list(dict.fromkeys(tags))  # deduplicate, preserve order
+
+
+class ForumThreadAuthor(BaseModel):
+    id:       UUID
+    username: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ForumThreadSummary(BaseModel):
+    id:               UUID
+    title:            str
+    category:         Optional[str]
+    status:           str
+    vote_suspicious:  int
+    vote_authentic:   int
+    vote_investigate: int
+    comment_count:    int
+    created_at:       datetime
+    author:           ForumThreadAuthor
+    tags:             List[TagItem] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ForumThreadDetail(ForumThreadSummary):
+    body:              str
+    article:           Optional[ForumArticleSummary] = None
+    comments:          List[ForumCommentItem]        = Field(default_factory=list)
+    current_user_vote: Optional[str]                 = None
+
+
+class ForumVoteCreate(BaseModel):
+    vote_type: str = Field(..., pattern="^(suspicious|authentic|investigate)$")
+
+
+class ForumVoteResult(BaseModel):
+    vote_suspicious:   int
+    vote_authentic:    int
+    vote_investigate:  int
+    status:            str
+    current_user_vote: Optional[str]
+
+
+class ForumTagSearchResponse(BaseModel):
+    tags: List[TagItem]
+
+
+class ForumTrendingThread(BaseModel):
+    id:            UUID
+    title:         str
+    category:      Optional[str]
+    comment_count: int
+    total_votes:   int
+    created_at:    datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ForumTrendingResponse(BaseModel):
+    trending_threads: List[ForumTrendingThread]
+    trending_tags:    List[TagItem]
+
+
+class ForumThreadListResponse(BaseModel):
+    items: List[ForumThreadSummary]
+    total: int
+    page:  int
+    size:  int
