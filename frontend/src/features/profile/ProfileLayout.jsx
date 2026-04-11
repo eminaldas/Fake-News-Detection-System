@@ -1,11 +1,10 @@
 import React from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import {
     LayoutDashboard, SlidersHorizontal, ShieldCheck,
     Bell, ThumbsUp, User,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../contexts/ThemeContext';
 import axiosInstance from '../../api/axios';
 
 const NAV_ITEMS = [
@@ -18,7 +17,6 @@ const NAV_ITEMS = [
 
 const ProfileLayout = () => {
     const { user }       = useAuth();
-    const { isDarkMode } = useTheme();
     const [quota, setQuota] = React.useState(null);
 
     React.useEffect(() => {
@@ -28,10 +26,10 @@ const ProfileLayout = () => {
     }, []);
 
     const memberSince = user?.created_at
-        ? Math.floor(
+        ? Math.max(1, Math.floor(
               (Date.now() - new Date(user.created_at).getTime()) /
               (1000 * 60 * 60 * 24 * 30)
-          )
+          ))
         : null;
 
     return (
@@ -40,7 +38,7 @@ const ProfileLayout = () => {
             <aside
                 className="w-52 flex-shrink-0 flex flex-col border-r"
                 style={{
-                    background: isDarkMode ? '#0f0f0f' : 'var(--color-surface)',
+                    background: 'var(--color-surface)',
                     borderColor: 'var(--color-border)',
                 }}
             >
