@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
@@ -14,6 +14,7 @@ from app.models.models import AnalysisRequest, AnalysisResult, Article, ContentI
 from app.schemas.schemas import (
     AnalysisRequestResponse, DataExportResponse, FeedPreferencesResponse,
     FeedPreferencesUpdate, PaginatedAnalysisRequestResponse, QuotaResponse,
+    UserStatsResponse,
 )
 
 router = APIRouter()
@@ -96,6 +97,50 @@ async def my_quota(
         limit=limit,
         remaining=max(0, limit - count),
         reset_at=_midnight_epoch(),
+    )
+
+
+@router.get("/me/stats", response_model=UserStatsResponse)
+async def my_stats(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    all_result = await db.execute(
+        select(AnalysisResult.status, func.count().label("cnt"))
+        .join(Article, AnalysisResult.article_id == Article.id)
+        .join(AnalysisRequest, Article.metadata_info["task_id"].astext == AnalysisRequest.task_id)
+        .where(AnalysisRequest.user_id == current_user.id)
+        .group_by(AnalysisResult.status)
+    )
+    rows = {r.status: r.cnt for r in all_result}
+    total_fake      = rows.get("FAKE", 0)
+    total_authentic = rows.get("AUTHENTIC", 0)
+    total_analyzed  = total_fake + total_authentic
+
+    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    week_result = await db.execute(
+        select(AnalysisResult.status, func.count().label("cnt"))
+        .join(Article, AnalysisResult.article_id == Article.id)
+        .join(AnalysisRequest, Article.metadata_info["task_id"].astext == AnalysisRequest.task_id)
+        .where(
+            AnalysisRequest.user_id == current_user.id,
+            AnalysisRequest.created_at >= week_ago,
+        )
+        .group_by(AnalysisResult.status)
+    )
+    week_rows     = {r.status: r.cnt for r in week_result}
+    week_fake     = week_rows.get("FAKE", 0)
+    week_analyzed = week_fake + week_rows.get("AUTHENTIC", 0)
+
+    hygiene_score = round(total_authentic / total_analyzed * 100) if total_analyzed > 0 else 0
+
+    return UserStatsResponse(
+        total_analyzed=total_analyzed,
+        total_fake=total_fake,
+        total_authentic=total_authentic,
+        hygiene_score=hygiene_score,
+        week_analyzed=week_analyzed,
+        week_fake=week_fake,
     )
 
 

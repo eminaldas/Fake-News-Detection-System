@@ -388,3 +388,16 @@ class FeedbackStatsResponse(BaseModel):
     pending_consensus: int
     consensus_ready:   int
     last_training_run: Optional[TrainingRunResponse] = None
+
+
+# ── Profile Hub: Kullanıcı İstatistikleri ─────────────────────────────────────
+
+class UserStatsResponse(BaseModel):
+    total_analyzed: int
+    total_fake: int
+    total_authentic: int
+    hygiene_score: int
+    week_analyzed: int
+    week_fake: int
+
+    model_config = ConfigDict(from_attributes=True)
