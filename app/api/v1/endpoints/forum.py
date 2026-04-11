@@ -143,7 +143,7 @@ async def list_threads(
     if tag:
         q = q.join(ThreadTag, ThreadTag.thread_id == ForumThread.id).join(
             Tag, Tag.id == ThreadTag.tag_id
-        ).where(Tag.name == tag)
+        ).where(Tag.name == tag).distinct()
 
     if sort == "new":
         q = q.order_by(desc(ForumThread.created_at))
@@ -237,7 +237,7 @@ async def create_thread(
         comment_count=thread.comment_count,
         created_at=thread.created_at,
         author={"id": current_user.id, "username": current_user.username},
-        tags=[],
+        tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in (tags if body.tag_names else [])],
         article=article_summary,
         comments=[],
         current_user_vote=None,
@@ -321,7 +321,7 @@ async def search_tags(
     current_user: User       = Depends(get_current_user),
     db: AsyncSession         = Depends(get_db),
 ):
-    system_q = select(Tag).where(Tag.is_system == True, Tag.name.ilike(f"%{search}%"))
+    system_q = select(Tag).where(Tag.is_system == True, Tag.name.ilike(f"%{search}%")).order_by(desc(Tag.usage_count))
     if category:
         system_q = system_q.where(
             (Tag.category == category) | (Tag.category.is_(None))
