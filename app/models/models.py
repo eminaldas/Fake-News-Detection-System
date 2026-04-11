@@ -276,7 +276,7 @@ class ForumThread(Base):
 
     id              = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     article_id      = Column(UUID(as_uuid=True), ForeignKey("articles.id", ondelete="SET NULL"), nullable=True, index=True)
-    user_id         = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    user_id         = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     title           = Column(String(300), nullable=False)
     body            = Column(Text, nullable=False)
     category        = Column(String(50), nullable=True)
@@ -306,7 +306,7 @@ class ForumComment(Base):
     id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     thread_id     = Column(UUID(as_uuid=True), ForeignKey("forum_threads.id", ondelete="CASCADE"), nullable=False, index=True)
     parent_id     = Column(UUID(as_uuid=True), ForeignKey("forum_comments.id", ondelete="CASCADE"), nullable=True)
-    user_id       = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id       = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     body          = Column(Text, nullable=False)
     evidence_urls = Column(JSONB, nullable=False, server_default="[]")
     helpful_count = Column(Integer, nullable=False, server_default="0")
@@ -330,7 +330,7 @@ class ForumVote(Base):
 
     id        = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     thread_id = Column(UUID(as_uuid=True), ForeignKey("forum_threads.id", ondelete="CASCADE"), nullable=False)
-    user_id   = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id   = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     vote_type = Column(String(20), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -347,7 +347,7 @@ class ForumCommentVote(Base):
 
     id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     comment_id = Column(UUID(as_uuid=True), ForeignKey("forum_comments.id", ondelete="CASCADE"), nullable=False)
-    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
