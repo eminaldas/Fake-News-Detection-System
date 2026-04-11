@@ -432,3 +432,12 @@ class FeedbackHistoryResponse(BaseModel):
     items:          List[FeedbackHistoryItem]
     total_sent:     int
     total_accepted: int
+
+
+# ── Profile Hub: AI Lab ───────────────────────────────────────────────────────
+
+class SourceSearchItem(BaseModel):
+    id:                str
+    name:              str
+    url:               str
+    credibility_score: Optional[str] = None

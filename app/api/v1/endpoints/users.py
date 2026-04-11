@@ -196,6 +196,24 @@ async def update_feed_preferences(
     return FeedPreferencesResponse(blocked_sources=blocked, hidden_categories=hidden)
 
 
+@router.get("/me/preference-profile")
+async def my_preference_profile(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Kullanıcının AI Lab için kategori ağırlıkları ve NLP tolerans profilini döndürür."""
+    result = await db.execute(
+        select(UserPreferenceProfile).where(UserPreferenceProfile.user_id == current_user.id)
+    )
+    profile = result.scalar_one_or_none()
+    if not profile:
+        return {"category_weights": {}, "avg_nlp_tolerance": 0.5}
+    return {
+        "category_weights": profile.category_weights or {},
+        "avg_nlp_tolerance": float(profile.avg_nlp_tolerance) if profile.avg_nlp_tolerance is not None else 0.5,
+    }
+
+
 @router.delete("/me/preference-profile", status_code=204)
 async def reset_preference_profile(
     current_user: User = Depends(get_current_user),
