@@ -401,3 +401,18 @@ class UserStatsResponse(BaseModel):
     week_fake: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ── Profile Hub: Güvenlik ─────────────────────────────────────────────────────
+
+class SessionItem(BaseModel):
+    ip_hash: str
+    created_at: datetime
+    is_current: bool
+    label: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class SessionListResponse(BaseModel):
+    sessions: List[SessionItem]
+    anomaly_detected: bool

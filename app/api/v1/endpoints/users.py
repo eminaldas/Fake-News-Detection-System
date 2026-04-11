@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from redis.asyncio import Redis
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,13 +8,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.core.config import settings
 from app.core.rate_limit import _midnight_epoch
+from app.core.security import hash_ip
 from app.db.redis import get_redis
 from app.db.session import get_db
-from app.models.models import AnalysisRequest, AnalysisResult, Article, ContentInteraction, User, UserNotification, UserPreferenceProfile
+from app.models.models import AnalysisRequest, AnalysisResult, Article, AuditLog, ContentInteraction, User, UserNotification, UserPreferenceProfile
 from app.schemas.schemas import (
     AnalysisRequestResponse, DataExportResponse, FeedPreferencesResponse,
     FeedPreferencesUpdate, PaginatedAnalysisRequestResponse, QuotaResponse,
-    UserStatsResponse,
+    SessionItem, SessionListResponse, UserStatsResponse,
 )
 
 router = APIRouter()
@@ -271,3 +272,48 @@ async def data_export(
         ],
         exported_at=datetime.now(timezone.utc),
     )
+
+
+# ── Profile Hub: Oturum Geçmişi ───────────────────────────────────────────────
+
+@router.get("/me/sessions", response_model=SessionListResponse)
+async def my_sessions(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(AuditLog)
+        .where(
+            AuditLog.user_id == current_user.id,
+            AuditLog.event_name == "auth.login_success",
+        )
+        .order_by(AuditLog.created_at.desc())
+        .limit(5)
+    )
+    logs = result.scalars().all()
+
+    # Determine current IP identifier
+    client_ip = request.client.host if request.client else None
+    current_ip_hash = hash_ip(client_ip) if client_ip else None
+
+    sessions = [
+        SessionItem(
+            ip_hash=log.ip_hash or "",
+            created_at=log.created_at,
+            is_current=(log.ip_hash == current_ip_hash),
+            label="Bu cihaz" if log.ip_hash == current_ip_hash else "Başka cihaz",
+        )
+        for log in logs
+    ]
+
+    anomaly_result = await db.execute(
+        select(func.count()).select_from(AuditLog).where(
+            AuditLog.user_id == current_user.id,
+            AuditLog.event_name == "security.geo_anomaly",
+            AuditLog.created_at >= datetime.now(timezone.utc) - timedelta(days=7),
+        )
+    )
+    anomaly_detected = anomaly_result.scalar_one() > 0
+
+    return SessionListResponse(sessions=sessions, anomaly_detected=anomaly_detected)
