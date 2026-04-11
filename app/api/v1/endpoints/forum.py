@@ -344,3 +344,83 @@ async def search_tags(
     return ForumTagSearchResponse(
         tags=[TagItem(id=t.id, name=t.name, is_system=t.is_system, usage_count=t.usage_count) for t in all_tags]
     )
+
+
+def _increment_vote(thread: ForumThread, vote_type: str):
+    if vote_type == "suspicious":
+        thread.vote_suspicious += 1
+    elif vote_type == "authentic":
+        thread.vote_authentic += 1
+    elif vote_type == "investigate":
+        thread.vote_investigate += 1
+
+
+def _decrement_vote(thread: ForumThread, vote_type: str):
+    if vote_type == "suspicious":
+        thread.vote_suspicious = max(0, thread.vote_suspicious - 1)
+    elif vote_type == "authentic":
+        thread.vote_authentic = max(0, thread.vote_authentic - 1)
+    elif vote_type == "investigate":
+        thread.vote_investigate = max(0, thread.vote_investigate - 1)
+
+
+@router.post("/threads/{thread_id}/vote", response_model=ForumVoteResult)
+async def vote_thread(
+    thread_id:    _uuid.UUID,
+    body:         ForumVoteCreate,
+    current_user: User         = Depends(get_current_user),
+    db: AsyncSession           = Depends(get_db),
+):
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == thread_id)
+    )).scalar_one_or_none()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
+
+    existing = (await db.execute(
+        select(ForumVote).where(
+            ForumVote.thread_id == thread_id,
+            ForumVote.user_id == current_user.id,
+        )
+    )).scalar_one_or_none()
+
+    if existing:
+        if existing.vote_type == body.vote_type:
+            # Same vote again — toggle off
+            _decrement_vote(thread, existing.vote_type)
+            await db.delete(existing)
+            current_vote = None
+        else:
+            # Different vote — switch
+            _decrement_vote(thread, existing.vote_type)
+            _increment_vote(thread, body.vote_type)
+            existing.vote_type = body.vote_type
+            current_vote = body.vote_type
+    else:
+        vote = ForumVote(
+            thread_id=thread_id,
+            user_id=current_user.id,
+            vote_type=body.vote_type,
+        )
+        db.add(vote)
+        _increment_vote(thread, body.vote_type)
+        current_vote = body.vote_type
+
+    # under_review automation
+    article = None
+    if thread.article_id:
+        article = (await db.execute(
+            select(Article).where(Article.id == thread.article_id)
+        )).scalar_one_or_none()
+    await _check_under_review(thread, article, db)
+
+    await db.commit()
+    await db.refresh(thread)
+
+    return ForumVoteResult(
+        vote_suspicious=thread.vote_suspicious,
+        vote_authentic=thread.vote_authentic,
+        vote_investigate=thread.vote_investigate,
+        status=thread.status,
+        current_user_vote=current_vote,
+    )
