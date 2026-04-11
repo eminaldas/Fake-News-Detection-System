@@ -32,10 +32,11 @@ class TokenResponse(BaseModel):
 
 
 class RegisterRequest(BaseModel):
-    email:     str       = Field(..., max_length=255)
-    username:  str       = Field(..., min_length=3, max_length=50)
-    password:  str       = Field(..., min_length=8)
-    interests: List[str] = Field(default_factory=list, description="Seçilen kategori listesi")
+    email:            str            = Field(..., max_length=255)
+    username:         str            = Field(..., min_length=3, max_length=50)
+    password:         str            = Field(..., min_length=8)
+    interests:        List[str]      = Field(default_factory=list, description="Seçilen kategori listesi")
+    marketing_source: Optional[str]  = Field(None, max_length=100, description="Bizi nereden duydunuz?")
 
     @field_validator("email")
     @classmethod
@@ -387,3 +388,56 @@ class FeedbackStatsResponse(BaseModel):
     pending_consensus: int
     consensus_ready:   int
     last_training_run: Optional[TrainingRunResponse] = None
+
+
+# ── Profile Hub: Kullanıcı İstatistikleri ─────────────────────────────────────
+
+class UserStatsResponse(BaseModel):
+    total_analyzed: int
+    total_fake: int
+    total_authentic: int
+    hygiene_score: int
+    week_analyzed: int
+    week_fake: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ── Profile Hub: Güvenlik ─────────────────────────────────────────────────────
+
+class SessionItem(BaseModel):
+    ip_hash: str
+    created_at: datetime
+    is_current: bool
+    label: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class SessionListResponse(BaseModel):
+    sessions: List[SessionItem]
+    anomaly_detected: bool
+
+
+# ── Profile Hub: Geri Bildirimlerim ──────────────────────────────────────────
+
+class FeedbackHistoryItem(BaseModel):
+    article_title:   str
+    submitted_label: str
+    model_status:    Optional[str]
+    accepted:        bool
+    created_at:      datetime
+
+
+class FeedbackHistoryResponse(BaseModel):
+    items:          List[FeedbackHistoryItem]
+    total_sent:     int
+    total_accepted: int
+
+
+# ── Profile Hub: AI Lab ───────────────────────────────────────────────────────
+
+class SourceSearchItem(BaseModel):
+    id:                str
+    name:              str
+    url:               str
+    credibility_score: Optional[str] = None

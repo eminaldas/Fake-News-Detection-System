@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { WebSocketProvider } from './contexts/WebSocketContext';
@@ -12,7 +12,12 @@ import Home from './pages/Home';
 import Archive from './pages/Archive';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Profile from './pages/Profile';
+import ProfileLayout        from './features/profile/ProfileLayout';
+import ProfileOverview      from './features/profile/ProfileOverview';
+import ProfileAiLab         from './features/profile/ProfileAiLab';
+import ProfileSecurity      from './features/profile/ProfileSecurity';
+import ProfileNotifications from './features/profile/ProfileNotifications';
+import ProfileFeedback      from './features/profile/ProfileFeedback';
 import AdminUsers from './pages/AdminUsers';
 import AdminSecurity from './pages/AdminSecurity';
 import AdminAnalytics from './pages/AdminAnalytics';
@@ -52,9 +57,14 @@ function App() {
                             <Route path="register"   element={<Register />} />
 
                             {/* Giriş yapılmış kullanıcı */}
-                            <Route path="profile" element={
-                                <RequireAuth><Profile /></RequireAuth>
-                            } />
+                            <Route path="profile" element={<RequireAuth><ProfileLayout /></RequireAuth>}>
+                                <Route index element={<Navigate to="overview" replace />} />
+                                <Route path="overview"      element={<ProfileOverview />} />
+                                <Route path="ai-lab"        element={<ProfileAiLab />} />
+                                <Route path="security"      element={<ProfileSecurity />} />
+                                <Route path="notifications" element={<ProfileNotifications />} />
+                                <Route path="feedback"      element={<ProfileFeedback />} />
+                            </Route>
 
                             {/* Admin */}
                             <Route path="admin" element={
