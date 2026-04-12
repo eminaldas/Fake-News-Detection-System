@@ -493,16 +493,21 @@ class ForumTrustInfo(BaseModel):
 
 class ForumCommentItem(BaseModel):
     id:             UUID
-    user_id:        UUID
+    thread_id:      UUID
+    parent_id:      Optional[UUID] = None
     username:       str
-    content:        str
-    upvotes:        int
+    body:           str
+    evidence_urls:  List[str] = Field(default_factory=list)
+    helpful_count:  int
+    depth:          int = 0
     is_highlighted: bool
     created_at:     datetime
-    tier:          Optional[str] = None
-    display_label: Optional[str] = None
-    stars:         Optional[int] = None
+    tier:           Optional[str] = None
+    display_label:  Optional[str] = None
+    stars:          Optional[int] = None
     replies:        List["ForumCommentItem"] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 ForumCommentItem.model_rebuild()
