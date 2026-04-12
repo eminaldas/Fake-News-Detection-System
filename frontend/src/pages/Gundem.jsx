@@ -668,7 +668,7 @@ export default function Gundem() {
     }, [subscribe, category, page, fetchNews]);
 
     const applyNewArticles = () => { fetchNews(category, 1); setPage(1); };
-    const handleCategory   = (val) => { setCategory(val); setPage(1); setSearch(''); };
+    const handleCategory   = (val) => { setCategory(val); setPage(1); setSearch(''); setForYou(false); };
     const clearDateFilter  = () => {
         setDateFrom(''); setDateTo(''); setPage(1);
         fetchNews(category, 1, false, '', '');
@@ -744,6 +744,35 @@ export default function Gundem() {
                 {/* Tab strip */}
                 <div className="flex-1" style={{ borderBottom: '3px solid var(--color-brand-primary)' }}>
                     <div className="flex flex-wrap">
+                        {isAuthenticated && (
+                            <button
+                                onClick={() => {
+                                    setForYou(true);
+                                    setCategory(null);
+                                    setPage(1);
+                                    if (recItems.length === 0) {
+                                        setRecLoading(true);
+                                        axiosInstance.get('/recommendations/?context=feed&limit=10')
+                                            .then(r => setRecItems(r.data.items || []))
+                                            .catch(() => {})
+                                            .finally(() => setRecLoading(false));
+                                    }
+                                }}
+                                className="relative px-4 py-2.5 text-sm font-bold cursor-pointer transition-all duration-200 whitespace-nowrap"
+                                style={{
+                                    background:   forYou ? 'var(--color-brand-primary)' : 'transparent',
+                                    color:        forYou
+                                                      ? (isDarkMode ? '#070f12' : '#ffffff')
+                                                      : 'var(--color-text-secondary)',
+                                    borderRadius: '6px 6px 0 0',
+                                    marginBottom: '-3px',
+                                }}
+                                onMouseEnter={e => { if (!forYou) e.currentTarget.style.color = 'var(--color-text-primary)'; }}
+                                onMouseLeave={e => { if (!forYou) e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
+                            >
+                                Sizin İçin
+                            </button>
+                        )}
                         {CATEGORIES.map((c) => {
                             const isActive = category === c.value;
                             return (
@@ -827,40 +856,6 @@ export default function Gundem() {
                 </div>
             )}
 
-            {/* ── Sizin için toggle ── */}
-            {isAuthenticated && (
-                <div className="mb-4">
-                    <button
-                        onClick={() => {
-                            const next = !forYou;
-                            setForYou(next);
-                            if (next && recItems.length === 0) {
-                                setRecLoading(true);
-                                axiosInstance.get('/recommendations/?context=feed&limit=10')
-                                    .then(r => setRecItems(r.data.items || []))
-                                    .catch(() => {})
-                                    .finally(() => setRecLoading(false));
-                            }
-                        }}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                            forYou
-                                ? 'bg-brand text-surface border-brand'
-                                : 'border-brutal-border text-tx-secondary hover:border-brand'
-                        }`}
-                    >
-                        ✨ Sizin için
-                    </button>
-                    {forYou && recLoading && (
-                        <div className="mt-3 space-y-2">
-                            {[1,2,3].map(i => <div key={i} className="h-10 rounded-lg bg-base animate-pulse" />)}
-                        </div>
-                    )}
-                    {forYou && !recLoading && recItems.length > 0 && (
-                        <RecommendationPanel context="feed" title="Sizin için Seçilenler" />
-                    )}
-                </div>
-            )}
-
             {/* ── Tarih filtresi aktifse temizle butonu ── */}
             {(dateFrom || dateTo) && (
                 <div className="flex items-center gap-3 mb-4 text-xs text-muted">
@@ -870,18 +865,29 @@ export default function Gundem() {
             )}
 
             {/* ── İçerik ── */}
-            {loading && <Spinner />}
-            {error && <p className="text-red-400/70 text-sm text-center py-20">{error}</p>}
-            {!loading && !error && sorted.length === 0 && (
-                <p className="text-muted text-sm text-center py-20">
-                    {search ? 'Arama sonucu bulunamadı.' : 'Henüz haber yok.'}
-                </p>
-            )}
-
-            {!loading && sorted.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {sorted.map((a, i) => renderCard(a, i))}
-                </div>
+            {forYou ? (
+                recLoading ? (
+                    <div className="space-y-2">
+                        {[1,2,3].map(i => <div key={i} className="h-10 rounded-lg bg-base animate-pulse" />)}
+                    </div>
+                ) : (
+                    <RecommendationPanel context="feed" title="Sizin için Seçilenler" />
+                )
+            ) : (
+                <>
+                    {loading && <Spinner />}
+                    {error && <p className="text-red-400/70 text-sm text-center py-20">{error}</p>}
+                    {!loading && !error && sorted.length === 0 && (
+                        <p className="text-muted text-sm text-center py-20">
+                            {search ? 'Arama sonucu bulunamadı.' : 'Henüz haber yok.'}
+                        </p>
+                    )}
+                    {!loading && sorted.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                            {sorted.map((a, i) => renderCard(a, i))}
+                        </div>
+                    )}
+                </>
             )}
 
             {/* ── Sayfalama ── */}
