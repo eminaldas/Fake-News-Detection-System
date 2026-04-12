@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { AlertTriangle, Send, Link as LinkIcon, X } from 'lucide-react';
 import axiosInstance from '../../api/axios';
+import { useWebSocket } from '../../contexts/WebSocketContext';
 import ForumCommentTree from './ForumCommentTree';
 
 const VOTE_OPTIONS = [
@@ -29,6 +30,7 @@ function VoteBar({ suspicious, authentic, investigate, size = 4 }) {
 
 const ForumThread = () => {
     const { threadId } = useParams();
+    const { subscribe } = useWebSocket();
     const [thread,   setThread]   = React.useState(null);
     const [loading,  setLoading]  = React.useState(true);
     const [voting,   setVoting]   = React.useState(false);
@@ -53,6 +55,16 @@ const ForumThread = () => {
     }, [threadId]);
 
     React.useEffect(() => { load(); }, [load]);
+
+    // Gerçek zamanlı yorum bildirimi: bu thread'e yeni yorum gelince yeniden yükle
+    React.useEffect(() => {
+        const unsub = subscribe('forum.new_comment', (payload) => {
+            if (payload?.thread_id === threadId) {
+                load();
+            }
+        });
+        return unsub;
+    }, [subscribe, threadId, load]);
 
     const handleVote = async (voteType) => {
         if (voting) return;
