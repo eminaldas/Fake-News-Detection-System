@@ -62,6 +62,7 @@ def _build_comment_tree(flat: list) -> list:
             depth=c.depth,
             is_highlighted=c.is_highlighted,
             created_at=c.created_at,
+            moderation_status=c.moderation_status,
         )
         by_id[c.id] = item
 
@@ -510,6 +511,7 @@ async def add_comment(
         depth=comment.depth,
         is_highlighted=comment.is_highlighted,
         created_at=comment.created_at,
+        moderation_status=comment.moderation_status,
     )
 
 
