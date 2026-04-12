@@ -12,7 +12,7 @@ from uuid import UUID
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
 
-from app.models.models import UserRole
+from app.models.models import User as UserORM, UserRole
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -472,7 +472,7 @@ class ForumTrustInfo(BaseModel):
     display_label: str
 
     @classmethod
-    def from_user(cls, user) -> "ForumTrustInfo":
+    def from_user(cls, user: UserORM) -> "ForumTrustInfo":
         meta   = TIER_META.get(user.forum_trust_tier, TIER_META["yeni_uye"])
         cat_tr = CATEGORY_LABELS.get(user.forum_trust_category or "", "")
         if cat_tr and user.forum_trust_tier in {"analist", "dedektif"}:

@@ -23,6 +23,30 @@ STATEMENTS = [
       ADD COLUMN IF NOT EXISTS forum_trust_tier     VARCHAR(20) NOT NULL DEFAULT 'yeni_uye',
       ADD COLUMN IF NOT EXISTS forum_trust_category VARCHAR(50) DEFAULT NULL
     """,
+    """
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'ck_users_forum_trust_tier'
+      ) THEN
+        ALTER TABLE users
+          ADD CONSTRAINT ck_users_forum_trust_tier
+          CHECK (forum_trust_tier IN ('yeni_uye','dogrulayici','analist','dedektif'));
+      END IF;
+    END $$
+    """,
+    """
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'ck_users_forum_trust_score_nonneg'
+      ) THEN
+        ALTER TABLE users
+          ADD CONSTRAINT ck_users_forum_trust_score_nonneg
+          CHECK (forum_trust_score >= 0);
+      END IF;
+    END $$
+    """,
 ]
 
 

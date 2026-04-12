@@ -41,6 +41,17 @@ class User(Base):
     forum_trust_tier     = Column(String(20), nullable=False, server_default="yeni_uye")
     forum_trust_category = Column(String(50), nullable=True)
 
+    __table_args__ = (
+        CheckConstraint(
+            "forum_trust_tier IN ('yeni_uye','dogrulayici','analist','dedektif')",
+            name="ck_users_forum_trust_tier",
+        ),
+        CheckConstraint(
+            "forum_trust_score >= 0",
+            name="ck_users_forum_trust_score_nonneg",
+        ),
+    )
+
     analysis_requests = relationship("AnalysisRequest", back_populates="user")
 
 
