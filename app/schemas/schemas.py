@@ -538,8 +538,9 @@ class ForumCommentItem(BaseModel):
     created_at:     datetime
     tier:           Optional[str]  = None
     display_label:  Optional[str]  = None
-    stars:          Optional[int]  = None
-    replies:        List["ForumCommentItem"] = Field(default_factory=list)
+    stars:             Optional[int]  = None
+    moderation_status: str            = "clean"
+    replies:           List["ForumCommentItem"] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -637,6 +638,31 @@ class ForumTrendingResponse(BaseModel):
 
 class ForumThreadListResponse(BaseModel):
     items: List[ForumThreadSummary]
+    total: int
+    page:  int
+    size:  int
+
+
+class ForumReportCreate(BaseModel):
+    reason: str = Field(..., pattern="^(spam|hate_speech|misinformation|off_topic)$")
+
+
+class ModerationQueueItem(BaseModel):
+    id:               UUID
+    body:             str
+    author:           str
+    thread_title:     str
+    thread_id:        UUID
+    flag_type:        str
+    moderation_note:  Optional[str] = None
+    report_count:     int
+    created_at:       datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ModerationQueueResponse(BaseModel):
+    items: List[ModerationQueueItem]
     total: int
     page:  int
     size:  int

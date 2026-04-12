@@ -326,7 +326,9 @@ class ForumComment(Base):
     evidence_urls = Column(JSONB, nullable=False, server_default="[]")
     helpful_count = Column(Integer, nullable=False, server_default="0")
     depth         = Column(Integer, nullable=False, server_default="0")
-    is_highlighted = Column(Boolean, nullable=False, server_default="false")
+    is_highlighted    = Column(Boolean, nullable=False, server_default="false")
+    moderation_status = Column(String(20), nullable=False, server_default="clean")
+    moderation_note   = Column(Text, nullable=True)
     created_at    = Column(DateTime(timezone=True), server_default=func.now())
 
     thread  = relationship("ForumThread", back_populates="comments")
@@ -336,6 +338,10 @@ class ForumComment(Base):
 
     __table_args__ = (
         CheckConstraint("depth >= 0 AND depth <= 3", name="ck_forum_comment_depth"),
+        CheckConstraint(
+            "moderation_status IN ('clean','flagged_ai','flagged_user','removed')",
+            name="ck_forum_comment_moderation_status",
+        ),
         Index("idx_forum_comment_thread", "thread_id", "created_at"),
     )
 
@@ -367,6 +373,25 @@ class ForumCommentVote(Base):
 
     __table_args__ = (
         UniqueConstraint("comment_id", "user_id", name="uq_forum_comment_vote_user"),
+    )
+
+
+class ForumReport(Base):
+    __tablename__ = "forum_reports"
+
+    id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    comment_id  = Column(UUID(as_uuid=True), ForeignKey("forum_comments.id", ondelete="CASCADE"), nullable=False)
+    reporter_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    reason      = Column(String(20), nullable=False)
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("comment_id", "reporter_id", name="uq_forum_report_comment_reporter"),
+        CheckConstraint(
+            "reason IN ('spam','hate_speech','misinformation','off_topic')",
+            name="ck_forum_report_reason",
+        ),
+        Index("idx_forum_report_comment", "comment_id"),
     )
 
 
