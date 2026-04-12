@@ -14,6 +14,7 @@ import asyncio
 import logging
 
 from celery import Celery
+from celery.schedules import crontab
 
 from app.core.config import settings
 from scrapers.rss_monitor import run_agent_cycle, get_vectorizer
@@ -56,6 +57,10 @@ celery_app.conf.beat_schedule = {
     "flush-audit-buffer-every-5s": {
         "task": "workers.agent_tasks.run_audit_flush",
         "schedule": 5,
+    },
+    "recalculate-trust-scores-nightly": {
+        "task": "recalculate_trust_scores",
+        "schedule": crontab(hour=3, minute=30),  # 03:30 her gece
     },
 }
 
