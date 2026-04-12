@@ -15,8 +15,8 @@ from app.models.models import AnalysisRequest, AnalysisResult, Article, AuditLog
 from app.schemas.schemas import (
     AnalysisRequestResponse, DataExportResponse, FeedbackHistoryItem,
     FeedbackHistoryResponse, FeedPreferencesResponse,
-    FeedPreferencesUpdate, PaginatedAnalysisRequestResponse, QuotaResponse,
-    SessionItem, SessionListResponse, UserStatsResponse,
+    FeedPreferencesUpdate, ForumTrustInfo, PaginatedAnalysisRequestResponse,
+    QuotaResponse, SessionItem, SessionListResponse, UserStatsResponse,
 )
 
 router = APIRouter()
@@ -425,3 +425,11 @@ async def my_feedback(
         total_sent=true_total,
         total_accepted=total_accepted,
     )
+
+
+@router.get("/me/trust", response_model=ForumTrustInfo)
+async def my_trust_info(
+    current_user: User = Depends(get_current_user),
+):
+    """Kullanıcının forum trust (itibar) bilgisini döner."""
+    return ForumTrustInfo.from_user(current_user)
