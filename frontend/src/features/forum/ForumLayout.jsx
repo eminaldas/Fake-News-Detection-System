@@ -5,6 +5,7 @@ import {
     AlertTriangle, CheckCircle,
 } from 'lucide-react';
 import axiosInstance from '../../api/axios';
+import { useAuth } from '../../contexts/AuthContext';
 
 const CATEGORIES = [
     { key: 'gundem',     label: 'Gündem' },
@@ -23,11 +24,19 @@ const SYSTEM_TAGS = [
 
 const ForumLayout = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [trending, setTrending] = React.useState(null);
+    const [trust, setTrust] = React.useState(null);
 
     React.useEffect(() => {
         axiosInstance.get('/forum/trending')
             .then(r => setTrending(r.data))
+            .catch(() => {});
+    }, []);
+
+    React.useEffect(() => {
+        axiosInstance.get('/users/me/trust')
+            .then(r => setTrust(r.data))
             .catch(() => {});
     }, []);
 
@@ -60,6 +69,26 @@ const ForumLayout = () => {
                         <Plus className="w-3.5 h-3.5" />
                         Tartışma Başlat
                     </button>
+                </div>
+
+                {/* Kullanıcı & Trust Rozeti */}
+                <div className="px-3">
+                    <div
+                        className="rounded-lg p-2.5 border"
+                        style={{ background: 'var(--color-base)', borderColor: 'var(--color-border)' }}
+                    >
+                        <p className="text-xs font-bold text-tx-primary truncate">{user?.username}</p>
+                        {trust ? (
+                            <>
+                                <p className="text-[10px] text-brand">
+                                    {'★'.repeat(trust.stars)} {trust.display_label}
+                                </p>
+                                <p className="text-[10px] text-tx-secondary">Skor: {trust.score.toFixed(0)}/100</p>
+                            </>
+                        ) : (
+                            <p className="text-[10px] text-tx-secondary">Yeni Üye</p>
+                        )}
+                    </div>
                 </div>
 
                 {/* Tüm Tartışmalar */}

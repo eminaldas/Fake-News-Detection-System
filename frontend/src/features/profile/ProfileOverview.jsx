@@ -36,10 +36,17 @@ const ProfileOverview = () => {
     const [historyTotal, setHistoryTotal]     = useState(0);
     const [historyLoading, setHistoryLoading] = useState(true);
     const [stats, setStats]                   = useState(null);
+    const [trust, setTrust]                   = useState(null);
 
     useEffect(() => {
         axiosInstance.get('/users/me/stats')
             .then(r => setStats(r.data))
+            .catch(() => {});
+    }, []);
+
+    useEffect(() => {
+        axiosInstance.get('/users/me/trust')
+            .then(r => setTrust(r.data))
             .catch(() => {});
     }, []);
 
@@ -73,6 +80,20 @@ const ProfileOverview = () => {
                         <p className="text-[10px] text-muted mt-0.5">{sub}</p>
                     </div>
                 ))}
+                <div className="rounded-xl border p-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+                    <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Forum İtibarı</p>
+                    <p className="text-2xl font-black text-tx-primary">{trust ? trust.display_label : '—'}</p>
+                    {trust && (
+                        <p className="text-sm text-brand mt-0.5">{'★'.repeat(trust?.stars || 0)}</p>
+                    )}
+                    <div className="mt-2 h-1 rounded-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
+                        <div
+                            className="h-full rounded-full transition-all"
+                            style={{ width: `${trust?.score || 0}%`, background: 'var(--color-brand)' }}
+                        />
+                    </div>
+                    <p className="text-[10px] text-muted mt-0.5">Skor: {trust?.score?.toFixed(0) || 0}/100</p>
+                </div>
             </div>
 
             <div className="rounded-xl border p-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>

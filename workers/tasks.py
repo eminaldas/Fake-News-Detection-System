@@ -286,6 +286,7 @@ from workers.preference_updater import update_preference_profiles as _update_pre
 from workers.similarity_cache import build_similarity_cache as _build_sim_cache
 from workers.digest_task import run_weekly_digest as _run_weekly_digest
 from workers.retrain_task import retrain_model as _retrain_model
+from workers.trust_tasks import recalculate_trust_scores as _recalculate_trust  # noqa: F401
 
 
 @celery_app.task(name="workers.tasks.flush_audit_buffer")
@@ -334,5 +335,9 @@ celery_app.conf.beat_schedule = {
     "nightly-model-retrain": {
         "task":     "workers.tasks.nightly_model_retrain",
         "schedule": crontab(hour=4, minute=30),
+    },
+    "recalculate-trust-scores-nightly": {
+        "task":     "recalculate_trust_scores",
+        "schedule": crontab(hour=3, minute=30),  # 03:30 her gece
     },
 }

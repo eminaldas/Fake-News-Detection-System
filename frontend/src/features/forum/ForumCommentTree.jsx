@@ -38,6 +38,11 @@ function CommentNode({ comment, threadId, onReply, onHelpful, depth = 0 }) {
                         {(comment.username ?? '?')[0].toUpperCase()}
                     </div>
                     <span className="text-[10px] font-semibold text-tx-primary">{comment.username}</span>
+                    {comment.display_label && (
+                        <span className="text-[8px] text-brand ml-1">
+                            {'★'.repeat(comment.stars || 1)} {comment.display_label}
+                        </span>
+                    )}
                     {comment.is_highlighted && (
                         <span className="text-[8px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(63,255,139,0.1)', color: 'var(--color-brand)' }}>
                             Öne Çıkan

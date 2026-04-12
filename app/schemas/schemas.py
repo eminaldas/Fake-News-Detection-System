@@ -12,7 +12,7 @@ from uuid import UUID
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
 
-from app.models.models import UserRole
+from app.models.models import User as UserORM, UserRole
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -479,17 +479,66 @@ class ForumCommentCreate(BaseModel):
         return [html.escape(u)[:512] for u in (v or [])]
 
 
+# ── Forum Trust ───────────────────────────────────────────────────────────────
+
+TIER_META = {
+    "yeni_uye":    {"label": "Yeni Üye",    "stars": 1},
+    "dogrulayici": {"label": "Doğrulayıcı", "stars": 2},
+    "analist":     {"label": "Analist",     "stars": 3},
+    "dedektif":    {"label": "Dedektif",    "stars": 4},
+}
+
+CATEGORY_LABELS = {
+    "gundem":    "Gündem",
+    "ekonomi":   "Ekonomi",
+    "saglik":    "Sağlık",
+    "teknoloji": "Teknoloji",
+    "spor":      "Spor",
+    "kultur":    "Kültür",
+    "yasam":     "Yaşam",
+}
+
+
+class ForumTrustInfo(BaseModel):
+    score:         float
+    tier:          str
+    tier_label:    str
+    stars:         int
+    category:      Optional[str] = None
+    display_label: str
+
+    @classmethod
+    def from_user(cls, user: UserORM) -> "ForumTrustInfo":
+        meta   = TIER_META.get(user.forum_trust_tier, TIER_META["yeni_uye"])
+        cat_tr = CATEGORY_LABELS.get(user.forum_trust_category or "", "")
+        if cat_tr and user.forum_trust_tier in {"analist", "dedektif"}:
+            display = f"{cat_tr} {meta['label']}"
+        else:
+            display = meta["label"]
+        return cls(
+            score=round(user.forum_trust_score, 1),
+            tier=user.forum_trust_tier,
+            tier_label=meta["label"],
+            stars=meta["stars"],
+            category=user.forum_trust_category,
+            display_label=display,
+        )
+
+
 class ForumCommentItem(BaseModel):
     id:             UUID
     thread_id:      UUID
     parent_id:      Optional[UUID] = None
     username:       str
     body:           str
-    evidence_urls:  List[str]
+    evidence_urls:  List[str]      = Field(default_factory=list)
     helpful_count:  int
-    depth:          int
+    depth:          int            = 0
     is_highlighted: bool
     created_at:     datetime
+    tier:           Optional[str]  = None
+    display_label:  Optional[str]  = None
+    stars:          Optional[int]  = None
     replies:        List["ForumCommentItem"] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
