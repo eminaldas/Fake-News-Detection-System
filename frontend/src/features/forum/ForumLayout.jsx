@@ -5,6 +5,7 @@ import {
     AlertTriangle, CheckCircle,
 } from 'lucide-react';
 import axiosInstance from '../../api/axios';
+import { useAuth } from '../../contexts/AuthContext';
 
 const CATEGORIES = [
     { key: 'gundem',     label: 'Gündem' },
@@ -23,6 +24,7 @@ const SYSTEM_TAGS = [
 
 const ForumLayout = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [trending, setTrending] = React.useState(null);
     const [trust, setTrust] = React.useState(null);
 
@@ -70,20 +72,24 @@ const ForumLayout = () => {
                 </div>
 
                 {/* Kullanıcı & Trust Rozeti */}
-                {trust && (
-                    <div className="px-3">
-                        <div
-                            className="rounded-lg p-2.5 border"
-                            style={{ background: 'var(--color-base)', borderColor: 'var(--color-border)' }}
-                        >
-                            <p className="text-xs font-bold text-tx-primary truncate">{trust.display_label?.split(' ').slice(1).join(' ') || trust.tier_label}</p>
-                            <p className="text-[10px] text-brand">
-                                {'★'.repeat(trust.stars)} {trust.display_label}
-                            </p>
-                            <p className="text-[10px] text-tx-secondary">Skor: {trust.score.toFixed(0)}/100</p>
-                        </div>
+                <div className="px-3">
+                    <div
+                        className="rounded-lg p-2.5 border"
+                        style={{ background: 'var(--color-base)', borderColor: 'var(--color-border)' }}
+                    >
+                        <p className="text-xs font-bold text-tx-primary truncate">{user?.username}</p>
+                        {trust ? (
+                            <>
+                                <p className="text-[10px] text-brand">
+                                    {'★'.repeat(trust.stars)} {trust.display_label}
+                                </p>
+                                <p className="text-[10px] text-tx-secondary">Skor: {trust.score.toFixed(0)}/100</p>
+                            </>
+                        ) : (
+                            <p className="text-[10px] text-tx-secondary">Yeni Üye</p>
+                        )}
                     </div>
-                )}
+                </div>
 
                 {/* Tüm Tartışmalar */}
                 <div className="px-3">
