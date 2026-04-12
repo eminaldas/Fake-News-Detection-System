@@ -1,16 +1,20 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import select, func
+from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_user, require_admin
 from app.core.audit import audit_log
 from app.core.logging import get_logger
 from app.db.redis import get_redis
 from app.db.session import get_db
-from app.models.models import User, UserRole
-from app.schemas.schemas import AdminUpdateUserRequest, PaginatedUserResponse, UserResponse
+from app.models.models import User, UserRole, ForumComment, ForumReport, ForumThread
+from app.schemas.schemas import (
+    AdminUpdateUserRequest, ModerationQueueItem, ModerationQueueResponse,
+    PaginatedUserResponse, UserResponse,
+)
 
 router = APIRouter()
 log    = get_logger(__name__)
@@ -123,3 +127,104 @@ async def delete_user(
         user_id=str(admin.id), severity="WARNING",
         details={"action": "delete_user", "target_user_id": str(user_id)},
     )
+
+
+@router.get("/forum/queue", response_model=ModerationQueueResponse)
+async def forum_moderation_queue(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Flaglenmiş yorumları sayfalı listeler."""
+    offset = (page - 1) * size
+
+    base_filter = ForumComment.moderation_status.in_(["flagged_ai", "flagged_user"])
+
+    total = (await db.execute(
+        select(func.count()).where(base_filter)
+    )).scalar_one()
+
+    rows = (await db.execute(
+        select(ForumComment)
+        .options(
+            selectinload(ForumComment.user),
+            selectinload(ForumComment.thread),
+        )
+        .where(base_filter)
+        .order_by(desc(ForumComment.created_at))
+        .offset(offset)
+        .limit(size)
+    )).scalars().all()
+
+    # Her yorum için rapor sayısını toplu çek
+    comment_ids = [c.id for c in rows]
+    report_counts: dict = {}
+    if comment_ids:
+        count_rows = (await db.execute(
+            select(ForumReport.comment_id, func.count().label("cnt"))
+            .where(ForumReport.comment_id.in_(comment_ids))
+            .group_by(ForumReport.comment_id)
+        )).all()
+        report_counts = {r.comment_id: r.cnt for r in count_rows}
+
+    items = [
+        ModerationQueueItem(
+            id=c.id,
+            body=c.body[:300],
+            author=c.user.username if c.user else "?",
+            thread_title=c.thread.title if c.thread else "?",
+            thread_id=c.thread_id,
+            flag_type=c.moderation_status,
+            moderation_note=c.moderation_note,
+            report_count=report_counts.get(c.id, 0),
+            created_at=c.created_at,
+        )
+        for c in rows
+    ]
+
+    return ModerationQueueResponse(items=items, total=total, page=page, size=size)
+
+
+@router.post("/forum/comments/{comment_id}/approve", status_code=status.HTTP_200_OK)
+async def approve_comment(
+    comment_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Yorumu temize çıkar; thread'i de active'e al."""
+    comment = (await db.execute(
+        select(ForumComment).where(ForumComment.id == comment_id)
+    )).scalar_one_or_none()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Yorum bulunamadı")
+
+    comment.moderation_status = "clean"
+    comment.moderation_note   = None
+
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == comment.thread_id)
+    )).scalar_one_or_none()
+    if thread and thread.status == "under_review":
+        thread.status = "active"
+
+    await db.commit()
+    return {"message": "Yorum onaylandı."}
+
+
+@router.post("/forum/comments/{comment_id}/remove", status_code=status.HTTP_200_OK)
+async def remove_comment(
+    comment_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Yorumu kaldır (soft delete — DB'de tutulur)."""
+    comment = (await db.execute(
+        select(ForumComment).where(ForumComment.id == comment_id)
+    )).scalar_one_or_none()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Yorum bulunamadı")
+
+    comment.moderation_status = "removed"
+    await db.commit()
+    return {"message": "Yorum kaldırıldı."}
