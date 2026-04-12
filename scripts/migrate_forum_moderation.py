@@ -62,10 +62,13 @@ STATEMENTS = [
 
 async def main():
     engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
-    async with engine.begin() as conn:
-        for stmt in STATEMENTS:
-            await conn.execute(sqlalchemy.text(stmt))
-    await engine.dispose()
+    try:
+        async with engine.begin() as conn:
+            for i, stmt in enumerate(STATEMENTS, 1):
+                await conn.execute(sqlalchemy.text(stmt))
+                print(f"  [{i}/{len(STATEMENTS)}] OK")
+    finally:
+        await engine.dispose()
     print("Migration tamamlandı.")
 
 
