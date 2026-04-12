@@ -270,7 +270,10 @@ async def get_thread(
     comments_result = await db.execute(
         select(ForumComment)
         .options(selectinload(ForumComment.user))
-        .where(ForumComment.thread_id == thread_id)
+        .where(
+            ForumComment.thread_id == thread_id,
+            ForumComment.moderation_status != "removed",
+        )
         .order_by(ForumComment.created_at.asc())
     )
     flat_comments = comments_result.scalars().all()
