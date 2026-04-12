@@ -62,10 +62,14 @@ def _score_to_tier(score: float) -> str:
 async def _recalculate() -> dict:
     engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
 
-    try:
-        async with engine.begin() as conn:
+    updated_count    = 0
+    highlighted_count = 0
 
-            # ── Adım 1: Kullanıcı bazında sinyal toplaması ────────────────────
+    try:
+        # ── Okuma fazı: yazma kilidi olmadan tüm sinyalleri topla ────────────
+        async with engine.connect() as conn:
+
+            # Adım 1: Kullanıcı bazında sinyal toplaması
             # helpful_total, comment_count, thread_count tek sorguda alınır.
             signals_rows = await conn.execute(text("""
                 SELECT
@@ -91,7 +95,7 @@ async def _recalculate() -> dict:
                 logger.info("Hiç kullanıcı bulunamadı, görev tamamlandı.")
                 return {"updated_users": 0, "highlighted_comments": 0}
 
-            # ── Adım 2: Oy doğruluğu (vote_accuracy) ─────────────────────────
+            # Adım 2: Oy doğruluğu (vote_accuracy)
             # Yalnızca total_votes >= 10 olan thread'ler geçerli (gürültü filtresi).
             votes_rows = await conn.execute(text("""
                 SELECT
@@ -128,15 +132,14 @@ async def _recalculate() -> dict:
             """))
 
             # Kullanıcı bazında doğru / toplam sayısını hesapla
-            vote_correct: dict[int, int] = defaultdict(int)
-            vote_total:   dict[int, int] = defaultdict(int)
-
+            vote_correct: dict = defaultdict(int)
+            vote_total:   dict = defaultdict(int)
             for row in votes_rows:
                 vote_total[row.user_id] += 1
                 if row.vote_type == row.majority_vote:
                     vote_correct[row.user_id] += 1
 
-            # ── Adım 3: En aktif kategori ─────────────────────────────────────
+            # Adım 3: En aktif kategori
             category_rows = await conn.execute(text("""
                 SELECT
                     c.user_id,
@@ -148,45 +151,43 @@ async def _recalculate() -> dict:
                 GROUP BY c.user_id, t.category
             """))
 
-            # Her kullanıcı için en yüksek sayılı kategoriyi seç
-            user_category_counts: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+            user_category_counts: dict = defaultdict(lambda: defaultdict(int))
             for row in category_rows:
                 user_category_counts[row.user_id][row.category] += row.cnt
 
-            user_top_category: dict[int, str | None] = {}
+            user_top_category: dict = {}
             for uid, cat_counts in user_category_counts.items():
                 user_top_category[uid] = max(cat_counts, key=cat_counts.get)
 
-            # ── Adım 4: Skor + tier hesapla, toplu UPDATE ────────────────────
-            update_values = []
-            for user_id, sig in signals.items():
-                helpful_total = sig["helpful_total"]
-                comment_count = sig["comment_count"]
-                thread_count  = sig["thread_count"]
+        # ── Python hesaplama fazı: DB bağlantısı yok ─────────────────────────
+        update_values = []
+        for user_id, sig in signals.items():
+            helpful_total = sig["helpful_total"]
+            comment_count = sig["comment_count"]
+            thread_count  = sig["thread_count"]
 
-                total_valid = vote_total.get(user_id, 0)
-                if total_valid > 0:
-                    vote_accuracy = vote_correct.get(user_id, 0) / total_valid
-                else:
-                    vote_accuracy = 0.5  # nötr
+            total_valid = vote_total.get(user_id, 0)
+            vote_accuracy = vote_correct.get(user_id, 0) / total_valid if total_valid > 0 else 0.5
 
-                raw = (
-                    helpful_total * 0.40
-                    + comment_count * 0.20
-                    + thread_count  * 0.15
-                    + vote_accuracy * 100 * 0.25
-                )
-                score = min(max(raw, 0.0), 100.0)
-                tier  = _score_to_tier(score)
-                category = user_top_category.get(user_id)  # None olabilir
+            raw = (
+                helpful_total * 0.40
+                + comment_count * 0.20
+                + thread_count  * 0.15
+                + vote_accuracy * 100 * 0.25
+            )
+            score    = min(max(raw, 0.0), 100.0)
+            tier     = _score_to_tier(score)
+            category = user_top_category.get(user_id)
 
-                update_values.append({
-                    "uid":      user_id,
-                    "score":    score,
-                    "tier":     tier,
-                    "category": category,
-                })
+            update_values.append({
+                "uid":      user_id,
+                "score":    score,
+                "tier":     tier,
+                "category": category,
+            })
 
+        # ── Yazma fazı: kısa transaction, yalnızca UPDATE'ler ────────────────
+        async with engine.begin() as conn:
             if update_values:
                 await conn.execute(
                     text("""
@@ -197,25 +198,25 @@ async def _recalculate() -> dict:
                             forum_trust_category = data.category
                         FROM (
                             SELECT
-                                UNNEST(:uids::int[])      AS id,
-                                UNNEST(:scores::float[])  AS score,
-                                UNNEST(:tiers::text[])    AS tier,
-                                UNNEST(:cats::text[])     AS category
+                                UNNEST(:uids::uuid[])    AS id,
+                                UNNEST(:scores::float[]) AS score,
+                                UNNEST(:tiers::text[])   AS tier,
+                                UNNEST(:cats::text[])    AS category
                         ) AS data
                         WHERE users.id = data.id
                     """),
                     {
-                        "uids":   [v["uid"]      for v in update_values],
-                        "scores": [v["score"]    for v in update_values],
-                        "tiers":  [v["tier"]     for v in update_values],
-                        "cats":   [v["category"] for v in update_values],
+                        "uids":   [str(v["uid"])   for v in update_values],
+                        "scores": [v["score"]      for v in update_values],
+                        "tiers":  [v["tier"]       for v in update_values],
+                        "cats":   [v["category"]   for v in update_values],
                     },
                 )
 
             updated_count = len(update_values)
-            logger.info("Trust skorları güncellendi: %d kullanıcı", updated_count)
+            logger.info("Trust skorlari guncellendi: %d kullanici", updated_count)
 
-            # ── Adım 5: is_highlighted toplu güncelleme ───────────────────────
+            # is_highlighted güncelleme — users UPDATE commit'inden sonra çalışır
             result = await conn.execute(text("""
                 UPDATE forum_comments c
                 SET is_highlighted = (
@@ -227,13 +228,13 @@ async def _recalculate() -> dict:
                 RETURNING c.id
             """))
             highlighted_count = len(result.fetchall())
-            logger.info("is_highlighted güncellendi: %d yorum", highlighted_count)
+            logger.info("is_highlighted guncellendi: %d yorum", highlighted_count)
 
     finally:
         await engine.dispose()
 
     return {
-        "updated_users":       updated_count,
+        "updated_users":        updated_count,
         "highlighted_comments": highlighted_count,
     }
 
