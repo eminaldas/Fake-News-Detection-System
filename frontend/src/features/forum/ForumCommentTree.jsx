@@ -1,6 +1,7 @@
 import React from 'react';
-import { ThumbsUp, MessageSquare, Link as LinkIcon } from 'lucide-react';
+import { ThumbsUp, MessageSquare, Link as LinkIcon, Flag, X } from 'lucide-react';
 import axiosInstance from '../../api/axios';
+import { useAuth } from '../../contexts/AuthContext';
 
 function timeAgo(dateStr) {
     const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
@@ -13,7 +14,7 @@ function timeAgo(dateStr) {
 const DEPTH_INDENT = 20; // px per depth level
 const MAX_REPLY_DEPTH = 2; // depth 0,1,2 → Reply butonu görünür
 
-function CommentNode({ comment, threadId, onReply, onHelpful, depth = 0 }) {
+function CommentNode({ comment, threadId, onReply, onHelpful, onReport, currentUserId, depth = 0 }) {
     const [showReplies, setShowReplies] = React.useState(true);
 
     const borderColors = ['#3fff8b40', '#33333380', '#22222280'];
@@ -100,6 +101,16 @@ function CommentNode({ comment, threadId, onReply, onHelpful, depth = 0 }) {
                         </span>
                     )}
 
+                    {comment.user_id !== currentUserId && (
+                        <button
+                            onClick={() => onReport(comment.id)}
+                            className="flex items-center gap-1 text-[9px] text-tx-secondary/50 hover:text-red-400 transition-colors"
+                        >
+                            <Flag className="w-2.5 h-2.5" />
+                            Bildir
+                        </button>
+                    )}
+
                     {comment.replies?.length > 0 && (
                         <button
                             onClick={() => setShowReplies(v => !v)}
@@ -121,6 +132,8 @@ function CommentNode({ comment, threadId, onReply, onHelpful, depth = 0 }) {
                             threadId={threadId}
                             onReply={onReply}
                             onHelpful={onHelpful}
+                            onReport={onReport}
+                            currentUserId={currentUserId}
                             depth={depth + 1}
                         />
                     ))}
@@ -131,6 +144,13 @@ function CommentNode({ comment, threadId, onReply, onHelpful, depth = 0 }) {
 }
 
 const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
+    const { user } = useAuth();
+    const currentUserId = user?.id;
+
+    const [reportTarget, setReportTarget] = React.useState(null);
+    const [reportReason, setReportReason] = React.useState('spam');
+    const [reportSent,   setReportSent]   = React.useState(false);
+
     const handleHelpful = async (commentId) => {
         try {
             await axiosInstance.post(`/forum/comments/${commentId}/vote`);
@@ -138,6 +158,11 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
         } catch {
             // sessiz hata
         }
+    };
+
+    const handleReport = (commentId) => {
+        setReportTarget(commentId);
+        setReportSent(false);
     };
 
     if (!comments?.length) {
@@ -157,8 +182,62 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
                     threadId={threadId}
                     onReply={onReply}
                     onHelpful={handleHelpful}
+                    onReport={handleReport}
+                    currentUserId={currentUserId}
                 />
             ))}
+
+            {reportTarget && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center"
+                     style={{ background: 'rgba(0,0,0,0.6)' }}>
+                    <div className="rounded-xl p-6 w-80 border"
+                         style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+                        <div className="flex items-center justify-between mb-4">
+                            <span className="text-sm font-bold text-tx-primary">Yorumu Bildir</span>
+                            <button onClick={() => setReportTarget(null)}>
+                                <X className="w-4 h-4 text-tx-secondary" />
+                            </button>
+                        </div>
+
+                        {reportSent ? (
+                            <p className="text-xs text-tx-secondary">Bildiriminiz alındı, teşekkürler.</p>
+                        ) : (
+                            <>
+                                <div className="flex flex-col gap-2 mb-4">
+                                    {[
+                                        { value: 'spam',           label: 'Spam' },
+                                        { value: 'hate_speech',    label: 'Hakaret / Nefret söylemi' },
+                                        { value: 'misinformation', label: 'Yanıltıcı bilgi' },
+                                        { value: 'off_topic',      label: 'Konu dışı' },
+                                    ].map(opt => (
+                                        <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="reason"
+                                                value={opt.value}
+                                                checked={reportReason === opt.value}
+                                                onChange={() => setReportReason(opt.value)}
+                                            />
+                                            <span className="text-xs text-tx-primary">{opt.label}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        axiosInstance.post(`/forum/comments/${reportTarget}/report`, { reason: reportReason })
+                                            .then(() => setReportSent(true))
+                                            .catch(() => setReportSent(true)); // sessiz hata
+                                    }}
+                                    className="w-full py-2 rounded-lg text-xs font-bold"
+                                    style={{ background: 'var(--color-brand)', color: '#070f12' }}
+                                >
+                                    Bildir
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
