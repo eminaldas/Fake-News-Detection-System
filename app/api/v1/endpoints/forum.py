@@ -565,6 +565,60 @@ async def helpful_vote(
     await db.commit()
 
 
+_AUTO_FLAG_THRESHOLD = 3   # kaç raporda otomatik flaglenir
+
+
+@router.post("/comments/{comment_id}/report", status_code=status.HTTP_200_OK)
+async def report_comment(
+    comment_id:   _uuid.UUID,
+    body:         ForumReportCreate,
+    current_user: User         = Depends(get_current_user),
+    db: AsyncSession           = Depends(get_db),
+):
+    comment = (await db.execute(
+        select(ForumComment).where(ForumComment.id == comment_id)
+    )).scalar_one_or_none()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Yorum bulunamadı")
+
+    if comment.user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Kendi yorumunuzu bildiremezsiniz")
+
+    # Duplicate report kontrolü
+    existing = (await db.execute(
+        select(ForumReport).where(
+            ForumReport.comment_id == comment_id,
+            ForumReport.reporter_id == current_user.id,
+        )
+    )).scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=409, detail="Bu yorumu zaten bildirdiniz")
+
+    report = ForumReport(
+        comment_id=comment_id,
+        reporter_id=current_user.id,
+        reason=body.reason,
+    )
+    db.add(report)
+    await db.flush()
+
+    # Rapor sayısını kontrol et — eşiği aşarsa otomatik flagle
+    report_count = (await db.execute(
+        select(func.count()).where(ForumReport.comment_id == comment_id)
+    )).scalar_one()
+
+    if report_count >= _AUTO_FLAG_THRESHOLD and comment.moderation_status == "clean":
+        comment.moderation_status = "flagged_user"
+        thread = (await db.execute(
+            select(ForumThread).where(ForumThread.id == comment.thread_id)
+        )).scalar_one_or_none()
+        if thread and thread.status == "active":
+            thread.status = "under_review"
+
+    await db.commit()
+    return {"message": "Bildiriminiz alındı."}
+
+
 @router.get("/trending", response_model=ForumTrendingResponse)
 async def get_trending(
     current_user: User       = Depends(get_current_user),
