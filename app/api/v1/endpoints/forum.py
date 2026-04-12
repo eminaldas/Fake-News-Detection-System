@@ -13,6 +13,7 @@ GET  /forum/articles/{article_id}/threads — article'a bağlı thread'ler
 """
 
 import uuid as _uuid
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 import sqlalchemy
@@ -539,3 +540,91 @@ async def helpful_vote(
         comment.helpful_count += 1
 
     await db.commit()
+
+
+@router.get("/trending", response_model=ForumTrendingResponse)
+async def get_trending(
+    current_user: User       = Depends(get_current_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    """Son 7 gün içindeki trend thread'ler ve trend etiketler."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+
+    # Trend thread'ler: oy toplamı + yorum sayısı ile sıralı, son 7 gün, limit 5
+    total_votes_col = (
+        ForumThread.vote_suspicious
+        + ForumThread.vote_authentic
+        + ForumThread.vote_investigate
+    )
+    threads_result = await db.execute(
+        select(ForumThread)
+        .where(ForumThread.created_at >= cutoff)
+        .order_by(desc(total_votes_col + ForumThread.comment_count))
+        .limit(5)
+    )
+    threads = threads_result.scalars().all()
+
+    trending_threads = [
+        ForumTrendingThread(
+            id=t.id,
+            title=t.title,
+            category=t.category,
+            comment_count=t.comment_count,
+            total_votes=t.vote_suspicious + t.vote_authentic + t.vote_investigate,
+            created_at=t.created_at,
+        )
+        for t in threads
+    ]
+
+    # Trend etiketler: kullanım sayısına göre, limit 10
+    tags_result = await db.execute(
+        select(Tag)
+        .order_by(desc(Tag.usage_count))
+        .limit(10)
+    )
+    tags = tags_result.scalars().all()
+
+    trending_tags = [
+        TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count)
+        for tg in tags
+    ]
+
+    return ForumTrendingResponse(trending_threads=trending_threads, trending_tags=trending_tags)
+
+
+@router.get("/articles/{article_id}/threads", response_model=ForumThreadListResponse)
+async def get_article_threads(
+    article_id:   _uuid.UUID,
+    current_user: User         = Depends(get_current_user),
+    db: AsyncSession           = Depends(get_db),
+):
+    """Belirli bir article'a bağlı tüm thread'ler (yeniden eskiye)."""
+    result = await db.execute(
+        select(ForumThread)
+        .options(
+            selectinload(ForumThread.user),
+            selectinload(ForumThread.tags),
+        )
+        .where(ForumThread.article_id == article_id)
+        .order_by(desc(ForumThread.created_at))
+    )
+    threads = result.scalars().all()
+
+    items = [
+        ForumThreadSummary(
+            id=t.id,
+            title=t.title,
+            category=t.category,
+            status=t.status,
+            vote_suspicious=t.vote_suspicious,
+            vote_authentic=t.vote_authentic,
+            vote_investigate=t.vote_investigate,
+            comment_count=t.comment_count,
+            created_at=t.created_at,
+            author={"id": t.user.id, "username": t.user.username},
+            tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in t.tags],
+        )
+        for t in threads
+    ]
+
+    return ForumThreadListResponse(items=items, total=len(items), page=1, size=len(items))
