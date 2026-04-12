@@ -37,6 +37,10 @@ class User(Base):
     updated_at      = Column(DateTime(timezone=True), onupdate=func.now())
     last_login_at   = Column(DateTime(timezone=True), nullable=True)
 
+    forum_trust_score    = Column(Float, nullable=False, server_default="0.0")
+    forum_trust_tier     = Column(String(20), nullable=False, server_default="yeni_uye")
+    forum_trust_category = Column(String(50), nullable=True)
+
     analysis_requests = relationship("AnalysisRequest", back_populates="user")
 
 
