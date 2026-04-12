@@ -30,11 +30,11 @@ from app.core.pubsub import publish_async
 from app.db.session import get_db
 from app.models.models import (
     Article, AnalysisResult, ForumComment, ForumCommentVote,
-    ForumThread, ForumVote, Tag, ThreadTag, User,
+    ForumReport, ForumThread, ForumVote, Tag, ThreadTag, User,
 )
 from app.schemas.schemas import (
     ForumArticleSummary, ForumCommentCreate, ForumCommentItem,
-    ForumTagSearchResponse, ForumThreadCreate, ForumThreadDetail,
+    ForumReportCreate, ForumTagSearchResponse, ForumThreadCreate, ForumThreadDetail,
     ForumThreadListResponse, ForumThreadSummary, ForumTrendingResponse,
     ForumTrendingThread, ForumVoteCreate, ForumVoteResult, TagItem,
     FORUM_CATEGORIES,
