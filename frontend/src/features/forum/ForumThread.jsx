@@ -41,7 +41,8 @@ const ForumThread = () => {
     const [replyTo,      setReplyTo]      = React.useState(null); // username
     const [evidenceUrls, setEvidenceUrls] = React.useState([]);
     const [urlInput,     setUrlInput]     = React.useState('');
-    const [submitting,   setSubmitting]   = React.useState(false);
+    const [submitting,       setSubmitting]       = React.useState(false);
+    const [moderationWarning, setModerationWarning] = React.useState(false);
 
     const load = React.useCallback(async () => {
         try {
@@ -112,16 +113,21 @@ const ForumThread = () => {
         if (!body.trim() || submitting) return;
         setSubmitting(true);
         try {
-            await axiosInstance.post(`/forum/threads/${threadId}/comments`, {
+            const res = await axiosInstance.post(`/forum/threads/${threadId}/comments`, {
                 body: body.trim(),
                 parent_id: parentId ?? undefined,
                 evidence_urls: evidenceUrls,
             });
-            setBody('');
-            setParentId(null);
-            setReplyTo(null);
-            setEvidenceUrls([]);
-            await load();
+            if (res.status === 202) {
+                setModerationWarning(true); // banner göster, textarea açık kalsın
+            } else {
+                setBody('');
+                setParentId(null);
+                setReplyTo(null);
+                setEvidenceUrls([]);
+                setModerationWarning(false);
+                await load();
+            }
         } catch {
             // sessiz hata
         } finally {
@@ -313,10 +319,19 @@ const ForumThread = () => {
                             </div>
                         )}
 
+                        {moderationWarning && (
+                            <div className="rounded-lg p-3 mb-2 border"
+                                 style={{ borderColor: 'rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.08)' }}>
+                                <p className="text-xs" style={{ color: '#f59e0b' }}>
+                                    Yorumunuz incelemeye alındı. İçeriği düzenleyerek tekrar gönderebilirsiniz.
+                                </p>
+                            </div>
+                        )}
+
                         <textarea
                             id="comment-input"
                             value={body}
-                            onChange={e => setBody(e.target.value)}
+                            onChange={e => { setBody(e.target.value); setModerationWarning(false); }}
                             rows={3}
                             placeholder="Kanıt veya yorumunu ekle..."
                             className="w-full bg-transparent resize-none text-[12px] text-tx-primary placeholder:text-muted outline-none p-3 rounded-lg border"
