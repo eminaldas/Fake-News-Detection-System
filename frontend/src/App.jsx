@@ -25,6 +25,10 @@ import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 import About from './pages/About';
 import Gundem from './pages/Gundem';
+import ForumLayout        from './features/forum/ForumLayout';
+import ForumFeed          from './features/forum/ForumFeed';
+import ForumThread        from './features/forum/ForumThread';
+import ForumCreateThread  from './features/forum/ForumCreateThread';
 
 // Listens to auth state and manages the WS connection lifecycle
 function WsLifecycle() {
@@ -64,6 +68,13 @@ function App() {
                                 <Route path="security"      element={<ProfileSecurity />} />
                                 <Route path="notifications" element={<ProfileNotifications />} />
                                 <Route path="feedback"      element={<ProfileFeedback />} />
+                            </Route>
+
+                            {/* Forum */}
+                            <Route path="forum" element={<RequireAuth><ForumLayout /></RequireAuth>}>
+                                <Route index element={<ForumFeed />} />
+                                <Route path="new"       element={<ForumCreateThread />} />
+                                <Route path=":threadId" element={<ForumThread />} />
                             </Route>
 
                             {/* Admin */}
