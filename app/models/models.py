@@ -3,8 +3,8 @@ import enum
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
-    Boolean, Column, DateTime, Enum, Float, ForeignKey,
-    Integer, String, Text, func,
+    Boolean, CheckConstraint, Column, DateTime, Enum, Float, ForeignKey,
+    Index, Integer, String, Text, UniqueConstraint, func, text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import declarative_base, relationship
@@ -36,6 +36,21 @@ class User(Base):
     created_at      = Column(DateTime(timezone=True), server_default=func.now())
     updated_at      = Column(DateTime(timezone=True), onupdate=func.now())
     last_login_at   = Column(DateTime(timezone=True), nullable=True)
+
+    forum_trust_score    = Column(Float, nullable=False, server_default="0.0")
+    forum_trust_tier     = Column(String(20), nullable=False, server_default="yeni_uye")
+    forum_trust_category = Column(String(50), nullable=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            "forum_trust_tier IN ('yeni_uye','dogrulayici','analist','dedektif')",
+            name="ck_users_forum_trust_tier",
+        ),
+        CheckConstraint(
+            "forum_trust_score >= 0",
+            name="ck_users_forum_trust_score_nonneg",
+        ),
+    )
 
     analysis_requests = relationship("AnalysisRequest", back_populates="user")
 
@@ -129,3 +144,272 @@ class NewsArticle(Base):
     nlp_signals  = Column(JSONB,   nullable=True)        # {title:{...}, content:{...}}
     content_type = Column(JSONB,   nullable=True)        # ["claim","clickbait"] vb.
     created_at   = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id              = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    event_type      = Column(String(50),  nullable=False)
+    event_name      = Column(String(100), nullable=False, index=True)
+    user_id         = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    ip_hash         = Column(String(64),  nullable=False, index=True)
+    session_id      = Column(String(128), nullable=True)
+    path            = Column(String(255), nullable=True)
+    http_method     = Column(String(10),  nullable=True)
+    status_code     = Column(Integer,     nullable=True)
+    process_time_ms = Column(Float,       nullable=True)
+    severity        = Column(String(20),  nullable=False, server_default="INFO")
+    details         = Column(JSONB,       nullable=True)
+    created_at      = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            "event_type IN ('SECURITY','USER_ACTION','SYSTEM')",
+            name="ck_audit_event_type",
+        ),
+        CheckConstraint(
+            "severity IN ('INFO','WARNING','CRITICAL')",
+            name="ck_audit_severity",
+        ),
+    )
+
+
+class ContentInteraction(Base):
+    __tablename__ = "content_interactions"
+
+    id                = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id           = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    ip_hash           = Column(String(64), nullable=False)
+    content_id        = Column(UUID(as_uuid=True), ForeignKey("news_articles.id", ondelete="CASCADE"), nullable=True)
+    interaction_type  = Column(String(32), nullable=False)
+    category          = Column(String(64), nullable=True)
+    source_domain     = Column(String(128), nullable=True)
+    nlp_score_at_time = Column(Float, nullable=True)
+    visibility_weight = Column(Float, default=1.0)
+    details           = Column(JSONB, nullable=True)
+    created_at        = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        CheckConstraint(
+            "interaction_type IN ('click','feedback_positive','feedback_negative','filter_used','impression')",
+            name="ck_ci_interaction_type",
+        ),
+        Index("idx_ci_user_created", "user_id", "created_at"),
+        Index("idx_ci_content",      "content_id"),
+    )
+
+
+class UserPreferenceProfile(Base):
+    __tablename__ = "user_preference_profiles"
+
+    user_id            = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    category_weights   = Column(JSONB, default=dict)
+    avg_nlp_tolerance  = Column(Float, default=0.5)
+    preferred_sources  = Column(JSONB, default=list)
+    declared_interests = Column(JSONB, default=dict)
+    interaction_count  = Column(Integer, default=0)
+    blocked_sources    = Column(JSONB, default=list)
+    hidden_categories  = Column(JSONB, default=list)
+    last_updated       = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class ContentSimilarityCache(Base):
+    __tablename__ = "content_similarity_cache"
+
+    content_id   = Column(UUID(as_uuid=True), ForeignKey("news_articles.id", ondelete="CASCADE"), primary_key=True)
+    similar_ids  = Column(JSONB, nullable=False)
+    computed_at  = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class UserNotificationPrefs(Base):
+    __tablename__ = "user_notification_prefs"
+
+    user_id         = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    high_risk_alert = Column(Boolean, nullable=False, default=True)
+    email_digest    = Column(Boolean, nullable=False, default=False)
+    updated_at      = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class UserNotification(Base):
+    __tablename__ = "user_notifications"
+
+    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title      = Column(String(255), nullable=False)
+    body       = Column(Text, nullable=True)
+    link_url   = Column(Text, nullable=True)
+    is_read    = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_un_user_created", "user_id", "created_at"),
+    )
+
+
+class ModelFeedback(Base):
+    __tablename__ = "model_feedback"
+
+    id              = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    article_id      = Column(UUID(as_uuid=True), ForeignKey("articles.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id         = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    submitted_label = Column(String(20), nullable=False)   # 'FAKE' | 'AUTHENTIC'
+    created_at      = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("article_id", "user_id", name="uq_model_feedback_article_user"),
+        CheckConstraint(
+            "submitted_label IN ('FAKE', 'AUTHENTIC')",
+            name="ck_model_feedback_label",
+        ),
+    )
+
+
+class ModelTrainingRun(Base):
+    __tablename__ = "model_training_runs"
+
+    id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    triggered_at   = Column(DateTime(timezone=True), server_default=func.now())
+    sample_count   = Column(Integer, nullable=True)
+    feedback_count = Column(Integer, nullable=True)
+    accuracy       = Column(Float, nullable=True)
+    prev_accuracy  = Column(Float, nullable=True)
+    status         = Column(String(20), nullable=False)   # 'success' | 'skipped' | 'failed'
+    notes          = Column(Text, nullable=True)
+    created_at     = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('success', 'skipped', 'failed')",
+            name="ck_model_training_run_status",
+        ),
+    )
+
+
+class ForumThread(Base):
+    __tablename__ = "forum_threads"
+
+    id              = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    article_id      = Column(UUID(as_uuid=True), ForeignKey("articles.id", ondelete="SET NULL"), nullable=True, index=True)
+    user_id         = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title           = Column(String(300), nullable=False)
+    body            = Column(Text, nullable=False)
+    category        = Column(String(50), nullable=True)
+    status          = Column(String(20), nullable=False, server_default="active")
+    vote_suspicious = Column(Integer, nullable=False, server_default="0")
+    vote_authentic  = Column(Integer, nullable=False, server_default="0")
+    vote_investigate = Column(Integer, nullable=False, server_default="0")
+    comment_count   = Column(Integer, nullable=False, server_default="0")
+    created_at      = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at      = Column(DateTime(timezone=True), onupdate=func.now())
+
+    user     = relationship("User")
+    article  = relationship("Article")
+    comments = relationship("ForumComment", back_populates="thread", cascade="all, delete-orphan")
+    votes    = relationship("ForumVote", back_populates="thread", cascade="all, delete-orphan")
+    tags     = relationship("Tag", secondary="thread_tags", back_populates="threads")
+
+    __table_args__ = (
+        CheckConstraint("status IN ('active','under_review','resolved')", name="ck_forum_thread_status"),
+        Index("idx_forum_thread_category_created", "category", "created_at"),
+    )
+
+
+class ForumComment(Base):
+    __tablename__ = "forum_comments"
+
+    id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    thread_id     = Column(UUID(as_uuid=True), ForeignKey("forum_threads.id", ondelete="CASCADE"), nullable=False, index=True)
+    parent_id     = Column(UUID(as_uuid=True), ForeignKey("forum_comments.id", ondelete="CASCADE"), nullable=True)
+    user_id       = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    body          = Column(Text, nullable=False)
+    evidence_urls = Column(JSONB, nullable=False, server_default="[]")
+    helpful_count = Column(Integer, nullable=False, server_default="0")
+    depth         = Column(Integer, nullable=False, server_default="0")
+    is_highlighted    = Column(Boolean, nullable=False, server_default="false")
+    moderation_status = Column(String(20), nullable=False, server_default="clean")
+    moderation_note   = Column(Text, nullable=True)
+    created_at    = Column(DateTime(timezone=True), server_default=func.now())
+
+    thread  = relationship("ForumThread", back_populates="comments")
+    user    = relationship("User")
+    replies = relationship("ForumComment", back_populates="parent")
+    parent  = relationship("ForumComment", back_populates="replies", remote_side="ForumComment.id")
+
+    __table_args__ = (
+        CheckConstraint("depth >= 0 AND depth <= 3", name="ck_forum_comment_depth"),
+        CheckConstraint(
+            "moderation_status IN ('clean','flagged_ai','flagged_user','removed')",
+            name="ck_forum_comment_moderation_status",
+        ),
+        Index("idx_forum_comment_thread", "thread_id", "created_at"),
+    )
+
+
+class ForumVote(Base):
+    __tablename__ = "forum_votes"
+
+    id        = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    thread_id = Column(UUID(as_uuid=True), ForeignKey("forum_threads.id", ondelete="CASCADE"), nullable=False)
+    user_id   = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    vote_type = Column(String(20), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    thread = relationship("ForumThread", back_populates="votes")
+
+    __table_args__ = (
+        UniqueConstraint("thread_id", "user_id", name="uq_forum_vote_thread_user"),
+        CheckConstraint("vote_type IN ('suspicious','authentic','investigate')", name="ck_forum_vote_type"),
+    )
+
+
+class ForumCommentVote(Base):
+    __tablename__ = "forum_comment_votes"
+
+    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    comment_id = Column(UUID(as_uuid=True), ForeignKey("forum_comments.id", ondelete="CASCADE"), nullable=False)
+    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("comment_id", "user_id", name="uq_forum_comment_vote_user"),
+    )
+
+
+class ForumReport(Base):
+    __tablename__ = "forum_reports"
+
+    id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    comment_id  = Column(UUID(as_uuid=True), ForeignKey("forum_comments.id", ondelete="CASCADE"), nullable=False)
+    reporter_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    reason      = Column(String(20), nullable=False)
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("comment_id", "reporter_id", name="uq_forum_report_comment_reporter"),
+        CheckConstraint(
+            "reason IN ('spam','hate_speech','misinformation','off_topic')",
+            name="ck_forum_report_reason",
+        ),
+        Index("idx_forum_report_comment", "comment_id"),
+    )
+
+
+class Tag(Base):
+    __tablename__ = "tags"
+
+    id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name        = Column(String(100), unique=True, nullable=False)
+    is_system   = Column(Boolean, nullable=False, server_default="false")
+    category    = Column(String(50), nullable=True)
+    usage_count = Column(Integer, nullable=False, server_default="0")
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+
+    threads = relationship("ForumThread", secondary="thread_tags", back_populates="tags")
+
+
+class ThreadTag(Base):
+    __tablename__ = "thread_tags"
+
+    thread_id = Column(UUID(as_uuid=True), ForeignKey("forum_threads.id", ondelete="CASCADE"), primary_key=True)
+    tag_id    = Column(UUID(as_uuid=True), ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)

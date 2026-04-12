@@ -10,9 +10,9 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
 
-from app.models.models import UserRole
+from app.models.models import User as UserORM, UserRole
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -32,9 +32,11 @@ class TokenResponse(BaseModel):
 
 
 class RegisterRequest(BaseModel):
-    email:    str = Field(..., max_length=255)
-    username: str = Field(..., min_length=3, max_length=50)
-    password: str = Field(..., min_length=8)
+    email:            str            = Field(..., max_length=255)
+    username:         str            = Field(..., min_length=3, max_length=50)
+    password:         str            = Field(..., min_length=8)
+    interests:        List[str]      = Field(default_factory=list, description="Seçilen kategori listesi")
+    marketing_source: Optional[str]  = Field(None, max_length=100, description="Bizi nereden duydunuz?")
 
     @field_validator("email")
     @classmethod
@@ -243,8 +245,9 @@ class NewsArticleResponse(BaseModel):
     pub_date:     Optional[datetime] = None
     source_count: Optional[int]      = None
     trust_score:  Optional[float]    = None
-    nlp_score:    Optional[float]     = None
+    nlp_score:    Optional[float]    = None
     content_type: Optional[List[str]] = None
+    community:    Optional[dict]     = None   # {"view_count": int, "positive_count": int}
 
     class Config:
         from_attributes = True
@@ -254,3 +257,412 @@ class NewsListResponse(BaseModel):
     items: List[NewsArticleResponse]
     total: int
     page:  int
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Interactions (Kullanıcı Davranış Takibi)
+# ─────────────────────────────────────────────────────────────────────────────
+
+import uuid as _uuid
+
+
+class InteractionTrackRequest(BaseModel):
+    content_id:        Optional[str]   = Field(None, description="NewsArticle UUID")
+    interaction_type:  str             = Field(..., description="click|feedback_positive|feedback_negative|filter_used|impression")
+    category:          Optional[str]   = None
+    source_domain:     Optional[str]   = None
+    nlp_score_at_time: Optional[float] = Field(None, ge=0.0, le=1.0)
+    visibility_weight: float           = Field(1.0, ge=0.0, le=1.0)
+    details:           Optional[dict]  = None
+
+    @field_validator("interaction_type")
+    @classmethod
+    def validate_type(cls, v: str) -> str:
+        allowed = {"click", "feedback_positive", "feedback_negative", "filter_used", "impression"}
+        if v not in allowed:
+            raise ValueError(f"interaction_type must be one of {allowed}")
+        return v
+
+    @field_validator("content_id")
+    @classmethod
+    def validate_uuid(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        try:
+            _uuid.UUID(v)
+        except ValueError:
+            raise ValueError("content_id must be a valid UUID")
+        return v
+
+    @field_validator("details")
+    @classmethod
+    def sanitize_details(cls, v: Optional[dict]) -> Optional[dict]:
+        """Yalnızca sayısal, bool, None değerlere izin ver — serbest metin yasak."""
+        if v is None:
+            return v
+        clean = {}
+        for k, val in v.items():
+            if isinstance(val, (int, float, bool)) or val is None:
+                clean[k] = val
+        return clean or None
+
+
+# ── Faz 4: Bildirimler ────────────────────────────────────────────────────────
+
+class NotificationPrefsResponse(BaseModel):
+    high_risk_alert: bool
+    email_digest:    bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class NotificationPrefsUpdate(BaseModel):
+    high_risk_alert: Optional[bool] = None
+    email_digest:    Optional[bool] = None
+
+
+class NotificationResponse(BaseModel):
+    id:         UUID
+    title:      str
+    body:       Optional[str] = None
+    link_url:   Optional[str] = None
+    is_read:    bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class NotificationListResponse(BaseModel):
+    items:        list[NotificationResponse]
+    unread_count: int
+
+
+# ── Faz 5: Kullanıcı Kontrolü ─────────────────────────────────────────────────
+
+class FeedPreferencesResponse(BaseModel):
+    blocked_sources:   list[str]
+    hidden_categories: list[str]
+
+
+class FeedPreferencesUpdate(BaseModel):
+    add_blocked_source:     Optional[str] = None
+    remove_blocked_source:  Optional[str] = None
+    add_hidden_category:    Optional[str] = None
+    remove_hidden_category: Optional[str] = None
+
+
+class DataExportResponse(BaseModel):
+    user:               dict
+    preference_profile: Optional[dict] = None
+    interactions:       list[dict]
+    notifications:      list[dict]
+    exported_at:        datetime
+
+
+# ── Faz 6-C: Model Feedback Loop ─────────────────────────────────────────────────
+
+class FeedbackRequest(BaseModel):
+    task_id:         str = Field(..., description="Article'ın metadata_info.task_id değeri")
+    submitted_label: str = Field(..., description="'FAKE' veya 'AUTHENTIC'")
+
+    @field_validator("submitted_label")
+    @classmethod
+    def validate_label(cls, v: str) -> str:
+        if v not in ("FAKE", "AUTHENTIC"):
+            raise ValueError("submitted_label 'FAKE' veya 'AUTHENTIC' olmalı")
+        return v
+
+
+class TrainingRunResponse(BaseModel):
+    triggered_at:   Optional[datetime] = None
+    accuracy:       Optional[float]    = None
+    prev_accuracy:  Optional[float]    = None
+    status:         Optional[str]      = None
+    sample_count:   Optional[int]      = None
+    feedback_count: Optional[int]      = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FeedbackStatsResponse(BaseModel):
+    pending_consensus: int
+    consensus_ready:   int
+    last_training_run: Optional[TrainingRunResponse] = None
+
+
+# ── Profile Hub: Kullanıcı İstatistikleri ─────────────────────────────────────
+
+class UserStatsResponse(BaseModel):
+    total_analyzed: int
+    total_fake: int
+    total_authentic: int
+    hygiene_score: int
+    week_analyzed: int
+    week_fake: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ── Profile Hub: Güvenlik ─────────────────────────────────────────────────────
+
+class SessionItem(BaseModel):
+    ip_hash: str
+    created_at: datetime
+    is_current: bool
+    label: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class SessionListResponse(BaseModel):
+    sessions: List[SessionItem]
+    anomaly_detected: bool
+
+
+# ── Profile Hub: Geri Bildirimlerim ──────────────────────────────────────────
+
+class FeedbackHistoryItem(BaseModel):
+    article_title:   str
+    submitted_label: str
+    model_status:    Optional[str]
+    accepted:        bool
+    created_at:      datetime
+
+
+class FeedbackHistoryResponse(BaseModel):
+    items:          List[FeedbackHistoryItem]
+    total_sent:     int
+    total_accepted: int
+
+
+# ── Profile Hub: AI Lab ───────────────────────────────────────────────────────
+
+class SourceSearchItem(BaseModel):
+    id:                str
+    name:              str
+    url:               str
+    credibility_score: Optional[str] = None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Forum
+# ─────────────────────────────────────────────────────────────────────────────
+
+FORUM_CATEGORIES = ["gündem", "ekonomi", "sağlık", "teknoloji", "spor", "kültür", "yaşam"]
+
+
+class TagItem(BaseModel):
+    id:          UUID
+    name:        str
+    is_system:   bool
+    usage_count: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ForumArticleSummary(BaseModel):
+    id:         UUID
+    title:      str
+    ai_verdict: Optional[str] = None
+    confidence: Optional[float] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ForumCommentCreate(BaseModel):
+    body:          str       = Field(..., min_length=1, max_length=5000)
+    parent_id:     Optional[UUID] = None
+    evidence_urls: List[str] = Field(default_factory=list, max_length=10)
+
+    @field_validator("evidence_urls", mode="before")
+    @classmethod
+    def sanitize_urls(cls, v):
+        return [html.escape(u)[:512] for u in (v or [])]
+
+
+# ── Forum Trust ───────────────────────────────────────────────────────────────
+
+TIER_META = {
+    "yeni_uye":    {"label": "Yeni Üye",    "stars": 1},
+    "dogrulayici": {"label": "Doğrulayıcı", "stars": 2},
+    "analist":     {"label": "Analist",     "stars": 3},
+    "dedektif":    {"label": "Dedektif",    "stars": 4},
+}
+
+CATEGORY_LABELS = {
+    "gundem":    "Gündem",
+    "ekonomi":   "Ekonomi",
+    "saglik":    "Sağlık",
+    "teknoloji": "Teknoloji",
+    "spor":      "Spor",
+    "kultur":    "Kültür",
+    "yasam":     "Yaşam",
+}
+
+
+class ForumTrustInfo(BaseModel):
+    score:         float
+    tier:          str
+    tier_label:    str
+    stars:         int
+    category:      Optional[str] = None
+    display_label: str
+
+    @classmethod
+    def from_user(cls, user: UserORM) -> "ForumTrustInfo":
+        meta   = TIER_META.get(user.forum_trust_tier, TIER_META["yeni_uye"])
+        cat_tr = CATEGORY_LABELS.get(user.forum_trust_category or "", "")
+        if cat_tr and user.forum_trust_tier in {"analist", "dedektif"}:
+            display = f"{cat_tr} {meta['label']}"
+        else:
+            display = meta["label"]
+        return cls(
+            score=round(user.forum_trust_score, 1),
+            tier=user.forum_trust_tier,
+            tier_label=meta["label"],
+            stars=meta["stars"],
+            category=user.forum_trust_category,
+            display_label=display,
+        )
+
+
+class ForumCommentItem(BaseModel):
+    id:             UUID
+    thread_id:      UUID
+    parent_id:      Optional[UUID] = None
+    username:       str
+    body:           str
+    evidence_urls:  List[str]      = Field(default_factory=list)
+    helpful_count:  int
+    depth:          int            = 0
+    is_highlighted: bool
+    created_at:     datetime
+    tier:           Optional[str]  = None
+    display_label:  Optional[str]  = None
+    stars:             Optional[int]  = None
+    moderation_status: str            = "clean"
+    replies:           List["ForumCommentItem"] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+ForumCommentItem.model_rebuild()
+
+
+class ForumThreadCreate(BaseModel):
+    title:      str            = Field(..., min_length=3, max_length=300)
+    body:       str            = Field(..., min_length=10, max_length=10000)
+    category:   Optional[str]  = None
+    article_id: Optional[UUID] = None
+    tag_names:  List[str]      = Field(default_factory=list, max_length=10)
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, v):
+        if v and v not in FORUM_CATEGORIES:
+            raise ValueError(f"Geçersiz kategori. Seçenekler: {', '.join(FORUM_CATEGORIES)}")
+        return v
+
+    @field_validator("tag_names", mode="before")
+    @classmethod
+    def normalize_tags(cls, v):
+        tags = []
+        for t in (v or []):
+            t = t.strip()
+            if not t.startswith("#"):
+                t = "#" + t
+            tags.append(t[:100].lower())
+        return list(dict.fromkeys(tags))  # deduplicate, preserve order
+
+
+class ForumThreadAuthor(BaseModel):
+    id:       UUID
+    username: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ForumThreadSummary(BaseModel):
+    id:               UUID
+    title:            str
+    category:         Optional[str]
+    status:           str
+    vote_suspicious:  int
+    vote_authentic:   int
+    vote_investigate: int
+    comment_count:    int
+    created_at:       datetime
+    author:           ForumThreadAuthor
+    tags:             List[TagItem] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ForumThreadDetail(ForumThreadSummary):
+    body:              str
+    article:           Optional[ForumArticleSummary] = None
+    comments:          List[ForumCommentItem]        = Field(default_factory=list)
+    current_user_vote: Optional[str]                 = None
+
+
+class ForumVoteCreate(BaseModel):
+    vote_type: str = Field(..., pattern="^(suspicious|authentic|investigate)$")
+
+
+class ForumVoteResult(BaseModel):
+    vote_suspicious:   int
+    vote_authentic:    int
+    vote_investigate:  int
+    status:            str
+    current_user_vote: Optional[str] = None
+
+
+class ForumTagSearchResponse(BaseModel):
+    tags: List[TagItem]
+
+
+class ForumTrendingThread(BaseModel):
+    id:            UUID
+    title:         str
+    category:      Optional[str]
+    comment_count: int
+    total_votes:   int
+    created_at:    datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ForumTrendingResponse(BaseModel):
+    trending_threads: List[ForumTrendingThread]
+    trending_tags:    List[TagItem]
+
+
+class ForumThreadListResponse(BaseModel):
+    items: List[ForumThreadSummary]
+    total: int
+    page:  int
+    size:  int
+
+
+class ForumReportCreate(BaseModel):
+    reason: str = Field(..., pattern="^(spam|hate_speech|misinformation|off_topic)$")
+
+
+class ModerationQueueItem(BaseModel):
+    id:               UUID
+    body:             str
+    author:           str
+    thread_title:     str
+    thread_id:        UUID
+    flag_type:        str
+    moderation_note:  Optional[str] = None
+    report_count:     int
+    created_at:       datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ModerationQueueResponse(BaseModel):
+    items: List[ModerationQueueItem]
+    total: int
+    page:  int
+    size:  int

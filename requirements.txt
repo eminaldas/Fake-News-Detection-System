@@ -42,3 +42,7 @@ lxml
 
 # AI — Gemini
 google-genai
+
+# Image analysis
+Pillow
+imagehash

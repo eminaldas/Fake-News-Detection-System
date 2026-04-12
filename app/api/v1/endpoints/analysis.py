@@ -11,17 +11,18 @@ from celery.result import AsyncResult
 import uuid
 import json
 
-from app.api.deps import get_optional_user
+from app.api.deps import get_current_user, get_optional_user
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.rate_limit import check_rate_limit
 from app.core.security import hash_ip
 from app.db.redis import get_redis
 from app.db.session import get_db
-from app.models.models import AnalysisRequest, AnalysisType, Article, AnalysisResult, ImageCache, NewsArticle, User
+from app.models.models import AnalysisRequest, AnalysisType, Article, AnalysisResult, ImageCache, NewsArticle, User, ModelFeedback
 from app.schemas.schemas import (
     AnalysisResponse,
     ContentAnalysisRequest,
+    FeedbackRequest,
     ImageAnalysisResponse,
     TaskStatusResponse,
     UrlAnalysisRequest,
@@ -258,11 +259,17 @@ async def analyze_content(
                 "match_count":     len(matches),
                 "vote_confidence": vote_confidence,
                 "signals":         match_signals,   # SignalPanel ve HighlightedText için
+                "db_article_id":   str(best_match.id),
             },
         )
 
     news_evidence = await _get_news_evidence(db, embedding)
-    task = analyze_article.delay(content_id, text=request.text, news_evidence=news_evidence)
+    task = analyze_article.delay(
+        content_id,
+        text=request.text,
+        news_evidence=news_evidence,
+        user_id=str(current_user.id) if current_user else None,
+    )
 
     # Analiz isteğini logla — content_id sakla (task.id değil) ki history join çalışsın
     # Article metadata_info['task_id'] = content_id olarak yaratılır
@@ -462,6 +469,63 @@ async def analyze_image_endpoint(
         is_direct_match=False,
         exif_flags=exif_flags if exif_flags else None,
     )
+
+
+@router.post(
+    "/feedback",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def submit_feedback(
+    request: FeedbackRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Kullanıcı bir analiz sonucunun yanlış olduğunu bildiriyor.
+    Güven < 0.80 olan sonuçlar için kabul edilir; yüksek güvenliler reddedilir.
+    """
+    from sqlalchemy.exc import IntegrityError
+
+    # 1. task_id ile makaleyi bul
+    result = await db.execute(
+        select(Article, AnalysisResult)
+        .join(AnalysisResult, AnalysisResult.article_id == Article.id)
+        .where(Article.metadata_info.op("->>")(  "task_id") == request.task_id)
+        .limit(1)
+    )
+    row = result.first()
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Bu task_id ile eşleşen analiz bulunamadı.",
+        )
+
+    article, analysis_result = row
+
+    # 2. Confidence guard — yüksek güven → feedback kabul etme
+    if analysis_result.confidence is not None and analysis_result.confidence >= settings.FEEDBACK_CONFIDENCE_GUARD:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Model bu sonuçtan yeterince emin, düzeltme kabul edilmiyor.",
+        )
+
+    # 3. Feedback kaydını ekle — (article_id, user_id) çakışırsa 409
+    feedback = ModelFeedback(
+        article_id=article.id,
+        user_id=current_user.id,
+        submitted_label=request.submitted_label,
+    )
+    db.add(feedback)
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Bu analiz için zaten geri bildirim gönderdiniz.",
+        )
+
+    return {"accepted": True}
 
 
 @router.get("/status/{task_id}", response_model=TaskStatusResponse)

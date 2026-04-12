@@ -38,10 +38,22 @@ class Settings(BaseSettings):
     TRANSFORMER_MODEL: str = "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr"
     SIMILARITY_THRESHOLD: float = 0.08
 
+    # Model Feedback Loop
+    FEEDBACK_CONSENSUS_THRESHOLD: int   = 10    # env: FEEDBACK_CONSENSUS_THRESHOLD
+    FEEDBACK_MAX_PROPORTION:      float = 0.15  # toplam training verisinin max %15'i
+    FEEDBACK_CONFIDENCE_GUARD:    float = 0.80  # bu eşiğin üzerinde feedback kabul etme
+
     # RSS Ingest
     RSS_DEDUP_THRESHOLD: float = 0.15
     RSS_INGEST_QUEUE:    str   = "rss"
     RSS_INGEST_BATCH:    int   = 50
+
+    # Email / SMTP (opsiyonel — boş bırakılırsa email devre dışı)
+    SMTP_HOST:     str = ""
+    SMTP_PORT:     int = 587
+    SMTP_USER:     str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM:     str = "noreply@fnds.local"
 
     # Gemini AI
     GEMINI_API_KEY:         str   = ""

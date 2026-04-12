@@ -12,6 +12,7 @@ from typing import Optional
 from fastapi import Depends, HTTPException, Request, status
 from redis.asyncio import Redis
 
+from app.core.audit import audit_log, check_abuse_pattern
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.security import hash_ip
@@ -75,6 +76,26 @@ async def check_rate_limit(
 
     if count > limit:
         log.warning("ratelimit.exceeded", key_type=key_type, ip_hash=ip_hash)
+        if current_user is not None:
+            is_abuse = await check_abuse_pattern(redis, str(current_user.id))
+            sev      = "CRITICAL" if is_abuse else "WARNING"
+            await audit_log(
+                redis, "SECURITY", "ratelimit.exceeded",
+                ip=ip, user_id=str(current_user.id), severity=sev,
+                details={"limit": limit, "count": count, "key_type": key_type, "abuse": is_abuse},
+            )
+            if is_abuse:
+                await audit_log(
+                    redis, "SECURITY", "security.abuse_pattern",
+                    ip=ip, user_id=str(current_user.id), severity="CRITICAL",
+                    details={"daily_violations": count},
+                )
+        else:
+            await audit_log(
+                redis, "SECURITY", "ratelimit.exceeded",
+                ip=ip, severity="WARNING",
+                details={"limit": limit, "count": count, "key_type": "anon"},
+            )
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Günlük analiz limitinize ulaştınız.",

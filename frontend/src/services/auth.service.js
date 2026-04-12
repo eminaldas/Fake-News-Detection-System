@@ -40,11 +40,13 @@ class AuthService {
         return response.data;
     }
 
-    static async register(email, username, password) {
+    static async register(email, username, password, interests = [], marketingSource = null) {
         const response = await axiosInstance.post('/auth/register', {
             email,
             username,
             password,
+            interests,
+            ...(marketingSource ? { marketing_source: marketingSource } : {}),
         });
         return response.data;
     }

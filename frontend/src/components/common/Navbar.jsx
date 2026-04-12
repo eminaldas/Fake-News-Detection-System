@@ -3,8 +3,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { Moon, Sun, Menu, X } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import axiosInstance from '../../api/axios';
+import { useWebSocket } from '../../contexts/WebSocketContext';
 import logo from '../../assets/images/emrald.png';
 import logoDark from '../../assets/images/logoDark.png';
+import NotificationDropdown from '../../features/notifications/NotificationDropdown';
 
 const NAV_LINKS = [
     { name: 'Analiz', path: '/' },
@@ -19,7 +22,21 @@ const Navbar = () => {
     const { isAuthenticated, user, isAdmin, logout } = useAuth();
     const [menuOpen, setMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
+    const [showNotifs, setShowNotifs] = useState(false);
+    const [notifUnread, setNotifUnread] = useState(0);
     const isActive = (path) => location.pathname === path;
+    const { subscribe } = useWebSocket();
+
+    useEffect(() => {
+        const unsub = subscribe('new_notification', (payload) => {
+            if (payload?.unread_count !== undefined) {
+                setNotifUnread(payload.unread_count);
+            } else {
+                setNotifUnread(prev => prev + 1);
+            }
+        });
+        return unsub;
+    }, [subscribe]);
 
     useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
@@ -28,6 +45,13 @@ const Navbar = () => {
         window.addEventListener('scroll', handler, { passive: true });
         return () => window.removeEventListener('scroll', handler);
     }, []);
+
+    useEffect(() => {
+        if (!user) { setNotifUnread(0); return; }
+        axiosInstance.get('/notifications')
+            .then(r => setNotifUnread(r.data.unread_count))
+            .catch(() => {});
+    }, [user]);
 
     return (
         <header className="fixed top-0 left-0 right-0 z-50">
@@ -95,6 +119,26 @@ const Navbar = () => {
                         <div className="w-px h-4 bg-brutal-border" />
                         {isAuthenticated ? (
                             <div className="flex items-center gap-2">
+                                {user && (
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setShowNotifs(v => !v)}
+                                            className="relative p-2 rounded-lg hover:bg-brutal-border transition-colors"
+                                            aria-label="Bildirimler"
+                                        >
+                                            <svg className="w-4 h-4 text-tx-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                            </svg>
+                                            {notifUnread > 0 && (
+                                                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-fake-text text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                                                    {notifUnread > 9 ? '9+' : notifUnread}
+                                                </span>
+                                            )}
+                                        </button>
+                                        {showNotifs && <NotificationDropdown onClose={() => setShowNotifs(false)} />}
+                                    </div>
+                                )}
                                 <Link
                                     to="/profile"
                                     className="text-tx-primary text-xs font-bold tracking-tight hover:text-brand dark:hover:text-es-primary transition-colors"
@@ -104,12 +148,26 @@ const Navbar = () => {
                                 {isAdmin && (
                                     <>
                                         <div className="w-px h-4 bg-brutal-border" />
-                                        <Link
-                                            to="/admin/users"
-                                            className="text-[11px] font-black tracking-widest text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors"
-                                        >
-                                            ADMİN
-                                        </Link>
+                                        <div className="flex items-center gap-2">
+                                            <Link
+                                                to="/admin/users"
+                                                className="text-[11px] font-black tracking-widest text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors"
+                                            >
+                                                KULLANICILAR
+                                            </Link>
+                                            <Link
+                                                to="/admin/security"
+                                                className="text-[11px] font-black tracking-widest text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors"
+                                            >
+                                                GÜVENLİK
+                                            </Link>
+                                            <Link
+                                                to="/admin/analytics"
+                                                className="text-[11px] font-black tracking-widest text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors"
+                                            >
+                                                ANALİTİK
+                                            </Link>
+                                        </div>
                                     </>
                                 )}
                                 <div className="w-px h-4 bg-brutal-border" />
@@ -176,10 +234,20 @@ const Navbar = () => {
                                     Profilim ({user?.username})
                                 </Link>
                                 {isAdmin && (
-                                    <Link to="/admin/users" onClick={() => setMenuOpen(false)}
-                                        className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all">
-                                        Kullanıcı Yönetimi
-                                    </Link>
+                                    <>
+                                        <Link to="/admin/users" onClick={() => setMenuOpen(false)}
+                                            className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all">
+                                            Kullanıcı Yönetimi
+                                        </Link>
+                                        <Link to="/admin/security" onClick={() => setMenuOpen(false)}
+                                            className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all">
+                                            Güvenlik Logları
+                                        </Link>
+                                        <Link to="/admin/analytics" onClick={() => setMenuOpen(false)}
+                                            className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all">
+                                            Analitik
+                                        </Link>
+                                    </>
                                 )}
                                 <button onClick={() => { logout(); setMenuOpen(false); }}
                                     className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all w-full text-left">

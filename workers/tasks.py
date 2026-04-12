@@ -55,7 +55,7 @@ except Exception as exc:
 # ─────────────────────────────────────────────────────────────────────────────
 # Async pipeline
 # ─────────────────────────────────────────────────────────────────────────────
-async def _analyze_and_save(content_id: str, text: str, news_evidence: str = None) -> dict:
+async def _analyze_and_save(content_id: str, text: str, news_evidence: str = None, user_id: str = None) -> dict:
     engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
@@ -220,6 +220,37 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
         )
 
     await engine.dispose()
+
+    # ── WebSocket push ─────────────────────────────────────────────────────
+    # Celery worker'lar her task için asyncio.run() ile yeni event loop açar.
+    # app.db.redis singleton'u önceki loop'a bağlı olur — transient bağlantı kullanılır.
+    if user_id:
+        try:
+            import json as _json
+            from redis.asyncio import from_url as _redis_from_url
+            _r = await _redis_from_url(
+                settings.REDIS_URL, encoding="utf-8", decode_responses=True
+            )
+            try:
+                await _r.publish(
+                    f"user:{user_id}:events",
+                    _json.dumps(
+                        {
+                            "type": "analysis_complete",
+                            "payload": {
+                                "task_id":    content_id,
+                                "status":     pred_status,
+                                "confidence": confidence,
+                            },
+                        },
+                        ensure_ascii=False,
+                    ),
+                )
+            finally:
+                await _r.aclose()
+        except Exception as exc:
+            logger.warning("analysis_complete publish hatası: %s", exc)
+
     logger.info("Analiz tamamlandı → status=%s conf=%.4f id=%s", pred_status, confidence, article_id)
 
     return {
@@ -237,10 +268,76 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
 # Celery task
 # ─────────────────────────────────────────────────────────────────────────────
 @celery_app.task(name="analyze_article", rate_limit=settings.CELERY_RATE_LIMIT)
-def analyze_article(content_id: str, text: str, news_evidence: str = None) -> dict:
+def analyze_article(content_id: str, text: str, news_evidence: str = None, user_id: str = None) -> dict:
     """Ham metin → temizlik → embedding → sınıflandırma → DB kaydı."""
-    return asyncio.run(_analyze_and_save(content_id, text, news_evidence=news_evidence))
+    return asyncio.run(_analyze_and_save(content_id, text, news_evidence=news_evidence, user_id=user_id))
 
 
 # Görsel analiz task'ını kaydet — worker startup'ta keşfedilsin
 from workers.image_analysis_task import analyze_image as _analyze_image_task  # noqa: F401
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Audit flush task + beat schedule
+# ─────────────────────────────────────────────────────────────────────────────
+from celery.schedules import crontab
+from workers.audit_flush_task import flush_audit_buffer as _flush_audit_buffer  # noqa: F401
+from workers.preference_updater import update_preference_profiles as _update_prefs
+from workers.similarity_cache import build_similarity_cache as _build_sim_cache
+from workers.digest_task import run_weekly_digest as _run_weekly_digest
+from workers.retrain_task import retrain_model as _retrain_model
+from workers.trust_tasks import recalculate_trust_scores as _recalculate_trust  # noqa: F401
+
+
+@celery_app.task(name="workers.tasks.flush_audit_buffer")
+def flush_audit_buffer_task() -> None:
+    _flush_audit_buffer()
+
+
+@celery_app.task(name="workers.tasks.update_preference_profiles")
+def update_preference_profiles_task() -> None:
+    _update_prefs()
+
+
+@celery_app.task(name="workers.tasks.build_similarity_cache")
+def build_similarity_cache_task() -> None:
+    _build_sim_cache()
+
+
+@celery_app.task(name="workers.tasks.weekly_digest")
+def weekly_digest_task() -> dict:
+    sent = _run_weekly_digest()
+    return {"sent": sent}
+
+
+@celery_app.task(name="workers.tasks.nightly_model_retrain")
+def nightly_model_retrain_task() -> None:
+    _retrain_model()
+
+
+celery_app.conf.beat_schedule = {
+    "flush-audit-buffer-every-5s": {
+        "task": "workers.tasks.flush_audit_buffer",
+        "schedule": 5.0,
+    },
+    "update-preference-profiles-nightly": {
+        "task":     "workers.tasks.update_preference_profiles",
+        "schedule": crontab(hour=2, minute=0),
+    },
+    "build-similarity-cache-daily": {
+        "task":     "workers.tasks.build_similarity_cache",
+        "schedule": crontab(hour=3, minute=0),
+    },
+    "weekly-digest-monday-morning": {
+        "task":     "workers.tasks.weekly_digest",
+        "schedule": crontab(hour=8, minute=0, day_of_week=1),
+    },
+    "nightly-model-retrain": {
+        "task":     "workers.tasks.nightly_model_retrain",
+        "schedule": crontab(hour=4, minute=30),
+    },
+    "recalculate-trust-scores-nightly": {
+        "task":     "recalculate_trust_scores",
+        "schedule": crontab(hour=3, minute=30),  # 03:30 her gece
+    },
+}

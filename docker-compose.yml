@@ -82,6 +82,23 @@ services:
     command: celery -A workers.rss_ingester beat --loglevel=info
     restart: unless-stopped
 
+  audit-beat:
+    image: fake-news-detection-system-app
+    env_file:
+      - .env
+    volumes:
+      - .:/workspace
+      - hf_cache:/root/.cache/huggingface
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      worker:
+        condition: service_started
+    command: celery -A workers.tasks beat --loglevel=info
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend
