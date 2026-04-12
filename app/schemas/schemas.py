@@ -475,7 +475,7 @@ class ForumTrustInfo(BaseModel):
     def from_user(cls, user) -> "ForumTrustInfo":
         meta   = TIER_META.get(user.forum_trust_tier, TIER_META["yeni_uye"])
         cat_tr = CATEGORY_LABELS.get(user.forum_trust_category or "", "")
-        if cat_tr and user.forum_trust_tier != "yeni_uye":
+        if cat_tr and user.forum_trust_tier in {"analist", "dedektif"}:
             display = f"{cat_tr} {meta['label']}"
         else:
             display = meta["label"]
