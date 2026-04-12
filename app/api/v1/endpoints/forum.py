@@ -12,15 +12,18 @@ GET  /forum/trending             — trend thread ve etiketler
 GET  /forum/articles/{article_id}/threads — article'a bağlı thread'ler
 """
 
+import asyncio
 import uuid as _uuid
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 import sqlalchemy
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
+from workers.moderation_task import check_toxicity
 
 from app.api.deps import get_current_user
 from app.core.pubsub import publish_async
@@ -453,6 +456,15 @@ async def add_comment(
             raise HTTPException(status_code=404, detail="Yanıtlanacak yorum bulunamadı")
         depth = min(parent.depth + 1, 3)
 
+    # ── Toksisite taraması ────────────────────────────────────────────────────
+    tox = await asyncio.to_thread(check_toxicity, body.body)
+    if not tox["safe"] and tox["severity"] == "high":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="İçerik forum politikalarına aykırı. Lütfen düzenleyin.",
+        )
+    flagged_by_ai = not tox["safe"]   # low/medium severity → kaydet, flag
+
     comment = ForumComment(
         thread_id=thread_id,
         parent_id=body.parent_id,
@@ -460,6 +472,8 @@ async def add_comment(
         body=body.body,
         evidence_urls=body.evidence_urls,
         depth=depth,
+        moderation_status="flagged_ai" if flagged_by_ai else "clean",
+        moderation_note=tox["reason"] if flagged_by_ai else None,
     )
     db.add(comment)
 
@@ -500,7 +514,7 @@ async def add_comment(
             payload=comment_payload,
         )
 
-    return ForumCommentItem(
+    item = ForumCommentItem(
         id=comment.id,
         thread_id=comment.thread_id,
         parent_id=comment.parent_id,
@@ -513,6 +527,13 @@ async def add_comment(
         created_at=comment.created_at,
         moderation_status=comment.moderation_status,
     )
+    if flagged_by_ai:
+        return Response(
+            content=item.model_dump_json(),
+            status_code=202,
+            media_type="application/json",
+        )
+    return item
 
 
 @router.post("/comments/{comment_id}/vote", status_code=status.HTTP_204_NO_CONTENT)
