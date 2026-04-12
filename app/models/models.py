@@ -269,3 +269,107 @@ class ModelTrainingRun(Base):
             name="ck_model_training_run_status",
         ),
     )
+
+
+class ForumThread(Base):
+    __tablename__ = "forum_threads"
+
+    id              = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    article_id      = Column(UUID(as_uuid=True), ForeignKey("articles.id", ondelete="SET NULL"), nullable=True, index=True)
+    user_id         = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title           = Column(String(300), nullable=False)
+    body            = Column(Text, nullable=False)
+    category        = Column(String(50), nullable=True)
+    status          = Column(String(20), nullable=False, server_default="active")
+    vote_suspicious = Column(Integer, nullable=False, server_default="0")
+    vote_authentic  = Column(Integer, nullable=False, server_default="0")
+    vote_investigate = Column(Integer, nullable=False, server_default="0")
+    comment_count   = Column(Integer, nullable=False, server_default="0")
+    created_at      = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at      = Column(DateTime(timezone=True), onupdate=func.now())
+
+    user     = relationship("User")
+    article  = relationship("Article")
+    comments = relationship("ForumComment", back_populates="thread", cascade="all, delete-orphan")
+    votes    = relationship("ForumVote", back_populates="thread", cascade="all, delete-orphan")
+    tags     = relationship("Tag", secondary="thread_tags", back_populates="threads")
+
+    __table_args__ = (
+        CheckConstraint("status IN ('active','under_review','resolved')", name="ck_forum_thread_status"),
+        Index("idx_forum_thread_category_created", "category", "created_at"),
+    )
+
+
+class ForumComment(Base):
+    __tablename__ = "forum_comments"
+
+    id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    thread_id     = Column(UUID(as_uuid=True), ForeignKey("forum_threads.id", ondelete="CASCADE"), nullable=False, index=True)
+    parent_id     = Column(UUID(as_uuid=True), ForeignKey("forum_comments.id", ondelete="CASCADE"), nullable=True)
+    user_id       = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    body          = Column(Text, nullable=False)
+    evidence_urls = Column(JSONB, nullable=False, server_default="[]")
+    helpful_count = Column(Integer, nullable=False, server_default="0")
+    depth         = Column(Integer, nullable=False, server_default="0")
+    is_highlighted = Column(Boolean, nullable=False, server_default="false")
+    created_at    = Column(DateTime(timezone=True), server_default=func.now())
+
+    thread  = relationship("ForumThread", back_populates="comments")
+    user    = relationship("User")
+    replies = relationship("ForumComment", back_populates="parent")
+    parent  = relationship("ForumComment", back_populates="replies", remote_side="ForumComment.id")
+
+    __table_args__ = (
+        CheckConstraint("depth >= 0 AND depth <= 3", name="ck_forum_comment_depth"),
+        Index("idx_forum_comment_thread", "thread_id", "created_at"),
+    )
+
+
+class ForumVote(Base):
+    __tablename__ = "forum_votes"
+
+    id        = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    thread_id = Column(UUID(as_uuid=True), ForeignKey("forum_threads.id", ondelete="CASCADE"), nullable=False)
+    user_id   = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    vote_type = Column(String(20), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    thread = relationship("ForumThread", back_populates="votes")
+
+    __table_args__ = (
+        UniqueConstraint("thread_id", "user_id", name="uq_forum_vote_thread_user"),
+        CheckConstraint("vote_type IN ('suspicious','authentic','investigate')", name="ck_forum_vote_type"),
+    )
+
+
+class ForumCommentVote(Base):
+    __tablename__ = "forum_comment_votes"
+
+    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    comment_id = Column(UUID(as_uuid=True), ForeignKey("forum_comments.id", ondelete="CASCADE"), nullable=False)
+    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("comment_id", "user_id", name="uq_forum_comment_vote_user"),
+    )
+
+
+class Tag(Base):
+    __tablename__ = "tags"
+
+    id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name        = Column(String(100), unique=True, nullable=False)
+    is_system   = Column(Boolean, nullable=False, server_default="false")
+    category    = Column(String(50), nullable=True)
+    usage_count = Column(Integer, nullable=False, server_default="0")
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+
+    threads = relationship("ForumThread", secondary="thread_tags", back_populates="tags")
+
+
+class ThreadTag(Base):
+    __tablename__ = "thread_tags"
+
+    thread_id = Column(UUID(as_uuid=True), ForeignKey("forum_threads.id", ondelete="CASCADE"), primary_key=True)
+    tag_id    = Column(UUID(as_uuid=True), ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)

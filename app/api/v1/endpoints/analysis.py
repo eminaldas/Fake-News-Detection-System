@@ -259,6 +259,7 @@ async def analyze_content(
                 "match_count":     len(matches),
                 "vote_confidence": vote_confidence,
                 "signals":         match_signals,   # SignalPanel ve HighlightedText için
+                "db_article_id":   str(best_match.id),
             },
         )
 

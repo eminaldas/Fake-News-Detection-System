@@ -8,6 +8,7 @@ import HighlightedText from './HighlightedText';
 import AICommentCard from './AICommentCard';
 import FeedbackBar from './FeedbackBar';
 import RecommendationPanel from '../recommendations/RecommendationPanel';
+import ForumSuggestion from '../forum/ForumSuggestion';
 import { DISPLAY_THRESHOLD } from './signalConfig';
 
 /* ─── Sinyal açıklaması ────────────────────────────────────────────── */
@@ -139,6 +140,7 @@ const AnalysisResultCard = ({ result }) => {
     const aiComment  = result.ai_comment || null;
     const origText   = result.originalText || null;
     const explanation = buildExplanation(signals);
+    const articleId  = result.direct_match_data?.db_article_id ?? result.db_article_id ?? null;
 
     const hasGeminiVerdict = !!aiComment?.gemini_verdict;
     const badgeLabel = isUrlAnalysis
@@ -315,6 +317,7 @@ const AnalysisResultCard = ({ result }) => {
             </div>
         </div>
         <FeedbackBar result={result} />
+        <ForumSuggestion articleId={articleId} />
         <RecommendationPanel context="post_analysis" title="İlgili Haberler" />
         </>
     );
