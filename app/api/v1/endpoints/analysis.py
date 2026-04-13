@@ -613,13 +613,15 @@ async def get_analysis_status(
     return response
 
 
-@router.post("/analyze/signals", response_model=SignalsResponse)
+@router.post("/analyze/signals", response_model=SignalsResponse, status_code=status.HTTP_200_OK)
 async def analyze_signals(
     body:         SignalsRequest,
     current_user: User = Depends(get_current_user),
 ):
     """Başlık metnini NLP sinyallerine göre hızlıca değerlendirir. ML/BERT çalışmaz."""
     signals = cleaner.extract_manipulative_signals(body.text)
+    # Ağırlıklar: başlık/hızlı sinyal için ayarlanmış — _compute_risk'ten kasıtlı farklı.
+    # avg_word_length kısa başlık tespitinde daha yüksek katkı alır (0.10 vs. 0.00 ingest'te).
 
     risk = (
         signals["clickbait_score"]   * 0.28 +
