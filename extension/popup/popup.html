@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Login state -->
+  <div id="view-login" class="view">
+    <h1>Sahte Haber<br>Dedektifi</h1>
+    <input id="username" type="email" placeholder="E-posta" autocomplete="email">
+    <input id="password" type="password" placeholder="Şifre" autocomplete="current-password">
+    <button id="btn-login">Giriş Yap</button>
+    <p id="login-error" class="error hidden"></p>
+  </div>
+
+  <!-- Analyze state -->
+  <div id="view-analyze" class="view hidden">
+    <div id="badge-preview" class="badge-preview hidden"></div>
+    <p id="current-url" class="url-label"></p>
+    <button id="btn-analyze">Detaylı Analiz Et</button>
+    <p id="analyze-status" class="status hidden"></p>
+    <button id="btn-logout" class="secondary">Çıkış</button>
+  </div>
+
+  <!-- Result state -->
+  <div id="view-result" class="view hidden">
+    <div id="result-label" class="result-label"></div>
+    <div id="result-score" class="result-score"></div>
+    <p id="result-desc" class="result-desc"></p>
+    <button id="btn-reanalyze">Yeniden Analiz Et</button>
+    <button id="btn-logout2" class="secondary">Çıkış</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
