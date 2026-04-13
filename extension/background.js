@@ -41,7 +41,7 @@ async function apiSignals(text) {
     });
     if (res.status === 401) { await clearToken(); throw new Error("TOKEN_EXPIRED"); }
     if (!res.ok) throw new Error("Sinyal analizi başarısız");
-    return res.json();
+    return await res.json();
 }
 
 async function apiAnalyzeUrl(url) {
@@ -102,17 +102,20 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
                     chrome.tabs.sendMessage(tab.id, { type: "ANALYSIS_RESULT", data });
                 }
                 sendResponse({ ok: true, data });
+            } else if (msg.type === "PAGE_LOADED") {
+                try {
+                    const data = await apiSignals(msg.title);
+                    if (_sender.tab?.id) {
+                        chrome.tabs.sendMessage(_sender.tab.id, { type: "SIGNALS_RESULT", data });
+                    }
+                } catch (_) {
+                    // fail silently — Katman 1 arka planda çalışır
+                }
+                sendResponse({ ok: true });
             }
         } catch (err) {
             sendResponse({ ok: false, error: err.message });
         }
     })();
     return true; // async response
-});
-
-// ── Content script'ten sayfa yüklenince sinyal iste ────────────────────────────
-chrome.runtime.onMessage.addListener((msg) => {
-    if (msg.type === "PAGE_LOADED") {
-        chrome.runtime.sendMessage({ type: "SIGNALS", text: msg.title });
-    }
 });
