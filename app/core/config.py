@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM:     str = "noreply@fnds.local"
 
+    # Frontend
+    FRONTEND_URL: str = "http://localhost:5173"
+
     # Gemini AI
     GEMINI_API_KEY:         str   = ""
     GEMINI_MODEL:           str   = "gemini-2.5-flash"
