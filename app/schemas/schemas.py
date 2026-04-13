@@ -297,12 +297,14 @@ class InteractionTrackRequest(BaseModel):
     @field_validator("details")
     @classmethod
     def sanitize_details(cls, v: Optional[dict]) -> Optional[dict]:
-        """Yalnızca sayısal, bool, None değerlere izin ver — serbest metin yasak."""
+        """Sayısal, bool, None ve kısa string değerlere izin ver (ab_experiment_id UUID için)."""
         if v is None:
             return v
         clean = {}
         for k, val in v.items():
             if isinstance(val, (int, float, bool)) or val is None:
+                clean[k] = val
+            elif isinstance(val, str) and len(val) <= 64:
                 clean[k] = val
         return clean or None
 
