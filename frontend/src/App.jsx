@@ -73,7 +73,7 @@ function App() {
                             </Route>
 
                             {/* Forum */}
-                            <Route path="forum" element={<RequireAuth><ForumLayout /></RequireAuth>}>
+                            <Route path="forum" element={<ForumLayout />}>
                                 <Route index element={<ForumFeed />} />
                                 <Route path="new"       element={<ForumCreateThread />} />
                                 <Route path=":threadId" element={<ForumThread />} />

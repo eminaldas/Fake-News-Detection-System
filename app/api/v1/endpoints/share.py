@@ -77,7 +77,7 @@ async def share_analysis(article_id: str, db: AsyncSession = Depends(get_db)):
 
 @router.get("/forum/{thread_id}", response_class=HTMLResponse)
 async def share_forum(thread_id: str, db: AsyncSession = Depends(get_db)):
-    redirect = f"{settings.FRONTEND_URL}/forum/thread/{thread_id}"
+    redirect = f"{settings.FRONTEND_URL}/forum/{thread_id}"
     og_title = "Sahte Haber Dedektifi — Forum"
     og_desc  = "Forum tartışmasını inceleyin."
 
