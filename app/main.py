@@ -31,6 +31,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
     "http://localhost",
+    "chrome-extension://*",
 ]
 
 app.add_middleware(LoggingMiddleware)

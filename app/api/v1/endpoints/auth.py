@@ -94,7 +94,12 @@ async def login(
 
     # remember_me query param'dan oku
     remember_me_param = request.query_params.get("remember_me", "false").lower() == "true"
-    if remember_me_param:
+    client_param      = request.query_params.get("client", "")
+
+    if client_param == "extension":
+        expires_delta = timedelta(days=7)
+        expires_in    = 7 * 86400
+    elif remember_me_param:
         expires_delta = timedelta(days=settings.REMEMBER_ME_EXPIRE_DAYS)
         expires_in    = settings.REMEMBER_ME_EXPIRE_DAYS * 86400
     else:
