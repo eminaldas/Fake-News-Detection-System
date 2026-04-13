@@ -51,7 +51,7 @@ async function showResult(data) {
         label.textContent = "SAHTE";
         label.classList.add("result-fake");
     } else {
-        label.textContent = "GERÇEĞİ YANSITMIYOR DEĞİL";
+        label.textContent = "GÜVENİLİR";
         label.classList.add("result-authentic");
     }
 

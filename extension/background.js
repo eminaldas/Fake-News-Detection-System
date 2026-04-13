@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8000/api/v1";
+const API_BASE = "http://localhost:8000/api/v1/analysis";
 
 // ── Token yönetimi ────────────────────────────────────────────────────────────
 async function getToken() {
@@ -63,7 +63,7 @@ async function apiAnalyzeUrl(url) {
     // Polling — max 30s
     for (let i = 0; i < 15; i++) {
         await new Promise(r => setTimeout(r, 2000));
-        const poll = await fetch(`${API_BASE}/analysis/status/${task_id}`, {
+        const poll = await fetch(`${API_BASE}/status/${task_id}`, {
             headers: { "Authorization": `Bearer ${token}` },
         });
         if (!poll.ok) continue;
