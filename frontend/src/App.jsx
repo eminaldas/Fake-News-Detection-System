@@ -30,6 +30,7 @@ import ForumLayout        from './features/forum/ForumLayout';
 import ForumFeed          from './features/forum/ForumFeed';
 import ForumThread        from './features/forum/ForumThread';
 import ForumCreateThread  from './features/forum/ForumCreateThread';
+import SharedAnalysis    from './pages/SharedAnalysis';
 
 // Listens to auth state and manages the WS connection lifecycle
 function WsLifecycle() {
@@ -94,6 +95,9 @@ function App() {
                             <Route path="admin/forum" element={
                                 <RequireAuth><AdminForum /></RequireAuth>
                             } />
+
+                            {/* Paylaşılan analiz — auth gerekmez */}
+                            <Route path="analysis/share/:articleId" element={<SharedAnalysis />} />
 
                             <Route path="*" element={<NotFound />} />
                         </Route>
