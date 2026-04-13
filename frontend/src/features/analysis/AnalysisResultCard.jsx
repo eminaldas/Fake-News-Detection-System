@@ -9,6 +9,7 @@ import AICommentCard from './AICommentCard';
 import FeedbackBar from './FeedbackBar';
 import RecommendationPanel from '../recommendations/RecommendationPanel';
 import ForumSuggestion from '../forum/ForumSuggestion';
+import ShareDropdown from '../../components/ui/ShareDropdown';
 import { DISPLAY_THRESHOLD } from './signalConfig';
 
 /* ─── Sinyal açıklaması ────────────────────────────────────────────── */
@@ -313,6 +314,12 @@ const AnalysisResultCard = ({ result }) => {
                         <ThumbsUp className="w-3.5 h-3.5" />
                         Evet
                     </button>
+                    {articleId && (
+                        <ShareDropdown
+                            url={`${window.location.origin}/s/analysis/${articleId}`}
+                            text={`${status === 'FAKE' ? 'SAHTE' : 'GÜVENİLİR'} (%${displayScore}) — ${(origText || '').slice(0, 80)} | Sahte Haber Dedektifi`}
+                        />
+                    )}
                 </div>
             </div>
         </div>
