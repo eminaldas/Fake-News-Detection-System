@@ -683,3 +683,13 @@ class SignalsResponse(BaseModel):
     source_score:      float
     risk_score:        float
     label:             str   # "clean" | "suspicious"
+
+
+class SharedAnalysisResponse(BaseModel):
+    article_id:      str
+    title:           str
+    prediction:      str
+    confidence:      float
+    risk_score:      Optional[float] = None
+    clickbait_score: Optional[float] = None
+    created_at:      Optional[str]   = None

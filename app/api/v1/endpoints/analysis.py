@@ -24,6 +24,7 @@ from app.schemas.schemas import (
     ContentAnalysisRequest,
     FeedbackRequest,
     ImageAnalysisResponse,
+    SharedAnalysisResponse,
     SignalsRequest,
     SignalsResponse,
     TaskStatusResponse,
@@ -643,4 +644,37 @@ async def analyze_signals(
         source_score=signals["source_score"],
         risk_score=risk,
         label="suspicious" if risk > 0.30 else "clean",
+    )
+
+
+@router.get("/share/{article_id}", response_model=SharedAnalysisResponse, status_code=status.HTTP_200_OK)
+async def get_shared_analysis(
+    article_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Analiz sonucunu auth gerektirmeden döner — paylaşım linkleri için."""
+    try:
+        uid = uuid.UUID(article_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Bulunamadı")
+
+    row = await db.execute(
+        select(Article, AnalysisResult)
+        .join(AnalysisResult, AnalysisResult.article_id == Article.id)
+        .where(Article.id == uid)
+    )
+    pair = row.first()
+    if not pair:
+        raise HTTPException(status_code=404, detail="Bulunamadı")
+
+    article, result = pair
+    signals = result.signals or {}
+    return SharedAnalysisResponse(
+        article_id=str(article.id),
+        title=article.title or "",
+        prediction=result.status,
+        confidence=result.confidence or 0.0,
+        risk_score=signals.get("risk_score"),
+        clickbait_score=signals.get("clickbait_score"),
+        created_at=result.created_at.isoformat() if result.created_at else None,
     )
