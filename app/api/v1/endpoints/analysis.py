@@ -24,6 +24,8 @@ from app.schemas.schemas import (
     ContentAnalysisRequest,
     FeedbackRequest,
     ImageAnalysisResponse,
+    SignalsRequest,
+    SignalsResponse,
     TaskStatusResponse,
     UrlAnalysisRequest,
 )
@@ -609,3 +611,34 @@ async def get_analysis_status(
             response.result = {"error": str(task_result.info)}
 
     return response
+
+
+@router.post("/analyze/signals", response_model=SignalsResponse)
+async def analyze_signals(
+    body:         SignalsRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Başlık metnini NLP sinyallerine göre hızlıca değerlendirir. ML/BERT çalışmaz."""
+    signals = cleaner.extract_manipulative_signals(body.text)
+
+    risk = (
+        signals["clickbait_score"]   * 0.28 +
+        signals["exclamation_ratio"] * 0.20 +
+        signals["caps_ratio"]        * 0.15 +
+        signals["hedge_ratio"]       * 0.15 +
+        signals["question_density"]  * 0.10 +
+        signals["number_density"]    * 0.05 +
+        max(0.0, 4.5 - signals["avg_word_length"]) / 4.5 * 0.10 -
+        signals["source_score"]      * 0.15
+    )
+    risk = round(max(0.0, min(1.0, risk)), 4)
+
+    return SignalsResponse(
+        clickbait_score=signals["clickbait_score"],
+        caps_ratio=signals["caps_ratio"],
+        exclamation_ratio=signals["exclamation_ratio"],
+        hedge_ratio=signals["hedge_ratio"],
+        source_score=signals["source_score"],
+        risk_score=risk,
+        label="suspicious" if risk > 0.30 else "clean",
+    )

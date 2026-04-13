@@ -666,3 +666,20 @@ class ModerationQueueResponse(BaseModel):
     total: int
     page:  int
     size:  int
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Browser Extension
+# ─────────────────────────────────────────────────────────────────────────────
+
+class SignalsRequest(BaseModel):
+    text: str = Field(..., max_length=500)
+
+class SignalsResponse(BaseModel):
+    clickbait_score:   float
+    caps_ratio:        float
+    exclamation_ratio: float
+    hedge_ratio:       float
+    source_score:      float
+    risk_score:        float
+    label:             str   # "clean" | "suspicious"
