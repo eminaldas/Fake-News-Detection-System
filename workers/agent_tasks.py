@@ -82,6 +82,44 @@ def run_news_scan(self):
         raise self.retry(exc=exc, countdown=15)  # 15s sonra tekrar dene
 
 
+async def _push_recommendations_updated_to_all() -> None:
+    """
+    Preference profili olan tüm kullanıcılara recommendations_updated WS push'u gönderir.
+    Yeni haber ingest'i sonrası çağrılır; her kullanıcının feed'i güncel olsun.
+    Celery asyncio.run() bağlamında çalışır — transient Redis bağlantısı kullanılır.
+    """
+    import json as _json
+    from redis.asyncio import from_url as _redis_from_url
+    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import NullPool
+    from sqlalchemy import select
+    from app.models.models import UserPreferenceProfile
+
+    engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
+    Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    try:
+        async with Session() as db:
+            user_ids = (await db.execute(
+                select(UserPreferenceProfile.user_id)
+            )).scalars().all()
+
+        if not user_ids:
+            return
+
+        _r = await _redis_from_url(settings.REDIS_URL, encoding="utf-8", decode_responses=True)
+        try:
+            msg = _json.dumps({"type": "recommendations_updated", "payload": {}}, ensure_ascii=False)
+            for uid in user_ids:
+                await _r.publish(f"user:{uid}:events", msg)
+        finally:
+            await _r.aclose()
+    except Exception as exc:
+        logger.warning("ingest WS push hatası: %s", exc)
+    finally:
+        await engine.dispose()
+
+
 @celery_app.task(name="workers.agent_tasks.ingest_trusted_rss", bind=True, max_retries=2)
 def ingest_trusted_rss(self):
     """
@@ -95,6 +133,8 @@ def ingest_trusted_rss(self):
         vect = get_vectorizer()
         count = asyncio.run(ingest_rss_sources(dry_run=False, vectorizer=vect))
         logger.info("✔ RSS ingest tamamlandı. Eklenen: %d", count)
+        if count > 0:
+            asyncio.run(_push_recommendations_updated_to_all())
         return {"added": count}
     except Exception as exc:
         logger.exception("RSS ingest başarısız: %s", exc)

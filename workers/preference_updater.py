@@ -26,6 +26,27 @@ DECLARED_DECAY_PER_5    = 0.20   # her 5 etkileşimde beyan ağırlığı %20 az
 INTERACTION_THRESHOLD   = 20     # bu sayıdan sonra declared tamamen silinir
 
 
+async def _ws_publish_many(events: list[tuple[str, str, dict]]) -> None:
+    """
+    Birden fazla WS mesajını tek transient Redis bağlantısıyla gönderir.
+    events: [(channel, msg_type, payload), ...]
+    Celery asyncio.run() bağlamında çalışır — singleton yerine transient bağlantı kullanılır.
+    """
+    if not events:
+        return
+    import json as _json
+    from redis.asyncio import from_url as _redis_from_url
+    try:
+        _r = await _redis_from_url(settings.REDIS_URL, encoding="utf-8", decode_responses=True)
+        try:
+            for channel, msg_type, payload in events:
+                await _r.publish(channel, _json.dumps({"type": msg_type, "payload": payload}, ensure_ascii=False))
+        finally:
+            await _r.aclose()
+    except Exception as exc:
+        logger.warning("preference_updater WS publish hatası: %s", exc)
+
+
 async def _update_profiles_async() -> None:
     engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -52,6 +73,7 @@ async def _update_profiles_async() -> None:
                 "source_nlp":      defaultdict(list),
                 "total_clicks":    0,
             })
+            updated_user_ids: list[str] = []
 
             for row in rows:
                 uid = str(row.user_id)
@@ -120,11 +142,20 @@ async def _update_profiles_async() -> None:
                         interaction_count = total,
                     )
                     db.add(profile)
+                updated_user_ids.append(uid_str)
 
             # ── Faz 4: High-risk alert trigger ────────────────────────────────
-            await _send_high_risk_alerts(db, user_data)
+            notified_user_ids = await _send_high_risk_alerts(db, user_data)
             await db.commit()
             logger.info("preference_profiles güncellendi: %d kullanıcı", len(user_data))
+
+            # ── WS push ────────────────────────────────────────────────────────
+            ws_events: list[tuple[str, str, dict]] = []
+            for uid_str in updated_user_ids:
+                ws_events.append((f"user:{uid_str}:events", "recommendations_updated", {}))
+            for uid_str in notified_user_ids:
+                ws_events.append((f"user:{uid_str}:events", "new_notification", {}))
+            await _ws_publish_many(ws_events)
 
     except Exception as e:
         logger.error("preference_profile_updater hata: %s", e)
@@ -132,16 +163,18 @@ async def _update_profiles_async() -> None:
         await engine.dispose()
 
 
-async def _send_high_risk_alerts(db: AsyncSession, user_data: dict) -> None:
+async def _send_high_risk_alerts(db: AsyncSession, user_data: dict) -> list[str]:
     """
     Her kullanıcı için: ilgi kategorilerinde son 24 saatte yüksek riskli (nlp_score >= 0.6)
     haber varsa ve high_risk_alert=True ise in-app bildirim ekle.
     Aynı gün için tekrar bildirim gönderme.
+    Bildirim yazılan kullanıcı ID listesini döner (WS push için).
     """
     from datetime import timedelta
     from sqlalchemy import func as sqlfunc
 
     cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    notified_user_ids: list[str] = []
 
     for uid_str, data in user_data.items():
         try:
@@ -193,8 +226,10 @@ async def _send_high_risk_alerts(db: AsyncSession, user_data: dict) -> None:
             link_url = "/gundem",
         )
         db.add(notif)
+        notified_user_ids.append(uid_str)
 
     await db.commit()
+    return notified_user_ids
 
 
 def update_preference_profiles() -> None:
