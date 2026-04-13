@@ -5,6 +5,7 @@ import {
     Search,
 } from 'lucide-react';
 import axiosInstance from '../../api/axios';
+import LoginNudgeModal, { useLoginNudge } from '../../components/ui/LoginNudgeModal';
 
 const SORT_OPTIONS = [
     { key: 'hot',          label: 'Popüler',    Icon: Flame },
@@ -115,6 +116,7 @@ const ForumFeed = () => {
     const [page,    setPage]    = React.useState(1);
     const [loading, setLoading] = React.useState(false);
     const [tagSearch, setTagSearch] = React.useState(tag);
+    const [showNudge, closeNudge] = useLoginNudge();
 
     const SIZE = 20;
 
@@ -159,6 +161,7 @@ const ForumFeed = () => {
     const totalPages = Math.ceil(total / SIZE);
 
     return (
+        <>
         <div className="max-w-2xl mx-auto flex flex-col gap-4">
 
             {/* Başlık + Etiket arama */}
@@ -279,6 +282,8 @@ const ForumFeed = () => {
             )}
 
         </div>
+        {showNudge && <LoginNudgeModal onClose={closeNudge} />}
+        </>
     );
 };
 

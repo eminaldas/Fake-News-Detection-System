@@ -4,6 +4,8 @@ import { AlertTriangle, Send, Link as LinkIcon, X } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 import ForumCommentTree from './ForumCommentTree';
+import LoginNudgeModal, { useLoginNudge } from '../../components/ui/LoginNudgeModal';
+import ShareDropdown from '../../components/ui/ShareDropdown';
 
 const VOTE_OPTIONS = [
     { type: 'suspicious',  label: 'Şüpheli',  emoji: '🚩', color: '#ff6b6b' },
@@ -34,6 +36,8 @@ const ForumThread = () => {
     const [thread,   setThread]   = React.useState(null);
     const [loading,  setLoading]  = React.useState(true);
     const [voting,   setVoting]   = React.useState(false);
+
+    const [showNudge, closeNudge] = useLoginNudge();
 
     // Yorum formu
     const [body,         setBody]         = React.useState('');
@@ -156,6 +160,7 @@ const ForumThread = () => {
     const statusInfo = STATUS_LABEL[thread.status] ?? STATUS_LABEL.active;
 
     return (
+        <>
         <div className="flex gap-4 items-start">
 
             {/* ── Sol: Ana içerik ── */}
@@ -188,9 +193,15 @@ const ForumThread = () => {
                                     </span>
                                 </div>
                             )}
-                            <h2 className="text-[14px] font-bold text-tx-primary leading-snug">
-                                {thread.title}
-                            </h2>
+                            <div className="flex items-start justify-between gap-4">
+                                <h2 className="text-[14px] font-bold text-tx-primary leading-snug">
+                                    {thread.title}
+                                </h2>
+                                <ShareDropdown
+                                    url={`${window.location.origin}/s/forum/${thread.id}`}
+                                    text={`Forum: ${thread.title}`}
+                                />
+                            </div>
                             <p className="text-[11px] text-muted mt-1">
                                 {thread.author?.username} ·{' '}
                                 {new Date(thread.created_at).toLocaleDateString('tr-TR', {
@@ -440,6 +451,8 @@ const ForumThread = () => {
             </div>
 
         </div>
+        {showNudge && <LoginNudgeModal onClose={closeNudge} />}
+        </>
     );
 };
 
