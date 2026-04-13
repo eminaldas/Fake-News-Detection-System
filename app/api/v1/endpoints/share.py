@@ -4,9 +4,13 @@ app/api/v1/endpoints/share.py
 GET /s/analysis/{article_id}  — OG meta tag HTML + redirect
 GET /s/forum/{thread_id}       — OG meta tag HTML + redirect
 """
+import html as _html
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends
+
+log = logging.getLogger(__name__)
 from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +21,7 @@ from app.models.models import Article, AnalysisResult, ForumThread
 
 router = APIRouter()
 
-_BASE_URL = "http://localhost:8000"
+# BASE_URL settings'ten okunur — share.py içinde doğrudan kullanılır
 
 _OG_TEMPLATE = """\
 <!DOCTYPE html>
@@ -58,14 +62,14 @@ async def share_analysis(article_id: str, db: AsyncSession = Depends(get_db)):
             conf_pct = round((result.confidence or 0) * 100)
             og_title = f"Sahte Haber Dedektifi — {label} (%{conf_pct})"
             og_desc  = f"'{article.title[:100]}' başlıklı içerik analiz edildi."
-    except Exception:
-        pass
+    except Exception as e:
+        log.warning("share endpoint db hatası: %s", e)
 
     html = _OG_TEMPLATE.format(
-        og_title=og_title,
-        og_desc=og_desc,
-        base_url=_BASE_URL,
-        og_url=f"{_BASE_URL}/s/analysis/{article_id}",
+        og_title=_html.escape(og_title),
+        og_desc=_html.escape(og_desc),
+        base_url=settings.BASE_URL,
+        og_url=f"{settings.BASE_URL}/s/analysis/{article_id}",
         redirect=redirect,
     )
     return HTMLResponse(content=html)
@@ -87,14 +91,14 @@ async def share_forum(thread_id: str, db: AsyncSession = Depends(get_db)):
             og_title = f"Forum — {thread.title[:80]}"
             body_preview = (thread.body or "")[:150]
             og_desc = body_preview if body_preview else "Forum tartışmasını inceleyin."
-    except Exception:
-        pass
+    except Exception as e:
+        log.warning("share endpoint db hatası: %s", e)
 
     html = _OG_TEMPLATE.format(
-        og_title=og_title,
-        og_desc=og_desc,
-        base_url=_BASE_URL,
-        og_url=f"{_BASE_URL}/s/forum/{thread_id}",
+        og_title=_html.escape(og_title),
+        og_desc=_html.escape(og_desc),
+        base_url=settings.BASE_URL,
+        og_url=f"{settings.BASE_URL}/s/forum/{thread_id}",
         redirect=redirect,
     )
     return HTMLResponse(content=html)

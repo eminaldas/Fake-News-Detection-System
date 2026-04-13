@@ -57,6 +57,7 @@ class Settings(BaseSettings):
 
     # Frontend
     FRONTEND_URL: str = "http://localhost:5173"
+    BASE_URL:     str = "http://localhost:8000"
 
     # Gemini AI
     GEMINI_API_KEY:         str   = ""
