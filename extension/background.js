@@ -112,6 +112,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
                     // fail silently — Katman 1 arka planda çalışır
                 }
                 sendResponse({ ok: true });
+            } else if (msg.type === "OPEN_POPUP") {
+                if (chrome.action?.openPopup) {
+                    chrome.action.openPopup().catch(() => {});
+                }
+                sendResponse({ ok: true });
             }
         } catch (err) {
             sendResponse({ ok: false, error: err.message });
