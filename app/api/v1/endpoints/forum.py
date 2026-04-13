@@ -25,7 +25,7 @@ from sqlalchemy.orm import selectinload
 
 from workers.moderation_task import check_toxicity
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_optional_user
 from app.core.pubsub import publish_async
 from app.db.session import get_db
 from app.models.models import (
@@ -130,7 +130,7 @@ async def list_threads(
     sort:     str            = Query("hot", pattern="^(hot|new|controversial)$"),
     page:     int            = Query(1, ge=1),
     size:     int            = Query(20, ge=1, le=50),
-    current_user: User       = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_optional_user),
     db: AsyncSession         = Depends(get_db),
 ):
     q = (
@@ -252,7 +252,7 @@ async def create_thread(
 @router.get("/threads/{thread_id}", response_model=ForumThreadDetail)
 async def get_thread(
     thread_id:    _uuid.UUID,
-    current_user: User       = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_optional_user),
     db: AsyncSession         = Depends(get_db),
 ):
     thread = (await db.execute(
@@ -295,12 +295,14 @@ async def get_thread(
                 confidence=ar.confidence if ar else None,
             )
 
-    user_vote = (await db.execute(
-        select(ForumVote.vote_type).where(
-            ForumVote.thread_id == thread_id,
-            ForumVote.user_id == current_user.id,
-        )
-    )).scalar_one_or_none()
+    user_vote = None
+    if current_user is not None:
+        user_vote = (await db.execute(
+            select(ForumVote.vote_type).where(
+                ForumVote.thread_id == thread_id,
+                ForumVote.user_id == current_user.id,
+            )
+        )).scalar_one_or_none()
 
     return ForumThreadDetail(
         id=thread.id,
@@ -326,7 +328,7 @@ async def search_tags(
     search:   str            = Query(..., min_length=1, max_length=50),
     category: Optional[str]  = Query(None),
     limit:    int            = Query(10, ge=1, le=30),
-    current_user: User       = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_optional_user),
     db: AsyncSession         = Depends(get_db),
 ):
     system_q = select(Tag).where(Tag.is_system == True, Tag.name.ilike(f"%{search}%")).order_by(desc(Tag.usage_count))
@@ -624,7 +626,7 @@ async def report_comment(
 
 @router.get("/trending", response_model=ForumTrendingResponse)
 async def get_trending(
-    current_user: User       = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_optional_user),
     db: AsyncSession         = Depends(get_db),
 ):
     """Son 7 gün içindeki trend thread'ler ve trend etiketler."""
@@ -675,7 +677,7 @@ async def get_trending(
 @router.get("/articles/{article_id}/threads", response_model=ForumThreadListResponse)
 async def get_article_threads(
     article_id:   _uuid.UUID,
-    current_user: User         = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_optional_user),
     db: AsyncSession           = Depends(get_db),
 ):
     """Belirli bir article'a bağlı tüm thread'ler (yeniden eskiye)."""
