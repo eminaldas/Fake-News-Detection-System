@@ -286,6 +286,45 @@ class ModelTrainingRun(Base):
     )
 
 
+class AbExperiment(Base):
+    __tablename__ = "ab_experiments"
+
+    id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name           = Column(String(100), nullable=False)
+    status         = Column(String(20), nullable=False, server_default="active")
+    min_clicks     = Column(Integer, nullable=False, default=100)
+    winner_variant = Column(Integer, nullable=True)
+    created_at     = Column(DateTime(timezone=True), server_default=func.now())
+    concluded_at   = Column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('active', 'paused', 'concluded')",
+            name="ck_ab_experiment_status",
+        ),
+        CheckConstraint(
+            "winner_variant IN (0, 1, 2) OR winner_variant IS NULL",
+            name="ck_ab_experiment_winner",
+        ),
+    )
+
+
+class AbVariantAssignment(Base):
+    __tablename__ = "ab_variant_assignments"
+
+    user_id       = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    experiment_id = Column(UUID(as_uuid=True), ForeignKey("ab_experiments.id", ondelete="CASCADE"), nullable=False)
+    variant       = Column(Integer, nullable=False)
+    assigned_at   = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        CheckConstraint(
+            "variant IN (0, 1, 2)",
+            name="ck_ab_assignment_variant",
+        ),
+    )
+
+
 class ForumThread(Base):
     __tablename__ = "forum_threads"
 
