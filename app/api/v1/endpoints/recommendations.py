@@ -42,7 +42,6 @@ async def _get_or_assign_variant(user_id, experiment: AbExperiment, db: AsyncSes
     Kullanıcıya deney varyantı atar (yoksa) ve döner.
     user_id % 3 ile deterministik atama — aynı kullanıcı her zaman aynı varyantı görür.
     """
-    import uuid as _uuid_mod
     existing = (await db.execute(
         select(AbVariantAssignment).where(
             AbVariantAssignment.user_id == user_id,
@@ -53,13 +52,13 @@ async def _get_or_assign_variant(user_id, experiment: AbExperiment, db: AsyncSes
     if existing:
         return existing.variant
 
-    variant = int(_uuid_mod.UUID(str(user_id)).int % 3)
+    variant = int(_uuid.UUID(str(user_id)).int % 3)
     db.add(AbVariantAssignment(
         user_id=user_id,
         experiment_id=experiment.id,
         variant=variant,
     ))
-    await db.commit()
+    await db.flush()
     return variant
 
 
