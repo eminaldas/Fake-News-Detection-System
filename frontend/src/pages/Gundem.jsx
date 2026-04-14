@@ -126,7 +126,7 @@ function formatRelativeTime(pub_date) {
 }
 
 /* ── Büyük öne çıkan kart (grid col-span-2) ──────────────────── */
-function FeaturedCard({ article }) {
+function FeaturedCard({ article, abDetails }) {
     const [imgErr, setImgErr] = useState(false);
     const hasImg = article.image_url && !imgErr;
     const trusted = (article.trust_score ?? 0) >= 0.9;
@@ -270,6 +270,7 @@ function FeaturedCard({ article }) {
                        category:          article.category,
                        source_domain:     (() => { try { return new URL(article.source_url).hostname; } catch { return null; } })(),
                        nlp_score_at_time: article.nlp_score,
+                       details:           abDetails,
                    })}>{inner}</a>
             ) : inner}
             {expandOpen && result && (
@@ -412,7 +413,7 @@ function AnalysisModal({ result, onClose }) {
 }
 
 /* ── Normal kart ──────────────────────────────────────────────── */
-function NormalCard({ article, tall = false }) {
+function NormalCard({ article, tall = false, abDetails }) {
     const [imgErr, setImgErr] = useState(false);
     const hasImg = article.image_url && !imgErr;
     const trusted = (article.trust_score ?? 0) >= 0.9;
@@ -557,6 +558,7 @@ function NormalCard({ article, tall = false }) {
                        category:          article.category,
                        source_domain:     (() => { try { return new URL(article.source_url).hostname; } catch { return null; } })(),
                        nlp_score_at_time: article.nlp_score,
+                       details:           abDetails,
                    })}>{inner}</a>
             ) : inner}
             {expandOpen && result && (
@@ -603,6 +605,8 @@ export default function Gundem() {
     const [forYou, setForYou]         = useState(false);
     const [recItems, setRecItems]     = useState([]);
     const [recLoading, setRecLoading] = useState(false);
+    const [abVariant,      setAbVariant]      = useState(null);
+    const [abExperimentId, setAbExperimentId] = useState(null);
     const [showRiskBanner, setShowRiskBanner] = useState(false);
     const riskBannerDismissed = useRef(typeof sessionStorage !== 'undefined' && sessionStorage.getItem('risk_banner_dismissed') === 'true');
 
@@ -688,13 +692,17 @@ export default function Gundem() {
 
     const totalPages = Math.ceil(total / SIZE);
 
+    const abDetails = abVariant !== null
+        ? { ab_variant: abVariant, ab_experiment_id: abExperimentId }
+        : undefined;
+
     function renderCard(article, index) {
         if (index === 0) return (
             <div key={article.id} className="lg:col-span-2">
-                <FeaturedCard article={article} />
+                <FeaturedCard article={article} abDetails={abDetails} />
             </div>
         );
-        return <NormalCard key={article.id} article={article} tall={index === 1} />;
+        return <NormalCard key={article.id} article={article} tall={index === 1} abDetails={abDetails} />;
     }
 
     return (
@@ -753,7 +761,11 @@ export default function Gundem() {
                                     if (recItems.length === 0) {
                                         setRecLoading(true);
                                         axiosInstance.get('/recommendations/?context=feed&limit=10')
-                                            .then(r => setRecItems(r.data.items || []))
+                                            .then(r => {
+                                                setRecItems(r.data.items || []);
+                                                setAbVariant(r.data.ab_variant ?? null);
+                                                setAbExperimentId(r.data.ab_experiment_id ?? null);
+                                            })
                                             .catch(() => {})
                                             .finally(() => setRecLoading(false));
                                     }
