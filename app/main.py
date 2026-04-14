@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api.v1.endpoints import admin, admin_logs, analysis, articles, auth, forum, insights, interactions, market, news, notifications, recommendations, sources, users, ws as ws_endpoint
+from app.api.v1.endpoints import ab as ab_endpoint, admin, admin_logs, analysis, articles, auth, forum, insights, interactions, market, news, notifications, recommendations, sources, users, ws as ws_endpoint
 from app.api.v1.endpoints import share as share_router
 from app.core.logging import get_logger, setup_logging
 from app.db.redis import close_redis
@@ -68,6 +68,7 @@ app.include_router(analysis.router, prefix="/api/v1/analysis",tags=["Analysis"])
 app.include_router(articles.router, prefix="/api/v1/articles",tags=["Articles"])
 app.include_router(users.router,    prefix="/api/v1/users",   tags=["Users"])
 app.include_router(admin.router,    prefix="/api/v1/admin",   tags=["Admin"])
+app.include_router(ab_endpoint.router, prefix="/api/v1/admin/ab", tags=["AB Testing"])
 app.include_router(admin_logs.router, prefix="/api/v1/admin", tags=["Admin Logs"])
 app.include_router(market.router,   prefix="/api/v1/market",  tags=["Market"])
 app.include_router(news.router,     prefix="/api/v1/news",    tags=["News"])
