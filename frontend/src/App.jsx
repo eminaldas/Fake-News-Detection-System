@@ -22,6 +22,7 @@ import AdminUsers from './pages/AdminUsers';
 import AdminSecurity from './pages/AdminSecurity';
 import AdminAnalytics from './pages/AdminAnalytics';
 import AdminForum from './pages/AdminForum';
+import AdminABTest from './pages/AdminABTest';
 import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 import About from './pages/About';
@@ -94,6 +95,9 @@ function App() {
                             } />
                             <Route path="admin/forum" element={
                                 <RequireAuth><AdminForum /></RequireAuth>
+                            } />
+                            <Route path="admin/ab-test" element={
+                                <RequireAuth><AdminABTest /></RequireAuth>
                             } />
 
                             {/* Paylaşılan analiz — auth gerekmez */}
