@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Github } from 'lucide-react';
 import Navbar from './common/Navbar';
+import MarketBand from './common/MarketBand';
 import NewsTicker from './common/NewsTicker';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -71,7 +72,7 @@ const Layout = () => {
                         'linear-gradient(var(--color-border) 1px,transparent 1px),' +
                         'linear-gradient(90deg,var(--color-border) 1px,transparent 1px)',
                     backgroundSize: '40px 40px',
-                    opacity: isDarkMode ? 0.38 : 0.55,
+                    opacity: isDarkMode ? 0.35 : 0.50,
                 }}
             />
 
@@ -81,17 +82,17 @@ const Layout = () => {
                 {/* Blob'lar — dark: renkli, light: gri/zinc */}
                 <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full animate-blob-1"
                      style={{
-                         background: isDarkMode ? 'rgba(63,255,139,0.07)' : 'rgba(63,63,70,0.09)',
+                         background: isDarkMode ? 'rgba(46,204,113,0.06)' : 'rgba(26,158,79,0.05)',
                          filter: 'blur(120px)',
                      }} />
                 <div className="absolute -bottom-32 right-1/4 w-[500px] h-[500px] rounded-full animate-blob-2"
                      style={{
-                         background: isDarkMode ? 'rgba(84,224,253,0.05)' : 'rgba(63,63,70,0.07)',
+                         background: isDarkMode ? 'rgba(16,185,129,0.04)' : 'rgba(26,158,79,0.035)',
                          filter: 'blur(110px)',
                      }} />
                 <div className="absolute top-1/3 right-0 w-[360px] h-[360px] rounded-full animate-blob-3"
                      style={{
-                         background: isDarkMode ? 'rgba(30,233,182,0.04)' : 'rgba(63,63,70,0.055)',
+                         background: isDarkMode ? 'rgba(16,185,129,0.03)' : 'rgba(26,158,79,0.025)',
                          filter: 'blur(90px)',
                      }} />
 
@@ -99,8 +100,8 @@ const Layout = () => {
                 <div className="absolute left-0 right-0 h-px animate-scan"
                      style={{
                          background: isDarkMode
-                             ? 'linear-gradient(90deg,transparent,rgba(63,255,139,0.14),transparent)'
-                             : 'linear-gradient(90deg,transparent,rgba(63,63,70,0.12),transparent)',
+                             ? 'linear-gradient(90deg,transparent,rgba(46,204,113,0.12),transparent)'
+                             : 'linear-gradient(90deg,transparent,rgba(26,158,79,0.08),transparent)',
                      }} />
 
                 {/* Particles — dark: yeşil, light: gri */}
@@ -109,15 +110,16 @@ const Layout = () => {
                          style={{
                              left: p.left, bottom: p.bottom,
                              width: p.size, height: p.size,
-                             background: isDarkMode ? '#3fff8b' : 'rgba(63,63,70,0.35)',
+                             background: isDarkMode ? '#2ecc71' : 'rgba(26,158,79,0.25)',
                              animation: `particleRise ${p.dur} ${p.delay} ease-in-out infinite`,
                          }} />
                 ))}
             </div>
 
+            {!isAuth && <MarketBand />}
             <Navbar />
 
-            <main className="flex-grow pt-24 md:pt-28 pb-10 overflow-x-hidden">
+            <main className="flex-grow pt-32 md:pt-36 pb-10 overflow-x-hidden">
                 <div key={pathname} className={pageClass}>
                     <Outlet />
                 </div>
