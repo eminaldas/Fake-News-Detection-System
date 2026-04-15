@@ -13,88 +13,104 @@
   /* ─── LIGHT MOD ─────────────────────────────────────────────── */
   :root {
     /* Zemin */
-    --color-bg-base:          #f8f9fb;
-    --color-bg-surface:       #ffffff;
-    --color-bg-surface-solid: #f1f2f4;
+    --color-bg-base:          #F6F8FA;
+    --color-bg-surface:       #FFFFFF;
+    --color-bg-surface-solid: #EAEEF2;
 
     /* Metin */
-    --color-text-primary:     #18181b;
-    --color-text-secondary:   #71717a;
-    --color-text-muted:       #71717a;
+    --color-text-primary:     #24292F;
+    --color-text-secondary:   #57606A;
+    --color-text-muted:       #6E7781;
 
     /* Kenarlık */
-    --color-border:           #e4e4e7;
+    --color-border:           #D0D7DE;
 
     /* Marka */
-    --color-brand-primary:    #3f3f46;
-    --color-brand-secondary:  #18181b;
-    --color-brand-accent:     #f4f4f5;
-    --color-brand-light:      #e4e4e7;
+    --color-brand-primary:    #1a9e4f;
+    --color-brand-secondary:  #157a3c;
+    --color-brand-accent:     #E8F5EE;
+    --color-brand-light:      #D1EDD9;
 
     /* Skeleton */
-    --color-skeleton:         #e4e4e7;
+    --color-skeleton:         #EAEEF2;
+
+    /* Layout tokenlar */
+    --color-market-band-bg:  #EAEEF2;
+    --color-navbar-bg:       #FFFFFF;
+    --color-ticker-bg:       #1a9e4f;
+    --color-accent-amber:    #D97706;
+    --color-accent-blue:     #2563EB;
+    --color-muted-green:     #16a34a;
 
     /* ── Durum: Doğru (Authentic) ── */
-    --color-authentic-bg:     #ddf0e5;
-    --color-authentic-border: #5a8060;
-    --color-authentic-text:   #2d5a3d;
-    --color-authentic-track:  #c0d4b8;
-    --color-authentic-fill:   #5a8060;
+    --color-authentic-bg:     #DCFCE7;
+    --color-authentic-border: #16a34a;
+    --color-authentic-text:   #15803d;
+    --color-authentic-track:  #BBF7D0;
+    --color-authentic-fill:   #16a34a;
 
-    /* ── Durum: Sahte (Fake) — kırmızı ── */
-    --color-fake-bg:          #fde8e8;
-    --color-fake-border:      #b91c1c;
-    --color-fake-text:        #991b1b;
-    --color-fake-track:       #fecaca;
-    --color-fake-fill:        #dc2626;
+    /* ── Durum: Sahte (Fake) ── */
+    --color-fake-bg:          #FEE2E2;
+    --color-fake-border:      #DC2626;
+    --color-fake-text:        #B91C1C;
+    --color-fake-track:       #FECACA;
+    --color-fake-fill:        #DC2626;
 
     /* ── Durum: Belirsiz (Neutral) ── */
-    --color-neutral-bg:       #f4f4f5;
-    --color-neutral-border:   #a1a1aa;
-    --color-neutral-text:     #52525b;
-    --color-neutral-track:    #e4e4e7;
-    --color-neutral-fill:     #71717a;
+    --color-neutral-bg:       #F4F4F5;
+    --color-neutral-border:   #A1A1AA;
+    --color-neutral-text:     #52525B;
+    --color-neutral-track:    #E4E4E7;
+    --color-neutral-fill:     #71717A;
 
-    /* ── Durum: İddia (IDDIA / UNCERTAIN) — amber ── */
+    /* ── Durum: İddia (IDDIA / UNCERTAIN) ── */
     --color-iddia-bg:     rgba(254, 243, 199, 0.55);
-    --color-iddia-border: rgba(251, 191, 36, 0.55);
+    --color-iddia-border: rgba(217, 119, 6, 0.55);
     --color-iddia-text:   #92400e;
     --color-iddia-track:  rgba(253, 230, 138, 0.60);
-    --color-iddia-fill:   #d97706;
+    --color-iddia-fill:   #D97706;
 
     /* ── Bilgilendirme (Disclaimer) ── */
     --color-info-bg:          rgba(239, 246, 255, 0.55);
     --color-info-border:      rgba(147, 197, 253, 0.55);
-    --color-info-icon-bg:     #dbeafe;
-    --color-info-icon:        #1d4ed8;
-    --color-info-title:       #1e3a5f;
+    --color-info-icon-bg:     #DBEAFE;
+    --color-info-icon:        #1D4ED8;
+    --color-info-title:       #1E3A5F;
     --color-info-text:        #334155;
-    --color-info-accent:      #1e40af;
+    --color-info-accent:      #1E40AF;
   }
 
-  /* ─── DARK MOD — Emerald Sentinel ────────────────────────────── */
+  /* ─── DARK MOD — Anthracite ──────────────────────────────────── */
   .dark {
     /* Zemin */
-    --color-bg-base:          #070f12;
-    --color-bg-surface:       #111b1f;
-    --color-bg-surface-solid: #1c272c;
+    --color-bg-base:          #1e2328;
+    --color-bg-surface:       #272d35;
+    --color-bg-surface-solid: #2f353b;
 
     /* Metin */
-    --color-text-primary:     #f0f8fc;
-    --color-text-secondary:   #a4acb0;
-    --color-text-muted:       #8e8e99;
+    --color-text-primary:     #F8F9FA;
+    --color-text-secondary:   #C9D1D9;
+    --color-text-muted:       #8b949e;
 
     /* Kenarlık */
-    --color-border:           #41494d;
+    --color-border:           #3D444D;
 
     /* Marka */
-    --color-brand-primary:    #3fff8b;
-    --color-brand-secondary:  #54e0fd;
-    --color-brand-accent:     #0a1f15;
-    --color-brand-light:      #122219;
+    --color-brand-primary:    #2ECC71;
+    --color-brand-secondary:  #10B981;
+    --color-brand-accent:     #0d2318;
+    --color-brand-light:      #0f1f14;
 
     /* Skeleton */
-    --color-skeleton:         #1c272c;
+    --color-skeleton:         #2f353b;
+
+    /* Layout tokenlar */
+    --color-market-band-bg:  #161b22;
+    --color-navbar-bg:       #21262d;
+    --color-ticker-bg:       #1a3d2b;
+    --color-accent-amber:    #F59E0B;
+    --color-accent-blue:     #3B82F6;
+    --color-muted-green:     #10B981;
 
     /* ── Durum: Doğru (Authentic) ── */
     --color-authentic-bg:     #172621;
@@ -103,7 +119,7 @@
     --color-authentic-track:  #1c2b1c;
     --color-authentic-fill:   #10b981;
 
-    /* ── Durum: Sahte (Fake) — kırmızı ── */
+    /* ── Durum: Sahte (Fake) ── */
     --color-fake-bg:          #1c1212;
     --color-fake-border:      #7f1d1d;
     --color-fake-text:        #fca5a5;
@@ -117,7 +133,7 @@
     --color-neutral-track:    #26262b;
     --color-neutral-fill:     #52525b;
 
-    /* ── Durum: İddia (IDDIA / UNCERTAIN) — amber ── */
+    /* ── Durum: İddia (IDDIA / UNCERTAIN) ── */
     --color-iddia-bg:     rgba(120, 53, 15, 0.18);
     --color-iddia-border: rgba(217, 119, 6, 0.40);
     --color-iddia-text:   #fcd34d;
@@ -143,10 +159,9 @@
   }
 
   body {
-    /* Light mod — köşelerde hafif zinc mesh */
     background:
-      radial-gradient(ellipse 55% 45% at -5% 0%,   rgba(63, 63, 70, 0.055) 0%, transparent 60%),
-      radial-gradient(ellipse 40% 35% at 105% 100%, rgba(63, 63, 70, 0.04)  0%, transparent 55%),
+      radial-gradient(ellipse 55% 45% at -5% 0%,   rgba(26, 158, 79, 0.04) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 35% at 105% 100%, rgba(26, 158, 79, 0.03) 0%, transparent 55%),
       var(--color-bg-base);
     color: var(--color-text-primary);
     -webkit-font-smoothing: antialiased;
@@ -159,10 +174,10 @@
   /* Dark mod — CSS radial gradient arka plan */
   .dark body {
     background:
-      radial-gradient(ellipse 70% 55% at 12% 50%,  rgba(63, 255, 139, 0.045) 0%, transparent 70%),
-      radial-gradient(ellipse 55% 45% at 88% 12%,  rgba(84, 224, 253, 0.035) 0%, transparent 65%),
-      radial-gradient(ellipse 40% 40% at 55% 88%,  rgba(30, 233, 182, 0.020) 0%, transparent 60%),
-      #070f12;
+      radial-gradient(ellipse 70% 55% at 12% 50%,  rgba(46, 204, 113, 0.04) 0%, transparent 70%),
+      radial-gradient(ellipse 55% 45% at 88% 12%,  rgba(16, 185, 129, 0.025) 0%, transparent 65%),
+      radial-gradient(ellipse 40% 40% at 55% 88%,  rgba(16, 185, 129, 0.015) 0%, transparent 60%),
+      #1e2328;
   }
 }
 
@@ -196,12 +211,20 @@
   --color-skeleton:       var(--color-skeleton);
 
   /* ── Emerald Sentinel — sabit renkler ── */
-  --color-es-primary:   #3fff8b;
-  --color-es-secondary: #54e0fd;
+  --color-es-primary:   #2ECC71;
+  --color-es-secondary: #10B981;
   --color-es-tertiary:  #1ee9b6;
   --color-es-error:     #ff7351;
-  --color-es-bg:        #070f12;
-  --color-es-surface:   #111b1f;
+  --color-es-bg:        #1e2328;
+  --color-es-surface:   #272d35;
+
+  /* Yeni layout tokenlar */
+  --color-market-band-bg: var(--color-market-band-bg);
+  --color-navbar-bg:      var(--color-navbar-bg);
+  --color-ticker-bg:      var(--color-ticker-bg);
+  --color-accent-amber:   var(--color-accent-amber);
+  --color-accent-blue:    var(--color-accent-blue);
+  --color-muted-green:    var(--color-muted-green);
 
   /* ── Durum: Authentic ── */
   --color-authentic-bg:     var(--color-authentic-bg);
@@ -276,17 +299,17 @@
 
   /* ── Glass Pill — navbar ── */
   .glass-pill {
-    background-color: color-mix(in srgb, var(--color-bg-surface) 85%, transparent);
+    background-color: rgba(255, 255, 255, 0.88);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    border: 1px solid var(--color-border);
+    border: 1px solid rgba(26, 158, 79, 0.15);
     border-radius: 9999px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
   }
   .dark .glass-pill {
-    background-color: rgba(4, 30, 22, 0.62);
-    border-color: rgba(63, 255, 139, 0.12);
-    box-shadow: 0 4px 32px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(63,255,139,0.06);
+    background-color: rgba(33, 38, 45, 0.85);
+    border-color: rgba(46, 204, 113, 0.10);
+    box-shadow: 0 4px 32px rgba(0,0,0,0.40), 0 0 0 0.5px rgba(46,204,113,0.05);
   }
 
   /* ── Navbar blur strip ── */
@@ -419,8 +442,8 @@
   ::-webkit-scrollbar-thumb:hover {
     background: color-mix(in srgb, var(--color-border) 85%, transparent);
   }
-  .dark ::-webkit-scrollbar-thumb       { background: rgba(63,255,139,0.10); }
-  .dark ::-webkit-scrollbar-thumb:hover { background: rgba(63,255,139,0.20); }
+  .dark ::-webkit-scrollbar-thumb       { background: rgba(46,204,113,0.10); }
+  .dark ::-webkit-scrollbar-thumb:hover { background: rgba(46,204,113,0.20); }
 
   .custom-scrollbar::-webkit-scrollbar       { width: 8px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -428,6 +451,6 @@
     background: color-mix(in srgb, var(--color-border) 45%, transparent);
     border-radius: 12px;
   }
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb       { background: rgba(63,255,139,0.08); }
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(63,255,139,0.18); }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb       { background: rgba(46,204,113,0.08); }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(46,204,113,0.18); }
 }
