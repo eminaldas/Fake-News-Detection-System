@@ -5,7 +5,7 @@ GET /api/v1/news — RSS haber listesi (paginated, kategoriye göre filtrelenebi
 Auth gerekmez.
 """
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone, UTC
 
 import uuid as _uuid
 
@@ -34,10 +34,15 @@ async def list_news(
 ):
     offset = (page - 1) * size
 
+    # 2 saatten daha ileri gelecekte tarihlenen makaleleri filtrele (RSS kaynak hatası)
+    now_plus_2h = datetime.now(UTC) + timedelta(hours=2)
+
     base_filter = [
         NewsArticle.embedding.is_not(None),
         # Sadece canonical kayıtları göster (cluster içindeki diğer kaynaklar gizli)
         NewsArticle.id == NewsArticle.cluster_id,
+        # Yanlış gelecek tarihli makaleleri gizle (pub_date olmayan makaleler dahil edilir)
+        (NewsArticle.pub_date.is_(None) | (NewsArticle.pub_date <= now_plus_2h)),
     ]
     if category:
         base_filter.append(NewsArticle.category == category)
@@ -68,7 +73,7 @@ async def list_news(
     items_result = await db.execute(
         select(NewsArticle)
         .where(*base_filter)
-        .order_by(NewsArticle.pub_date.desc().nullsfirst())
+        .order_by(func.coalesce(NewsArticle.pub_date, NewsArticle.created_at).desc())
         .offset(offset)
         .limit(size)
     )
