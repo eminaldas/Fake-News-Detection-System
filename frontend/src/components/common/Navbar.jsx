@@ -21,7 +21,6 @@ const Navbar = () => {
     const { isDarkMode, toggleTheme } = useTheme();
     const { isAuthenticated, user, isAdmin, logout } = useAuth();
     const [menuOpen, setMenuOpen] = useState(false);
-    const [scrolled, setScrolled] = useState(false);
     const [showNotifs, setShowNotifs] = useState(false);
     const [notifUnread, setNotifUnread] = useState(0);
     const isActive = (path) => location.pathname === path;
@@ -40,11 +39,6 @@ const Navbar = () => {
 
     useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
-    useEffect(() => {
-        const handler = () => setScrolled(window.scrollY > 30);
-        window.addEventListener('scroll', handler, { passive: true });
-        return () => window.removeEventListener('scroll', handler);
-    }, []);
 
     useEffect(() => {
         if (!user) { setNotifUnread(0); return; }
@@ -54,18 +48,18 @@ const Navbar = () => {
     }, [user]);
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-50">
+        <header className="fixed top-8 left-0 right-0 z-50">
 
-            {/* Arka plan: her zaman mevcut, scroll'da opacity ile görünür */}
-            <div className={`absolute inset-0 backdrop-blur-lg border-b border-brutal-border/30
-                            pointer-events-none -z-10 transition-opacity duration-300 ${
-                scrolled ? 'opacity-100' : 'opacity-0'
-            }`} />
+            {/* Solid navbar background */}
+            <div
+                className="absolute inset-0 backdrop-blur-md border-b pointer-events-none -z-10"
+                style={{
+                    background: 'var(--color-navbar-bg)',
+                    borderColor: 'var(--color-border)',
+                }}
+            />
 
-            <div className={`max-w-7xl mx-auto px-4 md:px-6 grid grid-cols-[1fr_auto_1fr] items-center
-                            transition-all duration-300 ${
-                scrolled ? 'py-2 md:py-2.5' : 'pt-4 md:pt-5 pb-2'
-            }`}>
+            <div className="max-w-7xl mx-auto px-4 md:px-6 grid grid-cols-[1fr_auto_1fr] items-center py-2.5 md:py-3">
 
                 {/* ── LOGO ── */}
                 <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200">
@@ -73,17 +67,14 @@ const Navbar = () => {
                         <img src={logo}     alt="Logo" className="w-full h-full object-contain block dark:hidden" />
                         <img src={logoDark} alt="Logo" className="w-full h-full object-contain hidden dark:block" />
                     </div>
-                    <span className="text-lg md:text-xl font-manrope font-extrabold tracking-tight text-tx-primary">
+                    <span className="text-lg md:text-xl font-manrope font-extrabold tracking-tight text-brand">
                         Haber
                     </span>
                 </Link>
 
                 {/* ── NAV — masaüstü ── */}
                 <nav className="hidden md:flex items-center gap-0.5 justify-self-center relative px-2 py-1.5">
-                    <div className={`absolute inset-0 rounded-full glass-pill pointer-events-none -z-10
-                                    transition-opacity duration-300 ${
-                        scrolled ? 'opacity-100' : 'opacity-0'
-                    }`} />
+                    <div className="absolute inset-0 rounded-full glass-pill pointer-events-none -z-10" />
                     {NAV_LINKS.map((item) => (
                         <Link
                             key={item.path}
