@@ -110,7 +110,7 @@ const Layout = () => {
                          style={{
                              left: p.left, bottom: p.bottom,
                              width: p.size, height: p.size,
-                             background: isDarkMode ? '#2ecc71' : 'rgba(26,158,79,0.25)',
+                             background: isDarkMode ? 'var(--color-brand-primary)' : 'rgba(26,158,79,0.25)',
                              animation: `particleRise ${p.dur} ${p.delay} ease-in-out infinite`,
                          }} />
                 ))}
@@ -119,7 +119,7 @@ const Layout = () => {
             {!isAuth && <MarketBand />}
             <Navbar />
 
-            <main className="flex-grow pt-32 md:pt-36 pb-10 overflow-x-hidden">
+            <main className={`flex-grow ${isAuth ? 'pt-24 md:pt-28' : 'pt-32 md:pt-36'} pb-10 overflow-x-hidden`}>
                 <div key={pathname} className={pageClass}>
                     <Outlet />
                 </div>
