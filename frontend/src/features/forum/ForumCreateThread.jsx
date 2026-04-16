@@ -81,13 +81,13 @@ const ForumCreateThread = () => {
             {articleId && (
                 <div
                     className="flex items-center gap-3 p-3 rounded-xl border"
-                    style={{ background: 'rgba(63,255,139,0.04)', borderColor: 'rgba(63,255,139,0.15)' }}
+                    style={{ background: 'rgba(46,204,113,0.04)', borderColor: 'rgba(46,204,113,0.15)' }}
                 >
                     <div
                         className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ background: 'rgba(63,255,139,0.1)', border: '1px solid rgba(63,255,139,0.2)' }}
+                        style={{ background: 'rgba(46,204,113,0.10)', border: '1px solid rgba(46,204,113,0.20)' }}
                     >
-                        <LinkIcon className="w-4 h-4" style={{ color: 'var(--color-brand)' }} />
+                        <LinkIcon className="w-4 h-4" style={{ color: 'var(--color-brand-primary)' }} />
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="text-[9px] text-muted mb-0.5">Bağlı Haber</p>
@@ -114,7 +114,7 @@ const ForumCreateThread = () => {
                 {/* Başlık */}
                 <div className="p-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
                     <label className="block text-[9px] font-bold uppercase tracking-widest text-muted mb-2">
-                        Başlık <span style={{ color: '#ff6b6b' }}>*</span>
+                        Başlık <span style={{ color: 'var(--color-fake-text)' }}>*</span>
                     </label>
                     <input
                         value={title}
@@ -129,7 +129,7 @@ const ForumCreateThread = () => {
                 {/* Açıklama */}
                 <div className="p-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
                     <label className="block text-[9px] font-bold uppercase tracking-widest text-muted mb-2">
-                        Açıklama / Sorun <span style={{ color: '#ff6b6b' }}>*</span>
+                        Açıklama / Sorun <span style={{ color: 'var(--color-fake-text)' }}>*</span>
                     </label>
                     <textarea
                         value={body}
@@ -150,11 +150,10 @@ const ForumCreateThread = () => {
                             value={category}
                             onChange={e => setCategory(e.target.value)}
                             className="w-full bg-transparent outline-none text-[11px] text-tx-primary border rounded-lg px-3 py-2 cursor-pointer"
-                            style={{ borderColor: 'var(--color-border)', background: 'rgba(255,255,255,0.02)' }}
+                            style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-base)' }}
                         >
                             {CATEGORIES.map(c => (
-                                <option key={c.value} value={c.value}
-                                    style={{ background: '#111' }}>
+                                <option key={c.value} value={c.value}>
                                     {c.label}
                                 </option>
                             ))}
@@ -172,7 +171,7 @@ const ForumCreateThread = () => {
                 {/* Hata + Gönder */}
                 <div
                     className="flex items-center gap-3 px-4 py-3"
-                    style={{ background: 'rgba(0,0,0,0.2)' }}
+                    style={{ background: 'var(--color-bg-base)' }}
                 >
                     {error && (
                         <p className="text-[10px] flex-1" style={{ color: '#ff6b6b' }}>{error}</p>
@@ -189,7 +188,7 @@ const ForumCreateThread = () => {
                             type="submit"
                             disabled={submitting || !title.trim() || !body.trim()}
                             className="px-4 py-2 rounded-lg text-[11px] font-bold disabled:opacity-40 transition-opacity"
-                            style={{ background: 'var(--color-brand)', color: '#070f12' }}
+                            style={{ background: 'var(--color-brand-primary)', color: 'var(--color-es-bg)' }}
                         >
                             {submitting ? 'Oluşturuluyor...' : 'Tartışmayı Başlat'}
                         </button>
@@ -201,11 +200,11 @@ const ForumCreateThread = () => {
             {articleId && existing.length > 0 && (
                 <div
                     className="flex items-start gap-3 p-3 rounded-xl border"
-                    style={{ background: 'rgba(255,215,0,0.04)', borderColor: 'rgba(255,215,0,0.15)' }}
+                    style={{ background: 'rgba(245,158,11,0.04)', borderColor: 'rgba(245,158,11,0.15)' }}
                 >
                     <span className="text-base flex-shrink-0">💡</span>
                     <div className="flex-1">
-                        <p className="text-[10px] font-semibold mb-1" style={{ color: '#ffd700' }}>
+                        <p className="text-[10px] font-semibold mb-1" style={{ color: 'var(--color-accent-amber)' }}>
                             Bu haber için zaten {existing.length} tartışma var
                         </p>
                         <p className="text-[9px] text-muted mb-2">
