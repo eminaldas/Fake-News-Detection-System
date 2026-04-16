@@ -32,17 +32,18 @@ const NewsTicker = () => {
         <div
             className="fixed bottom-0 left-0 right-0 z-50 h-10 flex items-center overflow-hidden"
             style={{
-                background: 'var(--color-es-primary, #3fff8b)',
-                boxShadow: '0 -6px 24px rgba(63,255,139,0.25)',
+                background:   'var(--color-ticker-bg)',
+                borderTop:    '1px solid rgba(46,204,113,0.15)',
+                boxShadow:    '0 -4px 16px rgba(0,0,0,0.2)',
             }}
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
         >
             {/* Kenar solma efektleri */}
             <div className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
-                 style={{ background: 'linear-gradient(to right, var(--color-es-primary, #3fff8b), transparent)' }} />
+                 style={{ background: 'linear-gradient(to right, var(--color-ticker-bg), transparent)' }} />
             <div className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
-                 style={{ background: 'linear-gradient(to left, var(--color-es-primary, #3fff8b), transparent)' }} />
+                 style={{ background: 'linear-gradient(to left, var(--color-ticker-bg), transparent)' }} />
 
             {/* Bant içeriği */}
             <div
@@ -55,7 +56,8 @@ const NewsTicker = () => {
                 {doubled.map((item, idx) => (
                     <span key={`${item.id}-${idx}`} className="flex items-center gap-2 px-6">
                         {(item.source_domain || item.source_name) && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-black/15 text-slate-900">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider"
+                                  style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)' }}>
                                 {item.source_domain || item.source_name}
                             </span>
                         )}
@@ -64,16 +66,18 @@ const NewsTicker = () => {
                                 href={item.source_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="font-manrope font-bold text-[11px] text-slate-900 hover:underline"
+                                className="font-manrope font-bold text-[11px] hover:underline"
+                                style={{ color: 'rgba(255,255,255,0.9)' }}
                             >
                                 {item.title}
                             </a>
                         ) : (
-                            <span className="font-manrope font-bold text-[11px] text-slate-900">
+                            <span className="font-manrope font-bold text-[11px]"
+                                  style={{ color: 'rgba(255,255,255,0.9)' }}>
                                 {item.title}
                             </span>
                         )}
-                        <span className="opacity-25 mx-3" style={{ color: '#0f172a' }}>◆</span>
+                        <span className="opacity-30 mx-3" style={{ color: '#ffffff' }}>◆</span>
                     </span>
                 ))}
             </div>
