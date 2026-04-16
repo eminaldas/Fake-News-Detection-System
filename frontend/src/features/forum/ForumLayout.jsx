@@ -54,7 +54,7 @@ const ForumLayout = () => {
             {/* ── Sol Sidebar (180px) ── */}
             <aside
                 className="w-44 flex-shrink-0 flex flex-col border-r py-4 gap-6"
-                style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+                style={{ background: 'var(--color-navbar-bg)', borderColor: 'var(--color-border)' }}
             >
                 {/* Yeni Thread */}
                 <div className="px-3">
@@ -74,19 +74,23 @@ const ForumLayout = () => {
                 {/* Kullanıcı & Trust Rozeti */}
                 <div className="px-3">
                     <div
-                        className="rounded-lg p-2.5 border"
-                        style={{ background: 'var(--color-base)', borderColor: 'var(--color-border)' }}
+                        className="rounded-xl p-2.5 border transition-colors"
+                        style={{ background: 'var(--color-bg-base)', borderColor: 'var(--color-border)' }}
                     >
-                        <p className="text-xs font-bold text-tx-primary truncate">{user?.username}</p>
+                        <p className="text-xs font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>
+                            {user?.username}
+                        </p>
                         {trust ? (
                             <>
-                                <p className="text-[10px] text-brand">
+                                <p className="text-[10px] font-semibold" style={{ color: 'var(--color-brand-primary)' }}>
                                     {'★'.repeat(trust.stars)} {trust.display_label}
                                 </p>
-                                <p className="text-[10px] text-tx-secondary">Skor: {trust.score.toFixed(0)}/100</p>
+                                <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                                    Skor: {trust.score.toFixed(0)}/100
+                                </p>
                             </>
                         ) : (
-                            <p className="text-[10px] text-tx-secondary">Yeni Üye</p>
+                            <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Yeni Üye</p>
                         )}
                     </div>
                 </div>
@@ -99,10 +103,15 @@ const ForumLayout = () => {
                         className={({ isActive }) =>
                             `block px-3 py-1.5 rounded-md text-[11px] font-semibold transition-colors ${
                                 isActive
-                                    ? 'text-brand bg-brand/10'
+                                    ? 'border-l-2 pl-2 font-bold'
                                     : 'text-muted hover:text-tx-primary'
                             }`
                         }
+                        style={({ isActive }) => isActive ? {
+                            borderColor: 'var(--color-brand-primary)',
+                            color:       'var(--color-brand-primary)',
+                            background:  'rgba(46,204,113,0.06)',
+                        } : {}}
                     >
                         Tüm Tartışmalar
                     </NavLink>
@@ -157,7 +166,7 @@ const ForumLayout = () => {
             >
                 {/* Forum İstatistikleri */}
                 <div
-                    className="rounded-xl p-3 border"
+                    className="rounded-2xl p-3 border"
                     style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
                 >
                     <p className="text-[9px] font-bold uppercase tracking-widest text-muted mb-3">
@@ -176,7 +185,7 @@ const ForumLayout = () => {
                             <span className="flex items-center gap-1 text-muted">
                                 <AlertTriangle className="w-3 h-3" /> İnceleme
                             </span>
-                            <span className="font-semibold" style={{ color: '#ffd700' }}>
+                            <span className="font-semibold" style={{ color: 'var(--color-accent-amber)' }}>
                                 {trendingStats?.underReview ?? '—'}
                             </span>
                         </div>
@@ -194,7 +203,7 @@ const ForumLayout = () => {
                 {/* Trend Etiketler */}
                 {trendingTags.length > 0 && (
                     <div
-                        className="rounded-xl p-3 border"
+                        className="rounded-2xl p-3 border"
                         style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
                     >
                         <p className="text-[9px] font-bold uppercase tracking-widest text-muted mb-3 flex items-center gap-1">
@@ -222,7 +231,7 @@ const ForumLayout = () => {
                 {/* Trend Thread'ler */}
                 {trending?.trending_threads?.length > 0 && (
                     <div
-                        className="rounded-xl p-3 border"
+                        className="rounded-2xl p-3 border"
                         style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
                     >
                         <p className="text-[9px] font-bold uppercase tracking-widest text-muted mb-3 flex items-center gap-1">
