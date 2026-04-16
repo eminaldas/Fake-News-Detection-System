@@ -8,26 +8,26 @@ import LoginNudgeModal, { useLoginNudge } from '../../components/ui/LoginNudgeMo
 import ShareDropdown from '../../components/ui/ShareDropdown';
 
 const VOTE_OPTIONS = [
-    { type: 'suspicious',  label: 'Şüpheli',  emoji: '🚩', color: '#ff6b6b' },
-    { type: 'authentic',   label: 'Doğru',    emoji: '✅', color: '#3fff8b' },
-    { type: 'investigate', label: 'İncele',   emoji: '🔍', color: '#ffd700' },
+  { type: 'suspicious',  label: 'Şüpheli', emoji: '🚩', color: 'var(--color-fake-fill)' },
+  { type: 'authentic',   label: 'Doğru',   emoji: '✅', color: 'var(--color-brand-primary)' },
+  { type: 'investigate', label: 'İncele',  emoji: '🔍', color: 'var(--color-accent-amber)' },
 ];
 
 const STATUS_LABEL = {
-    active:       { text: 'Aktif',    color: 'var(--color-brand)' },
-    under_review: { text: 'İnceleme Altında', color: '#ffd700' },
-    resolved:     { text: 'Çözüldü', color: '#60a5fa' },
+  active:       { text: 'Aktif',             color: 'var(--color-brand-primary)' },
+  under_review: { text: 'İnceleme Altında',  color: 'var(--color-accent-amber)' },
+  resolved:     { text: 'Çözüldü',           color: 'var(--color-accent-blue)' },
 };
 
 function VoteBar({ suspicious, authentic, investigate, size = 4 }) {
-    const total = suspicious + authentic + investigate || 1;
-    return (
-        <div className={`flex gap-0.5 h-${size} rounded-full overflow-hidden`}>
-            <div style={{ flex: suspicious / total, background: '#ff6b6b', minWidth: suspicious ? 2 : 0 }} />
-            <div style={{ flex: authentic  / total, background: '#3fff8b', minWidth: authentic ? 2 : 0 }} />
-            <div style={{ flex: investigate / total, background: '#ffd700', minWidth: investigate ? 2 : 0 }} />
-        </div>
-    );
+  const total = suspicious + authentic + investigate || 1;
+  return (
+    <div className={`flex gap-0.5 h-${size} rounded-full overflow-hidden`}>
+      <div style={{ flex: suspicious / total, background: 'var(--color-fake-fill)',     minWidth: suspicious  ? 2 : 0 }} />
+      <div style={{ flex: authentic  / total, background: 'var(--color-brand-primary)', minWidth: authentic   ? 2 : 0 }} />
+      <div style={{ flex: investigate / total, background: 'var(--color-accent-amber)', minWidth: investigate ? 2 : 0 }} />
+    </div>
+  );
 }
 
 const ForumThread = () => {
@@ -214,20 +214,24 @@ const ForumThread = () => {
                         <div className="flex flex-col gap-1.5 flex-shrink-0">
                             {VOTE_OPTIONS.map(v => (
                                 <button
-                                    key={v.type}
-                                    disabled={voting}
-                                    onClick={() => handleVote(v.type)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all disabled:opacity-50"
-                                    style={{
-                                        background: thread.current_user_vote === v.type
-                                            ? `${v.color}22` : 'rgba(255,255,255,0.03)',
-                                        border:     `1px solid ${thread.current_user_vote === v.type
-                                            ? `${v.color}60` : 'rgba(255,255,255,0.08)'}`,
-                                        color: v.color,
-                                    }}
+                                  key={v.type}
+                                  disabled={voting}
+                                  onClick={() => handleVote(v.type)}
+                                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-semibold
+                                             transition-all duration-150 disabled:opacity-50
+                                             hover:scale-[1.03] active:scale-[0.98]"
+                                  style={{
+                                    background: thread.current_user_vote === v.type
+                                      ? `rgba(${v.type === 'suspicious' ? '239,68,68' : v.type === 'authentic' ? '46,204,113' : '245,158,11'},0.15)`
+                                      : 'rgba(255,255,255,0.03)',
+                                    border: `1px solid ${thread.current_user_vote === v.type
+                                      ? `rgba(${v.type === 'suspicious' ? '239,68,68' : v.type === 'authentic' ? '46,204,113' : '245,158,11'},0.50)`
+                                      : 'var(--color-border)'}`,
+                                    color: v.color,
+                                  }}
                                 >
-                                    <span>{v.emoji}</span>
-                                    {v.label}
+                                  <span>{v.emoji}</span>
+                                  {v.label}
                                 </button>
                             ))}
                         </div>
@@ -258,10 +262,13 @@ const ForumThread = () => {
                     {thread.status === 'under_review' && (
                         <div
                             className="flex items-center gap-2 p-2.5 rounded-lg text-[10px]"
-                            style={{ background: 'rgba(255,215,0,0.06)', border: '1px solid rgba(255,215,0,0.2)' }}
+                            style={{
+                                background: 'rgba(245,158,11,0.08)',
+                                border:     '1px solid rgba(245,158,11,0.25)',
+                            }}
                         >
-                            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#ffd700' }} />
-                            <span style={{ color: '#ffd700' }}>
+                            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--color-accent-amber)' }} />
+                            <span style={{ color: 'var(--color-accent-amber)' }}>
                                 Topluluk kararı AI kararıyla çelişiyor — <strong>İnceleme Altında</strong>
                             </span>
                         </div>
@@ -332,8 +339,8 @@ const ForumThread = () => {
 
                         {moderationWarning && (
                             <div className="rounded-lg p-3 mb-2 border"
-                                 style={{ borderColor: 'rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.08)' }}>
-                                <p className="text-xs" style={{ color: '#f59e0b' }}>
+                                 style={{ borderColor: 'rgba(245,158,11,0.30)', background: 'rgba(245,158,11,0.08)' }}>
+                                <p className="text-xs" style={{ color: 'var(--color-accent-amber)' }}>
                                     Yorumunuz incelemeye alındı. İçeriği düzenleyerek tekrar gönderebilirsiniz.
                                 </p>
                             </div>
@@ -346,7 +353,7 @@ const ForumThread = () => {
                             rows={3}
                             placeholder="Kanıt veya yorumunu ekle..."
                             className="w-full bg-transparent resize-none text-[12px] text-tx-primary placeholder:text-muted outline-none p-3 rounded-lg border"
-                            style={{ borderColor: 'var(--color-border)', background: 'rgba(255,255,255,0.02)' }}
+                            style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-base)' }}
                         />
 
                         {/* Kanıt URL'leri */}
@@ -356,7 +363,11 @@ const ForumThread = () => {
                                     <div
                                         key={url}
                                         className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded"
-                                        style={{ background: 'rgba(96,165,250,0.08)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)' }}
+                                        style={{
+                                            background: 'rgba(59,130,246,0.08)',
+                                            color:      'var(--color-accent-blue)',
+                                            border:     '1px solid rgba(59,130,246,0.18)',
+                                        }}
                                     >
                                         <LinkIcon className="w-2.5 h-2.5" />
                                         <span className="max-w-[200px] truncate">{url}</span>
@@ -382,7 +393,7 @@ const ForumThread = () => {
                                         type="button"
                                         onClick={addUrl}
                                         className="text-[9px] px-2 py-1 rounded"
-                                        style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa' }}
+                                        style={{ background: 'rgba(59,130,246,0.10)', color: 'var(--color-accent-blue)' }}
                                     >
                                         + Ekle
                                     </button>

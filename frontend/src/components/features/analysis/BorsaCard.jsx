@@ -9,8 +9,6 @@ const TILES = [
     { key: 'BIST 100',   label: 'BIST 100',     unit: '',  decimals: 0 },
 ];
 
-const ACCENT = '#54E0FD';
-
 function parseChange(raw) {
     if (raw === null || raw === undefined || raw === '') return null;
     const val = parseFloat(String(raw).replace('%', '').replace(',', '.'));
@@ -45,7 +43,7 @@ function Tile({ label, unit, value, change, decimals, loading }) {
                 <div className="h-6 w-20 rounded-lg animate-pulse" style={{ background: 'var(--color-border)' }} />
             ) : value != null ? (
                 <span className="text-xl font-manrope font-black leading-none"
-                      style={{ color: ACCENT }}>
+                      style={{ color: 'var(--color-brand-secondary)' }}>
                     {unit}{Number(value).toLocaleString('tr-TR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
                 </span>
             ) : (
@@ -71,7 +69,7 @@ const BorsaCard = () => {
             {/* Başlık */}
             <div className="px-5 pt-5 pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4" style={{ color: ACCENT }} />
+                    <TrendingUp className="w-4 h-4" style={{ color: 'var(--color-brand-secondary)' }} />
                     <span className="text-sm font-manrope font-bold text-tx-primary">Piyasalar</span>
                 </div>
                 <span className="text-[10px] text-muted font-mono">

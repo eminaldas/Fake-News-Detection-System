@@ -17,24 +17,45 @@ const MAX_REPLY_DEPTH = 2; // depth 0,1,2 → Reply butonu görünür
 function CommentNode({ comment, threadId, onReply, onHelpful, onReport, currentUserId, depth = 0 }) {
     const [showReplies, setShowReplies] = React.useState(true);
 
-    const borderColors = ['#3fff8b40', '#33333380', '#22222280'];
-    const borderColor  = borderColors[Math.min(depth, 2)];
-    const bgAlpha      = depth === 0 ? '#111111' : depth === 1 ? '#0d0d0d' : '#0a0a0a';
+    const depthBorderColor = depth === 0
+        ? `rgba(46,204,113,${comment.is_highlighted ? '0.60' : '0.25'})`
+        : depth === 1
+        ? 'var(--color-border)'
+        : 'rgba(61,68,77,0.5)';
+
+    const depthBg = depth === 0
+        ? 'var(--color-bg-surface)'
+        : 'var(--color-bg-base)';
 
     return (
-        <div style={{ marginLeft: depth > 0 ? DEPTH_INDENT : 0 }}>
+        <div style={{ marginLeft: depth > 0 ? DEPTH_INDENT : 0, position: 'relative' }}>
+            {/* Thread bağlantı çizgisi */}
+            {depth > 0 && (
+                <div style={{
+                    position: 'absolute',
+                    left:     -DEPTH_INDENT + 8,
+                    top:      0,
+                    bottom:   0,
+                    width:    1,
+                    background: 'var(--color-border)',
+                    opacity:  depth === 1 ? 0.5 : 0.3,
+                }} />
+            )}
             <div
-                className="rounded-lg p-3 mb-2"
+                className="rounded-lg p-3 mb-2 transition-colors"
                 style={{
-                    background: bgAlpha,
-                    borderLeft: `2px solid ${depth === 0 && comment.is_highlighted ? '#3fff8b' : borderColor}`,
+                    background:  depthBg,
+                    borderLeft:  `2px solid ${depthBorderColor}`,
+                    boxShadow:   comment.is_highlighted
+                        ? '0 0 0 1px rgba(46,204,113,0.08) inset'
+                        : 'none',
                 }}
             >
                 {/* Üst: avatar + kullanıcı adı + zaman */}
                 <div className="flex items-center gap-2 mb-2">
                     <div
                         className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold flex-shrink-0"
-                        style={{ background: 'rgba(96,165,250,0.15)', color: '#60a5fa' }}
+                        style={{ background: 'rgba(59,130,246,0.12)', color: 'var(--color-accent-blue)' }}
                     >
                         {(comment.username ?? '?')[0].toUpperCase()}
                     </div>
@@ -45,7 +66,8 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, currentU
                         </span>
                     )}
                     {comment.is_highlighted && (
-                        <span className="text-[8px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(63,255,139,0.1)', color: 'var(--color-brand)' }}>
+                        <span className="text-[8px] px-1.5 py-0.5 rounded font-bold"
+                              style={{ background: 'rgba(46,204,113,0.1)', color: 'var(--color-brand-primary)' }}>
                             Öne Çıkan
                         </span>
                     )}
@@ -65,7 +87,7 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, currentU
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded"
-                                style={{ background: 'rgba(96,165,250,0.08)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)' }}
+                                style={{ background: 'rgba(59,130,246,0.08)', color: 'var(--color-accent-blue)', border: '1px solid rgba(59,130,246,0.18)' }}
                             >
                                 <LinkIcon className="w-2.5 h-2.5" />
                                 Kaynak {i + 1}
@@ -82,7 +104,7 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, currentU
                     >
                         <ThumbsUp className="w-3 h-3" />
                         {comment.helpful_count > 0 && (
-                            <span style={{ color: 'var(--color-brand)' }}>{comment.helpful_count}</span>
+                            <span style={{ color: 'var(--color-brand-primary)' }}>{comment.helpful_count}</span>
                         )}
                         Faydalı
                     </button>
@@ -191,7 +213,7 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center"
                      style={{ background: 'rgba(0,0,0,0.6)' }}>
                     <div className="rounded-xl p-6 w-80 border"
-                         style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+                         style={{ background: 'var(--color-bg-surface)', borderColor: 'var(--color-border)' }}>
                         <div className="flex items-center justify-between mb-4">
                             <span className="text-sm font-bold text-tx-primary">Yorumu Bildir</span>
                             <button onClick={() => setReportTarget(null)}>
@@ -229,7 +251,7 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
                                             .catch(() => setReportSent(true)); // sessiz hata
                                     }}
                                     className="w-full py-2 rounded-lg text-xs font-bold"
-                                    style={{ background: 'var(--color-brand)', color: '#070f12' }}
+                                    style={{ background: 'var(--color-brand-primary)', color: 'var(--color-es-bg)' }}
                                 >
                                     Bildir
                                 </button>

@@ -64,7 +64,7 @@ const TagInput = ({ value = [], onChange, category = '', maxTags = 10 }) => {
         <div ref={wrapRef} className="relative">
             <div
                 className="flex flex-wrap gap-1.5 p-2 rounded-lg border min-h-[38px] cursor-text"
-                style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'var(--color-border)' }}
+                style={{ background: 'var(--color-bg-base)', borderColor: 'var(--color-border)' }}
                 onClick={() => document.getElementById('tag-input-field')?.focus()}
             >
                 {value.map(tag => (
@@ -72,9 +72,9 @@ const TagInput = ({ value = [], onChange, category = '', maxTags = 10 }) => {
                         key={tag}
                         className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full"
                         style={{
-                            background: 'rgba(63,255,139,0.1)',
-                            color:      'var(--color-brand)',
-                            border:     '1px solid rgba(63,255,139,0.25)',
+                            background: 'rgba(46,204,113,0.10)',
+                            color:      'var(--color-brand-primary)',
+                            border:     '1px solid rgba(46,204,113,0.25)',
                         }}
                     >
                         {tag}

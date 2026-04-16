@@ -14,18 +14,18 @@ const SORT_OPTIONS = [
 ];
 
 const STATUS_BADGE = {
-    active:       { label: 'Aktif',    color: 'var(--color-brand)',    bg: 'rgba(63,255,139,0.08)' },
-    under_review: { label: 'İnceleme', color: '#ffd700',               bg: 'rgba(255,215,0,0.08)' },
-    resolved:     { label: 'Çözüldü',  color: '#60a5fa',               bg: 'rgba(96,165,250,0.08)' },
+    active:       { label: 'Aktif',    color: 'var(--color-brand-primary)', bg: 'rgba(46,204,113,0.08)' },
+    under_review: { label: 'İnceleme', color: 'var(--color-accent-amber)',  bg: 'rgba(245,158,11,0.08)' },
+    resolved:     { label: 'Çözüldü',  color: 'var(--color-accent-blue)',   bg: 'rgba(59,130,246,0.08)' },
 };
 
 function VoteBar({ suspicious, authentic, investigate }) {
     const total = suspicious + authentic + investigate || 1;
     return (
-        <div className="flex gap-0.5 h-1 rounded-full overflow-hidden w-16">
-            <div style={{ flex: suspicious / total, background: '#ff6b6b', minWidth: suspicious ? 2 : 0 }} />
-            <div style={{ flex: authentic  / total, background: 'var(--color-brand)', minWidth: authentic ? 2 : 0 }} />
-            <div style={{ flex: investigate / total, background: '#ffd700', minWidth: investigate ? 2 : 0 }} />
+        <div className="flex gap-0.5 h-1.5 rounded-full overflow-hidden w-16">
+            <div style={{ flex: suspicious / total, background: 'var(--color-fake-fill)', minWidth: suspicious ? 2 : 0 }} />
+            <div style={{ flex: authentic  / total, background: 'var(--color-brand-primary)', minWidth: authentic ? 2 : 0 }} />
+            <div style={{ flex: investigate / total, background: 'var(--color-accent-amber)', minWidth: investigate ? 2 : 0 }} />
         </div>
     );
 }
@@ -37,15 +37,19 @@ function ThreadCard({ thread }) {
     return (
         <Link
             to={`/forum/${thread.id}`}
-            className="block rounded-xl border p-4 transition-colors hover:border-brand/30"
-            style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+            className="block rounded-xl border p-4 transition-all duration-200 hover:border-brand/25 hover:shadow-sm"
+            style={{ background: 'var(--color-bg-surface)', borderColor: 'var(--color-border)' }}
         >
             {/* Üst satır: kategori, durum, tarih */}
             <div className="flex items-center gap-2 mb-2">
                 {thread.category && (
                     <span
                         className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded"
-                        style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)' }}
+                        style={{
+                            background: 'rgba(59,130,246,0.08)',
+                            color:      'var(--color-accent-blue)',
+                            border:     '1px solid rgba(59,130,246,0.18)',
+                        }}
                     >
                         {thread.category}
                     </span>
@@ -77,9 +81,9 @@ function ThreadCard({ thread }) {
                             key={t.id}
                             className="text-[9px] px-2 py-0.5 rounded-full"
                             style={{
-                                background: t.is_system ? 'rgba(63,255,139,0.08)' : 'rgba(255,255,255,0.04)',
-                                color:      t.is_system ? 'var(--color-brand)'     : 'var(--color-muted)',
-                                border:     `1px solid ${t.is_system ? 'rgba(63,255,139,0.2)' : 'rgba(255,255,255,0.08)'}`,
+                                background: t.is_system ? 'rgba(46,204,113,0.08)' : 'rgba(255,255,255,0.04)',
+                                color:      t.is_system ? 'var(--color-brand-primary)' : 'var(--color-text-muted)',
+                                border:     `1px solid ${t.is_system ? 'rgba(46,204,113,0.20)' : 'rgba(255,255,255,0.08)'}`,
                             }}
                         >
                             {t.name}
@@ -200,8 +204,8 @@ const ForumFeed = () => {
                         onClick={() => setSort(opt.key)}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold transition-colors"
                         style={sort === opt.key
-                            ? { background: 'rgba(63,255,139,0.12)', color: 'var(--color-brand)' }
-                            : { color: 'var(--color-muted)' }
+                            ? { background: 'rgba(46,204,113,0.10)', color: 'var(--color-brand-primary)' }
+                            : { color: 'var(--color-text-muted)' }
                         }
                     >
                         <opt.Icon className="w-3 h-3" />
@@ -218,7 +222,7 @@ const ForumFeed = () => {
                         <button
                             onClick={() => { const n = new URLSearchParams(searchParams); n.delete('category'); setSearchParams(n); }}
                             className="flex items-center gap-1 px-2 py-0.5 rounded-full"
-                            style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)' }}
+                            style={{ background: 'rgba(59,130,246,0.08)', color: 'var(--color-accent-blue)', border: '1px solid rgba(59,130,246,0.18)' }}
                         >
                             {category} ✕
                         </button>
@@ -227,7 +231,7 @@ const ForumFeed = () => {
                         <button
                             onClick={() => { const n = new URLSearchParams(searchParams); n.delete('tag'); setTagSearch(''); setSearchParams(n); }}
                             className="flex items-center gap-1 px-2 py-0.5 rounded-full"
-                            style={{ background: 'rgba(63,255,139,0.08)', color: 'var(--color-brand)', border: '1px solid rgba(63,255,139,0.2)' }}
+                            style={{ background: 'rgba(46,204,113,0.08)', color: 'var(--color-brand-primary)', border: '1px solid rgba(46,204,113,0.20)' }}
                         >
                             {tag} ✕
                         </button>
@@ -252,7 +256,15 @@ const ForumFeed = () => {
                 </div>
             ) : (
                 <div className="flex flex-col gap-3">
-                    {threads.map(t => <ThreadCard key={t.id} thread={t} />)}
+                    {threads.map((t, i) => (
+                        <div
+                            key={t.id}
+                            className="animate-fade-up"
+                            style={{ animationDelay: `${i * 40}ms`, animationFillMode: 'both' }}
+                        >
+                            <ThreadCard thread={t} />
+                        </div>
+                    ))}
                 </div>
             )}
 
