@@ -73,17 +73,16 @@ const Navbar = () => {
                 </Link>
 
                 {/* ── NAV — masaüstü ── */}
-                <nav className="hidden md:flex items-center gap-0.5 justify-self-center relative px-2 py-1.5">
-                    <div className="absolute inset-0 rounded-full glass-pill pointer-events-none -z-10" />
+                <nav className="hidden md:flex items-center gap-1 justify-self-center">
                     {NAV_LINKS.map((item) => (
                         <Link
                             key={item.path}
                             to={item.path}
                             className={`
-                                px-5 py-1.5 rounded-full text-sm font-bold tracking-tight transition-all duration-200
+                                px-4 py-1.5 text-sm font-bold tracking-tight transition-all duration-200
                                 ${isActive(item.path)
-                                    ? 'bg-brand text-surface dark:bg-es-primary dark:text-es-bg shadow-sm'
-                                    : 'text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent'
+                                    ? 'text-brand border-b-2 border-brand'
+                                    : 'text-tx-primary hover:text-brand'
                                 }
                             `}
                         >
@@ -93,7 +92,7 @@ const Navbar = () => {
                 </nav>
 
                 {/* ── ACTIONS ── */}
-                <div className="glass-pill flex items-center gap-2 md:gap-3 px-3 py-2 md:px-5 md:py-2.5 justify-self-end">
+                <div className="flex items-center gap-2 md:gap-3 px-3 py-2 md:px-5 md:py-2.5 justify-self-end">
                     <button
                         onClick={toggleTheme}
                         className="text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors p-1"
