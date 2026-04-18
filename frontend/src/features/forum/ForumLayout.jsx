@@ -2,19 +2,20 @@ import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
     TrendingUp, Tag, Plus, MessageSquare,
-    AlertTriangle, CheckCircle,
+    AlertTriangle, CheckCircle, Globe, Zap,
+    BookOpen, Heart, Activity, ShoppingBag, Home,
 } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import { useAuth } from '../../contexts/AuthContext';
 
 const CATEGORIES = [
-    { key: 'gundem',     label: 'Gündem' },
-    { key: 'ekonomi',    label: 'Ekonomi' },
-    { key: 'saglik',     label: 'Sağlık' },
-    { key: 'teknoloji',  label: 'Teknoloji' },
-    { key: 'spor',       label: 'Spor' },
-    { key: 'kultur',     label: 'Kültür' },
-    { key: 'yasam',      label: 'Yaşam' },
+    { key: 'gündem',    label: 'Gündem',    Icon: Globe },
+    { key: 'ekonomi',   label: 'Ekonomi',   Icon: TrendingUp },
+    { key: 'sağlık',    label: 'Sağlık',    Icon: Heart },
+    { key: 'teknoloji', label: 'Teknoloji', Icon: Zap },
+    { key: 'spor',      label: 'Spor',      Icon: Activity },
+    { key: 'kültür',    label: 'Kültür',    Icon: BookOpen },
+    { key: 'yaşam',     label: 'Yaşam',     Icon: Home },
 ];
 
 const SYSTEM_TAGS = [
@@ -26,22 +27,18 @@ const ForumLayout = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [trending, setTrending] = React.useState(null);
-    const [trust, setTrust] = React.useState(null);
+    const [trust,    setTrust]    = React.useState(null);
 
     React.useEffect(() => {
-        axiosInstance.get('/forum/trending')
-            .then(r => setTrending(r.data))
-            .catch(() => {});
+        axiosInstance.get('/forum/trending').then(r => setTrending(r.data)).catch(() => {});
     }, []);
 
     React.useEffect(() => {
-        axiosInstance.get('/users/me/trust')
-            .then(r => setTrust(r.data))
-            .catch(() => {});
+        axiosInstance.get('/users/me/trust').then(r => setTrust(r.data)).catch(() => {});
     }, []);
 
-    const trendingTags   = trending?.trending_tags   ?? [];
-    const trendingStats  = trending
+    const trendingTags  = trending?.trending_tags ?? [];
+    const trendingStats = trending
         ? {
             active:      trending.trending_threads.length,
             underReview: trending.trending_threads.filter(t => t.status === 'under_review').length,
@@ -49,22 +46,19 @@ const ForumLayout = () => {
         : null;
 
     return (
-        <div className="flex min-h-screen" style={{ background: 'var(--color-bg)' }}>
+        <div className="flex min-h-screen" style={{ background: 'var(--color-bg-base)' }}>
 
-            {/* ── Sol Sidebar (180px) ── */}
+            {/* ── Sol Sidebar ── */}
             <aside
-                className="w-44 flex-shrink-0 flex flex-col border-r py-4 gap-6"
+                className="w-44 flex-shrink-0 flex flex-col border-r py-5 gap-5"
                 style={{ background: 'var(--color-navbar-bg)', borderColor: 'var(--color-border)' }}
             >
-                {/* Yeni Thread */}
+                {/* Yeni Thread butonu */}
                 <div className="px-3">
                     <button
                         onClick={() => navigate('/forum/new')}
-                        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold"
-                        style={{
-                            background: 'var(--color-brand)',
-                            color: '#070f12',
-                        }}
+                        className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[11px] font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}
                     >
                         <Plus className="w-3.5 h-3.5" />
                         Tartışma Başlat
@@ -74,23 +68,29 @@ const ForumLayout = () => {
                 {/* Kullanıcı & Trust Rozeti */}
                 <div className="px-3">
                     <div
-                        className="rounded-xl p-2.5 border transition-colors"
+                        className="rounded-xl p-3 border"
                         style={{ background: 'var(--color-bg-base)', borderColor: 'var(--color-border)' }}
                     >
-                        <p className="text-xs font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>
-                            {user?.username}
-                        </p>
+                        <div className="flex items-center gap-2 mb-1">
+                            <div
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold flex-shrink-0"
+                                style={{ background: 'rgba(46,204,113,0.12)', color: 'var(--color-brand-primary)' }}
+                            >
+                                {(user?.username ?? '?')[0].toUpperCase()}
+                            </div>
+                            <p className="text-[11px] font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>
+                                {user?.username}
+                            </p>
+                        </div>
                         {trust ? (
                             <>
                                 <p className="text-[10px] font-semibold" style={{ color: 'var(--color-brand-primary)' }}>
                                     {'★'.repeat(trust.stars)} {trust.display_label}
                                 </p>
-                                <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
-                                    Skor: {trust.score.toFixed(0)}/100
-                                </p>
+                                <p className="text-[9px] text-muted">Skor: {trust.score.toFixed(0)}/100</p>
                             </>
                         ) : (
-                            <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Yeni Üye</p>
+                            <p className="text-[9px] text-muted">Yeni Üye</p>
                         )}
                     </div>
                 </div>
@@ -101,10 +101,8 @@ const ForumLayout = () => {
                         to="/forum"
                         end
                         className={({ isActive }) =>
-                            `block px-3 py-1.5 rounded-md text-[11px] font-semibold transition-colors ${
-                                isActive
-                                    ? 'border-l-2 pl-2 font-bold'
-                                    : 'text-muted hover:text-tx-primary'
+                            `flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-semibold transition-colors ${
+                                isActive ? 'border-l-2 pl-2' : 'text-muted hover:text-tx-primary'
                             }`
                         }
                         style={({ isActive }) => isActive ? {
@@ -113,6 +111,7 @@ const ForumLayout = () => {
                             background:  'rgba(46,204,113,0.06)',
                         } : {}}
                     >
+                        <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" />
                         Tüm Tartışmalar
                     </NavLink>
                 </div>
@@ -123,13 +122,18 @@ const ForumLayout = () => {
                         Kategoriler
                     </p>
                     <nav className="flex flex-col gap-0.5">
-                        {CATEGORIES.map(c => (
+                        {CATEGORIES.map(({ key, label, Icon }) => (
                             <NavLink
-                                key={c.key}
-                                to={`/forum?category=${c.key}`}
-                                className="block px-3 py-1.5 rounded-md text-[11px] text-muted hover:text-tx-primary transition-colors"
+                                key={key}
+                                to={`/forum?category=${key}`}
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] text-muted hover:text-tx-primary transition-colors"
+                                style={({ isActive }) => isActive ? {
+                                    color:      'var(--color-brand-primary)',
+                                    background: 'rgba(46,204,113,0.06)',
+                                } : {}}
                             >
-                                {c.label}
+                                <Icon className="w-3 h-3 flex-shrink-0" />
+                                {label}
                             </NavLink>
                         ))}
                     </nav>
@@ -145,7 +149,7 @@ const ForumLayout = () => {
                             <NavLink
                                 key={tag}
                                 to={`/forum?tag=${encodeURIComponent(tag)}`}
-                                className="block px-3 py-1 rounded-md text-[10px] text-muted hover:text-brand transition-colors truncate"
+                                className="block px-3 py-1 rounded-lg text-[10px] text-muted hover:text-brand transition-colors truncate"
                             >
                                 {tag}
                             </NavLink>
@@ -155,45 +159,45 @@ const ForumLayout = () => {
             </aside>
 
             {/* ── Orta İçerik ── */}
-            <main className="flex-1 min-w-0 py-6 px-4">
+            <main className="flex-1 min-w-0 py-6 px-5">
                 <Outlet />
             </main>
 
-            {/* ── Sağ Panel (200px) ── */}
+            {/* ── Sağ Panel ── */}
             <aside
-                className="w-48 flex-shrink-0 border-l py-4 px-3 flex flex-col gap-4"
+                className="w-48 flex-shrink-0 border-l py-5 px-3 flex flex-col gap-4"
                 style={{ borderColor: 'var(--color-border)' }}
             >
                 {/* Forum İstatistikleri */}
                 <div
-                    className="rounded-2xl p-3 border"
-                    style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+                    className="rounded-2xl p-4 border"
+                    style={{ background: 'var(--color-bg-surface)', borderColor: 'var(--color-border)' }}
                 >
                     <p className="text-[9px] font-bold uppercase tracking-widest text-muted mb-3">
                         Forum İstatistikleri
                     </p>
-                    <div className="flex flex-col gap-2 text-[10px]">
+                    <div className="flex flex-col gap-2.5 text-[10px]">
                         <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1 text-muted">
+                            <span className="flex items-center gap-1.5 text-muted">
                                 <MessageSquare className="w-3 h-3" /> Aktif
                             </span>
-                            <span className="text-tx-primary font-semibold">
+                            <span className="font-bold" style={{ color: 'var(--color-text-primary)' }}>
                                 {trendingStats?.active ?? '—'}
                             </span>
                         </div>
                         <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1 text-muted">
+                            <span className="flex items-center gap-1.5 text-muted">
                                 <AlertTriangle className="w-3 h-3" /> İnceleme
                             </span>
-                            <span className="font-semibold" style={{ color: 'var(--color-accent-amber)' }}>
+                            <span className="font-bold" style={{ color: 'var(--color-accent-amber)' }}>
                                 {trendingStats?.underReview ?? '—'}
                             </span>
                         </div>
                         <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1 text-muted">
+                            <span className="flex items-center gap-1.5 text-muted">
                                 <CheckCircle className="w-3 h-3" /> Çözüldü
                             </span>
-                            <span className="font-semibold" style={{ color: 'var(--color-brand)' }}>
+                            <span className="font-bold" style={{ color: 'var(--color-brand-primary)' }}>
                                 —
                             </span>
                         </div>
@@ -203,13 +207,13 @@ const ForumLayout = () => {
                 {/* Trend Etiketler */}
                 {trendingTags.length > 0 && (
                     <div
-                        className="rounded-2xl p-3 border"
-                        style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+                        className="rounded-2xl p-4 border"
+                        style={{ background: 'var(--color-bg-surface)', borderColor: 'var(--color-border)' }}
                     >
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-muted mb-3 flex items-center gap-1">
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-muted mb-3 flex items-center gap-1.5">
                             <TrendingUp className="w-3 h-3" /> Trend Etiketler
                         </p>
-                        <div className="flex flex-col gap-1.5">
+                        <div className="flex flex-col gap-2">
                             {trendingTags.slice(0, 8).map(t => (
                                 <NavLink
                                     key={t.id}
@@ -231,13 +235,13 @@ const ForumLayout = () => {
                 {/* Trend Thread'ler */}
                 {trending?.trending_threads?.length > 0 && (
                     <div
-                        className="rounded-2xl p-3 border"
-                        style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+                        className="rounded-2xl p-4 border"
+                        style={{ background: 'var(--color-bg-surface)', borderColor: 'var(--color-border)' }}
                     >
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-muted mb-3 flex items-center gap-1">
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-muted mb-3 flex items-center gap-1.5">
                             <Tag className="w-3 h-3" /> Popüler
                         </p>
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-2.5">
                             {trending.trending_threads.map(t => (
                                 <NavLink
                                     key={t.id}

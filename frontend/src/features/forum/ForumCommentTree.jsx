@@ -5,69 +5,94 @@ import { useAuth } from '../../contexts/AuthContext';
 
 function timeAgo(dateStr) {
     const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
-    if (diff < 60)   return `${Math.floor(diff)}s`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}dk`;
+    if (diff < 60)    return `${Math.floor(diff)}s`;
+    if (diff < 3600)  return `${Math.floor(diff / 60)}dk`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}sa`;
     return `${Math.floor(diff / 86400)}g`;
 }
 
-const DEPTH_INDENT = 20; // px per depth level
-const MAX_REPLY_DEPTH = 2; // depth 0,1,2 → Reply butonu görünür
+const AVATAR_COLORS = [
+    ['rgba(46,204,113,0.15)',  'var(--color-brand-primary)'],
+    ['rgba(59,130,246,0.15)',  'var(--color-accent-blue)'],
+    ['rgba(245,158,11,0.15)',  'var(--color-accent-amber)'],
+    ['rgba(168,85,247,0.15)',  '#a855f7'],
+    ['rgba(239,68,68,0.15)',   'var(--color-fake-fill)'],
+];
+
+function getAvatarColor(username = '') {
+    const idx = username.charCodeAt(0) % AVATAR_COLORS.length;
+    return AVATAR_COLORS[idx];
+}
+
+const DEPTH_INDENT = 20;
+const MAX_REPLY_DEPTH = 2;
 
 function CommentNode({ comment, threadId, onReply, onHelpful, onReport, currentUserId, depth = 0 }) {
     const [showReplies, setShowReplies] = React.useState(true);
+    const [avatarBg, avatarColor]       = getAvatarColor(comment.username);
 
     const depthBorderColor = depth === 0
-        ? `rgba(46,204,113,${comment.is_highlighted ? '0.60' : '0.25'})`
+        ? `rgba(46,204,113,${comment.is_highlighted ? '0.55' : '0.20'})`
         : depth === 1
         ? 'var(--color-border)'
-        : 'rgba(61,68,77,0.5)';
+        : 'rgba(61,68,77,0.40)';
 
     const depthBg = depth === 0
         ? 'var(--color-bg-surface)'
         : 'var(--color-bg-base)';
+
+    const avatarSize = depth === 0 ? 28 : depth === 1 ? 24 : 20;
 
     return (
         <div style={{ marginLeft: depth > 0 ? DEPTH_INDENT : 0, position: 'relative' }}>
             {/* Thread bağlantı çizgisi */}
             {depth > 0 && (
                 <div style={{
-                    position: 'absolute',
-                    left:     -DEPTH_INDENT + 8,
-                    top:      0,
-                    bottom:   0,
-                    width:    1,
+                    position:   'absolute',
+                    left:       -DEPTH_INDENT + 6,
+                    top:        0,
+                    bottom:     0,
+                    width:      2,
                     background: 'var(--color-border)',
-                    opacity:  depth === 1 ? 0.5 : 0.3,
+                    opacity:    depth === 1 ? 0.45 : 0.25,
+                    borderRadius: 1,
                 }} />
             )}
+
             <div
-                className="rounded-lg p-3 mb-2 transition-colors"
+                className="rounded-xl p-3 mb-2 transition-colors"
                 style={{
-                    background:  depthBg,
-                    borderLeft:  `2px solid ${depthBorderColor}`,
-                    boxShadow:   comment.is_highlighted
-                        ? '0 0 0 1px rgba(46,204,113,0.08) inset'
-                        : 'none',
+                    background: depthBg,
+                    borderLeft: `2px solid ${depthBorderColor}`,
+                    boxShadow:  comment.is_highlighted ? '0 0 0 1px rgba(46,204,113,0.07) inset' : 'none',
                 }}
             >
-                {/* Üst: avatar + kullanıcı adı + zaman */}
+                {/* Üst: avatar + kullanıcı + zaman */}
                 <div className="flex items-center gap-2 mb-2">
                     <div
-                        className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold flex-shrink-0"
-                        style={{ background: 'rgba(59,130,246,0.12)', color: 'var(--color-accent-blue)' }}
+                        className="rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+                        style={{
+                            width:      avatarSize,
+                            height:     avatarSize,
+                            background: avatarBg,
+                            color:      avatarColor,
+                        }}
                     >
                         {(comment.username ?? '?')[0].toUpperCase()}
                     </div>
-                    <span className="text-[10px] font-semibold text-tx-primary">{comment.username}</span>
+                    <span className="text-[10px] font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                        {comment.username}
+                    </span>
                     {comment.display_label && (
-                        <span className="text-[8px] text-brand ml-1">
+                        <span className="text-[8px] font-bold" style={{ color: 'var(--color-brand-primary)' }}>
                             {'★'.repeat(comment.stars || 1)} {comment.display_label}
                         </span>
                     )}
                     {comment.is_highlighted && (
-                        <span className="text-[8px] px-1.5 py-0.5 rounded font-bold"
-                              style={{ background: 'rgba(46,204,113,0.1)', color: 'var(--color-brand-primary)' }}>
+                        <span
+                            className="text-[8px] px-1.5 py-0.5 rounded-full font-bold"
+                            style={{ background: 'rgba(46,204,113,0.10)', color: 'var(--color-brand-primary)', border: '1px solid rgba(46,204,113,0.20)' }}
+                        >
                             Öne Çıkan
                         </span>
                     )}
@@ -75,7 +100,9 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, currentU
                 </div>
 
                 {/* Gövde */}
-                <p className="text-[11px] text-tx-secondary leading-relaxed mb-2">{comment.body}</p>
+                <p className="text-[11px] leading-relaxed mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+                    {comment.body}
+                </p>
 
                 {/* Kanıt linkleri */}
                 {comment.evidence_urls?.length > 0 && (
@@ -86,7 +113,7 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, currentU
                                 href={url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded"
+                                className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-lg hover:opacity-80 transition-opacity"
                                 style={{ background: 'rgba(59,130,246,0.08)', color: 'var(--color-accent-blue)', border: '1px solid rgba(59,130,246,0.18)' }}
                             >
                                 <LinkIcon className="w-2.5 h-2.5" />
@@ -96,7 +123,7 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, currentU
                     </div>
                 )}
 
-                {/* Alt: faydalı oy + yanıtla */}
+                {/* Alt: aksiyonlar */}
                 <div className="flex items-center gap-3 text-[9px] text-muted">
                     <button
                         onClick={() => onHelpful(comment.id)}
@@ -118,15 +145,13 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, currentU
                             Yanıtla
                         </button>
                     ) : (
-                        <span className="text-[8px] text-muted italic">
-                            ↪ Konuşma maksimum derinliğe ulaştı
-                        </span>
+                        <span className="text-[8px] italic">↪ Maksimum derinlik</span>
                     )}
 
                     {comment.user_id !== currentUserId && (
                         <button
                             onClick={() => onReport(comment.id)}
-                            className="flex items-center gap-1 text-[9px] text-tx-secondary/50 hover:text-red-400 transition-colors"
+                            className="flex items-center gap-1 hover:text-red-400 transition-colors opacity-50 hover:opacity-100"
                         >
                             <Flag className="w-2.5 h-2.5" />
                             Bildir
@@ -176,7 +201,7 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
     const handleHelpful = async (commentId) => {
         try {
             await axiosInstance.post(`/forum/comments/${commentId}/vote`);
-            onNewComment?.(); // parent'ı yeniden yükle
+            onNewComment?.();
         } catch {
             // sessiz hata
         }
@@ -189,7 +214,7 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
 
     if (!comments?.length) {
         return (
-            <p className="text-[11px] text-muted text-center py-6">
+            <p className="text-[11px] text-muted text-center py-8">
                 Henüz yorum yok. İlk yorumu sen yap!
             </p>
         );
@@ -210,22 +235,23 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
             ))}
 
             {reportTarget && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center"
-                     style={{ background: 'rgba(0,0,0,0.6)' }}>
-                    <div className="rounded-xl p-6 w-80 border"
-                         style={{ background: 'var(--color-bg-surface)', borderColor: 'var(--color-border)' }}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.65)' }}>
+                    <div
+                        className="rounded-2xl p-6 w-80 border"
+                        style={{ background: 'var(--color-bg-surface)', borderColor: 'var(--color-border)' }}
+                    >
                         <div className="flex items-center justify-between mb-4">
-                            <span className="text-sm font-bold text-tx-primary">Yorumu Bildir</span>
+                            <span className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Yorumu Bildir</span>
                             <button onClick={() => setReportTarget(null)}>
-                                <X className="w-4 h-4 text-tx-secondary" />
+                                <X className="w-4 h-4 text-muted" />
                             </button>
                         </div>
 
                         {reportSent ? (
-                            <p className="text-xs text-tx-secondary">Bildiriminiz alındı, teşekkürler.</p>
+                            <p className="text-xs text-muted">Bildiriminiz alındı, teşekkürler.</p>
                         ) : (
                             <>
-                                <div className="flex flex-col gap-2 mb-4">
+                                <div className="flex flex-col gap-2.5 mb-4">
                                     {[
                                         { value: 'spam',           label: 'Spam' },
                                         { value: 'hate_speech',    label: 'Hakaret / Nefret söylemi' },
@@ -240,7 +266,7 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
                                                 checked={reportReason === opt.value}
                                                 onChange={() => setReportReason(opt.value)}
                                             />
-                                            <span className="text-xs text-tx-primary">{opt.label}</span>
+                                            <span className="text-xs" style={{ color: 'var(--color-text-primary)' }}>{opt.label}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -248,10 +274,10 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
                                     onClick={() => {
                                         axiosInstance.post(`/forum/comments/${reportTarget}/report`, { reason: reportReason })
                                             .then(() => setReportSent(true))
-                                            .catch(() => setReportSent(true)); // sessiz hata
+                                            .catch(() => setReportSent(true));
                                     }}
-                                    className="w-full py-2 rounded-lg text-xs font-bold"
-                                    style={{ background: 'var(--color-brand-primary)', color: 'var(--color-es-bg)' }}
+                                    className="w-full py-2.5 rounded-xl text-xs font-bold transition-all hover:opacity-90"
+                                    style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}
                                 >
                                     Bildir
                                 </button>
