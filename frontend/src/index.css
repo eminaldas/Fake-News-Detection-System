@@ -83,17 +83,17 @@
   /* ─── DARK MOD — Anthracite ──────────────────────────────────── */
   .dark {
     /* Zemin */
-    --color-bg-base:          #1e2328;
-    --color-bg-surface:       #272d35;
-    --color-bg-surface-solid: #2f353b;
+    --color-bg-base:          #0f1419;
+    --color-bg-surface:       #161c22;
+    --color-bg-surface-solid: #1d2329;
 
     /* Metin */
-    --color-text-primary:     #f8f9fa;
+    --color-text-primary:     #eef2f7;
     --color-text-secondary:   #c9d1d9;
-    --color-text-muted:       #8b949e;
+    --color-text-muted:       #7d8896;
 
     /* Kenarlık */
-    --color-border:           #3d444d;
+    --color-border:           #2d343d;
 
     /* Marka */
     --color-brand-primary:    #2ecc71;
@@ -102,12 +102,12 @@
     --color-brand-light:      #0f1f14;
 
     /* Skeleton */
-    --color-skeleton:         #2f353b;
+    --color-skeleton:         #1d2329;
 
     /* Layout tokenlar */
-    --color-market-band-bg:  #161b22;
-    --color-navbar-bg:       #21262d;
-    --color-ticker-bg:       #1a3d2b;
+    --color-market-band-bg:  #0c1116;
+    --color-navbar-bg:       #191e24;
+    --color-ticker-bg:       #0d2b1a;
     --color-accent-amber:    #f59e0b;
     --color-accent-blue:     #3b82f6;
     --color-muted-green:     #10b981;
@@ -171,13 +171,9 @@
     transition: color 0.3s ease;
   }
 
-  /* Dark mod — CSS radial gradient arka plan */
+  /* Dark mod arka plan */
   .dark body {
-    background:
-      radial-gradient(ellipse 70% 55% at 12% 50%,  rgba(46, 204, 113, 0.04) 0%, transparent 70%),
-      radial-gradient(ellipse 55% 45% at 88% 12%,  rgba(16, 185, 129, 0.025) 0%, transparent 65%),
-      radial-gradient(ellipse 40% 40% at 55% 88%,  rgba(16, 185, 129, 0.015) 0%, transparent 60%),
-      #1e2328;
+    background: #0f1419;
   }
 }
 
