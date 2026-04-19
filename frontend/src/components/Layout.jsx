@@ -15,19 +15,29 @@ const FOOTER_LINKS = [
     { label: 'Kullanım Koşulları', to: '#'   },
 ];
 
+/* Floating dot particles — dark modda hafif görünür */
 const PARTICLES = [
-    { left:'6%',  bottom:'12%', size:2, dur:'8s',  delay:'0s'   },
-    { left:'16%', bottom:'35%', size:1, dur:'11s', delay:'2s'   },
-    { left:'28%', bottom:'22%', size:2, dur:'9s',  delay:'1s'   },
-    { left:'40%', bottom:'58%', size:1, dur:'13s', delay:'3.5s' },
-    { left:'52%', bottom:'8%',  size:2, dur:'7s',  delay:'0.5s' },
-    { left:'64%', bottom:'44%', size:1, dur:'10s', delay:'4s'   },
-    { left:'74%', bottom:'26%', size:2, dur:'12s', delay:'1.5s' },
-    { left:'84%', bottom:'54%', size:1, dur:'9s',  delay:'2.5s' },
-    { left:'91%', bottom:'32%', size:2, dur:'14s', delay:'0.8s' },
-    { left:'22%', bottom:'72%', size:1, dur:'10s', delay:'6s'   },
-    { left:'48%', bottom:'78%', size:2, dur:'8s',  delay:'3s'   },
-    { left:'70%', bottom:'68%', size:1, dur:'11s', delay:'5s'   },
+    { left:'5%',  top:'18%',  size:1.5, dur:'22s', delay:'0s'    },
+    { left:'15%', top:'65%',  size:1,   dur:'28s', delay:'4s'    },
+    { left:'25%', top:'40%',  size:2,   dur:'19s', delay:'2s'    },
+    { left:'38%', top:'75%',  size:1,   dur:'31s', delay:'7s'    },
+    { left:'50%', top:'22%',  size:1.5, dur:'25s', delay:'1.5s'  },
+    { left:'62%', top:'55%',  size:1,   dur:'20s', delay:'5s'    },
+    { left:'72%', top:'30%',  size:2,   dur:'27s', delay:'3s'    },
+    { left:'83%', top:'70%',  size:1,   dur:'23s', delay:'6s'    },
+    { left:'92%', top:'45%',  size:1.5, dur:'18s', delay:'2.5s'  },
+    { left:'44%', top:'88%',  size:1,   dur:'24s', delay:'9s'    },
+    { left:'8%',  top:'82%',  size:2,   dur:'30s', delay:'1s'    },
+    { left:'68%', top:'12%',  size:1,   dur:'26s', delay:'8s'    },
+    { left:'30%', top:'92%',  size:1.5, dur:'21s', delay:'3.5s'  },
+    { left:'88%', top:'25%',  size:1,   dur:'29s', delay:'6.5s'  },
+];
+
+/* Yavaş hareket eden orb'lar — çok subtle */
+const ORBS = [
+    { left: '-10%', top: '10%',  size: 500, dur: '35s', delay: '0s',   color: 'rgba(46,204,113,0.025)'  },
+    { left: '70%',  top: '-5%',  size: 400, dur: '45s', delay: '10s',  color: 'rgba(16,185,129,0.018)'  },
+    { left: '40%',  top: '60%',  size: 350, dur: '40s', delay: '5s',   color: 'rgba(46,204,113,0.015)'  },
 ];
 
 const Layout = () => {
@@ -79,39 +89,49 @@ const Layout = () => {
             {/* ── Animasyonlu arka plan (her iki mod) ──────────── */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: -9 }}>
 
-                {/* Blob'lar — dark: renkli, light: gri/zinc */}
-                <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full animate-blob-1"
-                     style={{
-                         background: isDarkMode ? 'rgba(46,204,113,0.06)' : 'rgba(26,158,79,0.05)',
-                         filter: 'blur(120px)',
-                     }} />
-                <div className="absolute -bottom-32 right-1/4 w-[500px] h-[500px] rounded-full animate-blob-2"
-                     style={{
-                         background: isDarkMode ? 'rgba(16,185,129,0.04)' : 'rgba(26,158,79,0.035)',
-                         filter: 'blur(110px)',
-                     }} />
-                <div className="absolute top-1/3 right-0 w-[360px] h-[360px] rounded-full animate-blob-3"
-                     style={{
-                         background: isDarkMode ? 'rgba(16,185,129,0.03)' : 'rgba(26,158,79,0.025)',
-                         filter: 'blur(90px)',
-                     }} />
+                {/* Yavaş hareket eden orb'lar — dark modda çok subtle */}
+                {isDarkMode && ORBS.map((o, i) => (
+                    <div key={i}
+                         className={`absolute rounded-full animate-blob-${(i % 3) + 1}`}
+                         style={{
+                             left: o.left, top: o.top,
+                             width: o.size, height: o.size,
+                             background: o.color,
+                             filter: 'blur(100px)',
+                             animationDuration: o.dur,
+                             animationDelay: o.delay,
+                         }} />
+                ))}
 
-                {/* Scan line — dark: yeşil, light: gri */}
-                <div className="absolute left-0 right-0 h-px animate-scan"
-                     style={{
-                         background: isDarkMode
-                             ? 'linear-gradient(90deg,transparent,rgba(46,204,113,0.12),transparent)'
-                             : 'linear-gradient(90deg,transparent,rgba(26,158,79,0.08),transparent)',
-                     }} />
+                {/* Light mod blob'lar */}
+                {!isDarkMode && (
+                    <>
+                        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full animate-blob-1"
+                             style={{ background: 'rgba(100,116,139,0.04)', filter: 'blur(120px)' }} />
+                        <div className="absolute -bottom-32 right-1/4 w-[400px] h-[400px] rounded-full animate-blob-2"
+                             style={{ background: 'rgba(100,116,139,0.03)', filter: 'blur(100px)' }} />
+                    </>
+                )}
 
-                {/* Particles — dark: yeşil, light: gri */}
+                {/* Scan line — sadece dark modda, çok soluk */}
+                {isDarkMode && (
+                    <div className="absolute left-0 right-0 h-px animate-scan"
+                         style={{ background: 'linear-gradient(90deg,transparent,rgba(46,204,113,0.06),transparent)' }} />
+                )}
+                {!isDarkMode && (
+                    <div className="absolute left-0 right-0 h-px animate-scan"
+                         style={{ background: 'linear-gradient(90deg,transparent,rgba(100,116,139,0.07),transparent)' }} />
+                )}
+
+                {/* Floating dots — dark modda çok subtle yeşil, light modda gri */}
                 {PARTICLES.map((p, i) => (
                     <div key={i} className="absolute rounded-full"
                          style={{
-                             left: p.left, bottom: p.bottom,
+                             left: p.left, top: p.top,
                              width: p.size, height: p.size,
-                             background: isDarkMode ? 'var(--color-brand-primary)' : 'rgba(26,158,79,0.25)',
+                             background: isDarkMode ? 'rgba(46,204,113,0.20)' : 'rgba(100,116,139,0.18)',
                              animation: `particleRise ${p.dur} ${p.delay} ease-in-out infinite`,
+                             boxShadow: isDarkMode ? '0 0 4px rgba(46,204,113,0.15)' : 'none',
                          }} />
                 ))}
             </div>

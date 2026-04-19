@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Moon, Sun, Menu, X } from 'lucide-react';
+import { Moon, Sun, Menu, X, Bell, ChevronDown, User, Settings, Shield, BarChart2, LogOut, Users } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import axiosInstance from '../../api/axios';
@@ -10,257 +10,353 @@ import logoDark from '../../assets/images/logoDark.png';
 import NotificationDropdown from '../../features/notifications/NotificationDropdown';
 
 const NAV_LINKS = [
-    { name: 'Analiz', path: '/' },
-    { name: 'Gündem', path: '/gundem' },
-    { name: 'Forum', path: '/forum' },
-    { name: 'Bildir', path: '/report' },
+    { name: 'Analiz',  path: '/'       },
+    { name: 'Gündem',  path: '/gundem' },
+    { name: 'Forum',   path: '/forum'  },
+    { name: 'Bildir',  path: '/report' },
 ];
 
+function TrustProgress({ trust }) {
+    if (!trust) return null;
+    return (
+        <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
+            <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-brand-primary)' }}>
+                    {'★'.repeat(Math.min(trust.stars, 5))} {trust.display_label}
+                </span>
+                <span className="text-[10px] font-bold" style={{ color: 'var(--color-text-muted)' }}>
+                    {trust.score.toFixed(0)}/100
+                </span>
+            </div>
+            <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
+                <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                        width: `${Math.min(trust.score, 100)}%`,
+                        background: 'var(--color-brand-primary)',
+                    }}
+                />
+            </div>
+        </div>
+    );
+}
+
 const Navbar = () => {
-    const location = useLocation();
+    const location              = useLocation();
     const { isDarkMode, toggleTheme } = useTheme();
     const { isAuthenticated, user, isAdmin, logout } = useAuth();
-    const [menuOpen, setMenuOpen] = useState(false);
-    const [showNotifs, setShowNotifs] = useState(false);
+    const [menuOpen,    setMenuOpen]    = useState(false);
+    const [showNotifs,  setShowNotifs]  = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
     const [notifUnread, setNotifUnread] = useState(0);
+    const [trust,       setTrust]       = useState(null);
+    const profileRef = useRef(null);
     const isActive = (path) => location.pathname === path;
     const { subscribe } = useWebSocket();
 
     useEffect(() => {
         const unsub = subscribe('new_notification', (payload) => {
-            if (payload?.unread_count !== undefined) {
-                setNotifUnread(payload.unread_count);
-            } else {
-                setNotifUnread(prev => prev + 1);
-            }
+            if (payload?.unread_count !== undefined) setNotifUnread(payload.unread_count);
+            else setNotifUnread(prev => prev + 1);
         });
         return unsub;
     }, [subscribe]);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
-
     useEffect(() => {
-        if (!user) { setNotifUnread(0); return; }
-        axiosInstance.get('/notifications')
-            .then(r => setNotifUnread(r.data.unread_count))
-            .catch(() => {});
+        if (!user) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setNotifUnread(0);
+            return;
+        }
+        axiosInstance.get('/notifications').then(r => setNotifUnread(r.data.unread_count)).catch(() => {});
+        axiosInstance.get('/users/me/trust').then(r => setTrust(r.data)).catch(() => {});
     }, [user]);
 
-    return (
-        <header className="fixed top-8 left-0 right-0 z-50">
+    /* Dışarı tıklanınca kapat */
+    useEffect(() => {
+        const handler = (e) => {
+            if (profileRef.current && !profileRef.current.contains(e.target)) {
+                setShowProfile(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
 
-            {/* Solid navbar background */}
+    return (
+        <header className="fixed top-10 left-0 right-0 z-50"
+                style={{ borderBottom: '1px solid var(--color-border)' }}>
+
+            {/* Nav arka planı */}
             <div
-                className="absolute inset-0 backdrop-blur-md border-b pointer-events-none -z-10"
+                className="absolute inset-0 pointer-events-none -z-10"
                 style={{
                     background: 'var(--color-navbar-bg)',
-                    borderColor: 'var(--color-border)',
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
                 }}
             />
 
-            <div className="max-w-7xl mx-auto px-4 md:px-6 grid grid-cols-[1fr_auto_1fr] items-center py-2.5 md:py-3">
+            <div className="max-w-7xl mx-auto px-6 flex items-center justify-between py-2.5">
 
                 {/* ── LOGO ── */}
-                <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200">
-                    <div className="w-7 h-7 md:w-8 md:h-8 overflow-hidden shrink-0">
+                <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0">
+                    <div className="w-6 h-6 overflow-hidden shrink-0">
                         <img src={logo}     alt="Logo" className="w-full h-full object-contain block dark:hidden" />
                         <img src={logoDark} alt="Logo" className="w-full h-full object-contain hidden dark:block" />
                     </div>
-                    <span className="text-lg md:text-xl font-manrope font-extrabold tracking-tight text-brand">
-                        Haber
+                    <span className="text-base font-manrope font-extrabold tracking-tight text-brand">
+                        Ne Haber
                     </span>
                 </Link>
 
                 {/* ── NAV — masaüstü ── */}
-                <nav className="hidden md:flex items-center gap-1 justify-self-center">
+                <nav className="hidden md:flex items-center gap-1">
                     {NAV_LINKS.map((item) => (
                         <Link
                             key={item.path}
                             to={item.path}
-                            className={`
-                                px-4 py-1.5 text-sm font-bold tracking-tight transition-all duration-200
-                                ${isActive(item.path)
-                                    ? 'text-brand border-b-2 border-brand'
-                                    : 'text-tx-primary hover:text-brand'
-                                }
-                            `}
+                            className="px-4 py-2 text-[11px] font-black tracking-widest uppercase transition-colors"
+                            style={{
+                                color: isActive(item.path)
+                                    ? 'var(--color-brand-primary)'
+                                    : 'var(--color-text-muted)',
+                                borderBottom: isActive(item.path)
+                                    ? '2px solid var(--color-brand-primary)'
+                                    : '2px solid transparent',
+                            }}
                         >
                             {item.name}
                         </Link>
                     ))}
                 </nav>
 
-                {/* ── ACTIONS ── */}
-                <div className="flex items-center gap-2 md:gap-3 px-3 py-2 md:px-5 md:py-2.5 justify-self-end">
-                    <button
-                        onClick={toggleTheme}
-                        className="text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors p-1"
-                        aria-label="Toggle Theme"
-                    >
-                        {isDarkMode ? <Sun size={17} /> : <Moon size={17} />}
-                    </button>
+                {/* ── SAĞ ARAÇLAR ── */}
+                <div className="flex items-center gap-2">
 
-                    <div className="hidden md:flex items-center gap-3">
-                        <div className="w-px h-4 bg-brutal-border" />
-                        <button className="text-tx-primary text-[11px] font-black tracking-widest hover:text-brand dark:hover:text-es-primary transition-colors">
-                            TR
-                        </button>
-                        <div className="w-px h-4 bg-brutal-border" />
-                        {isAuthenticated ? (
-                            <div className="flex items-center gap-2">
-                                {user && (
-                                    <div className="relative">
-                                        <button
-                                            onClick={() => setShowNotifs(v => !v)}
-                                            className="relative p-2 rounded-lg hover:bg-brutal-border transition-colors"
-                                            aria-label="Bildirimler"
-                                        >
-                                            <svg className="w-4 h-4 text-tx-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                            </svg>
-                                            {notifUnread > 0 && (
-                                                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-fake-text text-white text-[8px] font-bold rounded-full flex items-center justify-center">
-                                                    {notifUnread > 9 ? '9+' : notifUnread}
-                                                </span>
-                                            )}
-                                        </button>
-                                        {showNotifs && <NotificationDropdown onClose={() => setShowNotifs(false)} />}
-                                    </div>
-                                )}
-                                <Link
-                                    to="/profile"
-                                    className="text-tx-primary text-xs font-bold tracking-tight hover:text-brand dark:hover:text-es-primary transition-colors"
-                                >
-                                    {user?.username}
-                                </Link>
-                                {isAdmin && (
-                                    <>
-                                        <div className="w-px h-4 bg-brutal-border" />
-                                        <div className="flex items-center gap-2">
-                                            <Link
-                                                to="/admin/users"
-                                                className="text-[11px] font-black tracking-widest text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors"
-                                            >
-                                                KULLANICILAR
-                                            </Link>
-                                            <Link
-                                                to="/admin/security"
-                                                className="text-[11px] font-black tracking-widest text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors"
-                                            >
-                                                GÜVENLİK
-                                            </Link>
-                                            <Link
-                                                to="/admin/analytics"
-                                                className="text-[11px] font-black tracking-widest text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors"
-                                            >
-                                                ANALİTİK
-                                            </Link>
-                                        </div>
-                                    </>
-                                )}
-                                <div className="w-px h-4 bg-brutal-border" />
-                                <button
-                                    onClick={logout}
-                                    className="text-tx-primary text-[11px] font-black tracking-widest hover:text-brand dark:hover:text-es-primary transition-colors"
-                                >
-                                    ÇIKIŞ
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-2">
-                                <Link
-                                    to="/login"
-                                    className="text-[11px] font-black tracking-widest text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors"
-                                >
-                                    GİRİŞ
-                                </Link>
-                                <Link
-                                    to="/register"
-                                    className="text-[11px] font-black tracking-widest bg-brand text-surface dark:bg-es-primary dark:text-es-bg px-3 py-1 rounded-full hover:opacity-80 transition-opacity"
-                                >
-                                    KAYIT
-                                </Link>
-                            </div>
-                        )}
+                    {/* Arama */}
+                    <div className="relative hidden lg:block">
+                        <input
+                            className="text-[11px] w-48 pl-4 pr-8 py-1.5 outline-none"
+                            style={{
+                                background: 'var(--color-bg-base)',
+                                border: '1px solid var(--color-border)',
+                                color: 'var(--color-text-primary)',
+                                borderRadius: '4px',
+                            }}
+                            placeholder="Ara..."
+                        />
+                        <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3" style={{ color: 'var(--color-text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
                     </div>
 
-                    <div className="w-px h-4 bg-brutal-border md:hidden" />
+                    {/* Tema toggle */}
                     <button
-                        onClick={() => setMenuOpen((o) => !o)}
-                        className="md:hidden text-tx-primary hover:text-brand dark:hover:text-es-primary transition-colors p-1"
-                        aria-label={menuOpen ? 'Menüyü kapat' : 'Menüyü aç'}
+                        onClick={toggleTheme}
+                        className="p-1.5 transition-colors"
+                        style={{ color: 'var(--color-text-muted)' }}
+                        aria-label="Toggle Theme"
                     >
-                        {menuOpen ? <X size={18} /> : <Menu size={18} />}
+                        {isDarkMode ? <Sun size={15} /> : <Moon size={15} />}
+                    </button>
+
+                    {/* Bildirimler */}
+                    {isAuthenticated && user && (
+                        <div className="relative">
+                            <button
+                                onClick={() => { setShowNotifs(v => !v); setShowProfile(false); }}
+                                className="p-1.5 transition-colors relative"
+                                style={{ color: 'var(--color-text-muted)' }}
+                                aria-label="Bildirimler"
+                            >
+                                <Bell size={15} />
+                                {notifUnread > 0 && (
+                                    <span
+                                        className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 text-white text-[8px] font-bold rounded-full flex items-center justify-center"
+                                        style={{ background: 'var(--color-fake-fill)' }}
+                                    >
+                                        {notifUnread > 9 ? '9+' : notifUnread}
+                                    </span>
+                                )}
+                            </button>
+                            {showNotifs && <NotificationDropdown onClose={() => setShowNotifs(false)} />}
+                        </div>
+                    )}
+
+                    {/* Giriş yok */}
+                    {!isAuthenticated && (
+                        <div className="hidden md:flex items-center gap-2 ml-1">
+                            <Link to="/login" className="text-[11px] font-black tracking-widest transition-colors"
+                                  style={{ color: 'var(--color-text-muted)' }}>
+                                GİRİŞ
+                            </Link>
+                            <Link to="/register"
+                                  className="text-[11px] font-black tracking-widest px-3 py-1.5 transition-opacity hover:opacity-80"
+                                  style={{
+                                      background: 'var(--color-brand-primary)',
+                                      color: 'var(--color-bg-base)',
+                                      borderRadius: '4px',
+                                  }}>
+                                KAYIT
+                            </Link>
+                        </div>
+                    )}
+
+                    {/* Profil avatar + dropdown */}
+                    {isAuthenticated && user && (
+                        <div className="relative ml-1" ref={profileRef}>
+                            <button
+                                onClick={() => { setShowProfile(v => !v); setShowNotifs(false); }}
+                                className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+                            >
+                                <div
+                                    className="w-7 h-7 rounded-full flex items-center justify-center font-manrope font-black text-xs"
+                                    style={{
+                                        background: 'var(--color-brand-primary)',
+                                        color: 'var(--color-bg-base)',
+                                        border: '2px solid var(--color-brand-primary)',
+                                        boxShadow: '0 0 0 1px var(--color-bg-base)',
+                                    }}
+                                >
+                                    {user.username?.[0]?.toUpperCase() ?? 'U'}
+                                </div>
+                                <ChevronDown
+                                    size={11}
+                                    className="hidden md:block transition-transform"
+                                    style={{
+                                        color: 'var(--color-text-muted)',
+                                        transform: showProfile ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    }}
+                                />
+                            </button>
+
+                            {/* Dropdown */}
+                            {showProfile && (
+                                <div
+                                    className="absolute right-0 top-full mt-2 w-56 overflow-hidden animate-fade-up"
+                                    style={{
+                                        background: 'var(--color-navbar-bg)',
+                                        border: '1px solid var(--color-border)',
+                                        borderRadius: '6px',
+                                        boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+                                        zIndex: 100,
+                                    }}
+                                >
+                                    {/* Kullanıcı başlık */}
+                                    <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
+                                        <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                                            {user.username}
+                                        </p>
+                                        <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                                            {user.email ?? 'Kullanıcı'}
+                                        </p>
+                                    </div>
+
+                                    {/* Trust progress */}
+                                    <TrustProgress trust={trust} />
+
+                                    {/* Linkler */}
+                                    <div className="py-1">
+                                        <Link
+                                            to="/profile"
+                                            onClick={() => setShowProfile(false)}
+                                            className="flex items-center gap-2.5 px-4 py-2 text-[11px] font-medium transition-colors hover:bg-white/5"
+                                            style={{ color: 'var(--color-text-secondary)' }}
+                                        >
+                                            <User size={13} /> Profilim
+                                        </Link>
+
+                                        {isAdmin && (
+                                            <>
+                                                <Link to="/admin/users" onClick={() => setShowProfile(false)}
+                                                      className="flex items-center gap-2.5 px-4 py-2 text-[11px] font-medium transition-colors hover:bg-white/5"
+                                                      style={{ color: 'var(--color-text-secondary)' }}>
+                                                    <Users size={13} /> Kullanıcılar
+                                                </Link>
+                                                <Link to="/admin/security" onClick={() => setShowProfile(false)}
+                                                      className="flex items-center gap-2.5 px-4 py-2 text-[11px] font-medium transition-colors hover:bg-white/5"
+                                                      style={{ color: 'var(--color-text-secondary)' }}>
+                                                    <Shield size={13} /> Güvenlik
+                                                </Link>
+                                                <Link to="/admin/analytics" onClick={() => setShowProfile(false)}
+                                                      className="flex items-center gap-2.5 px-4 py-2 text-[11px] font-medium transition-colors hover:bg-white/5"
+                                                      style={{ color: 'var(--color-text-secondary)' }}>
+                                                    <BarChart2 size={13} /> Analitik
+                                                </Link>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    <div className="border-t py-1" style={{ borderColor: 'var(--color-border)' }}>
+                                        <button
+                                            onClick={() => { logout(); setShowProfile(false); }}
+                                            className="flex items-center gap-2.5 px-4 py-2 text-[11px] font-medium w-full text-left transition-colors hover:bg-white/5"
+                                            style={{ color: 'var(--color-fake-text)' }}
+                                        >
+                                            <LogOut size={13} /> Çıkış Yap
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Mobil menü */}
+                    <button
+                        onClick={() => setMenuOpen(o => !o)}
+                        className="md:hidden p-1.5 transition-colors"
+                        style={{ color: 'var(--color-text-muted)' }}
+                    >
+                        {menuOpen ? <X size={16} /> : <Menu size={16} />}
                     </button>
                 </div>
             </div>
 
-            {/* ── MOBİL DROPDOWN ── */}
+            {/* Mobil dropdown */}
             {menuOpen && (
-                <div className="md:hidden max-w-7xl mx-auto px-4 pt-2 animate-fade-up">
-                    <nav className="glass-pill flex flex-col p-2 gap-0.5">
+                <div
+                    className="md:hidden px-4 pb-3 animate-fade-up"
+                    style={{ background: 'var(--color-navbar-bg)', borderTop: '1px solid var(--color-border)' }}
+                >
+                    <nav className="flex flex-col pt-2 gap-0.5">
                         {NAV_LINKS.map((item) => (
                             <Link
                                 key={item.path}
                                 to={item.path}
                                 onClick={() => setMenuOpen(false)}
-                                className={`
-                                    flex items-center px-4 py-3 rounded-xl text-sm font-bold tracking-tight transition-all duration-200
-                                    ${isActive(item.path)
-                                        ? 'bg-brand text-surface dark:bg-es-primary dark:text-es-bg shadow-sm'
-                                        : 'text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent'
-                                    }
-                                `}
+                                className="px-3 py-2.5 text-xs font-black tracking-widest uppercase transition-colors"
+                                style={{
+                                    color: isActive(item.path)
+                                        ? 'var(--color-brand-primary)'
+                                        : 'var(--color-text-muted)',
+                                    borderLeft: isActive(item.path)
+                                        ? '2px solid var(--color-brand-primary)'
+                                        : '2px solid transparent',
+                                }}
                             >
                                 {item.name}
                             </Link>
                         ))}
                         {isAuthenticated ? (
-                            <>
-                                <Link to="/profile" onClick={() => setMenuOpen(false)}
-                                    className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all">
-                                    Profilim ({user?.username})
-                                </Link>
-                                {isAdmin && (
-                                    <>
-                                        <Link to="/admin/users" onClick={() => setMenuOpen(false)}
-                                            className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all">
-                                            Kullanıcı Yönetimi
-                                        </Link>
-                                        <Link to="/admin/security" onClick={() => setMenuOpen(false)}
-                                            className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all">
-                                            Güvenlik Logları
-                                        </Link>
-                                        <Link to="/admin/analytics" onClick={() => setMenuOpen(false)}
-                                            className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all">
-                                            Analitik
-                                        </Link>
-                                    </>
-                                )}
-                                <button onClick={() => { logout(); setMenuOpen(false); }}
-                                    className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all w-full text-left">
-                                    Çıkış Yap
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <Link to="/login" onClick={() => setMenuOpen(false)}
-                                    className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary hover:bg-brand-light dark:hover:bg-brand-accent transition-all">
-                                    Giriş Yap
-                                </Link>
-                                <Link to="/register" onClick={() => setMenuOpen(false)}
-                                    className="flex items-center px-4 py-3 rounded-xl text-sm font-bold text-tx-primary bg-brand-light dark:bg-brand-accent transition-all">
-                                    Kayıt Ol
-                                </Link>
-                            </>
-                        )}
-                        <div className="flex items-center px-4 py-3 mt-0.5 border-t border-brutal-border/40">
-                            <button className="text-tx-primary text-[11px] font-black tracking-widest hover:text-brand dark:hover:text-es-primary transition-colors">
-                                TR
+                            <button onClick={() => { logout(); setMenuOpen(false); }}
+                                className="mt-2 px-3 py-2 text-xs font-black tracking-widest uppercase text-left transition-colors"
+                                style={{ color: 'var(--color-fake-text)' }}>
+                                ÇIKIŞ
                             </button>
-                        </div>
+                        ) : (
+                            <div className="flex gap-3 mt-2 pt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+                                <Link to="/login" onClick={() => setMenuOpen(false)}
+                                      className="text-xs font-black tracking-widest transition-colors"
+                                      style={{ color: 'var(--color-text-muted)' }}>GİRİŞ</Link>
+                                <Link to="/register" onClick={() => setMenuOpen(false)}
+                                      className="text-xs font-black tracking-widest px-3 py-1"
+                                      style={{ background: 'var(--color-brand-primary)', color: 'var(--color-bg-base)', borderRadius: '4px' }}>KAYIT</Link>
+                            </div>
+                        )}
                     </nav>
                 </div>
             )}
