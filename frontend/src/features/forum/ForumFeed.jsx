@@ -267,7 +267,7 @@ const ForumFeed = () => {
                         ? `${category.charAt(0).toUpperCase() + category.slice(1)} Tartışmaları`
                         : tag ? tag : 'Tüm Tartışmalar'}
                 </h1>
-                <form onSubmit={applyTagSearch} className="flex items-center gap-2">
+                <form onSubmit={applyTagSearch}>
                     <div
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px]"
                         style={{ background: 'var(--color-bg-surface)', borderColor: 'var(--color-border)' }}
