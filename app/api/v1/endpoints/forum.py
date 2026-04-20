@@ -33,9 +33,9 @@ from app.models.models import (
     ForumReport, ForumThread, ForumVote, Tag, ThreadTag, User,
 )
 from app.schemas.schemas import (
-    ForumArticleSummary, ForumCommentCreate, ForumCommentItem,
+    ForumArticleSummary, ForumCommentCreate, ForumCommentItem, ForumCommentUpdate,
     ForumReportCreate, ForumTagSearchResponse, ForumThreadCreate, ForumThreadDetail,
-    ForumThreadListResponse, ForumThreadSummary, ForumTrendingResponse,
+    ForumThreadListResponse, ForumThreadSummary, ForumThreadUpdate, ForumTrendingResponse,
     ForumTrendingThread, ForumVoteCreate, ForumVoteResult, TagItem,
     FORUM_CATEGORIES,
 )
@@ -321,6 +321,61 @@ async def get_thread(
         comments=comment_tree,
         current_user_vote=user_vote,
     )
+
+
+@router.put("/threads/{thread_id}", response_model=ForumThreadDetail)
+async def update_thread(
+    thread_id:    _uuid.UUID,
+    body:         ForumThreadUpdate,
+    current_user: User       = Depends(get_current_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    thread = (await db.execute(
+        select(ForumThread)
+        .options(selectinload(ForumThread.user), selectinload(ForumThread.tags))
+        .where(ForumThread.id == thread_id)
+    )).scalar_one_or_none()
+
+    if not thread:
+        raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
+    if thread.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Bu tartışmayı düzenleyemezsiniz")
+
+    age = datetime.now(timezone.utc) - thread.created_at.replace(tzinfo=timezone.utc)
+    if age.total_seconds() > 86400:
+        raise HTTPException(status_code=403, detail="Tartışmalar yalnızca 24 saat içinde düzenlenebilir")
+
+    if body.title    is not None: thread.title    = body.title
+    if body.body     is not None: thread.body     = body.body
+    if body.category is not None: thread.category = body.category
+
+    if body.tag_names is not None:
+        tags = await _get_or_create_tags(db, body.tag_names)
+        thread.tags = tags
+
+    await db.commit()
+    await db.refresh(thread)
+
+    return await get_thread(thread_id, current_user, db)
+
+
+@router.delete("/threads/{thread_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_thread(
+    thread_id:    _uuid.UUID,
+    current_user: User       = Depends(get_current_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == thread_id)
+    )).scalar_one_or_none()
+
+    if not thread:
+        raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
+    if thread.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Bu tartışmayı silemezsiniz")
+
+    await db.delete(thread)
+    await db.commit()
 
 
 @router.get("/tags", response_model=ForumTagSearchResponse)

@@ -616,6 +616,17 @@ class ForumThreadDetail(ForumThreadSummary):
     current_user_vote: Optional[str]                 = None
 
 
+class ForumThreadUpdate(BaseModel):
+    title:     Optional[str]       = Field(None, min_length=5, max_length=300)
+    body:      Optional[str]       = Field(None, max_length=10000)
+    category:  Optional[str]       = None
+    tag_names: Optional[List[str]] = None
+
+
+class ForumCommentUpdate(BaseModel):
+    body: str = Field(..., min_length=1, max_length=5000)
+
+
 class ForumVoteCreate(BaseModel):
     vote_type: str = Field(..., pattern="^(suspicious|authentic|investigate)$")
 
