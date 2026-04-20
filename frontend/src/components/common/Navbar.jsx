@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Moon, Sun, Menu, X, ChevronDown, User, Settings, Shield, BarChart2, LogOut, Users } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Moon, Sun, Menu, X, ChevronDown, User, Settings, Shield, BarChart2, LogOut, Users, Search } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import axiosInstance from '../../api/axios';
@@ -42,13 +42,24 @@ function TrustProgress({ trust }) {
 
 const Navbar = () => {
     const location              = useLocation();
+    const navigate              = useNavigate();
     const { isDarkMode, toggleTheme } = useTheme();
     const { isAuthenticated, user, isAdmin, logout } = useAuth();
     const [menuOpen,    setMenuOpen]    = useState(false);
     const [showProfile, setShowProfile] = useState(false);
     const [trust,       setTrust]       = useState(null);
+    const [searchOpen,  setSearchOpen]  = useState(false);
+    const [searchQ,     setSearchQ]     = useState('');
     const profileRef = useRef(null);
     const isActive = (path) => location.pathname === path;
+
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        if (!searchQ.trim()) return;
+        navigate(`/forum/search?q=${encodeURIComponent(searchQ)}`);
+        setSearchOpen(false);
+        setSearchQ('');
+    };
 
     useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
@@ -119,6 +130,28 @@ const Navbar = () => {
                 {/* ── SAĞ ARAÇLAR ── */}
                 <div className="flex items-center gap-2">
 
+                    {/* Arama */}
+                    {searchOpen ? (
+                        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
+                            <input
+                                autoFocus
+                                value={searchQ}
+                                onChange={e => setSearchQ(e.target.value)}
+                                onBlur={() => { if (!searchQ) setSearchOpen(false); }}
+                                placeholder="Ara..."
+                                className="text-xs bg-transparent outline-none px-2 py-1 rounded-lg border w-32"
+                                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
+                            />
+                        </form>
+                    ) : (
+                        <button
+                            onClick={() => setSearchOpen(true)}
+                            className="p-2 rounded-full transition-colors hover:bg-white/5"
+                            style={{ color: 'var(--color-text-muted)' }}
+                        >
+                            <Search className="w-4 h-4" />
+                        </button>
+                    )}
 
                     {/* Tema toggle */}
                     <button

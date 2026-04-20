@@ -34,6 +34,8 @@ import ForumCreateThread  from './features/forum/ForumCreateThread';
 import SharedAnalysis    from './pages/SharedAnalysis';
 import Profile          from './pages/Profile';
 import Bookmarks        from './pages/Bookmarks';
+import ForumSearch      from './pages/ForumSearch';
+import AdminModeration  from './pages/AdminModeration';
 
 // Listens to auth state and manages the WS connection lifecycle
 function WsLifecycle() {
@@ -79,6 +81,7 @@ function App() {
                             <Route path="forum" element={<ForumLayout />}>
                                 <Route index element={<ForumFeed />} />
                                 <Route path="new"       element={<ForumCreateThread />} />
+                                <Route path="search"    element={<ForumSearch />} />
                                 <Route path=":threadId" element={<ForumThread />} />
                             </Route>
 
@@ -100,6 +103,9 @@ function App() {
                             } />
                             <Route path="admin/ab-test" element={
                                 <RequireAuth><AdminABTest /></RequireAuth>
+                            } />
+                            <Route path="admin/moderation" element={
+                                <RequireAuth><AdminModeration /></RequireAuth>
                             } />
 
                             {/* Kullanıcı profili */}
