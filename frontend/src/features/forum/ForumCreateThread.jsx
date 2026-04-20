@@ -6,13 +6,14 @@ import TagInput from './TagInput';
 
 const CATEGORIES = [
     { value: '',           label: 'Kategori seç...' },
-    { value: 'gündem',     label: 'Gündem' },
-    { value: 'ekonomi',    label: 'Ekonomi' },
-    { value: 'sağlık',     label: 'Sağlık' },
+    { value: 'haberler',   label: 'Haberler' },
     { value: 'teknoloji',  label: 'Teknoloji' },
-    { value: 'spor',       label: 'Spor' },
     { value: 'kültür',     label: 'Kültür' },
-    { value: 'yaşam',      label: 'Yaşam' },
+    { value: 'spor',       label: 'Spor' },
+    { value: 'eğlence',    label: 'Eğlence' },
+    { value: 'bilim',      label: 'Bilim' },
+    { value: 'ekonomi',    label: 'Ekonomi' },
+    { value: 'genel',      label: 'Genel' },
 ];
 
 const ForumCreateThread = () => {

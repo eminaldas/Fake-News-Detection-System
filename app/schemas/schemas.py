@@ -449,7 +449,16 @@ class SourceSearchItem(BaseModel):
 # Forum
 # ─────────────────────────────────────────────────────────────────────────────
 
-FORUM_CATEGORIES = ["gündem", "ekonomi", "sağlık", "teknoloji", "spor", "kültür", "yaşam"]
+FORUM_CATEGORIES = [
+    "haberler",
+    "teknoloji",
+    "kültür",
+    "spor",
+    "eğlence",
+    "bilim",
+    "ekonomi",
+    "genel",
+]
 
 
 class TagItem(BaseModel):
@@ -491,13 +500,14 @@ TIER_META = {
 }
 
 CATEGORY_LABELS = {
-    "gundem":    "Gündem",
-    "ekonomi":   "Ekonomi",
-    "saglik":    "Sağlık",
-    "teknoloji": "Teknoloji",
-    "spor":      "Spor",
-    "kultur":    "Kültür",
-    "yasam":     "Yaşam",
+    "haberler":   "Haberler",
+    "teknoloji":  "Teknoloji",
+    "kültür":     "Kültür",
+    "spor":       "Spor",
+    "eğlence":    "Eğlence",
+    "bilim":      "Bilim",
+    "ekonomi":    "Ekonomi",
+    "genel":      "Genel",
 }
 
 
