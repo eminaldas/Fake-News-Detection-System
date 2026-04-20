@@ -452,3 +452,35 @@ class ThreadTag(Base):
 
     thread_id = Column(UUID(as_uuid=True), ForeignKey("forum_threads.id", ondelete="CASCADE"), primary_key=True)
     tag_id    = Column(UUID(as_uuid=True), ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
+
+
+class UserFollow(Base):
+    __tablename__ = "user_follows"
+
+    follower_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    followed_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    created_at  = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    follower = relationship("User", foreign_keys=[follower_id], backref="following_rels")
+    followed = relationship("User", foreign_keys=[followed_id], backref="follower_rels")
+
+
+class Bookmark(Base):
+    __tablename__ = "bookmarks"
+
+    user_id   = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    thread_id = Column(UUID(as_uuid=True), ForeignKey("forum_threads.id", ondelete="CASCADE"), primary_key=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    type       = Column(String(50), nullable=False)
+    payload    = Column(JSONB, nullable=False, server_default="{}")
+    read_at    = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user = relationship("User", backref="notifications")
