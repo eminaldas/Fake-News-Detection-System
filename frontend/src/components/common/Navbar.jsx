@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { Moon, Sun, Menu, X, Bell, ChevronDown, User, Settings, Shield, BarChart2, LogOut, Users } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,6 +8,16 @@ import { useWebSocket } from '../../contexts/WebSocketContext';
 import logo from '../../assets/images/emrald.png';
 import logoDark from '../../assets/images/logoDark.png';
 import NotificationDropdown from '../../features/notifications/NotificationDropdown';
+
+const GUNDEM_CATEGORIES = [
+    { label: 'Gündem',    value: 'gündem'    },
+    { label: 'Ekonomi',   value: 'ekonomi'   },
+    { label: 'Spor',      value: 'spor'      },
+    { label: 'Sağlık',    value: 'sağlık'    },
+    { label: 'Teknoloji', value: 'teknoloji' },
+    { label: 'Kültür',    value: 'kültür'    },
+    { label: 'Yaşam',     value: 'yaşam'     },
+];
 
 const NAV_LINKS = [
     { name: 'Analiz',  path: '/'       },
@@ -53,6 +63,9 @@ const Navbar = () => {
     const profileRef = useRef(null);
     const isActive = (path) => location.pathname === path;
     const { subscribe } = useWebSocket();
+    const [gundemParams, setGundemParams] = useSearchParams();
+    const isGundem = location.pathname === '/gundem';
+    const activeCategory = isGundem ? gundemParams.get('category') : null;
 
     useEffect(() => {
         const unsub = subscribe('new_notification', (payload) => {
@@ -108,8 +121,8 @@ const Navbar = () => {
                         <img src={logo}     alt="Logo" className="w-full h-full object-contain block dark:hidden" />
                         <img src={logoDark} alt="Logo" className="w-full h-full object-contain hidden dark:block" />
                     </div>
-                    <span className="text-base font-manrope font-extrabold tracking-tight text-brand">
-                        Ne Haber
+                    <span className="font-manrope font-extrabold tracking-tight text-brand">
+                        Haber
                     </span>
                 </Link>
 
@@ -123,7 +136,7 @@ const Navbar = () => {
                             style={{
                                 color: isActive(item.path)
                                     ? 'var(--color-brand-primary)'
-                                    : 'var(--color-text-muted)',
+                                    : '#ffffff',
                                 borderBottom: isActive(item.path)
                                     ? '2px solid var(--color-brand-primary)'
                                     : '2px solid transparent',
@@ -300,6 +313,37 @@ const Navbar = () => {
                 </div>
             </div>
 
+            {/* ── Gündem Kategori Barı ── */}
+            {isGundem && (
+                <div style={{ borderTop: '1px solid var(--color-border)' }}>
+                    <div className="max-w-7xl mx-auto px-6 flex items-center justify-center overflow-x-auto">
+                        <button
+                            onClick={() => setGundemParams({ forYou: '1' })}
+                            className="px-4 py-2 text-[11px] font-black tracking-widest uppercase whitespace-nowrap transition-colors"
+                            style={{
+                                color: !activeCategory ? 'var(--color-brand-primary)' : 'rgba(255,255,255,0.70)',
+                                borderBottom: !activeCategory ? '2px solid var(--color-brand-primary)' : '2px solid transparent',
+                            }}
+                        >
+                            Sizin İçin
+                        </button>
+                        {GUNDEM_CATEGORIES.map(c => (
+                            <button
+                                key={c.value}
+                                onClick={() => setGundemParams({ category: c.value })}
+                                className="px-4 py-2 text-[11px] font-black tracking-widest uppercase whitespace-nowrap transition-colors"
+                                style={{
+                                    color: activeCategory === c.value ? 'var(--color-brand-primary)' : 'rgba(255,255,255,0.70)',
+                                    borderBottom: activeCategory === c.value ? '2px solid var(--color-brand-primary)' : '2px solid transparent',
+                                }}
+                            >
+                                {c.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Mobil dropdown */}
             {menuOpen && (
                 <div
@@ -316,7 +360,7 @@ const Navbar = () => {
                                 style={{
                                     color: isActive(item.path)
                                         ? 'var(--color-brand-primary)'
-                                        : 'var(--color-text-muted)',
+                                        : '#ffffff',
                                     borderLeft: isActive(item.path)
                                         ? '2px solid var(--color-brand-primary)'
                                         : '2px solid transparent',

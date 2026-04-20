@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
@@ -8,11 +9,9 @@ import axiosInstance from '../api/axios';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import AnalysisResultCard from '../features/analysis/AnalysisResultCard';
-import RecommendationPanel from '../features/recommendations/RecommendationPanel';
 import { trackInteraction } from '../services/interaction.service';
 
 const CATEGORIES = [
-    { label: 'Tümü',      value: null,       hot: false },
     { label: 'Gündem',    value: 'gündem',    hot: true  },
     { label: 'Ekonomi',   value: 'ekonomi',   hot: false },
     { label: 'Spor',      value: 'spor',      hot: false },
@@ -602,7 +601,9 @@ export default function Gundem() {
     const { isDarkMode }              = useTheme();
     const { isAuthenticated }         = useAuth();
     const { subscribe }               = useWebSocket();
-    const [forYou, setForYou]         = useState(false);
+    const [searchParams]              = useSearchParams();
+    const category                    = searchParams.get('category');
+    const forYouParam                 = searchParams.get('forYou') === '1';
     const [recItems, setRecItems]     = useState([]);
     const [recLoading, setRecLoading] = useState(false);
     const [abVariant,      setAbVariant]      = useState(null);
@@ -613,7 +614,6 @@ export default function Gundem() {
     const [articles, setArticles] = useState([]);
     const [total, setTotal]       = useState(0);
     const [page, setPage]         = useState(1);
-    const [category, setCategory] = useState(null);
     const [loading, setLoading]   = useState(false);
     const [error, setError]       = useState(null);
     const [search, setSearch]     = useState('');
@@ -671,8 +671,22 @@ export default function Gundem() {
         return unsub;
     }, [subscribe, category, page, fetchNews]);
 
+    useEffect(() => { setPage(1); setSearch(''); }, [category, forYouParam]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        if (!forYouParam || !isAuthenticated) return;
+        setRecLoading(true);
+        axiosInstance.get('/recommendations/?context=feed&limit=10')
+            .then(r => {
+                setRecItems(r.data.items || []);
+                setAbVariant(r.data.ab_variant ?? null);
+                setAbExperimentId(r.data.ab_experiment_id ?? null);
+            })
+            .catch(() => {})
+            .finally(() => setRecLoading(false));
+    }, [forYouParam, isAuthenticated]);
+
     const applyNewArticles = () => { fetchNews(category, 1); setPage(1); };
-    const handleCategory   = (val) => { setCategory(val); setPage(1); setSearch(''); setForYou(false); };
     const clearDateFilter  = () => {
         setDateFrom(''); setDateTo(''); setPage(1);
         fetchNews(category, 1, false, '', '');
@@ -706,7 +720,7 @@ export default function Gundem() {
     }
 
     return (
-        <div className="max-w-6xl mx-auto px-4 pt-10 pb-16">
+        <div className="max-w-6xl mx-auto px-4 pt-14 pb-16">
         <style>{`
             @keyframes gModalFade  { from { opacity:0 } to { opacity:1 } }
             @keyframes gModalSlide { from { opacity:0; transform:translateY(22px) scale(0.96) } to { opacity:1; transform:translateY(0) scale(1) } }
@@ -746,103 +760,25 @@ export default function Gundem() {
                 </h1>
             </div>
 
-            {/* ── Kategoriler + arama ── */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 mb-8">
-
-                {/* Tab strip */}
-                <div className="flex-1" style={{ borderBottom: '3px solid var(--color-brand-primary)' }}>
-                    <div className="flex flex-wrap">
-                        {isAuthenticated && (
-                            <button
-                                onClick={() => {
-                                    setForYou(true);
-                                    setCategory(null);
-                                    setPage(1);
-                                    if (recItems.length === 0) {
-                                        setRecLoading(true);
-                                        axiosInstance.get('/recommendations/?context=feed&limit=10')
-                                            .then(r => {
-                                                setRecItems(r.data.items || []);
-                                                setAbVariant(r.data.ab_variant ?? null);
-                                                setAbExperimentId(r.data.ab_experiment_id ?? null);
-                                            })
-                                            .catch(() => {})
-                                            .finally(() => setRecLoading(false));
-                                    }
-                                }}
-                                className="relative px-4 py-2.5 text-sm font-bold cursor-pointer transition-all duration-200 whitespace-nowrap"
-                                style={{
-                                    background:   forYou ? 'var(--color-brand-primary)' : 'transparent',
-                                    color:        forYou
-                                                      ? (isDarkMode ? '#070f12' : '#ffffff')
-                                                      : 'var(--color-text-secondary)',
-                                    borderRadius: '6px 6px 0 0',
-                                    marginBottom: '-3px',
-                                }}
-                                onMouseEnter={e => { if (!forYou) e.currentTarget.style.color = 'var(--color-text-primary)'; }}
-                                onMouseLeave={e => { if (!forYou) e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
-                            >
-                                Sizin İçin
-                            </button>
-                        )}
-                        {CATEGORIES.map((c) => {
-                            const isActive = category === c.value;
-                            return (
-                                <button
-                                    key={c.label}
-                                    onClick={() => {
-                                        handleCategory(c.value);
-                                        if (c.value) {
-                                            trackInteraction({
-                                                content_id:       null,
-                                                interaction_type: 'filter_used',
-                                                category:         c.value,
-                                            });
-                                        }
-                                    }}
-                                    className="relative px-4 py-2.5 text-sm font-bold cursor-pointer transition-all duration-200 whitespace-nowrap"
-                                    style={{
-                                        background:   isActive ? 'var(--color-brand-primary)' : 'transparent',
-                                        color:        isActive
-                                                          ? (isDarkMode ? '#070f12' : '#ffffff')
-                                                          : 'var(--color-text-secondary)',
-                                        borderRadius: '6px 6px 0 0',
-                                        marginBottom: '-3px',
-                                    }}
-                                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--color-text-primary)'; }}
-                                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
-                                >
-                                    {c.label}
-                                    {c.hot && !isActive && (
-                                        <span className="absolute top-1.5 right-1 w-1.5 h-1.5 rounded-full bg-red-500" />
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Arama */}
-                <div className="relative shrink-0 pb-1">
-                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted pointer-events-none"
-                         fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round"
-                              d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
-                    </svg>
-                    <input
-                        type="text"
-                        placeholder="Haberlerde ara..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="pl-8 pr-4 py-2.5 rounded-lg text-xs font-medium
-                                   bg-surface border border-brutal-border
-                                   text-tx-primary placeholder:text-muted
-                                   focus:outline-none transition-all w-48"
-                        style={{ borderRadius: '6px 6px 0 0' }}
-                        onFocus={e  => { e.target.style.borderColor = 'var(--color-brand-primary)'; }}
-                        onBlur={e   => { e.target.style.borderColor = 'var(--color-border)'; }}
-                    />
-                </div>
+            {/* ── Arama ── */}
+            <div className="relative mb-8">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted pointer-events-none"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round"
+                          d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                </svg>
+                <input
+                    type="text"
+                    placeholder="Haberlerde ara..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-8 pr-4 py-2.5 rounded-lg text-xs font-medium
+                               bg-surface border border-brutal-border
+                               text-tx-primary placeholder:text-muted
+                               focus:outline-none transition-all w-64"
+                    onFocus={e  => { e.target.style.borderColor = 'var(--color-brand-primary)'; }}
+                    onBlur={e   => { e.target.style.borderColor = 'var(--color-border)'; }}
+                />
             </div>
 
             {/* ── Risk uyarı banner'ı ── */}
@@ -877,13 +813,25 @@ export default function Gundem() {
             )}
 
             {/* ── İçerik ── */}
-            {forYou ? (
+            {forYouParam && isAuthenticated ? (
                 recLoading ? (
-                    <div className="space-y-2">
-                        {[1,2,3].map(i => <div key={i} className="h-10 rounded-lg bg-base animate-pulse" />)}
+                    <Spinner />
+                ) : recItems.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {recItems.map((a, i) => renderCard(a, i))}
                     </div>
                 ) : (
-                    <RecommendationPanel context="feed" title="Sizin için Seçilenler" />
+                    <>
+                        {loading && <Spinner />}
+                        {!loading && !error && sorted.length === 0 && (
+                            <p className="text-muted text-sm text-center py-20">Henüz haber yok.</p>
+                        )}
+                        {!loading && sorted.length > 0 && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                                {sorted.map((a, i) => renderCard(a, i))}
+                            </div>
+                        )}
+                    </>
                 )
             ) : (
                 <>

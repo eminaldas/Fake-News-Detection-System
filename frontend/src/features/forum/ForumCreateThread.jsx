@@ -84,7 +84,7 @@ const ForumCreateThread = () => {
                     style={{ background: 'rgba(16,185,129,0.04)', borderColor: 'rgba(16,185,129,0.15)' }}
                 >
                     <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                         style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.20)' }}
                     >
                         <LinkIcon className="w-4 h-4" style={{ color: 'var(--color-brand-primary)' }} />
@@ -97,7 +97,7 @@ const ForumCreateThread = () => {
                     </div>
                     <Link
                         to="/forum/new"
-                        className="text-[9px] text-muted border rounded px-2 py-1 hover:text-tx-primary transition-colors flex-shrink-0"
+                        className="text-[9px] text-muted border rounded px-2 py-1 hover:text-tx-primary transition-colors shrink-0"
                         style={{ borderColor: 'var(--color-border)' }}
                     >
                         <X className="w-3 h-3" />
@@ -142,7 +142,7 @@ const ForumCreateThread = () => {
 
                 {/* Kategori + Etiketler */}
                 <div className="p-4 border-b flex gap-4" style={{ borderColor: 'var(--color-border)' }}>
-                    <div className="w-40 flex-shrink-0">
+                    <div className="w-40 shrink-0">
                         <label className="block text-[9px] font-bold uppercase tracking-widest text-muted mb-2">
                             Kategori
                         </label>
@@ -202,7 +202,7 @@ const ForumCreateThread = () => {
                     className="flex items-start gap-3 p-3 rounded-xl border"
                     style={{ background: 'rgba(245,158,11,0.04)', borderColor: 'rgba(245,158,11,0.15)' }}
                 >
-                    <span className="text-base flex-shrink-0">💡</span>
+                    <span className="text-base shrink-0">💡</span>
                     <div className="flex-1">
                         <p className="text-[10px] font-semibold mb-1" style={{ color: 'var(--color-accent-amber)' }}>
                             Bu haber için zaten {existing.length} tartışma var
