@@ -26,6 +26,7 @@ from sqlalchemy.orm import selectinload
 from workers.moderation_task import check_toxicity
 
 from app.api.deps import get_current_user, get_optional_user
+from app.core.notifications import send_notification
 from app.core.pubsub import publish_async
 from app.db.session import get_db
 from app.models.models import (
@@ -478,6 +479,17 @@ async def vote_thread(
         )).scalar_one_or_none()
     await _check_under_review(thread, article, db)
 
+    if thread.status == "under_review" and thread.user_id != current_user.id:
+        await send_notification(
+            db=db,
+            user_id=thread.user_id,
+            notif_type="under_review",
+            payload={
+                "thread_id":    str(thread_id),
+                "thread_title": thread.title,
+            },
+        )
+
     # "İncele" eşiği kontrolü — eşik aşılırsa fact-check pipeline'ı tetikle
     if (
         thread.vote_investigate >= _INVESTIGATE_THRESHOLD
@@ -580,6 +592,40 @@ async def add_comment(
 
     await db.commit()
     await db.refresh(comment)
+
+    # Thread yazarına yorum bildirimi
+    if thread.user_id != current_user.id:
+        await send_notification(
+            db=db,
+            user_id=thread.user_id,
+            notif_type="new_comment",
+            payload={
+                "thread_id":    str(thread_id),
+                "thread_title": thread.title,
+                "comment_id":   str(comment.id),
+                "actor":        current_user.username,
+            },
+        )
+        await db.commit()
+
+    # Yanıt bildirimi (parent varsa)
+    if body.parent_id:
+        parent_comment = (await db.execute(
+            select(ForumComment).where(ForumComment.id == body.parent_id)
+        )).scalar_one_or_none()
+        if parent_comment and parent_comment.user_id != current_user.id:
+            await send_notification(
+                db=db,
+                user_id=parent_comment.user_id,
+                notif_type="reply",
+                payload={
+                    "thread_id":    str(thread_id),
+                    "thread_title": thread.title,
+                    "comment_id":   str(comment.id),
+                    "actor":        current_user.username,
+                },
+            )
+            await db.commit()
 
     comment_payload = {
         "thread_id": str(thread_id),
