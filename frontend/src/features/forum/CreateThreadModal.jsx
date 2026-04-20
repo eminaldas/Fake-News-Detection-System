@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { X, Link as LinkIcon } from 'lucide-react';
 import axiosInstance from '../../api/axios';
@@ -84,7 +85,7 @@ const CreateThreadModal = ({ onClose, articleId = null }) => {
         outline: 'none',
     };
 
-    return (
+    return createPortal(
         <>
             {/* Overlay */}
             <div
@@ -244,7 +245,8 @@ const CreateThreadModal = ({ onClose, articleId = null }) => {
                     </form>
                 </div>
             </div>
-        </>
+        </>,
+        document.body
     );
 };
 
