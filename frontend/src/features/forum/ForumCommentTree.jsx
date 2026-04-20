@@ -27,9 +27,29 @@ function getAvatarColor(username = '') {
 const DEPTH_INDENT = 20;
 const MAX_REPLY_DEPTH = 2;
 
-function CommentNode({ comment, threadId, onReply, onHelpful, onReport, currentUserId, depth = 0 }) {
-    const [showReplies, setShowReplies] = React.useState(true);
-    const [avatarBg, avatarColor]       = getAvatarColor(comment.username);
+function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewComment, currentUserId, depth = 0 }) {
+    const [showReplies, setShowReplies]       = React.useState(true);
+    const [avatarBg, avatarColor]             = getAvatarColor(comment.username);
+    const [commentEditMode, setCommentEditMode] = React.useState(false);
+    const [commentEditBody, setCommentEditBody] = React.useState('');
+
+    const isCommentAuthor = comment.user_id === currentUserId;
+
+    const handleCommentEdit = async () => {
+        try {
+            await axiosInstance.put(`/forum/comments/${comment.id}`, { body: commentEditBody });
+            setCommentEditMode(false);
+            onNewComment?.();
+        } catch { /* sessiz */ }
+    };
+
+    const handleCommentDelete = async () => {
+        if (!window.confirm('Bu yorumu silmek istediğinizden emin misiniz?')) return;
+        try {
+            await axiosInstance.delete(`/forum/comments/${comment.id}`);
+            onNewComment?.();
+        } catch { /* sessiz */ }
+    };
 
     const depthBorderColor = depth === 0
         ? `rgba(16,185,129,${comment.is_highlighted ? '0.55' : '0.20'})`
@@ -100,9 +120,36 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, currentU
                 </div>
 
                 {/* Gövde */}
-                <p className="text-[11px] leading-relaxed mb-2" style={{ color: 'var(--color-text-secondary)' }}>
-                    {comment.body}
-                </p>
+                {commentEditMode ? (
+                    <div className="flex flex-col gap-1 mt-1 mb-2">
+                        <textarea
+                            value={commentEditBody}
+                            onChange={e => setCommentEditBody(e.target.value)}
+                            rows={3}
+                            className="w-full text-[11px] bg-transparent outline-none p-2 rounded-lg border resize-none"
+                            style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-base)', color: 'var(--color-text-secondary)' }}
+                        />
+                        <div className="flex gap-2">
+                            <button onClick={handleCommentEdit}
+                                className="text-[9px] px-3 py-1 rounded-lg font-bold"
+                                style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
+                                Kaydet
+                            </button>
+                            <button onClick={() => setCommentEditMode(false)}
+                                className="text-[9px] px-3 py-1 rounded-lg"
+                                style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
+                                İptal
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <p className="text-[11px] leading-relaxed mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+                        {comment.body}
+                        {comment.is_edited && (
+                            <span className="ml-1 text-[8px] italic" style={{ color: 'var(--color-text-muted)' }}>(düzenlendi)</span>
+                        )}
+                    </p>
+                )}
 
                 {/* Kanıt linkleri */}
                 {comment.evidence_urls?.length > 0 && (
@@ -148,6 +195,23 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, currentU
                         <span className="text-[8px] italic">↪ Maksimum derinlik</span>
                     )}
 
+                    {isCommentAuthor && !commentEditMode && (
+                        <>
+                            <button
+                                onClick={() => { setCommentEditBody(comment.body); setCommentEditMode(true); }}
+                                className="flex items-center gap-1 hover:text-tx-primary transition-colors"
+                            >
+                                Düzenle
+                            </button>
+                            <button
+                                onClick={handleCommentDelete}
+                                className="flex items-center gap-1 hover:text-red-400 transition-colors"
+                            >
+                                Sil
+                            </button>
+                        </>
+                    )}
+
                     {comment.user_id !== currentUserId && (
                         <button
                             onClick={() => onReport(comment.id)}
@@ -180,6 +244,7 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, currentU
                             onReply={onReply}
                             onHelpful={onHelpful}
                             onReport={onReport}
+                            onNewComment={onNewComment}
                             currentUserId={currentUserId}
                             depth={depth + 1}
                         />
@@ -230,6 +295,7 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
                     onReply={onReply}
                     onHelpful={handleHelpful}
                     onReport={handleReport}
+                    onNewComment={onNewComment}
                     currentUserId={currentUserId}
                 />
             ))}

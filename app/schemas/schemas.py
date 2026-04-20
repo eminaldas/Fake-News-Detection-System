@@ -449,7 +449,16 @@ class SourceSearchItem(BaseModel):
 # Forum
 # ─────────────────────────────────────────────────────────────────────────────
 
-FORUM_CATEGORIES = ["gündem", "ekonomi", "sağlık", "teknoloji", "spor", "kültür", "yaşam"]
+FORUM_CATEGORIES = [
+    "haberler",
+    "teknoloji",
+    "kültür",
+    "spor",
+    "eğlence",
+    "bilim",
+    "ekonomi",
+    "genel",
+]
 
 
 class TagItem(BaseModel):
@@ -491,13 +500,14 @@ TIER_META = {
 }
 
 CATEGORY_LABELS = {
-    "gundem":    "Gündem",
-    "ekonomi":   "Ekonomi",
-    "saglik":    "Sağlık",
-    "teknoloji": "Teknoloji",
-    "spor":      "Spor",
-    "kultur":    "Kültür",
-    "yasam":     "Yaşam",
+    "haberler":   "Haberler",
+    "teknoloji":  "Teknoloji",
+    "kültür":     "Kültür",
+    "spor":       "Spor",
+    "eğlence":    "Eğlence",
+    "bilim":      "Bilim",
+    "ekonomi":    "Ekonomi",
+    "genel":      "Genel",
 }
 
 
@@ -606,14 +616,27 @@ class ForumThreadDetail(ForumThreadSummary):
     current_user_vote: Optional[str]                 = None
 
 
+class ForumThreadUpdate(BaseModel):
+    title:     Optional[str]       = Field(None, min_length=5, max_length=300)
+    body:      Optional[str]       = Field(None, max_length=10000)
+    category:  Optional[str]       = None
+    tag_names: Optional[List[str]] = None
+
+
+class ForumCommentUpdate(BaseModel):
+    body: str = Field(..., min_length=1, max_length=5000)
+
+
 class ForumVoteCreate(BaseModel):
-    vote_type: str = Field(..., pattern="^(suspicious|authentic|investigate)$")
+    vote_type: str = Field(..., pattern="^(suspicious|authentic|investigate|up|down)$")
 
 
 class ForumVoteResult(BaseModel):
     vote_suspicious:   int
     vote_authentic:    int
     vote_investigate:  int
+    vote_up:           int = 0
+    vote_down:         int = 0
     status:            str
     current_user_vote: Optional[str] = None
 
@@ -695,3 +718,51 @@ class SharedAnalysisResponse(BaseModel):
     risk_score:      Optional[float] = None
     clickbait_score: Optional[float] = None
     created_at:      Optional[str]   = None
+
+
+# ── Forum Bildirimleri (Notification modeli — read_at) ────────────────────────
+
+class ForumNotificationItem(BaseModel):
+    id:         UUID
+    type:       str
+    payload:    dict
+    read_at:    Optional[datetime] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ForumNotificationListResponse(BaseModel):
+    items:  List[ForumNotificationItem]
+    unread: int
+
+
+# ── Sosyal / Takip ────────────────────────────────────────────────────────────
+
+class UserProfileResponse(BaseModel):
+    id:              UUID
+    username:        str
+    bio:             Optional[str] = None
+    follower_count:  int
+    following_count: int
+    is_following:    bool = False
+    thread_count:    int = 0
+    created_at:      datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MentionSearchItem(BaseModel):
+    id:       UUID
+    username: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ForumSearchResponse(BaseModel):
+    items: List[ForumThreadSummary]
+    total: int
+    query: str
+
+
+class ForumThreadReportCreate(BaseModel):
+    reason: str = Field(..., pattern="^(spam|misinformation|hate_speech|off_topic)$")

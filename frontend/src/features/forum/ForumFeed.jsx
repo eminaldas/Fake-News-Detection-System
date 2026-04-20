@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-    MessageSquare, ChevronUp, ChevronDown,
+    MessageSquare,
     Share2, Bookmark, Plus, Edit3, Link as LinkIcon,
     Flag, AlertCircle,
 } from 'lucide-react';
+import NewsVoteBar    from './NewsVoteBar';
+import GeneralVoteBar from './GeneralVoteBar';
 import axiosInstance from '../../api/axios';
 import LoginNudgeModal, { useLoginNudge } from '../../components/ui/LoginNudgeModal';
 import { useAuth } from '../../contexts/AuthContext';
@@ -68,9 +70,59 @@ function AuthorAvatar({ username, size = 8 }) {
 }
 
 function ThreadCard({ thread }) {
-    const badge      = STATUS_BADGE[thread.status] ?? STATUS_BADGE.active;
-    const totalVotes = thread.vote_suspicious + thread.vote_authentic + thread.vote_investigate;
-    const trust      = getTrustStyle(thread.author?.stars);
+    const { user }     = useAuth();
+    const [localThread, setLocalThread] = React.useState(thread);
+    const [voting, setVoting] = React.useState(false);
+    const [bookmarked, setBookmarked] = React.useState(false);
+    const [reportTarget, setReportTarget] = React.useState(null);
+
+    const handleVote = async (voteType) => {
+        if (!user || voting) return;
+        setVoting(true);
+        try {
+            const { data } = await axiosInstance.post(
+                `/forum/threads/${localThread.id}/vote`,
+                { vote_type: voteType }
+            );
+            setLocalThread(prev => ({
+                ...prev,
+                vote_suspicious:   data.vote_suspicious,
+                vote_authentic:    data.vote_authentic,
+                vote_investigate:  data.vote_investigate,
+                vote_up:           data.vote_up,
+                vote_down:         data.vote_down,
+                status:            data.status,
+                current_user_vote: data.current_user_vote,
+            }));
+        } catch { /* sessiz */ }
+        finally { setVoting(false); }
+    };
+
+    const handleBookmark = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!user) return;
+        try {
+            await axiosInstance.post(`/forum/threads/${localThread.id}/bookmark`);
+            setBookmarked(v => !v);
+        } catch { /* sessiz */ }
+    };
+
+    const handleShare = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleFlag = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!user) return;
+        setReportTarget(localThread.id);
+    };
+
+    const badge      = STATUS_BADGE[localThread.status] ?? STATUS_BADGE.active;
+    const totalVotes = localThread.vote_suspicious + localThread.vote_authentic + localThread.vote_investigate;
+    const trust      = getTrustStyle(localThread.author?.stars);
 
     return (
         <article
@@ -86,17 +138,17 @@ function ThreadCard({ thread }) {
 
                 {/* ── Yazar satırı ── */}
                 <div className="flex items-center gap-2.5">
-                    <AuthorAvatar username={thread.author?.username} />
+                    <AuthorAvatar username={localThread.author?.username} />
                     <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
                         <span className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>
-                            {thread.author?.username ?? 'Anonim'}
+                            {localThread.author?.username ?? 'Anonim'}
                         </span>
-                        {thread.author?.display_label ? (
+                        {localThread.author?.display_label ? (
                             <span
                                 className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                                 style={{ background: trust.bg, color: trust.color }}
                             >
-                                {'★'.repeat(Math.min(thread.author.stars ?? 1, 5))} {thread.author.display_label}
+                                {'★'.repeat(Math.min(localThread.author.stars ?? 1, 5))} {localThread.author.display_label}
                             </span>
                         ) : (
                             <span
@@ -107,14 +159,14 @@ function ThreadCard({ thread }) {
                             </span>
                         )}
                         <span className="text-xs ml-auto shrink-0" style={{ color: 'var(--color-text-muted)' }}>
-                            {timeAgo(thread.created_at)}
+                            {timeAgo(localThread.created_at)}
                         </span>
                     </div>
                 </div>
 
                 {/* ── Badges ── */}
                 <div className="flex items-center gap-2 flex-wrap">
-                    {thread.category && (
+                    {localThread.category && (
                         <span
                             className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full"
                             style={{
@@ -123,7 +175,7 @@ function ThreadCard({ thread }) {
                                 border: '1px solid rgba(59,130,246,0.20)',
                             }}
                         >
-                            {thread.category}
+                            {localThread.category}
                         </span>
                     )}
                     <span
@@ -132,7 +184,7 @@ function ThreadCard({ thread }) {
                     >
                         {badge.label}
                     </span>
-                    {thread.article_id && (
+                    {localThread.article_id && (
                         <span
                             className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
                             style={{ background: 'rgba(168,85,247,0.08)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.18)' }}
@@ -144,27 +196,27 @@ function ThreadCard({ thread }) {
                 </div>
 
                 {/* ── İçerik (tıklanabilir) ── */}
-                <Link to={`/forum/${thread.id}`} className="flex flex-col gap-2">
+                <Link to={`/forum/${localThread.id}`} className="flex flex-col gap-2">
                     <h3
                         className="font-manrope font-black text-base leading-snug line-clamp-2 transition-colors group-hover:text-brand"
                         style={{ color: 'var(--color-text-primary)' }}
                     >
-                        {thread.title}
+                        {localThread.title}
                     </h3>
-                    {thread.body && (
+                    {localThread.body && (
                         <p
                             className="text-sm leading-relaxed line-clamp-2"
                             style={{ color: 'var(--color-text-secondary)' }}
                         >
-                            {thread.body}
+                            {localThread.body}
                         </p>
                     )}
                 </Link>
 
                 {/* ── Etiketler ── */}
-                {thread.tags?.length > 0 && (
+                {localThread.tags?.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
-                        {thread.tags.map(t => (
+                        {localThread.tags.map(t => (
                             <span
                                 key={t.id}
                                 className="text-[10px] px-2.5 py-0.5 rounded-full"
@@ -186,35 +238,19 @@ function ThreadCard({ thread }) {
                     style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
                 >
                     {/* Oy butonları */}
-                    <div
-                        className="flex items-center rounded-full overflow-hidden mr-1"
-                        style={{ background: 'rgba(0,0,0,0.22)' }}
-                    >
-                        <button
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/10"
-                            style={{ color: 'var(--color-brand-primary)' }}
-                            onClick={e => e.preventDefault()}
-                        >
-                            <ChevronUp className="w-3.5 h-3.5" />
-                            <span>{thread.vote_authentic}</span>
-                        </button>
-                        <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.08)' }} />
-                        <button
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/10"
-                            style={{ color: 'var(--color-fake-fill)' }}
-                            onClick={e => e.preventDefault()}
-                        >
-                            <ChevronDown className="w-3.5 h-3.5" />
-                            <span>{thread.vote_suspicious}</span>
-                        </button>
-                    </div>
+                    {(() => {
+                        const isNews = localThread.article_id || localThread.category === 'haberler';
+                        return isNews
+                            ? <NewsVoteBar    thread={localThread} onVote={(type) => handleVote(type)} disabled={voting} />
+                            : <GeneralVoteBar thread={localThread} onVote={(type) => handleVote(type)} disabled={voting} />;
+                    })()}
 
                     {/* Oy dağılım barı */}
                     <div className="flex items-center gap-2 mr-1">
                         <VoteBar
-                            suspicious={thread.vote_suspicious}
-                            authentic={thread.vote_authentic}
-                            investigate={thread.vote_investigate}
+                            suspicious={localThread.vote_suspicious}
+                            authentic={localThread.vote_authentic}
+                            investigate={localThread.vote_investigate}
                         />
                         <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
                             {totalVotes} oy
@@ -222,52 +258,84 @@ function ThreadCard({ thread }) {
                     </div>
 
                     {/* İncele oy */}
-                    {thread.vote_investigate > 0 && (
+                    {localThread.vote_investigate > 0 && (
                         <button
                             className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium transition-colors hover:bg-white/5"
                             style={{ color: 'var(--color-accent-amber)' }}
                             onClick={e => e.preventDefault()}
                         >
                             <AlertCircle className="w-3 h-3" />
-                            {thread.vote_investigate} şüpheli
+                            {localThread.vote_investigate} şüpheli
                         </button>
                     )}
 
                     {/* Yorumlar */}
                     <Link
-                        to={`/forum/${thread.id}`}
+                        to={`/forum/${localThread.id}`}
                         className="flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium transition-colors hover:bg-white/5"
                         style={{ color: 'var(--color-text-muted)' }}
                     >
                         <MessageSquare className="w-3.5 h-3.5" />
-                        {thread.comment_count} yorum
+                        {localThread.comment_count} yorum
                     </Link>
 
                     <div className="flex items-center gap-1 ml-auto">
                         <button
                             className="flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors hover:bg-white/5"
                             style={{ color: 'var(--color-text-muted)' }}
-                            onClick={e => e.preventDefault()}
+                            onClick={handleShare}
                         >
                             <Share2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                             className="flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors hover:bg-white/5"
-                            style={{ color: 'var(--color-text-muted)' }}
-                            onClick={e => e.preventDefault()}
+                            style={{ color: bookmarked ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}
+                            onClick={handleBookmark}
                         >
                             <Bookmark className="w-3.5 h-3.5" />
                         </button>
                         <button
                             className="flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors hover:text-red-400 hover:bg-white/5"
                             style={{ color: 'var(--color-text-muted)' }}
-                            onClick={e => e.preventDefault()}
+                            onClick={handleFlag}
                         >
                             <Flag className="w-3.5 h-3.5" />
                         </button>
                     </div>
                 </div>
             </div>
+
+            {reportTarget && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center"
+                    style={{ background: 'rgba(0,0,0,0.65)' }}
+                    onClick={e => { e.stopPropagation(); setReportTarget(null); }}
+                >
+                    <div
+                        className="rounded-2xl p-6 w-80 border"
+                        style={{ background: 'var(--color-bg-surface)', borderColor: 'var(--color-border)' }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <p className="text-sm font-bold mb-3" style={{ color: 'var(--color-text-primary)' }}>
+                            Tartışmayı Bildir
+                        </p>
+                        <p className="text-xs mb-4" style={{ color: 'var(--color-text-muted)' }}>
+                            Bu tartışmayı neden bildiriyorsunuz?
+                        </p>
+                        <button
+                            onClick={() => {
+                                axiosInstance.post(`/forum/threads/${reportTarget}/report`, { reason: 'spam' })
+                                    .catch(() => {});
+                                setReportTarget(null);
+                            }}
+                            className="w-full py-2 rounded-xl text-xs font-bold"
+                            style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}
+                        >
+                            Bildir
+                        </button>
+                    </div>
+                </div>
+            )}
         </article>
     );
 }

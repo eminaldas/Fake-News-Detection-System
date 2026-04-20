@@ -1,22 +1,31 @@
+import uuid as _uuid
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from redis.asyncio import Redis
-from sqlalchemy import select, func
+from sqlalchemy import select, func, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_optional_user
 from app.core.config import settings
+from app.core.notifications import send_notification
 from app.core.rate_limit import _midnight_epoch
 from app.core.security import hash_ip
 from app.db.redis import get_redis
 from app.db.session import get_db
-from app.models.models import AnalysisRequest, AnalysisResult, Article, AuditLog, ContentInteraction, ModelFeedback, User, UserNotification, UserPreferenceProfile
+from app.models.models import (
+    AnalysisRequest, AnalysisResult, Article, AuditLog, ContentInteraction,
+    ForumThread, ModelFeedback, User, UserFollow, UserNotification, UserPreferenceProfile,
+)
 from app.schemas.schemas import (
     AnalysisRequestResponse, DataExportResponse, FeedbackHistoryItem,
     FeedbackHistoryResponse, FeedPreferencesResponse,
-    FeedPreferencesUpdate, ForumTrustInfo, PaginatedAnalysisRequestResponse,
-    QuotaResponse, SessionItem, SessionListResponse, UserStatsResponse,
+    FeedPreferencesUpdate, ForumThreadListResponse, ForumThreadSummary,
+    ForumTrustInfo, MentionSearchItem, PaginatedAnalysisRequestResponse,
+    QuotaResponse, SessionItem, SessionListResponse, TagItem, UserProfileResponse,
+    UserStatsResponse,
 )
 
 router = APIRouter()
@@ -433,3 +442,166 @@ async def my_trust_info(
 ):
     """Kullanıcının forum trust (itibar) bilgisini döner."""
     return ForumTrustInfo.from_user(current_user)
+
+
+# ── Sosyal: Takip / Profil / Feed / Mention ───────────────────────────────────
+
+@router.post("/{user_id}/follow", status_code=status.HTTP_204_NO_CONTENT)
+async def toggle_follow(
+    user_id:      _uuid.UUID,
+    current_user: User         = Depends(get_current_user),
+    db: AsyncSession           = Depends(get_db),
+):
+    """Kullanıcıyı takip et / takipten çık (toggle)."""
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Kendinizi takip edemezsiniz")
+
+    target = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if not target:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+
+    existing = await db.get(UserFollow, (current_user.id, user_id))
+    if existing:
+        await db.delete(existing)
+        await db.execute(update(User).where(User.id == user_id).values(follower_count=User.follower_count - 1))
+        await db.execute(update(User).where(User.id == current_user.id).values(following_count=User.following_count - 1))
+    else:
+        db.add(UserFollow(follower_id=current_user.id, followed_id=user_id))
+        await db.execute(update(User).where(User.id == user_id).values(follower_count=User.follower_count + 1))
+        await db.execute(update(User).where(User.id == current_user.id).values(following_count=User.following_count + 1))
+        await send_notification(
+            db=db,
+            user_id=user_id,
+            notif_type="new_follower",
+            payload={"actor": current_user.username, "actor_id": str(current_user.id)},
+        )
+    await db.commit()
+    return Response(status_code=204)
+
+
+@router.get("/{user_id}/profile", response_model=UserProfileResponse)
+async def get_user_profile(
+    user_id:      _uuid.UUID,
+    current_user: Optional[User] = Depends(get_optional_user),
+    db: AsyncSession             = Depends(get_db),
+):
+    """Kullanıcının genel profili: bio, takipçi/takip sayısı, thread sayısı."""
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+
+    thread_count = (await db.execute(
+        select(func.count()).select_from(ForumThread).where(ForumThread.user_id == user_id)
+    )).scalar_one()
+
+    is_following = False
+    if current_user is not None:
+        is_following = (await db.get(UserFollow, (current_user.id, user_id))) is not None
+
+    return UserProfileResponse(
+        id=user.id,
+        username=user.username,
+        bio=user.bio,
+        follower_count=user.follower_count,
+        following_count=user.following_count,
+        is_following=is_following,
+        thread_count=thread_count,
+        created_at=user.created_at,
+    )
+
+
+@router.get("/{user_id}/threads", response_model=ForumThreadListResponse)
+async def get_user_threads(
+    user_id: _uuid.UUID,
+    page:    int = Query(1, ge=1),
+    size:    int = Query(20, ge=1, le=100),
+    current_user: Optional[User] = Depends(get_optional_user),
+    db: AsyncSession             = Depends(get_db),
+):
+    """Kullanıcının açtığı thread'leri sayfalı listeler."""
+    target = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if not target:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+
+    q = (
+        select(ForumThread)
+        .options(selectinload(ForumThread.user), selectinload(ForumThread.tags))
+        .where(ForumThread.user_id == user_id)
+        .order_by(ForumThread.created_at.desc())
+    )
+
+    total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
+    threads = (await db.execute(q.offset((page - 1) * size).limit(size))).scalars().all()
+
+    items = [
+        ForumThreadSummary(
+            id=t.id,
+            title=t.title,
+            category=t.category,
+            status=t.status,
+            vote_suspicious=t.vote_suspicious,
+            vote_authentic=t.vote_authentic,
+            vote_investigate=t.vote_investigate,
+            comment_count=t.comment_count,
+            created_at=t.created_at,
+            author={"id": t.user.id, "username": t.user.username},
+            tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in t.tags],
+        )
+        for t in threads
+    ]
+    return ForumThreadListResponse(items=items, total=total, page=page, size=size)
+
+
+@router.get("/me/following-feed", response_model=ForumThreadListResponse)
+async def following_feed(
+    page:         int  = Query(1, ge=1),
+    size:         int  = Query(20, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession   = Depends(get_db),
+):
+    """Takip edilen kullanıcıların thread'lerini sayfalı listeler."""
+    followed_sq = select(UserFollow.followed_id).where(UserFollow.follower_id == current_user.id).scalar_subquery()
+
+    q = (
+        select(ForumThread)
+        .options(selectinload(ForumThread.user), selectinload(ForumThread.tags))
+        .where(ForumThread.user_id.in_(followed_sq))
+        .order_by(ForumThread.created_at.desc())
+    )
+
+    total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
+    threads = (await db.execute(q.offset((page - 1) * size).limit(size))).scalars().all()
+
+    items = [
+        ForumThreadSummary(
+            id=t.id,
+            title=t.title,
+            category=t.category,
+            status=t.status,
+            vote_suspicious=t.vote_suspicious,
+            vote_authentic=t.vote_authentic,
+            vote_investigate=t.vote_investigate,
+            comment_count=t.comment_count,
+            created_at=t.created_at,
+            author={"id": t.user.id, "username": t.user.username},
+            tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in t.tags],
+        )
+        for t in threads
+    ]
+    return ForumThreadListResponse(items=items, total=total, page=page, size=size)
+
+
+@router.get("/mention-search", response_model=list[MentionSearchItem])
+async def mention_search(
+    q:            str  = Query(..., min_length=2, max_length=50),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession   = Depends(get_db),
+):
+    """Kullanıcı adı otomatik tamamlama (mention için, maks 10 sonuç)."""
+    result = await db.execute(
+        select(User.id, User.username)
+        .where(User.username.ilike(f"{q}%"))
+        .order_by(User.username)
+        .limit(10)
+    )
+    return [MentionSearchItem(id=row.id, username=row.username) for row in result.all()]
