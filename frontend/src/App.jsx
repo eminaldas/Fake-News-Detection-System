@@ -32,6 +32,8 @@ import ForumFeed          from './features/forum/ForumFeed';
 import ForumThread        from './features/forum/ForumThread';
 import ForumCreateThread  from './features/forum/ForumCreateThread';
 import SharedAnalysis    from './pages/SharedAnalysis';
+import Profile          from './pages/Profile';
+import Bookmarks        from './pages/Bookmarks';
 
 // Listens to auth state and manages the WS connection lifecycle
 function WsLifecycle() {
@@ -99,6 +101,12 @@ function App() {
                             <Route path="admin/ab-test" element={
                                 <RequireAuth><AdminABTest /></RequireAuth>
                             } />
+
+                            {/* Kullanıcı profili */}
+                            <Route path="users/:userId" element={<Profile />} />
+
+                            {/* Kaydedilenler */}
+                            <Route path="bookmarks" element={<RequireAuth><Bookmarks /></RequireAuth>} />
 
                             {/* Paylaşılan analiz — auth gerekmez */}
                             <Route path="analysis/share/:articleId" element={<SharedAnalysis />} />
