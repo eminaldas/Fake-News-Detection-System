@@ -5,14 +5,14 @@ import axiosInstance from '../../api/axios';
 import TagInput from './TagInput';
 
 const CATEGORIES = [
-    { value: '',          label: 'Kategori seç...' },
-    { value: 'gundem',    label: 'Gündem'      },
+    { value: '',           label: 'Kategori seç...' },
+    { value: 'gündem',    label: 'Gündem'      },
     { value: 'ekonomi',   label: 'Ekonomi'     },
-    { value: 'saglik',    label: 'Sağlık'      },
+    { value: 'sağlık',    label: 'Sağlık'      },
     { value: 'teknoloji', label: 'Teknoloji'   },
     { value: 'spor',      label: 'Spor'        },
-    { value: 'kultur',    label: 'Kültür'      },
-    { value: 'yasam',     label: 'Yaşam'       },
+    { value: 'kültür',    label: 'Kültür'      },
+    { value: 'yaşam',     label: 'Yaşam'       },
 ];
 
 const CreateThreadModal = ({ onClose, articleId = null }) => {

@@ -10,13 +10,13 @@ import axiosInstance from '../../api/axios';
 import { useAuth } from '../../contexts/AuthContext';
 
 const CATEGORIES = [
-    { key: 'gundem',    label: 'Gündem',    Icon: Newspaper  },
+    { key: 'gündem',    label: 'Gündem',    Icon: Newspaper  },
     { key: 'ekonomi',   label: 'Ekonomi',   Icon: TrendingUp },
-    { key: 'saglik',    label: 'Sağlık',    Icon: Heart      },
+    { key: 'sağlık',    label: 'Sağlık',    Icon: Heart      },
     { key: 'teknoloji', label: 'Teknoloji', Icon: Cpu        },
     { key: 'spor',      label: 'Spor',      Icon: Dumbbell   },
-    { key: 'kultur',    label: 'Kültür',    Icon: Music      },
-    { key: 'yasam',     label: 'Yaşam',     Icon: Leaf       },
+    { key: 'kültür',    label: 'Kültür',    Icon: Music      },
+    { key: 'yaşam',     label: 'Yaşam',     Icon: Leaf       },
 ];
 
 const SORT_OPTIONS = [
