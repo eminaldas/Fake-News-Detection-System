@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-    MessageSquare, Search, ChevronUp, ChevronDown,
+    MessageSquare, ChevronUp, ChevronDown,
     Share2, Bookmark, Plus, Edit3, Link as LinkIcon,
-    Flag, TrendingUp, Shield, AlertCircle,
+    Flag, AlertCircle,
 } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import LoginNudgeModal, { useLoginNudge } from '../../components/ui/LoginNudgeModal';
@@ -283,7 +283,6 @@ const ForumFeed = () => {
     const [total,     setTotal]     = React.useState(0);
     const [page,      setPage]      = React.useState(1);
     const [loading,   setLoading]   = React.useState(false);
-    const [tagSearch, setTagSearch] = React.useState(tag);
     const [showModal, setShowModal] = React.useState(false);
     const [showNudge, closeNudge]   = useLoginNudge();
 
@@ -304,14 +303,6 @@ const ForumFeed = () => {
     }, [sort, category, tag]);
 
     React.useEffect(() => { load(1); }, [load]);
-
-    const applyTagSearch = (e) => {
-        e.preventDefault();
-        const next = new URLSearchParams(searchParams);
-        if (tagSearch.trim()) next.set('tag', tagSearch.trim());
-        else next.delete('tag');
-        setSearchParams(next);
-    };
 
     const totalPages = Math.ceil(total / SIZE);
 
@@ -352,33 +343,18 @@ const ForumFeed = () => {
                 </button>
             </div>
 
-            {/* ── Başlık + Etiket arama ── */}
-            <div className="flex items-center gap-3">
-                <h1 className="text-base font-manrope font-bold flex-1" style={{ color: 'var(--color-text-primary)' }}>
+            {/* ── Başlık ── */}
+            <div className="flex items-center gap-2">
+                <h1 className="text-base font-manrope font-bold" style={{ color: 'var(--color-text-primary)' }}>
                     {category
                         ? `${category.charAt(0).toUpperCase() + category.slice(1)} Tartışmaları`
                         : tag ? tag : 'Tüm Tartışmalar'}
-                    {total > 0 && (
-                        <span className="ml-2 text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>
-                            ({total})
-                        </span>
-                    )}
                 </h1>
-                <form onSubmit={applyTagSearch}>
-                    <div
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"
-                        style={{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border)' }}
-                    >
-                        <Search className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-text-muted)' }} />
-                        <input
-                            value={tagSearch}
-                            onChange={e => setTagSearch(e.target.value)}
-                            placeholder="Etiket ara..."
-                            className="bg-transparent outline-none w-28"
-                            style={{ color: 'var(--color-text-primary)' }}
-                        />
-                    </div>
-                </form>
+                {total > 0 && (
+                    <span className="text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>
+                        ({total})
+                    </span>
+                )}
             </div>
 
             {/* ── Aktif filtreler ── */}
@@ -396,7 +372,7 @@ const ForumFeed = () => {
                     )}
                     {tag && (
                         <button
-                            onClick={() => { const n = new URLSearchParams(searchParams); n.delete('tag'); setTagSearch(''); setSearchParams(n); }}
+                            onClick={() => { const n = new URLSearchParams(searchParams); n.delete('tag'); setSearchParams(n); }}
                             className="flex items-center gap-1 px-2.5 py-0.5 rounded-full"
                             style={{ background: 'rgba(16,185,129,0.10)', color: 'var(--color-brand-primary)', border: '1px solid rgba(16,185,129,0.22)' }}
                         >

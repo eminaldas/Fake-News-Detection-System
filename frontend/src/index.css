@@ -106,7 +106,7 @@
 
     /* Layout tokenlar */
     --color-market-band-bg:  #0c1116;
-    --color-navbar-bg:       #11151a;
+    --color-navbar-bg:       #151b21;
     --color-ticker-bg:       #10b981;
     --color-accent-amber:    #f59e0b;
     --color-accent-blue:     #3b82f6;
@@ -152,6 +152,10 @@
 
   html {
     font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  button, a, [role="button"], label[for], select, input[type="submit"] {
+    cursor: pointer;
   }
 
   h1, h2, h3, h4, h5, h6 {

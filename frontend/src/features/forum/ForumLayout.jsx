@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet, useSearchParams } from 'react-router-dom';
 import {
-    TrendingUp, MessageSquare,
+    TrendingUp, MessageSquare, Search,
     AlertTriangle, CheckCircle, Flame,
     Clock, Zap, Newspaper, Activity, BookOpen,
     Globe, Heart, Cpu, Dumbbell, Music, Leaf, Star,
@@ -77,8 +77,9 @@ const ForumLayout = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const currentSort = searchParams.get('sort') ?? 'hot';
 
-    const [trending, setTrending] = React.useState(null);
-    const [trust,    setTrust]    = React.useState(null);
+    const [trending,   setTrending]   = React.useState(null);
+    const [trust,      setTrust]      = React.useState(null);
+    const [tagSearch,  setTagSearch]  = React.useState(searchParams.get('tag') ?? '');
 
     React.useEffect(() => {
         axiosInstance.get('/forum/trending').then(r => setTrending(r.data)).catch(() => {});
@@ -100,6 +101,14 @@ const ForumLayout = () => {
     const setSort = (s) => {
         const next = new URLSearchParams(searchParams);
         next.set('sort', s);
+        setSearchParams(next);
+    };
+
+    const applyTagSearch = (e) => {
+        e.preventDefault();
+        const next = new URLSearchParams(searchParams);
+        if (tagSearch.trim()) next.set('tag', tagSearch.trim());
+        else next.delete('tag');
         setSearchParams(next);
     };
 
@@ -229,26 +238,6 @@ const ForumLayout = () => {
                         </nav>
                     </SideCard>
 
-                    {/* Etiketler */}
-                    <SideCard>
-                        <SideHeader label="Etiketler" />
-                        <div className="p-3 flex flex-wrap gap-1.5">
-                            {SYSTEM_TAGS.map(tag => (
-                                <NavLink
-                                    key={tag}
-                                    to={`/forum?tag=${encodeURIComponent(tag)}`}
-                                    className="px-2.5 py-1 rounded text-[10px] font-semibold transition-opacity hover:opacity-70"
-                                    style={{
-                                        background: 'rgba(16,185,129,0.08)',
-                                        color: 'var(--color-brand-primary)',
-                                        border: '1px solid rgba(16,185,129,0.15)',
-                                    }}
-                                >
-                                    {tag}
-                                </NavLink>
-                            ))}
-                        </div>
-                    </SideCard>
                 </aside>
 
                 {/* ══════════════════ ORTA İÇERİK ══════════════════ */}
@@ -259,39 +248,51 @@ const ForumLayout = () => {
                 {/* ══════════════════ SAĞ SIDEBAR ══════════════════ */}
                 <aside className="flex flex-col gap-3" style={SIDEBAR_STYLE}>
 
-                    {/* Forum İstatistikleri */}
+                    {/* Arama */}
                     <SideCard>
-                        <SideHeader label="Forum İstatistikleri" />
-                        <div className="flex flex-col gap-0 p-1">
-                            <div className="flex items-center justify-between px-3 py-3 rounded-lg"
-                                 style={{ background: 'rgba(16,185,129,0.04)' }}>
-                                <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                                    <MessageSquare className="w-4 h-4" style={{ color: 'var(--color-brand-primary)' }} />
-                                    Aktif Tartışma
-                                </span>
-                                <span className="text-sm font-black" style={{ color: 'var(--color-text-primary)' }}>
-                                    {trendingStats?.active ?? '—'}
-                                </span>
+                        <SideHeader label="Etiket Ara" accent />
+                        <form onSubmit={applyTagSearch} className="p-3">
+                            <div
+                                className="flex items-center gap-2 px-3 py-2.5 rounded-lg"
+                                style={{ background: 'var(--color-bg-base)', border: '1px solid var(--color-border)' }}
+                            >
+                                <Search className="w-4 h-4 shrink-0" style={{ color: 'var(--color-text-muted)' }} />
+                                <input
+                                    value={tagSearch}
+                                    onChange={e => setTagSearch(e.target.value)}
+                                    placeholder="# ile ara..."
+                                    className="bg-transparent outline-none flex-1 text-sm"
+                                    style={{ color: 'var(--color-text-primary)' }}
+                                />
+                                {tagSearch && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { setTagSearch(''); const n = new URLSearchParams(searchParams); n.delete('tag'); setSearchParams(n); }}
+                                        className="text-xs transition-colors hover:text-brand"
+                                        style={{ color: 'var(--color-text-muted)' }}
+                                    >
+                                        ✕
+                                    </button>
+                                )}
                             </div>
-                            <div className="flex items-center justify-between px-3 py-3 rounded-lg">
-                                <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                                    <AlertTriangle className="w-4 h-4" style={{ color: 'var(--color-accent-amber)' }} />
-                                    İnceleme Altında
-                                </span>
-                                <span className="text-sm font-black" style={{ color: 'var(--color-accent-amber)' }}>
-                                    {trendingStats?.underReview ?? '—'}
-                                </span>
+                            <div className="flex flex-wrap gap-1.5 mt-3">
+                                {SYSTEM_TAGS.map(tag => (
+                                    <button
+                                        key={tag}
+                                        type="button"
+                                        onClick={() => { setTagSearch(tag); const n = new URLSearchParams(searchParams); n.set('tag', tag); setSearchParams(n); }}
+                                        className="px-2 py-0.5 rounded text-[10px] font-semibold transition-opacity hover:opacity-70"
+                                        style={{
+                                            background: searchParams.get('tag') === tag ? 'rgba(16,185,129,0.18)' : 'rgba(16,185,129,0.06)',
+                                            color: 'var(--color-brand-primary)',
+                                            border: `1px solid ${searchParams.get('tag') === tag ? 'rgba(16,185,129,0.35)' : 'rgba(16,185,129,0.12)'}`,
+                                        }}
+                                    >
+                                        {tag}
+                                    </button>
+                                ))}
                             </div>
-                            <div className="flex items-center justify-between px-3 py-3 rounded-lg">
-                                <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                                    <CheckCircle className="w-4 h-4" style={{ color: 'var(--color-brand-primary)' }} />
-                                    Çözüme Ulaşan
-                                </span>
-                                <span className="text-sm font-black" style={{ color: 'var(--color-brand-primary)' }}>
-                                    {trendingStats?.resolved ?? '—'}
-                                </span>
-                            </div>
-                        </div>
+                        </form>
                     </SideCard>
 
                     {/* Trend Etiketler */}
@@ -356,6 +357,41 @@ const ForumLayout = () => {
                             </div>
                         </SideCard>
                     )}
+
+                    {/* Forum İstatistikleri */}
+                    <SideCard>
+                        <SideHeader label="Forum İstatistikleri" />
+                        <div className="flex flex-col gap-0 p-1">
+                            <div className="flex items-center justify-between px-3 py-3 rounded-lg"
+                                 style={{ background: 'rgba(16,185,129,0.04)' }}>
+                                <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                                    <MessageSquare className="w-4 h-4" style={{ color: 'var(--color-brand-primary)' }} />
+                                    Aktif Tartışma
+                                </span>
+                                <span className="text-sm font-black" style={{ color: 'var(--color-text-primary)' }}>
+                                    {trendingStats?.active ?? '—'}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between px-3 py-3 rounded-lg">
+                                <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                                    <AlertTriangle className="w-4 h-4" style={{ color: 'var(--color-accent-amber)' }} />
+                                    İnceleme Altında
+                                </span>
+                                <span className="text-sm font-black" style={{ color: 'var(--color-accent-amber)' }}>
+                                    {trendingStats?.underReview ?? '—'}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between px-3 py-3 rounded-lg">
+                                <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                                    <CheckCircle className="w-4 h-4" style={{ color: 'var(--color-brand-primary)' }} />
+                                    Çözüme Ulaşan
+                                </span>
+                                <span className="text-sm font-black" style={{ color: 'var(--color-brand-primary)' }}>
+                                    {trendingStats?.resolved ?? '—'}
+                                </span>
+                            </div>
+                        </div>
+                    </SideCard>
                 </aside>
 
             </div>
