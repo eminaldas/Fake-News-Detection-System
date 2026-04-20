@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-    MessageSquare, ChevronUp, ChevronDown,
+    MessageSquare,
     Share2, Bookmark, Plus, Edit3, Link as LinkIcon,
     Flag, AlertCircle,
 } from 'lucide-react';
+import NewsVoteBar    from './NewsVoteBar';
+import GeneralVoteBar from './GeneralVoteBar';
 import axiosInstance from '../../api/axios';
 import LoginNudgeModal, { useLoginNudge } from '../../components/ui/LoginNudgeModal';
 import { useAuth } from '../../contexts/AuthContext';
@@ -74,9 +76,7 @@ function ThreadCard({ thread }) {
     const [bookmarked, setBookmarked] = React.useState(false);
     const [reportTarget, setReportTarget] = React.useState(null);
 
-    const handleVote = async (e, voteType) => {
-        e.preventDefault();
-        e.stopPropagation();
+    const handleVote = async (voteType) => {
         if (!user || voting) return;
         setVoting(true);
         try {
@@ -89,6 +89,8 @@ function ThreadCard({ thread }) {
                 vote_suspicious:   data.vote_suspicious,
                 vote_authentic:    data.vote_authentic,
                 vote_investigate:  data.vote_investigate,
+                vote_up:           data.vote_up,
+                vote_down:         data.vote_down,
                 status:            data.status,
                 current_user_vote: data.current_user_vote,
             }));
@@ -236,28 +238,12 @@ function ThreadCard({ thread }) {
                     style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
                 >
                     {/* Oy butonları */}
-                    <div
-                        className="flex items-center rounded-full overflow-hidden mr-1"
-                        style={{ background: 'rgba(0,0,0,0.22)' }}
-                    >
-                        <button
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/10"
-                            style={{ color: 'var(--color-brand-primary)' }}
-                            onClick={e => handleVote(e, 'authentic')}
-                        >
-                            <ChevronUp className="w-3.5 h-3.5" />
-                            <span>{localThread.vote_authentic}</span>
-                        </button>
-                        <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.08)' }} />
-                        <button
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/10"
-                            style={{ color: 'var(--color-fake-fill)' }}
-                            onClick={e => handleVote(e, 'suspicious')}
-                        >
-                            <ChevronDown className="w-3.5 h-3.5" />
-                            <span>{localThread.vote_suspicious}</span>
-                        </button>
-                    </div>
+                    {(() => {
+                        const isNews = localThread.article_id || localThread.category === 'haberler';
+                        return isNews
+                            ? <NewsVoteBar    thread={localThread} onVote={(type) => handleVote(type)} disabled={voting} />
+                            : <GeneralVoteBar thread={localThread} onVote={(type) => handleVote(type)} disabled={voting} />;
+                    })()}
 
                     {/* Oy dağılım barı */}
                     <div className="flex items-center gap-2 mr-1">

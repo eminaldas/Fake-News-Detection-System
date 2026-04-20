@@ -7,6 +7,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import ForumCommentTree from './ForumCommentTree';
 import LoginNudgeModal, { useLoginNudge } from '../../components/ui/LoginNudgeModal';
 import ShareDropdown from '../../components/ui/ShareDropdown';
+import NewsVoteBar    from './NewsVoteBar';
+import GeneralVoteBar from './GeneralVoteBar';
 
 const VOTE_OPTIONS = [
   { type: 'suspicious',  label: 'Şüpheli', emoji: '🚩', color: 'var(--color-fake-fill)',     activeBg: 'rgba(239,68,68,0.12)',  activeBorder: 'rgba(239,68,68,0.40)' },
@@ -86,6 +88,8 @@ const ForumThread = () => {
                 vote_suspicious:   data.vote_suspicious,
                 vote_authentic:    data.vote_authentic,
                 vote_investigate:  data.vote_investigate,
+                vote_up:           data.vote_up,
+                vote_down:         data.vote_down,
                 status:            data.status,
                 current_user_vote: data.current_user_vote,
             }));
@@ -349,23 +353,12 @@ const ForumThread = () => {
                         style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-base)' }}
                     >
                         <span className="text-[9px] text-muted uppercase tracking-wider font-bold mr-1">Oy ver:</span>
-                        {VOTE_OPTIONS.map(v => (
-                            <button
-                                key={v.type}
-                                disabled={voting}
-                                onClick={() => handleVote(v.type)}
-                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-semibold
-                                           transition-all duration-150 disabled:opacity-50 hover:scale-[1.03] active:scale-[0.98]"
-                                style={{
-                                    background: thread.current_user_vote === v.type ? v.activeBg : 'rgba(255,255,255,0.03)',
-                                    border:     `1px solid ${thread.current_user_vote === v.type ? v.activeBorder : 'var(--color-border)'}`,
-                                    color:      v.color,
-                                }}
-                            >
-                                <span>{v.emoji}</span>
-                                {v.label}
-                            </button>
-                        ))}
+                        {(() => {
+                            const isNews = thread.article_id || thread.category === 'haberler';
+                            return isNews
+                                ? <NewsVoteBar    thread={thread} onVote={handleVote} disabled={voting} />
+                                : <GeneralVoteBar thread={thread} onVote={handleVote} disabled={voting} />;
+                        })()}
                     </div>
                 </div>
 
