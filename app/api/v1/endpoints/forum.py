@@ -625,6 +625,79 @@ async def helpful_vote(
     await db.commit()
 
 
+@router.put("/comments/{comment_id}", response_model=ForumCommentItem)
+async def update_comment(
+    comment_id:   _uuid.UUID,
+    body:         ForumCommentUpdate,
+    current_user: User       = Depends(get_current_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    comment = (await db.execute(
+        select(ForumComment)
+        .options(selectinload(ForumComment.user))
+        .where(ForumComment.id == comment_id)
+    )).scalar_one_or_none()
+
+    if not comment:
+        raise HTTPException(status_code=404, detail="Yorum bulunamadı")
+    if comment.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Bu yorumu düzenleyemezsiniz")
+
+    age = datetime.now(timezone.utc) - comment.created_at.replace(tzinfo=timezone.utc)
+    if age.total_seconds() > 900:
+        raise HTTPException(status_code=403, detail="Yorumlar yalnızca 15 dakika içinde düzenlenebilir")
+
+    tox = await asyncio.to_thread(check_toxicity, body.body)
+    if not tox["safe"] and tox["severity"] == "high":
+        raise HTTPException(status_code=422, detail="İçerik forum politikalarına aykırı")
+
+    comment.body      = body.body
+    comment.is_edited = True
+    comment.edited_at = datetime.now(timezone.utc)
+
+    await db.commit()
+    await db.refresh(comment)
+
+    return ForumCommentItem(
+        id=comment.id,
+        thread_id=comment.thread_id,
+        parent_id=comment.parent_id,
+        username=comment.user.username,
+        body=comment.body,
+        evidence_urls=comment.evidence_urls or [],
+        helpful_count=comment.helpful_count,
+        depth=comment.depth,
+        is_highlighted=comment.is_highlighted,
+        created_at=comment.created_at,
+        moderation_status=comment.moderation_status,
+    )
+
+
+@router.delete("/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_comment(
+    comment_id:   _uuid.UUID,
+    current_user: User       = Depends(get_current_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    comment = (await db.execute(
+        select(ForumComment).where(ForumComment.id == comment_id)
+    )).scalar_one_or_none()
+
+    if not comment:
+        raise HTTPException(status_code=404, detail="Yorum bulunamadı")
+    if comment.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Bu yorumu silemezsiniz")
+
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == comment.thread_id)
+    )).scalar_one_or_none()
+    if thread:
+        thread.comment_count = max(0, thread.comment_count - 1)
+
+    await db.delete(comment)
+    await db.commit()
+
+
 _AUTO_FLAG_THRESHOLD = 3   # kaç raporda otomatik flaglenir
 
 
