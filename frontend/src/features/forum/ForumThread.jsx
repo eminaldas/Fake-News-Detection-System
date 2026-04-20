@@ -1,8 +1,9 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { AlertTriangle, Send, Link as LinkIcon, X, ShieldCheck, ShieldAlert, Search } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import { useWebSocket } from '../../contexts/WebSocketContext';
+import { useAuth } from '../../contexts/AuthContext';
 import ForumCommentTree from './ForumCommentTree';
 import LoginNudgeModal, { useLoginNudge } from '../../components/ui/LoginNudgeModal';
 import ShareDropdown from '../../components/ui/ShareDropdown';
@@ -33,11 +34,19 @@ function VoteBar({ suspicious, authentic, investigate, size = 2 }) {
 const ForumThread = () => {
     const { threadId } = useParams();
     const { subscribe } = useWebSocket();
+    const navigate = useNavigate();
+    const { user } = useAuth();
     const [thread,   setThread]   = React.useState(null);
     const [loading,  setLoading]  = React.useState(true);
     const [voting,   setVoting]   = React.useState(false);
 
     const [showNudge, closeNudge] = useLoginNudge();
+
+    const isAuthor = user?.id === thread?.author?.id;
+
+    const [editMode,  setEditMode]  = React.useState(false);
+    const [editTitle, setEditTitle] = React.useState('');
+    const [editBody,  setEditBody]  = React.useState('');
 
     const [body,              setBody]              = React.useState('');
     const [parentId,          setParentId]          = React.useState(null);
@@ -94,6 +103,25 @@ const ForumThread = () => {
     };
 
     const cancelReply = () => { setParentId(null); setReplyTo(null); };
+
+    const handleDeleteThread = async () => {
+        if (!window.confirm('Bu tartışmayı silmek istediğinizden emin misiniz?')) return;
+        try {
+            await axiosInstance.delete(`/forum/threads/${threadId}`);
+            navigate('/forum');
+        } catch { /* sessiz */ }
+    };
+
+    const submitEdit = async () => {
+        try {
+            await axiosInstance.put(`/forum/threads/${threadId}`, {
+                title: editTitle,
+                body:  editBody,
+            });
+            setEditMode(false);
+            await load();
+        } catch { /* sessiz */ }
+    };
 
     const addUrl = () => {
         const url = urlInput.trim();
@@ -202,6 +230,24 @@ const ForumThread = () => {
                                 url={`${window.location.origin}/s/forum/${thread.id}`}
                                 text={`Forum: ${thread.title}`}
                             />
+                            {isAuthor && !editMode && (
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => { setEditTitle(thread.title); setEditBody(thread.body ?? ''); setEditMode(true); }}
+                                        className="text-[9px] px-2 py-1 rounded-lg hover:bg-white/5 transition-colors"
+                                        style={{ color: 'var(--color-text-muted)' }}
+                                    >
+                                        Düzenle
+                                    </button>
+                                    <button
+                                        onClick={handleDeleteThread}
+                                        className="text-[9px] px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors"
+                                        style={{ color: '#ef4444' }}
+                                    >
+                                        Sil
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         {/* Yazar + tarih */}
@@ -223,10 +269,40 @@ const ForumThread = () => {
                         )}
 
                         {/* Gövde */}
-                        {thread.body && (
-                            <p className="text-[13px] text-tx-secondary leading-relaxed mb-4">
-                                {thread.body}
-                            </p>
+                        {editMode ? (
+                            <div className="flex flex-col gap-2 mb-4">
+                                <input
+                                    value={editTitle}
+                                    onChange={e => setEditTitle(e.target.value)}
+                                    className="w-full bg-transparent text-base font-bold outline-none p-2 rounded-xl border"
+                                    style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-base)', color: 'var(--color-text-primary)' }}
+                                />
+                                <textarea
+                                    value={editBody}
+                                    onChange={e => setEditBody(e.target.value)}
+                                    rows={4}
+                                    className="w-full bg-transparent text-sm outline-none p-2 rounded-xl border resize-none"
+                                    style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-base)', color: 'var(--color-text-secondary)' }}
+                                />
+                                <div className="flex gap-2">
+                                    <button onClick={submitEdit}
+                                        className="px-4 py-1.5 rounded-xl text-xs font-bold"
+                                        style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
+                                        Kaydet
+                                    </button>
+                                    <button onClick={() => setEditMode(false)}
+                                        className="px-4 py-1.5 rounded-xl text-xs font-medium"
+                                        style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
+                                        İptal
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            thread.body && (
+                                <p className="text-[13px] text-tx-secondary leading-relaxed mb-4">
+                                    {thread.body}
+                                </p>
+                            )
                         )}
 
                         {/* Etiketler */}
