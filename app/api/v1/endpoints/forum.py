@@ -44,6 +44,7 @@ router = APIRouter()
 
 _MIN_VOTES_FOR_REVIEW = 5
 _SUSPICIOUS_REVIEW_THRESHOLD = 0.60
+_INVESTIGATE_THRESHOLD = 10
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -476,6 +477,30 @@ async def vote_thread(
             select(Article).where(Article.id == thread.article_id)
         )).scalar_one_or_none()
     await _check_under_review(thread, article, db)
+
+    # "İncele" eşiği kontrolü — eşik aşılırsa fact-check pipeline'ı tetikle
+    if (
+        thread.vote_investigate >= _INVESTIGATE_THRESHOLD
+        and not thread.fact_check_triggered
+        and thread.article_id is not None
+    ):
+        try:
+            from workers.tasks import analyze_article
+            # article'ı fetch et, analyze_article task'ına gönder
+            if article is None:
+                article = (await db.execute(
+                    select(Article).where(Article.id == thread.article_id)
+                )).scalar_one_or_none()
+            if article:
+                analyze_article.delay(
+                    str(thread.article_id),
+                    text=article.title + " " + (article.body or ""),
+                    news_evidence=None,
+                    user_id=None,
+                )
+        except Exception:
+            pass  # worker mevcut değilse sessizce geç
+        thread.fact_check_triggered = True
 
     await db.commit()
     await db.refresh(thread)
