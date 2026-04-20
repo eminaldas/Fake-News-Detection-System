@@ -33,7 +33,7 @@ const NewsTicker = () => {
             className="fixed bottom-0 left-0 right-0 z-50 h-10 flex items-center overflow-hidden"
             style={{
                 background:   'var(--color-ticker-bg)',
-                borderTop:    '1px solid rgba(46,204,113,0.15)',
+                borderTop:    '1px solid rgba(16,185,129,0.15)',
                 boxShadow:    '0 -4px 16px rgba(0,0,0,0.2)',
             }}
             onMouseEnter={() => setPaused(true)}
@@ -57,7 +57,7 @@ const NewsTicker = () => {
                     <span key={`${item.id}-${idx}`} className="flex items-center gap-2 px-6">
                         {(item.source_domain || item.source_name) && (
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider"
-                                  style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)' }}>
+                                  style={{ background: 'rgba(6, 43, 31,0.1)', color: 'rgba(6, 43, 31,0.8)' }}>
                                 {item.source_domain || item.source_name}
                             </span>
                         )}
@@ -67,17 +67,17 @@ const NewsTicker = () => {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="font-manrope font-bold text-[11px] hover:underline"
-                                style={{ color: 'rgba(255,255,255,0.9)' }}
+                                style={{ color: 'rgba(6, 43, 31,0.9)' }}
                             >
                                 {item.title}
                             </a>
                         ) : (
                             <span className="font-manrope font-bold text-[11px]"
-                                  style={{ color: 'rgba(255,255,255,0.9)' }}>
+                                  style={{ color: 'rgba(6, 43, 31,0.9)' }}>
                                 {item.title}
                             </span>
                         )}
-                        <span className="opacity-30 mx-3" style={{ color: '#ffffff' }}>◆</span>
+                        <span className="opacity-30 mx-3" style={{ color: '#0d4a36' }}>◆</span>
                     </span>
                 ))}
             </div>

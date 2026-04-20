@@ -72,9 +72,9 @@ const TagInput = ({ value = [], onChange, category = '', maxTags = 10 }) => {
                         key={tag}
                         className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full"
                         style={{
-                            background: 'rgba(46,204,113,0.10)',
+                            background: 'rgba(16,185,129,0.10)',
                             color:      'var(--color-brand-primary)',
-                            border:     '1px solid rgba(46,204,113,0.25)',
+                            border:     '1px solid rgba(16,185,129,0.25)',
                         }}
                     >
                         {tag}

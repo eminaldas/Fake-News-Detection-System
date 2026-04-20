@@ -105,7 +105,7 @@ const CreateThreadModal = ({ onClose, articleId = null }) => {
                         background: 'var(--color-bg-surface)',
                         border: '1px solid var(--color-border)',
                         borderRadius: '12px',
-                        boxShadow: '0 24px 64px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(46,204,113,0.08)',
+                        boxShadow: '0 24px 64px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(16,185,129,0.08)',
                         transform: visible ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.97)',
                         opacity: visible ? 1 : 0,
                         maxHeight: '90vh',
@@ -138,7 +138,7 @@ const CreateThreadModal = ({ onClose, articleId = null }) => {
                         {/* Bağlı haber bandı */}
                         {articleId && (
                             <div className="mx-5 mt-4 flex items-center gap-3 p-3 rounded-lg"
-                                 style={{ background: 'rgba(46,204,113,0.05)', border: '1px solid rgba(46,204,113,0.15)' }}>
+                                 style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.15)' }}>
                                 <LinkIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
                                 <p className="text-[11px] font-semibold flex-1" style={{ color: 'var(--color-text-secondary)' }}>
                                     Haber ID: {articleId.slice(0, 12)}…
@@ -234,7 +234,7 @@ const CreateThreadModal = ({ onClose, articleId = null }) => {
                                     style={{
                                         background: 'var(--color-brand-primary)',
                                         color: 'var(--color-bg-base)',
-                                        boxShadow: '0 2px 12px rgba(46,204,113,0.25)',
+                                        boxShadow: '0 2px 12px rgba(16,185,129,0.25)',
                                     }}
                                 >
                                     {submitting ? 'Oluşturuluyor...' : 'Tartışmayı Başlat →'}

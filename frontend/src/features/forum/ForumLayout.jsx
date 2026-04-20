@@ -95,7 +95,7 @@ const ForumLayout = () => {
 
     const navLinkStyle = (isActive) => isActive
         ? {
-            background: 'rgba(46,204,113,0.09)',
+            background: 'rgba(16,185,129,0.09)',
             color: 'var(--color-brand-primary)',
             borderLeft: '2px solid var(--color-brand-primary)',
             paddingLeft: '10px',
@@ -155,7 +155,7 @@ const ForumLayout = () => {
                                     onClick={() => setSort(opt.key)}
                                     className="flex items-center gap-3 py-2.5 pr-3 rounded-md text-xs font-semibold transition-colors w-full text-left"
                                     style={currentSort === opt.key ? {
-                                        background: 'rgba(46,204,113,0.09)',
+                                        background: 'rgba(16,185,129,0.09)',
                                         color: 'var(--color-brand-primary)',
                                         borderLeft: '2px solid var(--color-brand-primary)',
                                         paddingLeft: '10px',
@@ -231,9 +231,9 @@ const ForumLayout = () => {
                                     to={`/forum?tag=${encodeURIComponent(tag)}`}
                                     className="px-2 py-0.5 rounded text-[9px] font-semibold transition-opacity hover:opacity-70"
                                     style={{
-                                        background: 'rgba(46,204,113,0.07)',
+                                        background: 'rgba(16,185,129,0.07)',
                                         color: 'var(--color-brand-primary)',
-                                        border: '1px solid rgba(46,204,113,0.14)',
+                                        border: '1px solid rgba(16,185,129,0.14)',
                                     }}
                                 >
                                     {tag}
@@ -301,7 +301,7 @@ const ForumLayout = () => {
                                         </span>
                                         <span
                                             className="text-[9px] ml-2 shrink-0 px-1.5 py-0.5 rounded"
-                                            style={{ background: 'rgba(46,204,113,0.07)', color: 'var(--color-brand-primary)' }}
+                                            style={{ background: 'rgba(16,185,129,0.07)', color: 'var(--color-brand-primary)' }}
                                         >
                                             {t.usage_count}
                                         </span>

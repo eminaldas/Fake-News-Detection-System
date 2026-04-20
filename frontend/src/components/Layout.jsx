@@ -35,9 +35,9 @@ const PARTICLES = [
 
 /* Yavaş hareket eden orb'lar — çok subtle */
 const ORBS = [
-    { left: '-10%', top: '10%',  size: 500, dur: '35s', delay: '0s',   color: 'rgba(46,204,113,0.025)'  },
+    { left: '-10%', top: '10%',  size: 500, dur: '35s', delay: '0s',   color: 'rgba(16,185,129,0.025)'  },
     { left: '70%',  top: '-5%',  size: 400, dur: '45s', delay: '10s',  color: 'rgba(16,185,129,0.018)'  },
-    { left: '40%',  top: '60%',  size: 350, dur: '40s', delay: '5s',   color: 'rgba(46,204,113,0.015)'  },
+    { left: '40%',  top: '60%',  size: 350, dur: '40s', delay: '5s',   color: 'rgba(16,185,129,0.015)'  },
 ];
 
 const Layout = () => {
@@ -116,7 +116,7 @@ const Layout = () => {
                 {/* Scan line — sadece dark modda, çok soluk */}
                 {isDarkMode && (
                     <div className="absolute left-0 right-0 h-px animate-scan"
-                         style={{ background: 'linear-gradient(90deg,transparent,rgba(46,204,113,0.06),transparent)' }} />
+                         style={{ background: 'linear-gradient(90deg,transparent,rgba(16,185,129,0.06),transparent)' }} />
                 )}
                 {!isDarkMode && (
                     <div className="absolute left-0 right-0 h-px animate-scan"
@@ -129,9 +129,9 @@ const Layout = () => {
                          style={{
                              left: p.left, top: p.top,
                              width: p.size, height: p.size,
-                             background: isDarkMode ? 'rgba(46,204,113,0.20)' : 'rgba(100,116,139,0.18)',
+                             background: isDarkMode ? 'rgba(16,185,129,0.20)' : 'rgba(100,116,139,0.18)',
                              animation: `particleRise ${p.dur} ${p.delay} ease-in-out infinite`,
-                             boxShadow: isDarkMode ? '0 0 4px rgba(46,204,113,0.15)' : 'none',
+                             boxShadow: isDarkMode ? '0 0 4px rgba(16,185,129,0.15)' : 'none',
                          }} />
                 ))}
             </div>

@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import CreateThreadModal from './CreateThreadModal';
 
 const STATUS_BADGE = {
-    active:       { label: 'Aktif',    color: 'var(--color-brand-primary)', bg: 'rgba(46,204,113,0.08)',  border: 'rgba(46,204,113,0.20)' },
+    active:       { label: 'Aktif',    color: 'var(--color-brand-primary)', bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.20)' },
     under_review: { label: 'İnceleme', color: 'var(--color-accent-amber)',  bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.20)' },
     resolved:     { label: 'Çözüldü',  color: 'var(--color-accent-blue)',   bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.20)' },
 };
@@ -30,19 +30,16 @@ function ThreadCard({ thread }) {
 
     return (
         <article
-            className="rounded-xl border transition-all duration-200 group"
+            className="rounded-xl transition-all duration-200 group"
             style={{
                 background: 'var(--color-bg-surface)',
-                borderColor: 'var(--color-border)',
                 boxShadow: '0 2px 12px rgba(0,0,0,0.25)',
             }}
             onMouseEnter={e => {
-                e.currentTarget.style.borderColor = 'rgba(46,204,113,0.22)';
-                e.currentTarget.style.boxShadow   = '0 4px 24px rgba(0,0,0,0.35)';
+                e.currentTarget.style.boxShadow = '0 6px 28px rgba(0,0,0,0.40)';
             }}
             onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'var(--color-border)';
-                e.currentTarget.style.boxShadow   = '0 2px 12px rgba(0,0,0,0.25)';
+                e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.25)';
             }}
         >
             <div className="p-5 flex gap-4">
@@ -50,7 +47,7 @@ function ThreadCard({ thread }) {
                 {/* Dikey oy widget */}
                 <div
                     className="flex flex-col items-center gap-1.5 rounded-lg px-2 py-2.5 flex-shrink-0 h-fit"
-                    style={{ background: 'rgba(0,0,0,0.20)', border: '1px solid var(--color-border)' }}
+                    style={{ background: 'rgba(0,0,0,0.20)' }}
                 >
                     <button
                         className="transition-transform hover:scale-110 active:scale-95"
@@ -116,9 +113,9 @@ function ThreadCard({ thread }) {
                                     key={t.id}
                                     className="text-[9px] px-2 py-0.5 rounded"
                                     style={{
-                                        background: t.is_system ? 'rgba(46,204,113,0.07)' : 'rgba(255,255,255,0.04)',
+                                        background: t.is_system ? 'rgba(16,185,129,0.07)' : 'rgba(255,255,255,0.04)',
                                         color:      t.is_system ? 'var(--color-brand-primary)' : 'var(--color-text-muted)',
-                                        border:     `1px solid ${t.is_system ? 'rgba(46,204,113,0.18)' : 'rgba(255,255,255,0.06)'}`,
+                                        border:     `1px solid ${t.is_system ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.06)'}`,
                                     }}
                                 >
                                     {t.name}
@@ -222,10 +219,9 @@ const ForumFeed = () => {
 
             {/* ── Tartışma başlat çubuğu ── */}
             <div
-                className="rounded-xl border p-4 flex items-center gap-3 cursor-pointer transition-all hover:border-brand/25 hover:shadow-lg"
+                className="rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-all"
                 style={{
                     background: 'var(--color-bg-surface)',
-                    borderColor: 'var(--color-border)',
                     boxShadow: '0 2px 12px rgba(0,0,0,0.22)',
                 }}
                 onClick={() => setShowModal(true)}
@@ -253,7 +249,7 @@ const ForumFeed = () => {
                 {/* + butonu */}
                 <button
                     className="p-2 rounded-lg transition-colors"
-                    style={{ background: 'rgba(46,204,113,0.10)', color: 'var(--color-brand-primary)' }}
+                    style={{ background: 'rgba(16,185,129,0.10)', color: 'var(--color-brand-primary)' }}
                     onClick={e => { e.stopPropagation(); setShowModal(true); }}
                 >
                     <Plus className="w-4 h-4" />
@@ -301,7 +297,7 @@ const ForumFeed = () => {
                         <button
                             onClick={() => { const n = new URLSearchParams(searchParams); n.delete('tag'); setTagSearch(''); setSearchParams(n); }}
                             className="flex items-center gap-1 px-2 py-0.5 rounded"
-                            style={{ background: 'rgba(46,204,113,0.08)', color: 'var(--color-brand-primary)', border: '1px solid rgba(46,204,113,0.20)' }}
+                            style={{ background: 'rgba(16,185,129,0.08)', color: 'var(--color-brand-primary)', border: '1px solid rgba(16,185,129,0.20)' }}
                         >
                             {tag} ✕
                         </button>

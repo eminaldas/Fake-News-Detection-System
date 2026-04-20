@@ -96,7 +96,7 @@
     --color-border:           #2d343d;
 
     /* Marka */
-    --color-brand-primary:    #2ecc71;
+    --color-brand-primary:    #10b981;
     --color-brand-secondary:  #10b981;
     --color-brand-accent:     #0d2318;
     --color-brand-light:      #0f1f14;
@@ -106,8 +106,8 @@
 
     /* Layout tokenlar */
     --color-market-band-bg:  #0c1116;
-    --color-navbar-bg:       #191e24;
-    --color-ticker-bg:       #0d2b1a;
+    --color-navbar-bg:       #11151a;
+    --color-ticker-bg:       #10b981;
     --color-accent-amber:    #f59e0b;
     --color-accent-blue:     #3b82f6;
     --color-muted-green:     #10b981;
@@ -207,7 +207,7 @@
   --color-skeleton:       var(--color-skeleton);
 
   /* ── Emerald Sentinel — sabit renkler ── */
-  --color-es-primary:   #2ecc71;
+  --color-es-primary:   #10b981;
   --color-es-secondary: #10b981;
   --color-es-tertiary:  #1ee9b6;
   --color-es-error:     #ff7351;
@@ -305,7 +305,7 @@
   .dark .glass-pill {
     background-color: rgba(33, 38, 45, 0.85);
     border-color: rgba(46, 204, 113, 0.10);
-    box-shadow: 0 4px 32px rgba(0,0,0,0.40), 0 0 0 0.5px rgba(46,204,113,0.05);
+    box-shadow: 0 4px 32px rgba(0,0,0,0.40), 0 0 0 0.5px rgba(16,185,129,0.05);
   }
 
   /* ── Navbar blur strip ── */
@@ -438,8 +438,8 @@
   ::-webkit-scrollbar-thumb:hover {
     background: color-mix(in srgb, var(--color-border) 85%, transparent);
   }
-  .dark ::-webkit-scrollbar-thumb       { background: rgba(46,204,113,0.10); }
-  .dark ::-webkit-scrollbar-thumb:hover { background: rgba(46,204,113,0.20); }
+  .dark ::-webkit-scrollbar-thumb       { background: rgba(16,185,129,0.10); }
+  .dark ::-webkit-scrollbar-thumb:hover { background: rgba(16,185,129,0.20); }
 
   .custom-scrollbar::-webkit-scrollbar       { width: 8px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -447,6 +447,6 @@
     background: color-mix(in srgb, var(--color-border) 45%, transparent);
     border-radius: 12px;
   }
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb       { background: rgba(46,204,113,0.08); }
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(46,204,113,0.18); }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb       { background: rgba(16,185,129,0.08); }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(16,185,129,0.18); }
 }

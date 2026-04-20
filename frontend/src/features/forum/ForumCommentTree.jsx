@@ -12,7 +12,7 @@ function timeAgo(dateStr) {
 }
 
 const AVATAR_COLORS = [
-    ['rgba(46,204,113,0.15)',  'var(--color-brand-primary)'],
+    ['rgba(16,185,129,0.15)',  'var(--color-brand-primary)'],
     ['rgba(59,130,246,0.15)',  'var(--color-accent-blue)'],
     ['rgba(245,158,11,0.15)',  'var(--color-accent-amber)'],
     ['rgba(168,85,247,0.15)',  '#a855f7'],
@@ -32,7 +32,7 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, currentU
     const [avatarBg, avatarColor]       = getAvatarColor(comment.username);
 
     const depthBorderColor = depth === 0
-        ? `rgba(46,204,113,${comment.is_highlighted ? '0.55' : '0.20'})`
+        ? `rgba(16,185,129,${comment.is_highlighted ? '0.55' : '0.20'})`
         : depth === 1
         ? 'var(--color-border)'
         : 'rgba(61,68,77,0.40)';
@@ -64,7 +64,7 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, currentU
                 style={{
                     background: depthBg,
                     borderLeft: `2px solid ${depthBorderColor}`,
-                    boxShadow:  comment.is_highlighted ? '0 0 0 1px rgba(46,204,113,0.07) inset' : 'none',
+                    boxShadow:  comment.is_highlighted ? '0 0 0 1px rgba(16,185,129,0.07) inset' : 'none',
                 }}
             >
                 {/* Üst: avatar + kullanıcı + zaman */}
@@ -91,7 +91,7 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, currentU
                     {comment.is_highlighted && (
                         <span
                             className="text-[8px] px-1.5 py-0.5 rounded-full font-bold"
-                            style={{ background: 'rgba(46,204,113,0.10)', color: 'var(--color-brand-primary)', border: '1px solid rgba(46,204,113,0.20)' }}
+                            style={{ background: 'rgba(16,185,129,0.10)', color: 'var(--color-brand-primary)', border: '1px solid rgba(16,185,129,0.20)' }}
                         >
                             Öne Çıkan
                         </span>
