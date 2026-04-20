@@ -38,10 +38,9 @@ const SYSTEM_TAGS = [
 
 const SideCard = ({ children, className = '' }) => (
     <div
-        className={`rounded-xl border overflow-hidden ${className}`}
+        className={`rounded-xl overflow-hidden ${className}`}
         style={{
             background: 'var(--color-bg-surface)',
-            borderColor: 'var(--color-border)',
             boxShadow: '0 4px 16px rgba(0,0,0,0.28)',
         }}
     >
@@ -51,8 +50,8 @@ const SideCard = ({ children, className = '' }) => (
 
 const SideHeader = ({ label, accent }) => (
     <div
-        className="flex items-center gap-2.5 px-4 py-3 border-b"
-        style={{ borderColor: 'var(--color-border)', background: 'rgba(0,0,0,0.15)' }}
+        className="flex items-center gap-2.5 px-4 py-3"
+        style={{ background: 'rgba(0,0,0,0.15)' }}
     >
         {accent && (
             <div className="w-1 h-4 rounded-full shrink-0" style={{ background: 'var(--color-brand-primary)' }} />
@@ -106,7 +105,7 @@ const ForumLayout = () => {
         <div className="w-full">
             <div
                 className="max-w-[1400px] mx-auto w-full px-5 md:px-6 py-6 gap-5"
-                style={{ display: 'grid', gridTemplateColumns: '216px 1fr 200px' }}
+                style={{ display: 'grid', gridTemplateColumns: '260px 1fr 240px' }}
             >
 
                 {/* ══════════════════ SOL SIDEBAR ══════════════════ */}
