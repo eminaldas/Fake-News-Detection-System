@@ -19,7 +19,7 @@ from typing import List, Optional
 
 import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import func, select, desc
+from sqlalchemy import func, select, desc, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -30,7 +30,7 @@ from app.core.notifications import send_notification
 from app.core.pubsub import publish_async
 from app.db.session import get_db
 from app.models.models import (
-    Article, AnalysisResult, ForumComment, ForumCommentVote,
+    Article, AnalysisResult, Bookmark, ForumComment, ForumCommentVote,
     ForumReport, ForumThread, ForumVote, Tag, ThreadTag, User,
 )
 from app.schemas.schemas import (
@@ -909,3 +909,70 @@ async def get_article_threads(
     ]
 
     return ForumThreadListResponse(items=items, total=len(items), page=1, size=len(items))
+
+
+# ── Bookmark ────────────────────────────────────────────────────────────────
+
+@router.post("/threads/{thread_id}/bookmark", status_code=status.HTTP_204_NO_CONTENT)
+async def toggle_bookmark(
+    thread_id:    _uuid.UUID,
+    current_user: User         = Depends(get_current_user),
+    db: AsyncSession           = Depends(get_db),
+):
+    """Thread'i kaydet / kaydedilmişten kaldır (toggle)."""
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == thread_id)
+    )).scalar_one_or_none()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
+
+    existing = await db.get(Bookmark, (current_user.id, thread_id))
+    if existing:
+        await db.delete(existing)
+    else:
+        db.add(Bookmark(user_id=current_user.id, thread_id=thread_id))
+    await db.commit()
+    return Response(status_code=204)
+
+
+@router.get("/bookmarks/me", response_model=ForumThreadListResponse)
+async def my_bookmarks(
+    page:         int  = Query(1, ge=1),
+    size:         int  = Query(20, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession   = Depends(get_db),
+):
+    """Giriş yapmış kullanıcının kaydettiği thread'leri sayfalı listeler."""
+    bookmarked_sq = (
+        select(Bookmark.thread_id)
+        .where(Bookmark.user_id == current_user.id)
+        .scalar_subquery()
+    )
+
+    q = (
+        select(ForumThread)
+        .options(selectinload(ForumThread.user), selectinload(ForumThread.tags))
+        .where(ForumThread.id.in_(bookmarked_sq))
+        .order_by(desc(ForumThread.created_at))
+    )
+
+    total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
+    threads = (await db.execute(q.offset((page - 1) * size).limit(size))).scalars().all()
+
+    items = [
+        ForumThreadSummary(
+            id=t.id,
+            title=t.title,
+            category=t.category,
+            status=t.status,
+            vote_suspicious=t.vote_suspicious,
+            vote_authentic=t.vote_authentic,
+            vote_investigate=t.vote_investigate,
+            comment_count=t.comment_count,
+            created_at=t.created_at,
+            author={"id": t.user.id, "username": t.user.username},
+            tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in t.tags],
+        )
+        for t in threads
+    ]
+    return ForumThreadListResponse(items=items, total=total, page=page, size=size)
