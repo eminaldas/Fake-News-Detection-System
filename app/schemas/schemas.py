@@ -736,3 +736,23 @@ class ForumNotificationItem(BaseModel):
 class ForumNotificationListResponse(BaseModel):
     items:  List[ForumNotificationItem]
     unread: int
+
+
+# ── Sosyal / Takip ────────────────────────────────────────────────────────────
+
+class UserProfileResponse(BaseModel):
+    id:              UUID
+    username:        str
+    bio:             Optional[str] = None
+    follower_count:  int
+    following_count: int
+    is_following:    bool = False
+    thread_count:    int = 0
+    created_at:      datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MentionSearchItem(BaseModel):
+    id:       UUID
+    username: str
+    model_config = ConfigDict(from_attributes=True)
