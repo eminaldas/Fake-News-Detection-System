@@ -66,10 +66,6 @@ const SIDEBAR_STYLE = {
     position: 'sticky',
     top: '6rem',
     alignSelf: 'start',
-    maxHeight: 'calc(100vh - 6.5rem)',
-    overflowY: 'auto',
-    overflowX: 'hidden',
-    scrollbarWidth: 'none',
 };
 
 const ForumLayout = () => {
@@ -78,18 +74,13 @@ const ForumLayout = () => {
     const currentSort = searchParams.get('sort') ?? 'hot';
 
     const [trending,   setTrending]   = React.useState(null);
-    const [trust,      setTrust]      = React.useState(null);
     const [tagSearch,  setTagSearch]  = React.useState(searchParams.get('tag') ?? '');
 
     React.useEffect(() => {
         axiosInstance.get('/forum/trending').then(r => setTrending(r.data)).catch(() => {});
     }, []);
 
-    React.useEffect(() => {
-        if (user) axiosInstance.get('/users/me/trust').then(r => setTrust(r.data)).catch(() => {});
-    }, [user]);
-
-    const trendingTags  = trending?.trending_tags ?? [];
+const trendingTags  = trending?.trending_tags ?? [];
     const trendingStats = trending
         ? {
             active:      trending.trending_threads.length,
@@ -179,46 +170,6 @@ const ForumLayout = () => {
                         </nav>
                     </SideCard>
 
-                    {/* Kullanıcı Kartı */}
-                    {user && (
-                        <SideCard>
-                            <div className="p-4">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div
-                                        className="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm shrink-0"
-                                        style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--color-brand-primary)' }}
-                                    >
-                                        {user.username?.[0]?.toUpperCase()}
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>
-                                            {user.username}
-                                        </p>
-                                        {trust ? (
-                                            <p className="text-xs font-semibold" style={{ color: 'var(--color-brand-primary)' }}>
-                                                {'★'.repeat(Math.min(trust.stars, 5))} {trust.display_label}
-                                            </p>
-                                        ) : (
-                                            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Yeni Üye</p>
-                                        )}
-                                    </div>
-                                </div>
-                                {trust && (
-                                    <>
-                                        <div className="h-1.5 rounded-full overflow-hidden mb-1" style={{ background: 'var(--color-border)' }}>
-                                            <div
-                                                className="h-full rounded-full transition-all duration-500"
-                                                style={{ width: `${Math.min(trust.score, 100)}%`, background: 'var(--color-brand-primary)' }}
-                                            />
-                                        </div>
-                                        <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                                            Güven Puanı: <span style={{ color: 'var(--color-text-primary)', fontWeight: 700 }}>{trust.score.toFixed(0)}</span>/100
-                                        </p>
-                                    </>
-                                )}
-                            </div>
-                        </SideCard>
-                    )}
 
                     {/* Kategoriler */}
                     <SideCard>
