@@ -756,3 +756,13 @@ class MentionSearchItem(BaseModel):
     id:       UUID
     username: str
     model_config = ConfigDict(from_attributes=True)
+
+
+class ForumSearchResponse(BaseModel):
+    items: List[ForumThreadSummary]
+    total: int
+    query: str
+
+
+class ForumThreadReportCreate(BaseModel):
+    reason: str = Field(..., pattern="^(spam|misinformation|hate_speech|off_topic)$")

@@ -1,12 +1,17 @@
+import re
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import HTMLResponse
 
 from app.api.v1.endpoints import ab as ab_endpoint, admin, admin_logs, analysis, articles, auth, forum, insights, interactions, market, news, notifications, recommendations, sources, users, ws as ws_endpoint
 from app.api.v1.endpoints import share as share_router
 from app.core.logging import get_logger, setup_logging
+from app.core.seo import inject_thread_meta, is_bot
 from app.db.redis import close_redis
 from app.middleware.logging_middleware import LoggingMiddleware
 
@@ -28,6 +33,51 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+_FRONTEND_DIR = Path(__file__).parent.parent / "frontend" / "dist"
+_INDEX_PATH   = _FRONTEND_DIR / "index.html"
+_INDEX_HTML   = _INDEX_PATH.read_text(encoding="utf-8") if _INDEX_PATH.exists() else ""
+_THREAD_RE    = re.compile(r"^/forum/([0-9a-f-]{36})$")
+
+
+class SEOMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        ua   = request.headers.get("user-agent", "")
+        path = request.url.path
+
+        if _INDEX_HTML and is_bot(ua):
+            m = _THREAD_RE.match(path)
+            if m:
+                thread_id = m.group(1)
+                try:
+                    from app.db.session import AsyncSessionLocal
+                    from app.models.models import ForumThread
+                    from sqlalchemy import select
+                    from sqlalchemy.orm import selectinload
+
+                    async with AsyncSessionLocal() as db:
+                        thread = (await db.execute(
+                            select(ForumThread)
+                            .options(selectinload(ForumThread.user))
+                            .where(ForumThread.id == thread_id)
+                        )).scalar_one_or_none()
+
+                        if thread:
+                            html = inject_thread_meta(_INDEX_HTML, {
+                                "id":              str(thread.id),
+                                "title":           thread.title,
+                                "body":            thread.body or "",
+                                "author_username": thread.user.username if thread.user else "",
+                                "created_at":      thread.created_at.isoformat(),
+                            })
+                            return HTMLResponse(html)
+                except Exception:
+                    pass
+
+        return await call_next(request)
+
+
+app.add_middleware(SEOMiddleware)
 
 ALLOWED_ORIGINS = [
     "http://localhost:5173",

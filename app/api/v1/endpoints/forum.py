@@ -26,7 +26,7 @@ from sqlalchemy.orm import selectinload
 
 from workers.moderation_task import check_toxicity
 
-from app.api.deps import get_current_user, get_optional_user
+from app.api.deps import get_current_user, get_optional_user, get_admin_user
 from app.core.notifications import send_notification
 from app.core.pubsub import publish_async
 from app.db.session import get_db
@@ -36,9 +36,10 @@ from app.models.models import (
 )
 from app.schemas.schemas import (
     ForumArticleSummary, ForumCommentCreate, ForumCommentItem, ForumCommentUpdate,
-    ForumReportCreate, ForumTagSearchResponse, ForumThreadCreate, ForumThreadDetail,
-    ForumThreadListResponse, ForumThreadSummary, ForumThreadUpdate, ForumTrendingResponse,
-    ForumTrendingThread, ForumVoteCreate, ForumVoteResult, TagItem,
+    ForumReportCreate, ForumSearchResponse, ForumTagSearchResponse, ForumThreadCreate,
+    ForumThreadDetail, ForumThreadListResponse, ForumThreadReportCreate, ForumThreadSummary,
+    ForumThreadUpdate, ForumTrendingResponse, ForumTrendingThread, ForumVoteCreate,
+    ForumVoteResult, TagItem,
     FORUM_CATEGORIES,
 )
 
@@ -992,3 +993,200 @@ async def my_bookmarks(
         for t in threads
     ]
     return ForumThreadListResponse(items=items, total=total, page=page, size=size)
+
+
+# ── Search ──────────────────────────────────────────────────────────────────
+
+@router.get("/search", response_model=ForumSearchResponse)
+async def search_threads(
+    q:        str           = Query(..., min_length=1, max_length=200),
+    category: Optional[str] = Query(None),
+    page:     int           = Query(1, ge=1),
+    size:     int           = Query(20, ge=1, le=50),
+    current_user: Optional[User] = Depends(get_optional_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    import sqlalchemy
+    pattern = f"%{q}%"
+    base_q = (
+        select(ForumThread)
+        .options(
+            selectinload(ForumThread.user),
+            selectinload(ForumThread.tags),
+        )
+        .where(
+            sqlalchemy.or_(
+                ForumThread.title.ilike(pattern),
+                ForumThread.body.ilike(pattern),
+            )
+        )
+        .order_by(
+            desc(
+                ForumThread.vote_suspicious
+                + ForumThread.vote_authentic
+                + ForumThread.vote_investigate
+                + ForumThread.comment_count
+            ),
+            desc(ForumThread.created_at),
+        )
+    )
+    if category:
+        base_q = base_q.where(ForumThread.category == category)
+
+    total   = (await db.execute(select(func.count()).select_from(base_q.subquery()))).scalar_one()
+    threads = (await db.execute(base_q.offset((page - 1) * size).limit(size))).scalars().all()
+
+    items = [
+        ForumThreadSummary(
+            id=t.id,
+            title=t.title,
+            category=t.category,
+            status=t.status,
+            vote_suspicious=t.vote_suspicious,
+            vote_authentic=t.vote_authentic,
+            vote_investigate=t.vote_investigate,
+            comment_count=t.comment_count,
+            created_at=t.created_at,
+            author={"id": t.user.id, "username": t.user.username},
+            tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in t.tags],
+        )
+        for t in threads
+    ]
+    return ForumSearchResponse(items=items, total=total, query=q)
+
+
+# ── Thread Report ───────────────────────────────────────────────────────────
+
+@router.post("/threads/{thread_id}/report", status_code=status.HTTP_200_OK)
+async def report_thread(
+    thread_id:    _uuid.UUID,
+    body:         ForumThreadReportCreate,
+    current_user: User         = Depends(get_current_user),
+    db: AsyncSession           = Depends(get_db),
+):
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == thread_id)
+    )).scalar_one_or_none()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
+    if thread.user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Kendi tartışmanızı bildiremezsiniz")
+    thread.status = "under_review"
+    await db.commit()
+    return {"message": "Bildiriminiz alındı."}
+
+
+# ── Moderation ──────────────────────────────────────────────────────────────
+
+@router.get("/admin/flagged-comments")
+async def list_flagged_comments(
+    current_user: User       = Depends(get_admin_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    result = await db.execute(
+        select(ForumComment)
+        .options(selectinload(ForumComment.user))
+        .where(ForumComment.moderation_status.in_(["flagged_ai", "flagged_user"]))
+        .order_by(desc(ForumComment.created_at))
+        .limit(50)
+    )
+    comments = result.scalars().all()
+    return [
+        {
+            "id":                str(c.id),
+            "thread_id":         str(c.thread_id),
+            "username":          c.user.username if c.user else "?",
+            "body":              c.body,
+            "moderation_status": c.moderation_status,
+            "moderation_note":   c.moderation_note,
+            "created_at":        c.created_at.isoformat(),
+        }
+        for c in comments
+    ]
+
+
+@router.put("/admin/comments/{comment_id}/approve", status_code=status.HTTP_204_NO_CONTENT)
+async def approve_comment(
+    comment_id:   _uuid.UUID,
+    current_user: User       = Depends(get_admin_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    comment = (await db.execute(
+        select(ForumComment).where(ForumComment.id == comment_id)
+    )).scalar_one_or_none()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Yorum bulunamadı")
+    comment.moderation_status = "clean"
+    await db.commit()
+
+
+@router.put("/admin/comments/{comment_id}/remove", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_comment(
+    comment_id:   _uuid.UUID,
+    current_user: User       = Depends(get_admin_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    comment = (await db.execute(
+        select(ForumComment).where(ForumComment.id == comment_id)
+    )).scalar_one_or_none()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Yorum bulunamadı")
+    comment.moderation_status = "removed"
+    await db.commit()
+
+
+@router.get("/admin/flagged-threads")
+async def list_flagged_threads(
+    current_user: User       = Depends(get_admin_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    result = await db.execute(
+        select(ForumThread)
+        .options(selectinload(ForumThread.user))
+        .where(ForumThread.status == "under_review")
+        .order_by(desc(ForumThread.created_at))
+        .limit(50)
+    )
+    threads = result.scalars().all()
+    return [
+        {
+            "id":              str(t.id),
+            "title":           t.title,
+            "username":        t.user.username if t.user else "?",
+            "status":          t.status,
+            "vote_suspicious": t.vote_suspicious,
+            "vote_authentic":  t.vote_authentic,
+            "created_at":      t.created_at.isoformat(),
+        }
+        for t in threads
+    ]
+
+
+@router.put("/admin/threads/{thread_id}/resolve", status_code=status.HTTP_204_NO_CONTENT)
+async def resolve_thread(
+    thread_id:    _uuid.UUID,
+    current_user: User       = Depends(get_admin_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == thread_id)
+    )).scalar_one_or_none()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
+    thread.status = "resolved"
+    await db.commit()
+
+
+@router.put("/admin/threads/{thread_id}/close", status_code=status.HTTP_204_NO_CONTENT)
+async def close_thread(
+    thread_id:    _uuid.UUID,
+    current_user: User       = Depends(get_admin_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == thread_id)
+    )).scalar_one_or_none()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
+    thread.status = "closed"
+    await db.commit()
