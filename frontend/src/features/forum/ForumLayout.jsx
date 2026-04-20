@@ -1,8 +1,8 @@
 import React from 'react';
 import { NavLink, Outlet, useSearchParams } from 'react-router-dom';
 import {
-    TrendingUp, Tag, MessageSquare,
-    AlertTriangle, CheckCircle, Flame, Hash,
+    TrendingUp, MessageSquare, Search,
+    AlertTriangle, CheckCircle, Flame,
     Clock, Zap, Newspaper, Activity, BookOpen,
     Globe, Heart, Cpu, Dumbbell, Music, Leaf, Star,
 } from 'lucide-react';
@@ -10,13 +10,13 @@ import axiosInstance from '../../api/axios';
 import { useAuth } from '../../contexts/AuthContext';
 
 const CATEGORIES = [
-    { key: 'gundem',    label: 'Gündem',    Icon: Newspaper  },
+    { key: 'gündem',    label: 'Gündem',    Icon: Newspaper  },
     { key: 'ekonomi',   label: 'Ekonomi',   Icon: TrendingUp },
-    { key: 'saglik',    label: 'Sağlık',    Icon: Heart      },
+    { key: 'sağlık',    label: 'Sağlık',    Icon: Heart      },
     { key: 'teknoloji', label: 'Teknoloji', Icon: Cpu        },
     { key: 'spor',      label: 'Spor',      Icon: Dumbbell   },
-    { key: 'kultur',    label: 'Kültür',    Icon: Music      },
-    { key: 'yasam',     label: 'Yaşam',     Icon: Leaf       },
+    { key: 'kültür',    label: 'Kültür',    Icon: Music      },
+    { key: 'yaşam',     label: 'Yaşam',     Icon: Leaf       },
 ];
 
 const SORT_OPTIONS = [
@@ -26,8 +26,8 @@ const SORT_OPTIONS = [
 ];
 
 const DISCOVER_OPTIONS = [
-    { key: 'featured', label: 'Öne Çıkanlar', Icon: Star        },
-    { key: 'global',   label: 'Size Özel',    Icon: Globe       },
+    { key: 'featured', label: 'Öne Çıkanlar',    Icon: Star     },
+    { key: 'global',   label: 'Size Özel',        Icon: Globe    },
     { key: 'followed', label: 'Takip Ettiklerim', Icon: BookOpen },
 ];
 
@@ -38,11 +38,10 @@ const SYSTEM_TAGS = [
 
 const SideCard = ({ children, className = '' }) => (
     <div
-        className={`rounded-xl border overflow-hidden ${className}`}
+        className={`rounded-xl overflow-hidden ${className}`}
         style={{
             background: 'var(--color-bg-surface)',
-            borderColor: 'var(--color-border)',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.28)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.32)',
         }}
     >
         {children}
@@ -51,39 +50,51 @@ const SideCard = ({ children, className = '' }) => (
 
 const SideHeader = ({ label, accent }) => (
     <div
-        className="flex items-center gap-2.5 px-4 py-3 border-b"
-        style={{ borderColor: 'var(--color-border)', background: 'rgba(0,0,0,0.15)' }}
+        className="flex items-center gap-3 px-4 py-3"
+        style={{ background: 'rgba(0,0,0,0.18)' }}
     >
         {accent && (
-            <div className="w-1 h-4 rounded-full shrink-0" style={{ background: 'var(--color-brand-primary)' }} />
+            <div className="w-1 h-5 rounded-full shrink-0" style={{ background: 'var(--color-brand-primary)' }} />
         )}
-        <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
+        <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--color-text-primary)' }}>
             {label}
         </p>
     </div>
 );
+
+const SIDEBAR_STYLE = {
+    position: 'sticky',
+    top: '6rem',
+    alignSelf: 'start',
+    maxHeight: 'calc(100vh - 6.5rem)',
+    overflowY: 'auto',
+    overflowX: 'hidden',
+    scrollbarWidth: 'none',
+};
 
 const ForumLayout = () => {
     const { user } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
     const currentSort = searchParams.get('sort') ?? 'hot';
 
-    const [trending, setTrending] = React.useState(null);
-    const [trust,    setTrust]    = React.useState(null);
+    const [trending,   setTrending]   = React.useState(null);
+    const [trust,      setTrust]      = React.useState(null);
+    const [tagSearch,  setTagSearch]  = React.useState(searchParams.get('tag') ?? '');
 
     React.useEffect(() => {
         axiosInstance.get('/forum/trending').then(r => setTrending(r.data)).catch(() => {});
     }, []);
 
     React.useEffect(() => {
-        axiosInstance.get('/users/me/trust').then(r => setTrust(r.data)).catch(() => {});
-    }, []);
+        if (user) axiosInstance.get('/users/me/trust').then(r => setTrust(r.data)).catch(() => {});
+    }, [user]);
 
     const trendingTags  = trending?.trending_tags ?? [];
     const trendingStats = trending
         ? {
             active:      trending.trending_threads.length,
             underReview: trending.trending_threads.filter(t => t.status === 'under_review').length,
+            resolved:    trending.trending_threads.filter(t => t.status === 'resolved').length,
         }
         : null;
 
@@ -93,50 +104,55 @@ const ForumLayout = () => {
         setSearchParams(next);
     };
 
-    const navLinkStyle = (isActive) => isActive
-        ? {
-            background: 'rgba(46,204,113,0.09)',
-            color: 'var(--color-brand-primary)',
-            borderLeft: '2px solid var(--color-brand-primary)',
-            paddingLeft: '10px',
-        }
-        : { color: 'var(--color-text-secondary)', paddingLeft: '12px' };
+    const applyTagSearch = (e) => {
+        e.preventDefault();
+        const next = new URLSearchParams(searchParams);
+        if (tagSearch.trim()) next.set('tag', tagSearch.trim());
+        else next.delete('tag');
+        setSearchParams(next);
+    };
+
+    const navLinkActive = {
+        background: 'rgba(16,185,129,0.10)',
+        color: 'var(--color-brand-primary)',
+        borderLeft: '2px solid var(--color-brand-primary)',
+        paddingLeft: '10px',
+    };
+    const navLinkIdle = { color: 'var(--color-text-secondary)', paddingLeft: '12px' };
 
     return (
         <div className="w-full">
             <div
-                className="max-w-[1400px] mx-auto w-full px-5 md:px-6 py-6 gap-5"
-                style={{ display: 'grid', gridTemplateColumns: '216px 1fr 200px' }}
+                className="max-w-[1600px] mx-auto w-full px-4 md:px-6 py-6"
+                style={{ display: 'grid', gridTemplateColumns: '300px 1fr 280px', gap: '20px' }}
             >
 
                 {/* ══════════════════ SOL SIDEBAR ══════════════════ */}
-                <aside
-                    className="flex flex-col gap-3"
-                    style={{ position: 'sticky', top: '9rem', alignSelf: 'start' }}
-                >
-                        {/* Keşfet */}
+                <aside className="flex flex-col gap-3" style={SIDEBAR_STYLE}>
+
+                    {/* Keşfet */}
                     <SideCard>
                         <SideHeader label="Keşfet" accent />
                         <nav className="flex flex-col p-2 gap-0.5">
                             <NavLink
                                 to="/forum"
                                 end
-                                className="flex items-center gap-3 py-2.5 pr-3 rounded-md text-xs font-semibold transition-colors"
-                                style={({ isActive }) => navLinkStyle(isActive)}
+                                className="flex items-center gap-3 py-3 pr-3 rounded-md text-sm font-semibold transition-colors"
+                                style={({ isActive }) => isActive ? navLinkActive : navLinkIdle}
                             >
-                                <Activity className="w-3.5 h-3.5 shrink-0" />
+                                <Activity className="w-4 h-4 shrink-0" />
                                 Tüm Tartışmalar
                             </NavLink>
                             {DISCOVER_OPTIONS.map(o => (
                                 <button
                                     key={o.key}
-                                    className="flex items-center gap-3 py-2.5 pl-3 pr-3 rounded-md text-xs font-semibold transition-colors text-left w-full hover:bg-white/5"
+                                    className="flex items-center gap-3 py-3 pl-3 pr-3 rounded-md text-sm font-semibold transition-colors text-left w-full hover:bg-white/5"
                                     style={{ color: 'var(--color-text-muted)' }}
                                     title="Yakında"
                                 >
-                                    <o.Icon className="w-3.5 h-3.5 shrink-0 opacity-50" />
-                                    <span className="opacity-50">{o.label}</span>
-                                    <span className="ml-auto text-[8px] px-1.5 py-0.5 rounded font-bold"
+                                    <o.Icon className="w-4 h-4 shrink-0 opacity-40" />
+                                    <span className="opacity-40">{o.label}</span>
+                                    <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded font-bold"
                                           style={{ background: 'rgba(245,158,11,0.12)', color: 'var(--color-accent-amber)' }}>
                                         YAKINDA
                                     </span>
@@ -153,48 +169,52 @@ const ForumLayout = () => {
                                 <button
                                     key={opt.key}
                                     onClick={() => setSort(opt.key)}
-                                    className="flex items-center gap-3 py-2.5 pr-3 rounded-md text-xs font-semibold transition-colors w-full text-left"
-                                    style={currentSort === opt.key ? {
-                                        background: 'rgba(46,204,113,0.09)',
-                                        color: 'var(--color-brand-primary)',
-                                        borderLeft: '2px solid var(--color-brand-primary)',
-                                        paddingLeft: '10px',
-                                    } : {
-                                        color: 'var(--color-text-secondary)',
-                                        paddingLeft: '12px',
-                                    }}
+                                    className="flex items-center gap-3 py-3 pr-3 rounded-md text-sm font-semibold transition-colors w-full text-left"
+                                    style={currentSort === opt.key ? navLinkActive : navLinkIdle}
                                 >
-                                    <opt.Icon className="w-3.5 h-3.5 shrink-0" />
+                                    <opt.Icon className="w-4 h-4 shrink-0" />
                                     {opt.label}
                                 </button>
                             ))}
                         </nav>
                     </SideCard>
 
-                    {/* Kullanıcı Trust Kartı */}
+                    {/* Kullanıcı Kartı */}
                     {user && (
                         <SideCard>
-                            <div className="p-3">
-                                <p className="text-xs font-bold truncate mb-0.5" style={{ color: 'var(--color-text-primary)' }}>
-                                    {user.username}
-                                </p>
-                                {trust ? (
-                                    <>
-                                        <p className="text-[10px] font-semibold mb-2" style={{ color: 'var(--color-brand-primary)' }}>
-                                            {'★'.repeat(Math.min(trust.stars, 5))} {trust.display_label}
+                            <div className="p-4">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div
+                                        className="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm shrink-0"
+                                        style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--color-brand-primary)' }}
+                                    >
+                                        {user.username?.[0]?.toUpperCase()}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>
+                                            {user.username}
                                         </p>
-                                        <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
+                                        {trust ? (
+                                            <p className="text-xs font-semibold" style={{ color: 'var(--color-brand-primary)' }}>
+                                                {'★'.repeat(Math.min(trust.stars, 5))} {trust.display_label}
+                                            </p>
+                                        ) : (
+                                            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Yeni Üye</p>
+                                        )}
+                                    </div>
+                                </div>
+                                {trust && (
+                                    <>
+                                        <div className="h-1.5 rounded-full overflow-hidden mb-1" style={{ background: 'var(--color-border)' }}>
                                             <div
-                                                className="h-full rounded-full"
+                                                className="h-full rounded-full transition-all duration-500"
                                                 style={{ width: `${Math.min(trust.score, 100)}%`, background: 'var(--color-brand-primary)' }}
                                             />
                                         </div>
-                                        <p className="text-[10px] mt-1" style={{ color: 'var(--color-text-secondary)' }}>
-                                            Güven: {trust.score.toFixed(0)}/100
+                                        <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                                            Güven Puanı: <span style={{ color: 'var(--color-text-primary)', fontWeight: 700 }}>{trust.score.toFixed(0)}</span>/100
                                         </p>
                                     </>
-                                ) : (
-                                    <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Yeni Üye</p>
                                 )}
                             </div>
                         </SideCard>
@@ -208,39 +228,16 @@ const ForumLayout = () => {
                                 <NavLink
                                     key={c.key}
                                     to={`/forum?category=${c.key}`}
-                                    className="flex items-center gap-3 py-2.5 pr-3 rounded-md text-xs font-medium transition-colors hover:bg-white/5"
-                                    style={({ isActive }) => isActive
-                                        ? { color: 'var(--color-brand-primary)', paddingLeft: '10px', borderLeft: '2px solid var(--color-brand-primary)' }
-                                        : { color: 'var(--color-text-secondary)', paddingLeft: '12px' }
-                                    }
+                                    className="flex items-center gap-3 py-3 pr-3 rounded-md text-sm font-medium transition-colors hover:bg-white/5"
+                                    style={({ isActive }) => isActive ? navLinkActive : navLinkIdle}
                                 >
-                                    <c.Icon className="w-3.5 h-3.5 shrink-0" />
+                                    <c.Icon className="w-4 h-4 shrink-0" />
                                     {c.label}
                                 </NavLink>
                             ))}
                         </nav>
                     </SideCard>
 
-                    {/* Etiketler */}
-                    <SideCard>
-                        <SideHeader label="Etiketler" />
-                        <div className="p-3 flex flex-wrap gap-1.5">
-                            {SYSTEM_TAGS.map(tag => (
-                                <NavLink
-                                    key={tag}
-                                    to={`/forum?tag=${encodeURIComponent(tag)}`}
-                                    className="px-2 py-0.5 rounded text-[9px] font-semibold transition-opacity hover:opacity-70"
-                                    style={{
-                                        background: 'rgba(46,204,113,0.07)',
-                                        color: 'var(--color-brand-primary)',
-                                        border: '1px solid rgba(46,204,113,0.14)',
-                                    }}
-                                >
-                                    {tag}
-                                </NavLink>
-                            ))}
-                        </div>
-                    </SideCard>
                 </aside>
 
                 {/* ══════════════════ ORTA İÇERİK ══════════════════ */}
@@ -249,59 +246,75 @@ const ForumLayout = () => {
                 </main>
 
                 {/* ══════════════════ SAĞ SIDEBAR ══════════════════ */}
-                <aside
-                    className="flex flex-col gap-3"
-                    style={{ position: 'sticky', top: '9rem', alignSelf: 'start' }}
-                >
-                    {/* Forum İstatistikleri */}
+                <aside className="flex flex-col gap-3" style={SIDEBAR_STYLE}>
+
+                    {/* Arama */}
                     <SideCard>
-                        <SideHeader label="İstatistikler" />
-                        <div className="flex flex-col gap-3 p-4 text-xs">
-                            <div className="flex items-center justify-between">
-                                <span className="flex items-center gap-1.5" style={{ color: 'var(--color-text-muted)' }}>
-                                    <MessageSquare className="w-3 h-3" /> Aktif
-                                </span>
-                                <span className="font-bold" style={{ color: 'var(--color-text-primary)' }}>
-                                    {trendingStats?.active ?? '—'}
-                                </span>
+                        <SideHeader label="Etiket Ara" accent />
+                        <form onSubmit={applyTagSearch} className="p-3">
+                            <div
+                                className="flex items-center gap-2 px-3 py-2.5 rounded-lg"
+                                style={{ background: 'var(--color-bg-base)', border: '1px solid var(--color-border)' }}
+                            >
+                                <Search className="w-4 h-4 shrink-0" style={{ color: 'var(--color-text-muted)' }} />
+                                <input
+                                    value={tagSearch}
+                                    onChange={e => setTagSearch(e.target.value)}
+                                    placeholder="# ile ara..."
+                                    className="bg-transparent outline-none flex-1 text-sm"
+                                    style={{ color: 'var(--color-text-primary)' }}
+                                />
+                                {tagSearch && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { setTagSearch(''); const n = new URLSearchParams(searchParams); n.delete('tag'); setSearchParams(n); }}
+                                        className="text-xs transition-colors hover:text-brand"
+                                        style={{ color: 'var(--color-text-muted)' }}
+                                    >
+                                        ✕
+                                    </button>
+                                )}
                             </div>
-                            <div className="flex items-center justify-between">
-                                <span className="flex items-center gap-1.5" style={{ color: 'var(--color-text-muted)' }}>
-                                    <AlertTriangle className="w-3 h-3" /> İnceleme
-                                </span>
-                                <span className="font-bold" style={{ color: 'var(--color-accent-amber)' }}>
-                                    {trendingStats?.underReview ?? '—'}
-                                </span>
+                            <div className="flex flex-wrap gap-1.5 mt-3">
+                                {SYSTEM_TAGS.map(tag => (
+                                    <button
+                                        key={tag}
+                                        type="button"
+                                        onClick={() => { setTagSearch(tag); const n = new URLSearchParams(searchParams); n.set('tag', tag); setSearchParams(n); }}
+                                        className="px-2 py-0.5 rounded text-[10px] font-semibold transition-opacity hover:opacity-70"
+                                        style={{
+                                            background: searchParams.get('tag') === tag ? 'rgba(16,185,129,0.18)' : 'rgba(16,185,129,0.06)',
+                                            color: 'var(--color-brand-primary)',
+                                            border: `1px solid ${searchParams.get('tag') === tag ? 'rgba(16,185,129,0.35)' : 'rgba(16,185,129,0.12)'}`,
+                                        }}
+                                    >
+                                        {tag}
+                                    </button>
+                                ))}
                             </div>
-                            <div className="flex items-center justify-between">
-                                <span className="flex items-center gap-1.5" style={{ color: 'var(--color-text-muted)' }}>
-                                    <CheckCircle className="w-3 h-3" /> Çözüldü
-                                </span>
-                                <span className="font-bold" style={{ color: 'var(--color-brand-primary)' }}>—</span>
-                            </div>
-                        </div>
+                        </form>
                     </SideCard>
 
                     {/* Trend Etiketler */}
                     {trendingTags.length > 0 && (
                         <SideCard>
                             <SideHeader label="Trend Etiketler" />
-                            <div className="flex flex-col gap-2 p-4">
-                                {trendingTags.slice(0, 7).map(t => (
+                            <div className="flex flex-col p-3 gap-1">
+                                {trendingTags.slice(0, 8).map(t => (
                                     <NavLink
                                         key={t.id}
                                         to={`/forum?tag=${encodeURIComponent(t.name)}`}
-                                        className="flex items-center justify-between group"
+                                        className="flex items-center justify-between px-2 py-2 rounded-lg transition-colors hover:bg-white/5 group"
                                     >
                                         <span
-                                            className="text-xs font-medium group-hover:text-brand transition-colors truncate"
+                                            className="text-sm font-medium truncate group-hover:text-brand transition-colors"
                                             style={{ color: 'var(--color-text-secondary)' }}
                                         >
                                             {t.name}
                                         </span>
                                         <span
-                                            className="text-[9px] ml-2 shrink-0 px-1.5 py-0.5 rounded"
-                                            style={{ background: 'rgba(46,204,113,0.07)', color: 'var(--color-brand-primary)' }}
+                                            className="text-xs ml-2 shrink-0 px-2 py-0.5 rounded font-bold"
+                                            style={{ background: 'rgba(16,185,129,0.08)', color: 'var(--color-brand-primary)' }}
                                         >
                                             {t.usage_count}
                                         </span>
@@ -311,30 +324,74 @@ const ForumLayout = () => {
                         </SideCard>
                     )}
 
-                    {/* Trend Thread'ler */}
+                    {/* Popüler Tartışmalar */}
                     {trending?.trending_threads?.length > 0 && (
                         <SideCard>
-                            <SideHeader label="Popüler" />
-                            <div className="flex flex-col gap-3 p-4">
-                                {trending.trending_threads.slice(0, 5).map((t, i) => (
-                                    <NavLink key={t.id} to={`/forum/${t.id}`} className="flex gap-2.5 group">
+                            <SideHeader label="Popüler Tartışmalar" />
+                            <div className="flex flex-col p-3 gap-1">
+                                {trending.trending_threads.slice(0, 6).map((t, i) => (
+                                    <NavLink
+                                        key={t.id}
+                                        to={`/forum/${t.id}`}
+                                        className="flex gap-3 px-2 py-2.5 rounded-lg transition-colors hover:bg-white/5 group"
+                                    >
                                         <span
-                                            className="text-[10px] font-black mt-0.5 shrink-0 w-4"
+                                            className="text-xs font-black mt-0.5 shrink-0 w-5 text-right"
                                             style={{ color: 'var(--color-brand-primary)' }}
                                         >
                                             {String(i + 1).padStart(2, '0')}
                                         </span>
-                                        <span
-                                            className="text-xs leading-snug line-clamp-2 group-hover:text-brand transition-colors"
-                                            style={{ color: 'var(--color-text-secondary)' }}
-                                        >
-                                            {t.title}
-                                        </span>
+                                        <div className="min-w-0 flex-1">
+                                            <p
+                                                className="text-sm leading-snug line-clamp-2 group-hover:text-brand transition-colors"
+                                                style={{ color: 'var(--color-text-secondary)' }}
+                                            >
+                                                {t.title}
+                                            </p>
+                                            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                                                {t.comment_count ?? 0} yorum
+                                            </p>
+                                        </div>
                                     </NavLink>
                                 ))}
                             </div>
                         </SideCard>
                     )}
+
+                    {/* Forum İstatistikleri */}
+                    <SideCard>
+                        <SideHeader label="Forum İstatistikleri" />
+                        <div className="flex flex-col gap-0 p-1">
+                            <div className="flex items-center justify-between px-3 py-3 rounded-lg"
+                                 style={{ background: 'rgba(16,185,129,0.04)' }}>
+                                <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                                    <MessageSquare className="w-4 h-4" style={{ color: 'var(--color-brand-primary)' }} />
+                                    Aktif Tartışma
+                                </span>
+                                <span className="text-sm font-black" style={{ color: 'var(--color-text-primary)' }}>
+                                    {trendingStats?.active ?? '—'}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between px-3 py-3 rounded-lg">
+                                <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                                    <AlertTriangle className="w-4 h-4" style={{ color: 'var(--color-accent-amber)' }} />
+                                    İnceleme Altında
+                                </span>
+                                <span className="text-sm font-black" style={{ color: 'var(--color-accent-amber)' }}>
+                                    {trendingStats?.underReview ?? '—'}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between px-3 py-3 rounded-lg">
+                                <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                                    <CheckCircle className="w-4 h-4" style={{ color: 'var(--color-brand-primary)' }} />
+                                    Çözüme Ulaşan
+                                </span>
+                                <span className="text-sm font-black" style={{ color: 'var(--color-brand-primary)' }}>
+                                    {trendingStats?.resolved ?? '—'}
+                                </span>
+                            </div>
+                        </div>
+                    </SideCard>
                 </aside>
 
             </div>

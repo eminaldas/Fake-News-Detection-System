@@ -33,11 +33,10 @@ const PARTICLES = [
     { left:'88%', top:'25%',  size:1,   dur:'29s', delay:'6.5s'  },
 ];
 
-/* Yavaş hareket eden orb'lar — çok subtle */
 const ORBS = [
-    { left: '-10%', top: '10%',  size: 500, dur: '35s', delay: '0s',   color: 'rgba(46,204,113,0.025)'  },
-    { left: '70%',  top: '-5%',  size: 400, dur: '45s', delay: '10s',  color: 'rgba(16,185,129,0.018)'  },
-    { left: '40%',  top: '60%',  size: 350, dur: '40s', delay: '5s',   color: 'rgba(46,204,113,0.015)'  },
+    { left: '-8%',  top: '8%',   size: 600, dur: '35s', delay: '0s',  color: 'rgba(16,185,129,0.10)' },
+    { left: '65%',  top: '-8%',  size: 500, dur: '45s', delay: '10s', color: 'rgba(16,185,129,0.07)' },
+    { left: '35%',  top: '55%',  size: 450, dur: '40s', delay: '5s',  color: 'rgba(16,185,129,0.06)' },
 ];
 
 const Layout = () => {
@@ -82,7 +81,7 @@ const Layout = () => {
                         'linear-gradient(var(--color-border) 1px,transparent 1px),' +
                         'linear-gradient(90deg,var(--color-border) 1px,transparent 1px)',
                     backgroundSize: '40px 40px',
-                    opacity: isDarkMode ? 0.35 : 0.50,
+                    opacity: isDarkMode ? 0.55 : 0.60,
                 }}
             />
 
@@ -106,9 +105,9 @@ const Layout = () => {
                 {/* Light mod blob'lar */}
                 {!isDarkMode && (
                     <>
-                        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full animate-blob-1"
+                        <div className="absolute -top-40 -left-40 w-150 h-150 rounded-full animate-blob-1"
                              style={{ background: 'rgba(100,116,139,0.04)', filter: 'blur(120px)' }} />
-                        <div className="absolute -bottom-32 right-1/4 w-[400px] h-[400px] rounded-full animate-blob-2"
+                        <div className="absolute -bottom-32 right-1/4 w-100 h-100 rounded-full animate-blob-2"
                              style={{ background: 'rgba(100,116,139,0.03)', filter: 'blur(100px)' }} />
                     </>
                 )}
@@ -116,7 +115,7 @@ const Layout = () => {
                 {/* Scan line — sadece dark modda, çok soluk */}
                 {isDarkMode && (
                     <div className="absolute left-0 right-0 h-px animate-scan"
-                         style={{ background: 'linear-gradient(90deg,transparent,rgba(46,204,113,0.06),transparent)' }} />
+                         style={{ background: 'linear-gradient(90deg,transparent,rgba(16,185,129,0.25),transparent)' }} />
                 )}
                 {!isDarkMode && (
                     <div className="absolute left-0 right-0 h-px animate-scan"
@@ -129,9 +128,9 @@ const Layout = () => {
                          style={{
                              left: p.left, top: p.top,
                              width: p.size, height: p.size,
-                             background: isDarkMode ? 'rgba(46,204,113,0.20)' : 'rgba(100,116,139,0.18)',
+                             background: isDarkMode ? 'rgba(16,185,129,0.50)' : 'rgba(100,116,139,0.35)',
                              animation: `particleRise ${p.dur} ${p.delay} ease-in-out infinite`,
-                             boxShadow: isDarkMode ? '0 0 4px rgba(46,204,113,0.15)' : 'none',
+                             boxShadow: isDarkMode ? '0 0 6px rgba(16,185,129,0.40)' : 'none',
                          }} />
                 ))}
             </div>
@@ -139,7 +138,7 @@ const Layout = () => {
             {!isAuth && <MarketBand />}
             <Navbar />
 
-            <main className={`flex-grow ${isAuth ? 'pt-24 md:pt-28' : 'pt-32 md:pt-36'} pb-10 overflow-x-hidden`}>
+            <main className={`grow ${isAuth ? 'pt-24 md:pt-28' : 'pt-32 md:pt-36'} pb-10 overflow-x-hidden`}>
                 <div key={pathname} className={pageClass}>
                     <Outlet />
                 </div>
@@ -152,7 +151,7 @@ const Layout = () => {
                     <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-8">
 
                         <div className="flex flex-col items-center md:items-start gap-1">
-                            <span className="text-base font-manrope font-extrabold tracking-tight text-tx-primary dark:text-es-primary">
+                            <span className="font-manrope font-extrabold tracking-tight text-tx-primary dark:text-es-primary">
                                 Ne Haber
                             </span>
                             <p className="text-xs text-tx-secondary">

@@ -81,11 +81,11 @@ const ForumCreateThread = () => {
             {articleId && (
                 <div
                     className="flex items-center gap-3 p-3 rounded-xl border"
-                    style={{ background: 'rgba(46,204,113,0.04)', borderColor: 'rgba(46,204,113,0.15)' }}
+                    style={{ background: 'rgba(16,185,129,0.04)', borderColor: 'rgba(16,185,129,0.15)' }}
                 >
                     <div
                         className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ background: 'rgba(46,204,113,0.10)', border: '1px solid rgba(46,204,113,0.20)' }}
+                        style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.20)' }}
                     >
                         <LinkIcon className="w-4 h-4" style={{ color: 'var(--color-brand-primary)' }} />
                     </div>

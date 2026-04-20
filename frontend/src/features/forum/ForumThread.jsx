@@ -9,7 +9,7 @@ import ShareDropdown from '../../components/ui/ShareDropdown';
 
 const VOTE_OPTIONS = [
   { type: 'suspicious',  label: 'Şüpheli', emoji: '🚩', color: 'var(--color-fake-fill)',     activeBg: 'rgba(239,68,68,0.12)',  activeBorder: 'rgba(239,68,68,0.40)' },
-  { type: 'authentic',   label: 'Doğru',   emoji: '✅', color: 'var(--color-brand-primary)', activeBg: 'rgba(46,204,113,0.12)', activeBorder: 'rgba(46,204,113,0.40)' },
+  { type: 'authentic',   label: 'Doğru',   emoji: '✅', color: 'var(--color-brand-primary)', activeBg: 'rgba(16,185,129,0.12)', activeBorder: 'rgba(16,185,129,0.40)' },
   { type: 'investigate', label: 'İncele',  emoji: '🔍', color: 'var(--color-accent-amber)',  activeBg: 'rgba(245,158,11,0.12)', activeBorder: 'rgba(245,158,11,0.40)' },
 ];
 
@@ -173,9 +173,9 @@ const ForumThread = () => {
                                     <span
                                         className="flex items-center gap-1 text-[10px] font-bold px-3 py-1 rounded-full"
                                         style={{
-                                            background: isFake ? 'rgba(239,68,68,0.10)' : 'rgba(46,204,113,0.10)',
+                                            background: isFake ? 'rgba(239,68,68,0.10)' : 'rgba(16,185,129,0.10)',
                                             color:      isFake ? 'var(--color-fake-text)'  : 'var(--color-brand-primary)',
-                                            border:     `1px solid ${isFake ? 'rgba(239,68,68,0.25)' : 'rgba(46,204,113,0.25)'}`,
+                                            border:     `1px solid ${isFake ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)'}`,
                                         }}
                                     >
                                         {isFake
@@ -237,9 +237,9 @@ const ForumThread = () => {
                                         key={t.id}
                                         className="text-[9px] px-2.5 py-0.5 rounded-full"
                                         style={{
-                                            background: t.is_system ? 'rgba(46,204,113,0.08)' : 'rgba(255,255,255,0.04)',
+                                            background: t.is_system ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.04)',
                                             color:      t.is_system ? 'var(--color-brand-primary)' : 'var(--color-text-muted)',
-                                            border:     `1px solid ${t.is_system ? 'rgba(46,204,113,0.20)' : 'rgba(255,255,255,0.08)'}`,
+                                            border:     `1px solid ${t.is_system ? 'rgba(16,185,129,0.20)' : 'rgba(255,255,255,0.08)'}`,
                                         }}
                                     >
                                         {t.name}
@@ -306,7 +306,7 @@ const ForumThread = () => {
                         <span className="text-[11px] font-bold text-tx-primary uppercase tracking-wider">Tartışma</span>
                         <span
                             className="text-[9px] font-bold px-2 py-0.5 rounded-full"
-                            style={{ background: 'rgba(46,204,113,0.08)', color: 'var(--color-brand-primary)', border: '1px solid rgba(46,204,113,0.20)' }}
+                            style={{ background: 'rgba(16,185,129,0.08)', color: 'var(--color-brand-primary)', border: '1px solid rgba(16,185,129,0.20)' }}
                         >
                             {thread.comment_count} yorum
                         </span>
@@ -330,7 +330,7 @@ const ForumThread = () => {
                         {replyTo && (
                             <div
                                 className="flex items-center gap-2 text-[10px] px-3 py-2 rounded-xl"
-                                style={{ background: 'rgba(46,204,113,0.06)', border: '1px solid rgba(46,204,113,0.15)' }}
+                                style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)' }}
                             >
                                 <span className="text-muted">↪ <strong style={{ color: 'var(--color-brand-primary)' }}>{replyTo}</strong> kullanıcısına yanıt</span>
                                 <button type="button" onClick={cancelReply} className="ml-auto hover:text-tx-primary">
