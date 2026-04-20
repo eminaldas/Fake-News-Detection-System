@@ -13,30 +13,33 @@ GET  /forum/articles/{article_id}/threads — article'a bağlı thread'ler
 """
 
 import asyncio
+import re
 import uuid as _uuid
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import func, select, desc
+from sqlalchemy import func, select, desc, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from workers.moderation_task import check_toxicity
 
-from app.api.deps import get_current_user, get_optional_user
+from app.api.deps import get_current_user, get_optional_user, get_admin_user
+from app.core.notifications import send_notification
 from app.core.pubsub import publish_async
 from app.db.session import get_db
 from app.models.models import (
-    Article, AnalysisResult, ForumComment, ForumCommentVote,
+    Article, AnalysisResult, Bookmark, ForumComment, ForumCommentVote,
     ForumReport, ForumThread, ForumVote, Tag, ThreadTag, User,
 )
 from app.schemas.schemas import (
-    ForumArticleSummary, ForumCommentCreate, ForumCommentItem,
-    ForumReportCreate, ForumTagSearchResponse, ForumThreadCreate, ForumThreadDetail,
-    ForumThreadListResponse, ForumThreadSummary, ForumTrendingResponse,
-    ForumTrendingThread, ForumVoteCreate, ForumVoteResult, TagItem,
+    ForumArticleSummary, ForumCommentCreate, ForumCommentItem, ForumCommentUpdate,
+    ForumReportCreate, ForumSearchResponse, ForumTagSearchResponse, ForumThreadCreate,
+    ForumThreadDetail, ForumThreadListResponse, ForumThreadReportCreate, ForumThreadSummary,
+    ForumThreadUpdate, ForumTrendingResponse, ForumTrendingThread, ForumVoteCreate,
+    ForumVoteResult, TagItem,
     FORUM_CATEGORIES,
 )
 
@@ -44,6 +47,7 @@ router = APIRouter()
 
 _MIN_VOTES_FOR_REVIEW = 5
 _SUSPICIOUS_REVIEW_THRESHOLD = 0.60
+_INVESTIGATE_THRESHOLD = 10
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -323,6 +327,61 @@ async def get_thread(
     )
 
 
+@router.put("/threads/{thread_id}", response_model=ForumThreadDetail)
+async def update_thread(
+    thread_id:    _uuid.UUID,
+    body:         ForumThreadUpdate,
+    current_user: User       = Depends(get_current_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    thread = (await db.execute(
+        select(ForumThread)
+        .options(selectinload(ForumThread.user), selectinload(ForumThread.tags))
+        .where(ForumThread.id == thread_id)
+    )).scalar_one_or_none()
+
+    if not thread:
+        raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
+    if thread.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Bu tartışmayı düzenleyemezsiniz")
+
+    age = datetime.now(timezone.utc) - thread.created_at.replace(tzinfo=timezone.utc)
+    if age.total_seconds() > 86400:
+        raise HTTPException(status_code=403, detail="Tartışmalar yalnızca 24 saat içinde düzenlenebilir")
+
+    if body.title    is not None: thread.title    = body.title
+    if body.body     is not None: thread.body     = body.body
+    if body.category is not None: thread.category = body.category
+
+    if body.tag_names is not None:
+        tags = await _get_or_create_tags(db, body.tag_names)
+        thread.tags = tags
+
+    await db.commit()
+    await db.refresh(thread)
+
+    return await get_thread(thread_id, current_user, db)
+
+
+@router.delete("/threads/{thread_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_thread(
+    thread_id:    _uuid.UUID,
+    current_user: User       = Depends(get_current_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == thread_id)
+    )).scalar_one_or_none()
+
+    if not thread:
+        raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
+    if thread.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Bu tartışmayı silemezsiniz")
+
+    await db.delete(thread)
+    await db.commit()
+
+
 @router.get("/tags", response_model=ForumTagSearchResponse)
 async def search_tags(
     search:   str            = Query(..., min_length=1, max_length=50),
@@ -357,21 +416,19 @@ async def search_tags(
 
 
 def _increment_vote(thread: ForumThread, vote_type: str):
-    if vote_type == "suspicious":
-        thread.vote_suspicious += 1
-    elif vote_type == "authentic":
-        thread.vote_authentic += 1
-    elif vote_type == "investigate":
-        thread.vote_investigate += 1
+    if vote_type == "suspicious":    thread.vote_suspicious  += 1
+    elif vote_type == "authentic":   thread.vote_authentic   += 1
+    elif vote_type == "investigate": thread.vote_investigate += 1
+    elif vote_type == "up":          thread.vote_up          += 1
+    elif vote_type == "down":        thread.vote_down        += 1
 
 
 def _decrement_vote(thread: ForumThread, vote_type: str):
-    if vote_type == "suspicious":
-        thread.vote_suspicious = max(0, thread.vote_suspicious - 1)
-    elif vote_type == "authentic":
-        thread.vote_authentic = max(0, thread.vote_authentic - 1)
-    elif vote_type == "investigate":
-        thread.vote_investigate = max(0, thread.vote_investigate - 1)
+    if vote_type == "suspicious":    thread.vote_suspicious  = max(0, thread.vote_suspicious  - 1)
+    elif vote_type == "authentic":   thread.vote_authentic   = max(0, thread.vote_authentic   - 1)
+    elif vote_type == "investigate": thread.vote_investigate = max(0, thread.vote_investigate - 1)
+    elif vote_type == "up":          thread.vote_up          = max(0, thread.vote_up          - 1)
+    elif vote_type == "down":        thread.vote_down        = max(0, thread.vote_down        - 1)
 
 
 @router.post("/threads/{thread_id}/vote", response_model=ForumVoteResult)
@@ -424,6 +481,41 @@ async def vote_thread(
         )).scalar_one_or_none()
     await _check_under_review(thread, article, db)
 
+    if thread.status == "under_review" and thread.user_id != current_user.id:
+        await send_notification(
+            db=db,
+            user_id=thread.user_id,
+            notif_type="under_review",
+            payload={
+                "thread_id":    str(thread_id),
+                "thread_title": thread.title,
+            },
+        )
+
+    # "İncele" eşiği kontrolü — eşik aşılırsa fact-check pipeline'ı tetikle
+    if (
+        thread.vote_investigate >= _INVESTIGATE_THRESHOLD
+        and not thread.fact_check_triggered
+        and thread.article_id is not None
+    ):
+        try:
+            from workers.tasks import analyze_article
+            # article'ı fetch et, analyze_article task'ına gönder
+            if article is None:
+                article = (await db.execute(
+                    select(Article).where(Article.id == thread.article_id)
+                )).scalar_one_or_none()
+            if article:
+                analyze_article.delay(
+                    str(thread.article_id),
+                    text=article.title + " " + (article.body or ""),
+                    news_evidence=None,
+                    user_id=None,
+                )
+        except Exception:
+            pass  # worker mevcut değilse sessizce geç
+        thread.fact_check_triggered = True
+
     await db.commit()
     await db.refresh(thread)
 
@@ -431,6 +523,8 @@ async def vote_thread(
         vote_suspicious=thread.vote_suspicious,
         vote_authentic=thread.vote_authentic,
         vote_investigate=thread.vote_investigate,
+        vote_up=thread.vote_up,
+        vote_down=thread.vote_down,
         status=thread.status,
         current_user_vote=current_vote,
     )
@@ -501,6 +595,55 @@ async def add_comment(
     await db.commit()
     await db.refresh(comment)
 
+    # Thread yazarına yorum bildirimi
+    if thread.user_id != current_user.id:
+        await send_notification(
+            db=db,
+            user_id=thread.user_id,
+            notif_type="new_comment",
+            payload={
+                "thread_id":    str(thread_id),
+                "thread_title": thread.title,
+                "comment_id":   str(comment.id),
+                "actor":        current_user.username,
+            },
+        )
+        await db.commit()
+
+    # Yanıt bildirimi (parent varsa)
+    if body.parent_id:
+        parent_comment = (await db.execute(
+            select(ForumComment).where(ForumComment.id == body.parent_id)
+        )).scalar_one_or_none()
+        if parent_comment and parent_comment.user_id != current_user.id:
+            await send_notification(
+                db=db,
+                user_id=parent_comment.user_id,
+                notif_type="reply",
+                payload={
+                    "thread_id":    str(thread_id),
+                    "thread_title": thread.title,
+                    "comment_id":   str(comment.id),
+                    "actor":        current_user.username,
+                },
+            )
+            await db.commit()
+
+    # @mention bildirimleri — yorum gövdesindeki @kullaniciadi'ları parse et
+    mentions = re.findall(r'@(\w+)', body.body)
+    if mentions:
+        mentioned_result = await db.execute(
+            select(User).where(User.username.in_(mentions))
+        )
+        for mentioned_user in mentioned_result.scalars().all():
+            if mentioned_user.id != current_user.id:
+                await send_notification(db, mentioned_user.id, "mention", {
+                    "thread_id":       str(thread.id),
+                    "comment_id":      str(comment.id),
+                    "actor_username":  current_user.username,
+                })
+        await db.commit()
+
     comment_payload = {
         "thread_id": str(thread_id),
         "comment": {
@@ -567,6 +710,79 @@ async def helpful_vote(
         db.add(ForumCommentVote(comment_id=comment_id, user_id=current_user.id))
         comment.helpful_count += 1
 
+    await db.commit()
+
+
+@router.put("/comments/{comment_id}", response_model=ForumCommentItem)
+async def update_comment(
+    comment_id:   _uuid.UUID,
+    body:         ForumCommentUpdate,
+    current_user: User       = Depends(get_current_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    comment = (await db.execute(
+        select(ForumComment)
+        .options(selectinload(ForumComment.user))
+        .where(ForumComment.id == comment_id)
+    )).scalar_one_or_none()
+
+    if not comment:
+        raise HTTPException(status_code=404, detail="Yorum bulunamadı")
+    if comment.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Bu yorumu düzenleyemezsiniz")
+
+    age = datetime.now(timezone.utc) - comment.created_at.replace(tzinfo=timezone.utc)
+    if age.total_seconds() > 900:
+        raise HTTPException(status_code=403, detail="Yorumlar yalnızca 15 dakika içinde düzenlenebilir")
+
+    tox = await asyncio.to_thread(check_toxicity, body.body)
+    if not tox["safe"] and tox["severity"] == "high":
+        raise HTTPException(status_code=422, detail="İçerik forum politikalarına aykırı")
+
+    comment.body      = body.body
+    comment.is_edited = True
+    comment.edited_at = datetime.now(timezone.utc)
+
+    await db.commit()
+    await db.refresh(comment)
+
+    return ForumCommentItem(
+        id=comment.id,
+        thread_id=comment.thread_id,
+        parent_id=comment.parent_id,
+        username=comment.user.username,
+        body=comment.body,
+        evidence_urls=comment.evidence_urls or [],
+        helpful_count=comment.helpful_count,
+        depth=comment.depth,
+        is_highlighted=comment.is_highlighted,
+        created_at=comment.created_at,
+        moderation_status=comment.moderation_status,
+    )
+
+
+@router.delete("/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_comment(
+    comment_id:   _uuid.UUID,
+    current_user: User       = Depends(get_current_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    comment = (await db.execute(
+        select(ForumComment).where(ForumComment.id == comment_id)
+    )).scalar_one_or_none()
+
+    if not comment:
+        raise HTTPException(status_code=404, detail="Yorum bulunamadı")
+    if comment.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Bu yorumu silemezsiniz")
+
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == comment.thread_id)
+    )).scalar_one_or_none()
+    if thread:
+        thread.comment_count = max(0, thread.comment_count - 1)
+
+    await db.delete(comment)
     await db.commit()
 
 
@@ -710,3 +926,267 @@ async def get_article_threads(
     ]
 
     return ForumThreadListResponse(items=items, total=len(items), page=1, size=len(items))
+
+
+# ── Bookmark ────────────────────────────────────────────────────────────────
+
+@router.post("/threads/{thread_id}/bookmark", status_code=status.HTTP_204_NO_CONTENT)
+async def toggle_bookmark(
+    thread_id:    _uuid.UUID,
+    current_user: User         = Depends(get_current_user),
+    db: AsyncSession           = Depends(get_db),
+):
+    """Thread'i kaydet / kaydedilmişten kaldır (toggle)."""
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == thread_id)
+    )).scalar_one_or_none()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
+
+    existing = await db.get(Bookmark, (current_user.id, thread_id))
+    if existing:
+        await db.delete(existing)
+    else:
+        db.add(Bookmark(user_id=current_user.id, thread_id=thread_id))
+    await db.commit()
+    return Response(status_code=204)
+
+
+@router.get("/bookmarks/me", response_model=ForumThreadListResponse)
+async def my_bookmarks(
+    page:         int  = Query(1, ge=1),
+    size:         int  = Query(20, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession   = Depends(get_db),
+):
+    """Giriş yapmış kullanıcının kaydettiği thread'leri sayfalı listeler."""
+    bookmarked_sq = (
+        select(Bookmark.thread_id)
+        .where(Bookmark.user_id == current_user.id)
+        .scalar_subquery()
+    )
+
+    q = (
+        select(ForumThread)
+        .options(selectinload(ForumThread.user), selectinload(ForumThread.tags))
+        .where(ForumThread.id.in_(bookmarked_sq))
+        .order_by(desc(ForumThread.created_at))
+    )
+
+    total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
+    threads = (await db.execute(q.offset((page - 1) * size).limit(size))).scalars().all()
+
+    items = [
+        ForumThreadSummary(
+            id=t.id,
+            title=t.title,
+            category=t.category,
+            status=t.status,
+            vote_suspicious=t.vote_suspicious,
+            vote_authentic=t.vote_authentic,
+            vote_investigate=t.vote_investigate,
+            comment_count=t.comment_count,
+            created_at=t.created_at,
+            author={"id": t.user.id, "username": t.user.username},
+            tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in t.tags],
+        )
+        for t in threads
+    ]
+    return ForumThreadListResponse(items=items, total=total, page=page, size=size)
+
+
+# ── Search ──────────────────────────────────────────────────────────────────
+
+@router.get("/search", response_model=ForumSearchResponse)
+async def search_threads(
+    q:        str           = Query(..., min_length=1, max_length=200),
+    category: Optional[str] = Query(None),
+    page:     int           = Query(1, ge=1),
+    size:     int           = Query(20, ge=1, le=50),
+    current_user: Optional[User] = Depends(get_optional_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    import sqlalchemy
+    pattern = f"%{q}%"
+    base_q = (
+        select(ForumThread)
+        .options(
+            selectinload(ForumThread.user),
+            selectinload(ForumThread.tags),
+        )
+        .where(
+            sqlalchemy.or_(
+                ForumThread.title.ilike(pattern),
+                ForumThread.body.ilike(pattern),
+            )
+        )
+        .order_by(
+            desc(
+                ForumThread.vote_suspicious
+                + ForumThread.vote_authentic
+                + ForumThread.vote_investigate
+                + ForumThread.comment_count
+            ),
+            desc(ForumThread.created_at),
+        )
+    )
+    if category:
+        base_q = base_q.where(ForumThread.category == category)
+
+    total   = (await db.execute(select(func.count()).select_from(base_q.subquery()))).scalar_one()
+    threads = (await db.execute(base_q.offset((page - 1) * size).limit(size))).scalars().all()
+
+    items = [
+        ForumThreadSummary(
+            id=t.id,
+            title=t.title,
+            category=t.category,
+            status=t.status,
+            vote_suspicious=t.vote_suspicious,
+            vote_authentic=t.vote_authentic,
+            vote_investigate=t.vote_investigate,
+            comment_count=t.comment_count,
+            created_at=t.created_at,
+            author={"id": t.user.id, "username": t.user.username},
+            tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in t.tags],
+        )
+        for t in threads
+    ]
+    return ForumSearchResponse(items=items, total=total, query=q)
+
+
+# ── Thread Report ───────────────────────────────────────────────────────────
+
+@router.post("/threads/{thread_id}/report", status_code=status.HTTP_200_OK)
+async def report_thread(
+    thread_id:    _uuid.UUID,
+    body:         ForumThreadReportCreate,
+    current_user: User         = Depends(get_current_user),
+    db: AsyncSession           = Depends(get_db),
+):
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == thread_id)
+    )).scalar_one_or_none()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
+    if thread.user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Kendi tartışmanızı bildiremezsiniz")
+    thread.status = "under_review"
+    await db.commit()
+    return {"message": "Bildiriminiz alındı."}
+
+
+# ── Moderation ──────────────────────────────────────────────────────────────
+
+@router.get("/admin/flagged-comments")
+async def list_flagged_comments(
+    current_user: User       = Depends(get_admin_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    result = await db.execute(
+        select(ForumComment)
+        .options(selectinload(ForumComment.user))
+        .where(ForumComment.moderation_status.in_(["flagged_ai", "flagged_user"]))
+        .order_by(desc(ForumComment.created_at))
+        .limit(50)
+    )
+    comments = result.scalars().all()
+    return [
+        {
+            "id":                str(c.id),
+            "thread_id":         str(c.thread_id),
+            "username":          c.user.username if c.user else "?",
+            "body":              c.body,
+            "moderation_status": c.moderation_status,
+            "moderation_note":   c.moderation_note,
+            "created_at":        c.created_at.isoformat(),
+        }
+        for c in comments
+    ]
+
+
+@router.put("/admin/comments/{comment_id}/approve", status_code=status.HTTP_204_NO_CONTENT)
+async def approve_comment(
+    comment_id:   _uuid.UUID,
+    current_user: User       = Depends(get_admin_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    comment = (await db.execute(
+        select(ForumComment).where(ForumComment.id == comment_id)
+    )).scalar_one_or_none()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Yorum bulunamadı")
+    comment.moderation_status = "clean"
+    await db.commit()
+
+
+@router.put("/admin/comments/{comment_id}/remove", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_comment(
+    comment_id:   _uuid.UUID,
+    current_user: User       = Depends(get_admin_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    comment = (await db.execute(
+        select(ForumComment).where(ForumComment.id == comment_id)
+    )).scalar_one_or_none()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Yorum bulunamadı")
+    comment.moderation_status = "removed"
+    await db.commit()
+
+
+@router.get("/admin/flagged-threads")
+async def list_flagged_threads(
+    current_user: User       = Depends(get_admin_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    result = await db.execute(
+        select(ForumThread)
+        .options(selectinload(ForumThread.user))
+        .where(ForumThread.status == "under_review")
+        .order_by(desc(ForumThread.created_at))
+        .limit(50)
+    )
+    threads = result.scalars().all()
+    return [
+        {
+            "id":              str(t.id),
+            "title":           t.title,
+            "username":        t.user.username if t.user else "?",
+            "status":          t.status,
+            "vote_suspicious": t.vote_suspicious,
+            "vote_authentic":  t.vote_authentic,
+            "created_at":      t.created_at.isoformat(),
+        }
+        for t in threads
+    ]
+
+
+@router.put("/admin/threads/{thread_id}/resolve", status_code=status.HTTP_204_NO_CONTENT)
+async def resolve_thread(
+    thread_id:    _uuid.UUID,
+    current_user: User       = Depends(get_admin_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == thread_id)
+    )).scalar_one_or_none()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
+    thread.status = "resolved"
+    await db.commit()
+
+
+@router.put("/admin/threads/{thread_id}/close", status_code=status.HTTP_204_NO_CONTENT)
+async def close_thread(
+    thread_id:    _uuid.UUID,
+    current_user: User       = Depends(get_admin_user),
+    db: AsyncSession         = Depends(get_db),
+):
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == thread_id)
+    )).scalar_one_or_none()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
+    thread.status = "closed"
+    await db.commit()

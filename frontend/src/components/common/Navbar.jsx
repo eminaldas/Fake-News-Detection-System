@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { Moon, Sun, Menu, X, Bell, ChevronDown, User, Settings, Shield, BarChart2, LogOut, Users } from 'lucide-react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Moon, Sun, Menu, X, ChevronDown, User, Settings, Shield, BarChart2, LogOut, Users, Search } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import axiosInstance from '../../api/axios';
-import { useWebSocket } from '../../contexts/WebSocketContext';
 import logo from '../../assets/images/emrald.png';
 import logoDark from '../../assets/images/logoDark.png';
-import NotificationDropdown from '../../features/notifications/NotificationDropdown';
+import NotificationBell from '../../features/notifications/NotificationBell';
 
 const GUNDEM_CATEGORIES = [
     { label: 'Gündem',    value: 'gündem'    },
@@ -53,38 +52,32 @@ function TrustProgress({ trust }) {
 
 const Navbar = () => {
     const location              = useLocation();
+    const navigate              = useNavigate();
     const { isDarkMode, toggleTheme } = useTheme();
     const { isAuthenticated, user, isAdmin, logout } = useAuth();
     const [menuOpen,    setMenuOpen]    = useState(false);
-    const [showNotifs,  setShowNotifs]  = useState(false);
     const [showProfile, setShowProfile] = useState(false);
-    const [notifUnread, setNotifUnread] = useState(0);
     const [trust,       setTrust]       = useState(null);
+    const [searchOpen,  setSearchOpen]  = useState(false);
+    const [searchQ,     setSearchQ]     = useState('');
     const profileRef = useRef(null);
     const isActive = (path) => location.pathname === path;
-    const { subscribe } = useWebSocket();
     const [gundemParams, setGundemParams] = useSearchParams();
     const isGundem = location.pathname === '/gundem';
     const activeCategory = isGundem ? gundemParams.get('category') : null;
 
-    useEffect(() => {
-        const unsub = subscribe('new_notification', (payload) => {
-            if (payload?.unread_count !== undefined) setNotifUnread(payload.unread_count);
-            else setNotifUnread(prev => prev + 1);
-        });
-        return unsub;
-    }, [subscribe]);
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        if (!searchQ.trim()) return;
+        navigate(`/forum/search?q=${encodeURIComponent(searchQ)}`);
+        setSearchOpen(false);
+        setSearchQ('');
+    };
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
     useEffect(() => {
-        if (!user) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setNotifUnread(0);
-            return;
-        }
-        axiosInstance.get('/notifications').then(r => setNotifUnread(r.data.unread_count)).catch(() => {});
+        if (!user) return;
         axiosInstance.get('/users/me/trust').then(r => setTrust(r.data)).catch(() => {});
     }, [user]);
 
@@ -150,6 +143,28 @@ const Navbar = () => {
                 {/* ── SAĞ ARAÇLAR ── */}
                 <div className="flex items-center gap-2">
 
+                    {/* Arama */}
+                    {searchOpen ? (
+                        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
+                            <input
+                                autoFocus
+                                value={searchQ}
+                                onChange={e => setSearchQ(e.target.value)}
+                                onBlur={() => { if (!searchQ) setSearchOpen(false); }}
+                                placeholder="Ara..."
+                                className="text-xs bg-transparent outline-none px-2 py-1 rounded-lg border w-32"
+                                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
+                            />
+                        </form>
+                    ) : (
+                        <button
+                            onClick={() => setSearchOpen(true)}
+                            className="p-2 rounded-full transition-colors hover:bg-white/5"
+                            style={{ color: 'var(--color-text-muted)' }}
+                        >
+                            <Search className="w-4 h-4" />
+                        </button>
+                    )}
 
                     {/* Tema toggle */}
                     <button
@@ -162,27 +177,7 @@ const Navbar = () => {
                     </button>
 
                     {/* Bildirimler */}
-                    {isAuthenticated && user && (
-                        <div className="relative">
-                            <button
-                                onClick={() => { setShowNotifs(v => !v); setShowProfile(false); }}
-                                className="p-1.5 transition-colors relative"
-                                style={{ color: 'var(--color-text-muted)' }}
-                                aria-label="Bildirimler"
-                            >
-                                <Bell size={15} />
-                                {notifUnread > 0 && (
-                                    <span
-                                        className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 text-white text-[8px] font-bold rounded-full flex items-center justify-center"
-                                        style={{ background: 'var(--color-fake-fill)' }}
-                                    >
-                                        {notifUnread > 9 ? '9+' : notifUnread}
-                                    </span>
-                                )}
-                            </button>
-                            {showNotifs && <NotificationDropdown onClose={() => setShowNotifs(false)} />}
-                        </div>
-                    )}
+                    {isAuthenticated && user && <NotificationBell />}
 
                     {/* Giriş yok */}
                     {!isAuthenticated && (

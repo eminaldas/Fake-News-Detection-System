@@ -1,11 +1,15 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { AlertTriangle, Send, Link as LinkIcon, X, ShieldCheck, ShieldAlert, Search } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import { useWebSocket } from '../../contexts/WebSocketContext';
+import { useAuth } from '../../contexts/AuthContext';
 import ForumCommentTree from './ForumCommentTree';
+import MentionTextarea from './MentionTextarea';
 import LoginNudgeModal, { useLoginNudge } from '../../components/ui/LoginNudgeModal';
 import ShareDropdown from '../../components/ui/ShareDropdown';
+import NewsVoteBar    from './NewsVoteBar';
+import GeneralVoteBar from './GeneralVoteBar';
 
 const VOTE_OPTIONS = [
   { type: 'suspicious',  label: 'Şüpheli', emoji: '🚩', color: 'var(--color-fake-fill)',     activeBg: 'rgba(239,68,68,0.12)',  activeBorder: 'rgba(239,68,68,0.40)' },
@@ -33,11 +37,19 @@ function VoteBar({ suspicious, authentic, investigate, size = 2 }) {
 const ForumThread = () => {
     const { threadId } = useParams();
     const { subscribe } = useWebSocket();
+    const navigate = useNavigate();
+    const { user } = useAuth();
     const [thread,   setThread]   = React.useState(null);
     const [loading,  setLoading]  = React.useState(true);
     const [voting,   setVoting]   = React.useState(false);
 
     const [showNudge, closeNudge] = useLoginNudge();
+
+    const isAuthor = user?.id === thread?.author?.id;
+
+    const [editMode,  setEditMode]  = React.useState(false);
+    const [editTitle, setEditTitle] = React.useState('');
+    const [editBody,  setEditBody]  = React.useState('');
 
     const [body,              setBody]              = React.useState('');
     const [parentId,          setParentId]          = React.useState(null);
@@ -77,6 +89,8 @@ const ForumThread = () => {
                 vote_suspicious:   data.vote_suspicious,
                 vote_authentic:    data.vote_authentic,
                 vote_investigate:  data.vote_investigate,
+                vote_up:           data.vote_up,
+                vote_down:         data.vote_down,
                 status:            data.status,
                 current_user_vote: data.current_user_vote,
             }));
@@ -94,6 +108,25 @@ const ForumThread = () => {
     };
 
     const cancelReply = () => { setParentId(null); setReplyTo(null); };
+
+    const handleDeleteThread = async () => {
+        if (!window.confirm('Bu tartışmayı silmek istediğinizden emin misiniz?')) return;
+        try {
+            await axiosInstance.delete(`/forum/threads/${threadId}`);
+            navigate('/forum');
+        } catch { /* sessiz */ }
+    };
+
+    const submitEdit = async () => {
+        try {
+            await axiosInstance.put(`/forum/threads/${threadId}`, {
+                title: editTitle,
+                body:  editBody,
+            });
+            setEditMode(false);
+            await load();
+        } catch { /* sessiz */ }
+    };
 
     const addUrl = () => {
         const url = urlInput.trim();
@@ -202,6 +235,24 @@ const ForumThread = () => {
                                 url={`${window.location.origin}/s/forum/${thread.id}`}
                                 text={`Forum: ${thread.title}`}
                             />
+                            {isAuthor && !editMode && (
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => { setEditTitle(thread.title); setEditBody(thread.body ?? ''); setEditMode(true); }}
+                                        className="text-[9px] px-2 py-1 rounded-lg hover:bg-white/5 transition-colors"
+                                        style={{ color: 'var(--color-text-muted)' }}
+                                    >
+                                        Düzenle
+                                    </button>
+                                    <button
+                                        onClick={handleDeleteThread}
+                                        className="text-[9px] px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors"
+                                        style={{ color: '#ef4444' }}
+                                    >
+                                        Sil
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         {/* Yazar + tarih */}
@@ -223,10 +274,40 @@ const ForumThread = () => {
                         )}
 
                         {/* Gövde */}
-                        {thread.body && (
-                            <p className="text-[13px] text-tx-secondary leading-relaxed mb-4">
-                                {thread.body}
-                            </p>
+                        {editMode ? (
+                            <div className="flex flex-col gap-2 mb-4">
+                                <input
+                                    value={editTitle}
+                                    onChange={e => setEditTitle(e.target.value)}
+                                    className="w-full bg-transparent text-base font-bold outline-none p-2 rounded-xl border"
+                                    style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-base)', color: 'var(--color-text-primary)' }}
+                                />
+                                <textarea
+                                    value={editBody}
+                                    onChange={e => setEditBody(e.target.value)}
+                                    rows={4}
+                                    className="w-full bg-transparent text-sm outline-none p-2 rounded-xl border resize-none"
+                                    style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-base)', color: 'var(--color-text-secondary)' }}
+                                />
+                                <div className="flex gap-2">
+                                    <button onClick={submitEdit}
+                                        className="px-4 py-1.5 rounded-xl text-xs font-bold"
+                                        style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
+                                        Kaydet
+                                    </button>
+                                    <button onClick={() => setEditMode(false)}
+                                        className="px-4 py-1.5 rounded-xl text-xs font-medium"
+                                        style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
+                                        İptal
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            thread.body && (
+                                <p className="text-[13px] text-tx-secondary leading-relaxed mb-4">
+                                    {thread.body}
+                                </p>
+                            )
                         )}
 
                         {/* Etiketler */}
@@ -273,23 +354,12 @@ const ForumThread = () => {
                         style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-base)' }}
                     >
                         <span className="text-[9px] text-muted uppercase tracking-wider font-bold mr-1">Oy ver:</span>
-                        {VOTE_OPTIONS.map(v => (
-                            <button
-                                key={v.type}
-                                disabled={voting}
-                                onClick={() => handleVote(v.type)}
-                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-semibold
-                                           transition-all duration-150 disabled:opacity-50 hover:scale-[1.03] active:scale-[0.98]"
-                                style={{
-                                    background: thread.current_user_vote === v.type ? v.activeBg : 'rgba(255,255,255,0.03)',
-                                    border:     `1px solid ${thread.current_user_vote === v.type ? v.activeBorder : 'var(--color-border)'}`,
-                                    color:      v.color,
-                                }}
-                            >
-                                <span>{v.emoji}</span>
-                                {v.label}
-                            </button>
-                        ))}
+                        {(() => {
+                            const isNews = thread.article_id || thread.category === 'haberler';
+                            return isNews
+                                ? <NewsVoteBar    thread={thread} onVote={handleVote} disabled={voting} />
+                                : <GeneralVoteBar thread={thread} onVote={handleVote} disabled={voting} />;
+                        })()}
                     </div>
                 </div>
 
@@ -350,10 +420,10 @@ const ForumThread = () => {
                             </div>
                         )}
 
-                        <textarea
+                        <MentionTextarea
                             id="comment-input"
                             value={body}
-                            onChange={e => { setBody(e.target.value); setModerationWarning(false); }}
+                            onChange={(val) => { setBody(val); setModerationWarning(false); }}
                             rows={3}
                             placeholder="Kanıt veya yorumunu ekle..."
                             className="w-full bg-transparent resize-none text-[12px] text-tx-primary placeholder:text-muted outline-none p-3 rounded-xl border transition-colors"

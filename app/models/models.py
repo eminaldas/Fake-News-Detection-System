@@ -37,6 +37,11 @@ class User(Base):
     updated_at      = Column(DateTime(timezone=True), onupdate=func.now())
     last_login_at   = Column(DateTime(timezone=True), nullable=True)
 
+    bio             = Column(Text, nullable=True)
+    avatar_url      = Column(String(500), nullable=True)
+    follower_count  = Column(Integer, default=0, nullable=False)
+    following_count = Column(Integer, default=0, nullable=False)
+
     forum_trust_score    = Column(Float, nullable=False, server_default="0.0")
     forum_trust_tier     = Column(String(20), nullable=False, server_default="yeni_uye")
     forum_trust_category = Column(String(50), nullable=True)
@@ -339,6 +344,11 @@ class ForumThread(Base):
     vote_authentic  = Column(Integer, nullable=False, server_default="0")
     vote_investigate = Column(Integer, nullable=False, server_default="0")
     comment_count   = Column(Integer, nullable=False, server_default="0")
+    vote_up              = Column(Integer, server_default="0", nullable=False)
+    vote_down            = Column(Integer, server_default="0", nullable=False)
+    view_count           = Column(Integer, server_default="0", nullable=False)
+    fact_check_triggered = Column(Boolean, server_default="false", nullable=False)
+    group_id             = Column(UUID(as_uuid=True), nullable=True)
     created_at      = Column(DateTime(timezone=True), server_default=func.now())
     updated_at      = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -368,6 +378,8 @@ class ForumComment(Base):
     is_highlighted    = Column(Boolean, nullable=False, server_default="false")
     moderation_status = Column(String(20), nullable=False, server_default="clean")
     moderation_note   = Column(Text, nullable=True)
+    is_edited  = Column(Boolean, default=False, nullable=False)
+    edited_at  = Column(DateTime(timezone=True), nullable=True)
     created_at    = Column(DateTime(timezone=True), server_default=func.now())
 
     thread  = relationship("ForumThread", back_populates="comments")
@@ -477,7 +489,7 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     type       = Column(String(50), nullable=False)
     payload    = Column(JSONB, nullable=False, server_default="{}")
     read_at    = Column(DateTime(timezone=True), nullable=True)
