@@ -5,6 +5,7 @@ import axiosInstance from '../../api/axios';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 import { useAuth } from '../../contexts/AuthContext';
 import ForumCommentTree from './ForumCommentTree';
+import MentionTextarea from './MentionTextarea';
 import LoginNudgeModal, { useLoginNudge } from '../../components/ui/LoginNudgeModal';
 import ShareDropdown from '../../components/ui/ShareDropdown';
 import NewsVoteBar    from './NewsVoteBar';
@@ -419,10 +420,10 @@ const ForumThread = () => {
                             </div>
                         )}
 
-                        <textarea
+                        <MentionTextarea
                             id="comment-input"
                             value={body}
-                            onChange={e => { setBody(e.target.value); setModerationWarning(false); }}
+                            onChange={(val) => { setBody(val); setModerationWarning(false); }}
                             rows={3}
                             placeholder="Kanıt veya yorumunu ekle..."
                             className="w-full bg-transparent resize-none text-[12px] text-tx-primary placeholder:text-muted outline-none p-3 rounded-xl border transition-colors"
