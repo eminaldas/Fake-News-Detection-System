@@ -412,21 +412,19 @@ async def search_tags(
 
 
 def _increment_vote(thread: ForumThread, vote_type: str):
-    if vote_type == "suspicious":
-        thread.vote_suspicious += 1
-    elif vote_type == "authentic":
-        thread.vote_authentic += 1
-    elif vote_type == "investigate":
-        thread.vote_investigate += 1
+    if vote_type == "suspicious":    thread.vote_suspicious  += 1
+    elif vote_type == "authentic":   thread.vote_authentic   += 1
+    elif vote_type == "investigate": thread.vote_investigate += 1
+    elif vote_type == "up":          thread.vote_up          += 1
+    elif vote_type == "down":        thread.vote_down        += 1
 
 
 def _decrement_vote(thread: ForumThread, vote_type: str):
-    if vote_type == "suspicious":
-        thread.vote_suspicious = max(0, thread.vote_suspicious - 1)
-    elif vote_type == "authentic":
-        thread.vote_authentic = max(0, thread.vote_authentic - 1)
-    elif vote_type == "investigate":
-        thread.vote_investigate = max(0, thread.vote_investigate - 1)
+    if vote_type == "suspicious":    thread.vote_suspicious  = max(0, thread.vote_suspicious  - 1)
+    elif vote_type == "authentic":   thread.vote_authentic   = max(0, thread.vote_authentic   - 1)
+    elif vote_type == "investigate": thread.vote_investigate = max(0, thread.vote_investigate - 1)
+    elif vote_type == "up":          thread.vote_up          = max(0, thread.vote_up          - 1)
+    elif vote_type == "down":        thread.vote_down        = max(0, thread.vote_down        - 1)
 
 
 @router.post("/threads/{thread_id}/vote", response_model=ForumVoteResult)
@@ -486,6 +484,8 @@ async def vote_thread(
         vote_suspicious=thread.vote_suspicious,
         vote_authentic=thread.vote_authentic,
         vote_investigate=thread.vote_investigate,
+        vote_up=thread.vote_up,
+        vote_down=thread.vote_down,
         status=thread.status,
         current_user_vote=current_vote,
     )

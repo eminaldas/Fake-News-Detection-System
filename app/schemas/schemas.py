@@ -628,13 +628,15 @@ class ForumCommentUpdate(BaseModel):
 
 
 class ForumVoteCreate(BaseModel):
-    vote_type: str = Field(..., pattern="^(suspicious|authentic|investigate)$")
+    vote_type: str = Field(..., pattern="^(suspicious|authentic|investigate|up|down)$")
 
 
 class ForumVoteResult(BaseModel):
     vote_suspicious:   int
     vote_authentic:    int
     vote_investigate:  int
+    vote_up:           int = 0
+    vote_down:         int = 0
     status:            str
     current_user_vote: Optional[str] = None
 
