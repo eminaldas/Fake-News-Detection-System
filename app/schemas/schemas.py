@@ -718,3 +718,21 @@ class SharedAnalysisResponse(BaseModel):
     risk_score:      Optional[float] = None
     clickbait_score: Optional[float] = None
     created_at:      Optional[str]   = None
+
+
+# ── Forum Bildirimleri (Notification modeli — read_at) ────────────────────────
+
+class ForumNotificationItem(BaseModel):
+    id:         UUID
+    type:       str
+    payload:    dict
+    read_at:    Optional[datetime] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ForumNotificationListResponse(BaseModel):
+    items:  List[ForumNotificationItem]
+    unread: int
