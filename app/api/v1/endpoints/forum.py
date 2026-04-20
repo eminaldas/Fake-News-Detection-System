@@ -13,6 +13,7 @@ GET  /forum/articles/{article_id}/threads — article'a bağlı thread'ler
 """
 
 import asyncio
+import re
 import uuid as _uuid
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
@@ -626,6 +627,21 @@ async def add_comment(
                 },
             )
             await db.commit()
+
+    # @mention bildirimleri — yorum gövdesindeki @kullaniciadi'ları parse et
+    mentions = re.findall(r'@(\w+)', body.body)
+    if mentions:
+        mentioned_result = await db.execute(
+            select(User).where(User.username.in_(mentions))
+        )
+        for mentioned_user in mentioned_result.scalars().all():
+            if mentioned_user.id != current_user.id:
+                await send_notification(db, mentioned_user.id, "mention", {
+                    "thread_id":       str(thread.id),
+                    "comment_id":      str(comment.id),
+                    "actor_username":  current_user.username,
+                })
+        await db.commit()
 
     comment_payload = {
         "thread_id": str(thread_id),
