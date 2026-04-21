@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, Outlet, useSearchParams } from 'react-router-dom';
+import { NavLink, Outlet, useSearchParams, useLocation } from 'react-router-dom';
 import {
     TrendingUp, MessageSquare, Search,
     AlertTriangle, CheckCircle, Flame,
@@ -70,6 +70,8 @@ const SIDEBAR_STYLE = {
 
 const ForumLayout = () => {
     const { user } = useAuth();
+    const location = useLocation();
+    const isSearchPage = location.pathname === '/forum/search';
     const [searchParams, setSearchParams] = useSearchParams();
     const currentSort = searchParams.get('sort') ?? 'hot';
 
@@ -197,7 +199,7 @@ const trendingTags  = trending?.trending_tags ?? [];
                 </main>
 
                 {/* ══════════════════ SAĞ SIDEBAR ══════════════════ */}
-                <aside className="flex flex-col gap-3" style={SIDEBAR_STYLE}>
+                <aside className="flex flex-col gap-3" style={isSearchPage ? { visibility: 'hidden' } : SIDEBAR_STYLE}>
 
                     {/* Arama */}
                     <SideCard>

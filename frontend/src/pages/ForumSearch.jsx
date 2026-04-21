@@ -42,13 +42,18 @@ export default function ForumSearch() {
     }, []);
 
     React.useEffect(() => {
-        if (initialQ) doSearch(initialQ, initialCat);
-    }, []); // eslint-disable-line
+        const q   = searchParams.get('q') ?? '';
+        const cat = searchParams.get('category') ?? '';
+        if (q) {
+            setQuery(q);
+            setCategory(cat);
+            doSearch(q, cat);
+        }
+    }, [searchParams]); // eslint-disable-line
 
     const handleSubmit = (e) => {
         e.preventDefault();
         setSearchParams({ q: query, ...(category ? { category } : {}) });
-        doSearch(query, category);
     };
 
     return (
