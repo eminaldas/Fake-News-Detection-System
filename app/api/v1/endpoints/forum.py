@@ -20,7 +20,7 @@ from typing import List, Optional
 
 import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import func, select, desc, update
+from sqlalchemy import func, select, desc, update, case
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -1190,3 +1190,64 @@ async def close_thread(
         raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
     thread.status = "closed"
     await db.commit()
+
+
+@router.get("/threads/discover", response_model=ForumThreadListResponse)
+async def discover_threads(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    current_user: Optional[User] = Depends(get_optional_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Popülerlik skoru + kategori ağırlığına göre kişiselleştirilmiş thread listesi."""
+    popularity = (
+        ForumThread.vote_suspicious
+        + ForumThread.vote_authentic
+        + ForumThread.vote_investigate
+        + ForumThread.comment_count * 2
+    )
+
+    q = (
+        select(ForumThread)
+        .options(selectinload(ForumThread.user), selectinload(ForumThread.tags))
+        .order_by(desc(popularity))
+    )
+
+    total   = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
+    threads = (await db.execute(q.offset((page - 1) * size).limit(size))).scalars().all()
+
+    category_weights = {}
+    if current_user:
+        from app.models.models import UserPreferenceProfile
+        profile = (await db.execute(
+            select(UserPreferenceProfile).where(UserPreferenceProfile.user_id == current_user.id)
+        )).scalar_one_or_none()
+        if profile and profile.category_weights:
+            category_weights = profile.category_weights
+
+    def weighted_score(t):
+        base  = t.vote_suspicious + t.vote_authentic + t.vote_investigate + t.comment_count * 2
+        boost = category_weights.get(t.category, 0)
+        return base * (1 + boost)
+
+    if category_weights:
+        threads = sorted(threads, key=weighted_score, reverse=True)
+
+    items = [
+        ForumThreadSummary(
+            id=t.id,
+            title=t.title,
+            category=t.category,
+            status=t.status,
+            vote_suspicious=t.vote_suspicious,
+            vote_authentic=t.vote_authentic,
+            vote_investigate=t.vote_investigate,
+            comment_count=t.comment_count,
+            created_at=t.created_at,
+            author={"id": t.user.id, "username": t.user.username} if t.user else {"id": None, "username": "?"},
+            tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in (t.tags or [])],
+        )
+        for t in threads
+    ]
+
+    return ForumThreadListResponse(items=items, total=total, page=page, size=size)

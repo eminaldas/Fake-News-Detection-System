@@ -1,9 +1,9 @@
 import React from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
     MessageSquare,
     Share2, Bookmark, Plus, Edit3, Link as LinkIcon,
-    Flag, AlertCircle,
+    Flag, AlertCircle, Users, Compass,
 } from 'lucide-react';
 import NewsVoteBar    from './NewsVoteBar';
 import GeneralVoteBar from './GeneralVoteBar';
@@ -347,6 +347,9 @@ const ForumFeed = () => {
     const tag       = searchParams.get('tag')      ?? '';
     const sort      = searchParams.get('sort')     ?? 'hot';
 
+    const navigate  = useNavigate();
+    const [activeTab, setActiveTab] = React.useState('discover');
+
     const [threads,   setThreads]   = React.useState([]);
     const [total,     setTotal]     = React.useState(0);
     const [page,      setPage]      = React.useState(1);
@@ -359,18 +362,26 @@ const ForumFeed = () => {
     const load = React.useCallback(async (pg = 1) => {
         setLoading(true);
         try {
-            const params = { sort, page: pg, size: SIZE };
-            if (category) params.category = category;
-            if (tag)      params.tag      = tag;
-            const { data } = await axiosInstance.get('/forum/threads', { params });
+            let data;
+            if (activeTab === 'following') {
+                const res = await axiosInstance.get('/users/me/following-feed', { params: { page: pg, size: SIZE } });
+                data = res.data;
+            } else {
+                const params = { sort, page: pg, size: SIZE };
+                if (category) params.category = category;
+                if (tag)      params.tag      = tag;
+                const res = await axiosInstance.get('/forum/threads/discover', { params });
+                data = res.data;
+            }
             setThreads(data.items);
             setTotal(data.total);
             setPage(data.page);
         } catch { /* sessiz */ }
         finally { setLoading(false); }
-    }, [sort, category, tag]);
+    }, [sort, category, tag, activeTab]);
 
     React.useEffect(() => { load(1); }, [load]);
+    React.useEffect(() => { setPage(1); }, [activeTab]);
 
     const totalPages = Math.ceil(total / SIZE);
 
@@ -410,6 +421,35 @@ const ForumFeed = () => {
                     <Plus className="w-4 h-4" />
                 </button>
             </div>
+
+            {/* ── Sekme Bar ── */}
+            {!category && !tag && (
+                <div
+                    className="flex rounded-xl overflow-hidden"
+                    style={{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border)' }}
+                >
+                    {[
+                        { id: 'discover',  label: 'Keşfet',         icon: Compass },
+                        { id: 'following', label: 'Takip Edilenler', icon: Users   },
+                    ].map(({ id, label, icon: Icon }) => (
+                        <button
+                            key={id}
+                            onClick={() => {
+                                if (id === 'following' && !user) { navigate('/login'); return; }
+                                setActiveTab(id);
+                            }}
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold transition-colors"
+                            style={{
+                                background: activeTab === id ? 'var(--color-brand-primary)' : 'transparent',
+                                color:      activeTab === id ? '#070f12' : 'var(--color-text-muted)',
+                            }}
+                        >
+                            <Icon className="w-3.5 h-3.5" />
+                            {label}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             {/* ── Başlık ── */}
             <div className="flex items-center gap-2">
@@ -460,8 +500,18 @@ const ForumFeed = () => {
                 </div>
             ) : threads.length === 0 ? (
                 <div className="text-center py-24" style={{ color: 'var(--color-text-muted)' }}>
-                    <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                    <p className="text-sm">Henüz tartışma yok.</p>
+                    {activeTab === 'following' ? (
+                        <>
+                            <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                            <p className="text-sm mb-2">Henüz kimseyi takip etmiyorsun.</p>
+                            <p className="text-xs opacity-60">Kullanıcı profillerine giderek takip edebilirsin.</p>
+                        </>
+                    ) : (
+                        <>
+                            <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                            <p className="text-sm">Henüz tartışma yok.</p>
+                        </>
+                    )}
                 </div>
             ) : (
                 <div className="flex flex-col gap-3">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Lock, Monitor, Smartphone, AlertTriangle } from 'lucide-react';
+import { Lock, Monitor, Smartphone, AlertTriangle, Download } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 
 const ProfileSecurity = () => {
@@ -8,6 +8,9 @@ const ProfileSecurity = () => {
     const [pwError, setPwError]     = useState('');
     const [pwSuccess, setPwSuccess] = useState(false);
     const successTimerRef           = useRef(null);
+
+    const [exportLoading, setExportLoading] = useState(false);
+    const [exportError,   setExportError]   = useState('');
 
     const [sessions, setSessions]               = useState([]);
     const [anomalyDetected, setAnomalyDetected] = useState(false);
@@ -47,6 +50,28 @@ const ProfileSecurity = () => {
     };
 
     useEffect(() => () => clearTimeout(successTimerRef.current), []);
+
+    const handleExport = async () => {
+        setExportLoading(true);
+        setExportError('');
+        try {
+            const res = await axiosInstance.get('/users/me/data-export');
+            const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+            const url  = URL.createObjectURL(blob);
+            try {
+                const a    = document.createElement('a');
+                a.href     = url;
+                a.download = `data-export-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+            } finally {
+                URL.revokeObjectURL(url);
+            }
+        } catch {
+            setExportError('Veriler indirilemedi, lütfen tekrar dene.');
+        } finally {
+            setExportLoading(false);
+        }
+    };
 
     const inputCls = 'w-full bg-transparent border-none outline-none ring-0 py-3 pl-10 pr-4 text-sm text-tx-primary placeholder:text-muted';
     const wrapCls  = 'relative flex items-center rounded-xl border transition-colors';
@@ -113,7 +138,7 @@ const ProfileSecurity = () => {
                     <p className="text-sm text-muted">Giriş geçmişi bulunamadı.</p>
                 ) : (
                     <div className="space-y-2">
-                        {sessions.map((s, i) => (
+                        {sessions.map((s) => (
                             <div
                                 key={s.created_at}
                                 className="flex items-center gap-3 p-3 rounded-lg"
@@ -138,6 +163,27 @@ const ProfileSecurity = () => {
                         ))}
                     </div>
                 )}
+            </div>
+
+            {/* Veri Dışa Aktarma */}
+            <div className="rounded-xl border p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+                <div className="flex items-center gap-2 mb-3">
+                    <Download className="w-4 h-4 text-muted" />
+                    <p className="text-[10px] font-black uppercase tracking-wider text-muted">Verilerimi İndir</p>
+                </div>
+                <p className="text-xs mb-4" style={{ color: 'var(--color-text-secondary)' }}>
+                    Hesap bilgilerin, analiz geçmişin ve tercihlerini JSON formatında indirebilirsin.
+                </p>
+                {exportError && <p className="text-xs text-red-400 mb-3">{exportError}</p>}
+                <button
+                    onClick={handleExport}
+                    disabled={exportLoading}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-50"
+                    style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}
+                >
+                    <Download className="w-4 h-4" />
+                    {exportLoading ? 'Hazırlanıyor...' : 'JSON Olarak İndir'}
+                </button>
             </div>
         </div>
     );

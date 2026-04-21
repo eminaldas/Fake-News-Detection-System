@@ -1,6 +1,7 @@
 from uuid import UUID
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -10,10 +11,10 @@ from app.core.audit import audit_log
 from app.core.logging import get_logger
 from app.db.redis import get_redis
 from app.db.session import get_db
-from app.models.models import User, UserRole, ForumComment, ForumReport, ForumThread
+from app.models.models import Article, User, UserRole, ForumComment, ForumReport, ForumThread
 from app.schemas.schemas import (
     AdminUpdateUserRequest, ModerationQueueItem, ModerationQueueResponse,
-    PaginatedUserResponse, UserResponse,
+    PaginatedUserResponse, UserResponse, ArticleResponse,
 )
 
 router = APIRouter()
@@ -228,3 +229,23 @@ async def remove_comment(
     comment.moderation_status = "removed"
     await db.commit()
     return {"message": "Yorum kaldırıldı."}
+
+
+@router.patch("/articles/{article_id}/classify", response_model=ArticleResponse)
+async def classify_article(
+    article_id: UUID,
+    status: Literal["authentic", "fake"] = Body(..., embed=True),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    article = (await db.execute(
+        select(Article).where(Article.id == article_id)
+    )).scalar_one_or_none()
+
+    if article is None:
+        raise HTTPException(status_code=404, detail="Makale bulunamadı.")
+
+    article.status = status
+    await db.commit()
+    await db.refresh(article)
+    return article
