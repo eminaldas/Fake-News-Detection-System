@@ -138,7 +138,7 @@ const ProfileSecurity = () => {
                     <p className="text-sm text-muted">Giriş geçmişi bulunamadı.</p>
                 ) : (
                     <div className="space-y-2">
-                        {sessions.map((s, i) => (
+                        {sessions.map((s) => (
                             <div
                                 key={s.created_at}
                                 className="flex items-center gap-3 p-3 rounded-lg"
