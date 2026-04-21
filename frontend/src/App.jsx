@@ -36,6 +36,7 @@ import Profile          from './pages/Profile';
 import Bookmarks        from './pages/Bookmarks';
 import ForumSearch      from './pages/ForumSearch';
 import AdminModeration  from './pages/AdminModeration';
+import AdminDataset from './pages/AdminDataset';
 
 // Listens to auth state and manages the WS connection lifecycle
 function WsLifecycle() {
@@ -106,6 +107,9 @@ function App() {
                             } />
                             <Route path="admin/moderation" element={
                                 <RequireAuth><AdminModeration /></RequireAuth>
+                            } />
+                            <Route path="admin/dataset" element={
+                                <RequireAuth><AdminDataset /></RequireAuth>
                             } />
 
                             {/* Kullanıcı profili */}
