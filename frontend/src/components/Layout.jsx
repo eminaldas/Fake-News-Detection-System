@@ -34,9 +34,9 @@ const PARTICLES = [
 ];
 
 const ORBS = [
-    { left: '-8%',  top: '8%',   size: 600, dur: '35s', delay: '0s',  color: 'rgba(16,185,129,0.10)' },
-    { left: '65%',  top: '-8%',  size: 500, dur: '45s', delay: '10s', color: 'rgba(16,185,129,0.07)' },
-    { left: '35%',  top: '55%',  size: 450, dur: '40s', delay: '5s',  color: 'rgba(16,185,129,0.06)' },
+    { left: '-8%',  top: '8%',   size: 600, dur: '35s', delay: '0s',  color: 'rgba(45, 58, 71,0.0)' },
+    { left: '65%',  top: '-8%',  size: 500, dur: '45s', delay: '10s', color: 'rgba(45, 58, 71,0.07)' },
+    { left: '35%',  top: '55%',  size: 450, dur: '40s', delay: '5s',  color: 'rgba(45, 58, 71,0.06)' },
 ];
 
 const Layout = () => {

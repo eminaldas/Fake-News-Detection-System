@@ -158,6 +158,8 @@ async def read_forum_notification(
             Notification.user_id == current_user.id,
         )
     )).scalar_one_or_none()
-    if n:
+    if not n:
+        raise HTTPException(status_code=404, detail="Bildirim bulunamadı")
+    if n.read_at is None:
         n.read_at = datetime.now(timezone.utc)
         await db.commit()

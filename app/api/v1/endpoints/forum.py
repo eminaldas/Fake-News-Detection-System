@@ -215,9 +215,11 @@ async def create_thread(
     db.add(thread)
     await db.flush()
 
+    tags = []
     if body.tag_names:
         tags = await _get_or_create_tags(db, body.tag_names)
-        thread.tags = tags
+        for tag in tags:
+            db.add(ThreadTag(thread_id=thread.id, tag_id=tag.id))
 
     await db.commit()
     await db.refresh(thread)
@@ -251,6 +253,83 @@ async def create_thread(
         comments=[],
         current_user_vote=None,
     )
+
+
+@router.get("/threads/discover", response_model=ForumThreadListResponse)
+async def discover_threads(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    category: Optional[str] = Query(None),
+    tag:      Optional[str] = Query(None),
+    sort:     str           = Query("hot"),
+    current_user: Optional[User] = Depends(get_optional_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Popülerlik skoru + kategori ağırlığına göre kişiselleştirilmiş thread listesi."""
+    popularity = (
+        ForumThread.vote_suspicious
+        + ForumThread.vote_authentic
+        + ForumThread.vote_investigate
+        + ForumThread.comment_count * 2
+    )
+
+    q = (
+        select(ForumThread)
+        .options(selectinload(ForumThread.user), selectinload(ForumThread.tags))
+    )
+
+    if category:
+        q = q.where(ForumThread.category == category)
+    if tag:
+        q = q.join(ThreadTag, ThreadTag.thread_id == ForumThread.id).join(
+            Tag, Tag.id == ThreadTag.tag_id
+        ).where(Tag.name == tag).distinct()
+
+    if sort == "new":
+        q = q.order_by(desc(ForumThread.created_at))
+    elif sort == "controversial":
+        q = q.order_by(desc(ForumThread.vote_investigate), desc(ForumThread.created_at))
+    else:
+        q = q.order_by(desc(popularity), desc(ForumThread.created_at))
+
+    total   = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
+    threads = (await db.execute(q.offset((page - 1) * size).limit(size))).scalars().all()
+
+    category_weights = {}
+    if current_user:
+        from app.models.models import UserPreferenceProfile
+        profile = (await db.execute(
+            select(UserPreferenceProfile).where(UserPreferenceProfile.user_id == current_user.id)
+        )).scalar_one_or_none()
+        if profile and profile.category_weights:
+            category_weights = profile.category_weights
+
+    def weighted_score(t):
+        base  = t.vote_suspicious + t.vote_authentic + t.vote_investigate + t.comment_count * 2
+        boost = category_weights.get(t.category, 0)
+        return base * (1 + boost)
+
+    if category_weights and sort not in ("new", "controversial"):
+        threads = sorted(threads, key=weighted_score, reverse=True)
+
+    items = [
+        ForumThreadSummary(
+            id=t.id,
+            title=t.title,
+            category=t.category,
+            status=t.status,
+            vote_suspicious=t.vote_suspicious,
+            vote_authentic=t.vote_authentic,
+            vote_investigate=t.vote_investigate,
+            comment_count=t.comment_count,
+            created_at=t.created_at,
+            author={"id": t.user.id, "username": t.user.username} if t.user else {"id": None, "username": "?"},
+            tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in (t.tags or [])],
+        )
+        for t in threads
+    ]
+
+    return ForumThreadListResponse(items=items, total=total, page=page, size=size)
 
 
 @router.get("/threads/{thread_id}", response_model=ForumThreadDetail)
@@ -1192,62 +1271,3 @@ async def close_thread(
     await db.commit()
 
 
-@router.get("/threads/discover", response_model=ForumThreadListResponse)
-async def discover_threads(
-    page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
-    current_user: Optional[User] = Depends(get_optional_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Popülerlik skoru + kategori ağırlığına göre kişiselleştirilmiş thread listesi."""
-    popularity = (
-        ForumThread.vote_suspicious
-        + ForumThread.vote_authentic
-        + ForumThread.vote_investigate
-        + ForumThread.comment_count * 2
-    )
-
-    q = (
-        select(ForumThread)
-        .options(selectinload(ForumThread.user), selectinload(ForumThread.tags))
-        .order_by(desc(popularity))
-    )
-
-    total   = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
-    threads = (await db.execute(q.offset((page - 1) * size).limit(size))).scalars().all()
-
-    category_weights = {}
-    if current_user:
-        from app.models.models import UserPreferenceProfile
-        profile = (await db.execute(
-            select(UserPreferenceProfile).where(UserPreferenceProfile.user_id == current_user.id)
-        )).scalar_one_or_none()
-        if profile and profile.category_weights:
-            category_weights = profile.category_weights
-
-    def weighted_score(t):
-        base  = t.vote_suspicious + t.vote_authentic + t.vote_investigate + t.comment_count * 2
-        boost = category_weights.get(t.category, 0)
-        return base * (1 + boost)
-
-    if category_weights:
-        threads = sorted(threads, key=weighted_score, reverse=True)
-
-    items = [
-        ForumThreadSummary(
-            id=t.id,
-            title=t.title,
-            category=t.category,
-            status=t.status,
-            vote_suspicious=t.vote_suspicious,
-            vote_authentic=t.vote_authentic,
-            vote_investigate=t.vote_investigate,
-            comment_count=t.comment_count,
-            created_at=t.created_at,
-            author={"id": t.user.id, "username": t.user.username} if t.user else {"id": None, "username": "?"},
-            tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in (t.tags or [])],
-        )
-        for t in threads
-    ]
-
-    return ForumThreadListResponse(items=items, total=total, page=page, size=size)

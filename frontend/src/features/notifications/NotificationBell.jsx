@@ -6,6 +6,7 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Bell } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../api/axios';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 
@@ -133,6 +134,14 @@ function NotificationList({ items, loading, onMarkOne, onMarkAll, unread }) {
     );
 }
 
+/* ── Payload'dan yönlendirme URL'i ─────────────────────────────── */
+function resolveLink(notif) {
+    const p = notif.payload ?? {};
+    if (p.thread_id)  return `/forum/${p.thread_id}`;
+    if (p.article_id) return `/archive/${p.article_id}`;
+    return null;
+}
+
 /* ── Ana bileşen ────────────────────────────────────────────────── */
 export default function NotificationBell() {
     const [open,    setOpen]    = useState(false);
@@ -141,6 +150,7 @@ export default function NotificationBell() {
     const [loading, setLoading] = useState(false);
     const wrapperRef = useRef(null);
     const { subscribe } = useWebSocket();
+    const navigate = useNavigate();
 
     /* İlk yükleme — okunmamış sayısını al */
     useEffect(() => {
@@ -199,25 +209,39 @@ export default function NotificationBell() {
         });
     }, [items.length]);
 
-    /* Tek bildirimi okundu işaretle */
+    /* Tek bildirimi okundu işaretle + yönlendir */
     const handleMarkOne = useCallback(async (notif) => {
+        setOpen(false);
         if (!notif.read_at) {
-            await axiosInstance.put(`/notifications/forum/${notif.id}/read`).catch(() => {});
+            /* Optimistik güncelleme */
             setItems(prev =>
                 prev.map(n => n.id === notif.id ? { ...n, read_at: new Date().toISOString() } : n)
             );
             setUnread(prev => Math.max(0, prev - 1));
+            /* DB güncelleme — başarısız olursa geri al */
+            try {
+                await axiosInstance.put(`/notifications/forum/${notif.id}/read`);
+            } catch {
+                setItems(prev =>
+                    prev.map(n => n.id === notif.id ? { ...n, read_at: null } : n)
+                );
+                setUnread(prev => prev + 1);
+            }
         }
-        if (notif.payload?.link_url) {
-            window.location.href = notif.payload.link_url;
-        }
-    }, []);
+        const link = resolveLink(notif);
+        if (link) navigate(link);
+    }, [navigate]);
 
     /* Hepsini okundu işaretle */
     const handleMarkAll = useCallback(async () => {
-        await axiosInstance.put('/notifications/forum/read-all').catch(() => {});
-        setItems(prev => prev.map(n => ({ ...n, read_at: n.read_at ?? new Date().toISOString() })));
+        const now = new Date().toISOString();
+        setItems(prev => prev.map(n => ({ ...n, read_at: n.read_at ?? now })));
         setUnread(0);
+        try {
+            await axiosInstance.put('/notifications/forum/read-all');
+        } catch {
+            /* sunucuya ulaşılamadıysa sayfayı yenileyince doğru state gelir */
+        }
     }, []);
 
     return (

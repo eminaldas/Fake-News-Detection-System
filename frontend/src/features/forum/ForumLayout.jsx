@@ -203,7 +203,7 @@ const trendingTags  = trending?.trending_tags ?? [];
 
                     {/* Arama */}
                     <SideCard>
-                        <SideHeader label="Etiket Ara" accent />
+                        <SideHeader label="Arama" accent />
                         <form onSubmit={applyTagSearch} className="p-3">
                             <div
                                 className="flex items-center gap-2 px-3 py-2.5 rounded-lg"
@@ -213,7 +213,7 @@ const trendingTags  = trending?.trending_tags ?? [];
                                 <input
                                     value={tagSearch}
                                     onChange={e => setTagSearch(e.target.value)}
-                                    placeholder="# ile ara..."
+                                    placeholder="Etiket ara..."
                                     className="bg-transparent outline-none flex-1 text-sm"
                                     style={{ color: 'var(--color-text-primary)' }}
                                 />
