@@ -292,6 +292,7 @@ def analyze_article(content_id: str, text: str, news_evidence: str = None, user_
 
 # Görsel analiz task'ını kaydet — worker startup'ta keşfedilsin
 from workers.image_analysis_task import analyze_image as _analyze_image_task  # noqa: F401
+from workers.deep_report_task import generate_deep_report as _generate_deep_report  # noqa: F401
 
 
 # ─────────────────────────────────────────────────────────────────────────────
