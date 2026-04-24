@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
     ShieldCheck, ShieldX, Shield, Brain, MessageSquare,
-    Link2, Info, ThumbsUp, ThumbsDown,
+    Link2, Info, ThumbsUp, ThumbsDown, FileSearch,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import SignalPanel from './SignalPanel';
 import HighlightedText from './HighlightedText';
 import AICommentCard from './AICommentCard';
@@ -10,6 +12,7 @@ import FeedbackBar from './FeedbackBar';
 import RecommendationPanel from '../recommendations/RecommendationPanel';
 import ForumSuggestion from '../forum/ForumSuggestion';
 import ShareDropdown from '../../components/ui/ShareDropdown';
+import AnalysisService from '../../services/analysis.service';
 import { DISPLAY_THRESHOLD } from './signalConfig';
 
 /* ─── Sinyal açıklaması ────────────────────────────────────────────── */
@@ -115,6 +118,20 @@ function getTheme(isAuthentic, isFake, isIddia) {
 
 /* ─── Bileşen ──────────────────────────────────────────────────────── */
 const AnalysisResultCard = ({ result }) => {
+    const navigate           = useNavigate();
+    const { isAuthenticated } = useAuth();
+
+    const handleFullReport = async () => {
+        const taskId = result.task_id ?? result.content_id;
+        if (!taskId) return;
+        try {
+            await AnalysisService.requestFullReport(taskId);
+        } catch {
+            // hata olsa da sayfaya git
+        }
+        navigate(`/analysis/report/${taskId}`);
+    };
+
     if (!result) return null;
 
     const status      = result.ai_comment?.gemini_verdict?.toUpperCase() || result.prediction?.toUpperCase() || 'UNKNOWN';
@@ -319,6 +336,26 @@ const AnalysisResultCard = ({ result }) => {
                             url={`${window.location.origin}/s/analysis/${articleId}`}
                             text={`${status === 'FAKE' ? 'SAHTE' : 'GÜVENİLİR'} (%${displayScore}) — ${(origText || '').slice(0, 80)} | Sahte Haber Dedektifi`}
                         />
+                    )}
+                </div>
+                {/* Tam Rapor CTA */}
+                <div
+                    className="px-5 sm:px-7 py-3 flex items-center"
+                    style={{ borderTop: `1px solid ${hex15}` }}
+                >
+                    {isAuthenticated ? (
+                        <button
+                            onClick={handleFullReport}
+                            className="flex items-center gap-2 text-sm font-bold text-tx-secondary hover:text-tx-primary transition-colors"
+                        >
+                            <FileSearch className="w-4 h-4" />
+                            Tam Raporu Gör →
+                        </button>
+                    ) : (
+                        <p className="text-xs text-tx-secondary/60">
+                            <a href="/login" className="underline hover:text-tx-primary">Giriş yapın</a>
+                            {' '}— derin Gemini analizi için
+                        </p>
                     )}
                 </div>
             </div>
