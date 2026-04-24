@@ -144,23 +144,51 @@ Response 404: task_id bulunamadı
 
 **Akış:**
 1. `task_id` ile `Article` ve `AnalysisResult` DB'den alınır
-2. Gemini'ye tek yapılandırılmış çağrı:
+2. Gemini'ye **Google Search grounding ile** tek yapılandırılmış çağrı:
    - Girdi: orijinal metin + mevcut kısa analiz sonucu (signals, ml verdict, ai_comment özeti)
    - İstenen çıktı: aşağıdaki JSON şeması
 3. Sonuç `AnalysisResult.full_report` kolonuna yazılır
 4. Redis'e `report_ready` event publish edilir
 
+**Gemini Grounding Yapılandırması:**
+
+`ai_comment_task.py` ile aynı pattern kullanılır — zaten orada Google Search grounding çalışıyor:
+
+```python
+from google.genai import types
+
+response = client.models.generate_content(
+    model=settings.GEMINI_MODEL,
+    contents=prompt,
+    config=types.GenerateContentConfig(
+        tools=[types.Tool(google_search=types.GoogleSearch())],
+        automatic_function_calling=types.AutomaticFunctionCallingConfig(
+            maximum_remote_calls=10,  # derin rapor için daha fazla arama
+        ),
+        # NOT: response_mime_type="application/json" grounding ile uyumsuz.
+        # JSON, _extract_json_from_text ile prompt yanıtından parse edilir.
+    ),
+)
+```
+
+`maximum_remote_calls=10` — kısa analizde 5 call yeterli ama tam raporda her iddia için
+ayrı search gerekebilir, bu yüzden limit artırılır.
+
 **Gemini Prompt Stratejisi:**
 ```
-Sen bir gazetecilik doğrulama uzmanısın. Aşağıdaki haber metnini ve
-ön analiz sonuçlarını inceleyerek kapsamlı bir doğrulama raporu üret.
+Sen bir gazetecilik doğrulama uzmanısın. Google Search ile güncel kaynaklara
+erişebildiğini unutma — iddia doğrulamada mutlaka arama yap.
+
+Aşağıdaki haber metnini ve ön analiz sonuçlarını inceleyerek kapsamlı
+bir doğrulama raporu üret.
 
 Kurallar:
 - Sadece metinde gerçekten var olan iddiaları çıkar, ekleme yapma
+- Her iddia için Google Search ile doğrulama yap
 - Zaman bağlamı yoksa time_context.relevant = false döndür
 - Varlık yoksa entities = [] döndür
 - Propaganda tekniği tespit etmezsen propaganda_techniques = [] döndür
-- Her kaynağa erişmeye çalış, ulaşamazsan source_url = null bırak
+- Eriştiğin kaynak URL'lerini source_url alanına ekle
 - Türkçe yanıt ver
 
 [Metin]: {article_text}
@@ -321,6 +349,6 @@ existing = await db.execute(
 
 - PDF indirme (ileride eklenebilir, şimdi sadece UI'da yer tutucu buton)
 - Kullanıcı başına tam rapor kotası (ilk aşamada yok, gerekirse rate limit'e entegre edilir)
-- Gemini web search grounding (mevcut API key izinlerine göre; Gemini kendi bilgisiyle araştırır, live search değil)
+- Rapor bölümlerine göre ayrı ayrı grounding call'ları (tek Gemini çağrısı içinde AFC ile yapılır)
 - Rapor bölümlerinin ayrı ayrı yenilenmesi (tüm rapor tek seferde gelir)
 - Mobil için özel rapor layout'u (mevcut responsive sistem yeterli)
