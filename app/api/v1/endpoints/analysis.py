@@ -23,6 +23,7 @@ from app.schemas.schemas import (
     AnalysisResponse,
     ContentAnalysisRequest,
     FeedbackRequest,
+    FullReportResponse,
     ImageAnalysisResponse,
     SharedAnalysisResponse,
     SignalsRequest,
@@ -677,4 +678,83 @@ async def get_shared_analysis(
         risk_score=signals.get("risk_score"),
         clickbait_score=signals.get("clickbait_score"),
         created_at=result.created_at.isoformat() if result.created_at else None,
+    )
+
+
+@router.post(
+    "/analyze/full-report/{task_id}",
+    response_model=FullReportResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def request_full_report(
+    task_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Kayıtlı kullanıcı için derin Gemini raporu başlatır.
+    Rapor daha önce üretildiyse 200 + rapor döner (Gemini çalışmaz).
+    """
+    from workers.deep_report_task import generate_deep_report
+
+    row = await db.execute(
+        select(
+            AnalysisResult.id,
+            AnalysisResult.full_report,
+            Article.metadata_info,
+        )
+        .join(Article, AnalysisResult.article_id == Article.id)
+        .where(Article.metadata_info.op("->>")(  "task_id") == task_id)
+        .limit(1)
+    )
+    data = row.first()
+
+    if not data:
+        raise HTTPException(status_code=404, detail="Analiz bulunamadı.")
+
+    if data.full_report:
+        return FullReportResponse(
+            task_id=task_id,
+            status="cached",
+            report=data.full_report,
+        )
+
+    generate_deep_report.apply_async(
+        kwargs={"task_id": task_id, "user_id": str(current_user.id)},
+        queue="deep_report",
+    )
+
+    return FullReportResponse(
+        task_id=task_id,
+        status="queued",
+        message="Derin analiz kuyruğa alındı.",
+    )
+
+
+@router.get(
+    "/analyze/full-report/{task_id}",
+    response_model=FullReportResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_full_report(
+    task_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Üretilmiş tam raporu getirir. Henüz hazır değilse 404."""
+    row = await db.execute(
+        select(AnalysisResult.full_report)
+        .join(Article, AnalysisResult.article_id == Article.id)
+        .where(Article.metadata_info.op("->>")(  "task_id") == task_id)
+        .limit(1)
+    )
+    data = row.first()
+
+    if not data or not data.full_report:
+        raise HTTPException(status_code=404, detail="Rapor henüz hazır değil.")
+
+    return FullReportResponse(
+        task_id=task_id,
+        status="cached",
+        report=data.full_report,
     )

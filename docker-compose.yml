@@ -27,7 +27,7 @@ services:
     depends_on:
       - redis
       - db
-    command: celery -A workers.tasks worker --include=workers.link_analysis_task --loglevel=info -Q celery
+    command: celery -A workers.tasks worker --include=workers.link_analysis_task --loglevel=info -Q celery,deep_report
 
   ai-comment-worker:
     build: .
