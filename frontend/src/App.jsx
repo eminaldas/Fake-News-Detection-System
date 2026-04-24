@@ -37,6 +37,7 @@ import Bookmarks        from './pages/Bookmarks';
 import ForumSearch      from './pages/ForumSearch';
 import AdminModeration  from './pages/AdminModeration';
 import AdminDataset from './pages/AdminDataset';
+import AnalysisReport from './pages/AnalysisReport';
 
 // Listens to auth state and manages the WS connection lifecycle
 function WsLifecycle() {
@@ -120,6 +121,11 @@ function App() {
 
                             {/* Paylaşılan analiz — auth gerekmez */}
                             <Route path="analysis/share/:articleId" element={<SharedAnalysis />} />
+
+                            {/* Derin analiz raporu */}
+                            <Route path="analysis/report/:taskId" element={
+                                <RequireAuth><AnalysisReport /></RequireAuth>
+                            } />
 
                             <Route path="*" element={<NotFound />} />
                         </Route>
