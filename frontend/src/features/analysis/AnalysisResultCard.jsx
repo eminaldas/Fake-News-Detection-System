@@ -132,6 +132,20 @@ const AnalysisResultCard = ({ result }) => {
         navigate(`/analysis/report/${taskId}`);
     };
 
+    // Hooks must come before the early return — compute values safely with optional chaining
+    const isUrlAnalysis = !!result?.truth_score;
+    const displayScore = result
+        ? (isUrlAnalysis
+            ? parseFloat(result.truth_score).toFixed(0)
+            : (() => { const r = parseFloat(result.confidence || 0); return r <= 1 ? (r * 100).toFixed(0) : r.toFixed(0); })())
+        : '0';
+    const targetOffset = parseFloat((RING_CIRC * (1 - parseFloat(displayScore) / 100)).toFixed(2));
+    const [ringOffset, setRingOffset] = useState(RING_CIRC);
+    useEffect(() => {
+        const id = setTimeout(() => setRingOffset(targetOffset), 100);
+        return () => clearTimeout(id);
+    }, [targetOffset]);
+
     if (!result) return null;
 
     const status      = result.ai_comment?.gemini_verdict?.toUpperCase() || result.prediction?.toUpperCase() || 'UNKNOWN';
@@ -139,19 +153,7 @@ const AnalysisResultCard = ({ result }) => {
     const isFake      = status === 'FAKE' || status === 'FALSE' || status === 'YANILTICI';
     const isIddia     = status === 'IDDIA' || status === 'UNCERTAIN';
 
-    const isUrlAnalysis = !!result.truth_score;
-    const scoreLabel    = isUrlAnalysis ? 'Doğruluk' : 'Güven';
-
-    const displayScore = isUrlAnalysis
-        ? parseFloat(result.truth_score).toFixed(0)
-        : (() => { const r = parseFloat(result.confidence || 0); return r <= 1 ? (r * 100).toFixed(0) : r.toFixed(0); })();
-
-    const targetOffset = parseFloat((RING_CIRC * (1 - parseFloat(displayScore) / 100)).toFixed(2));
-    const [ringOffset, setRingOffset] = useState(RING_CIRC);
-    useEffect(() => {
-        const id = setTimeout(() => setRingOffset(targetOffset), 100);
-        return () => clearTimeout(id);
-    }, [targetOffset]);
+    const scoreLabel  = isUrlAnalysis ? 'Doğruluk' : 'Güven';
 
     const theme      = getTheme(isAuthentic, isFake, isIddia);
     const signals    = result.signals || null;
