@@ -44,6 +44,29 @@ celery_app.conf.update(
     enable_utc=True,
 )
 
+# ─── Fire-and-forget WS event publisher ──────────────────────────────────────
+def _publish_ws(user_id: str | None, payload: dict) -> None:
+    """Fire-and-forget Redis WS event publish."""
+    if not user_id:
+        return
+    import asyncio as _asyncio
+    import json as _j
+    from redis.asyncio import from_url as _rf
+    async def _pub():
+        r = await _rf(settings.REDIS_URL, encoding="utf-8", decode_responses=True)
+        try:
+            await r.publish(
+                f"user:{user_id}:events",
+                _j.dumps({"type": "analysis_progress", "payload": payload}),
+            )
+        finally:
+            await r.aclose()
+    try:
+        _asyncio.run(_pub())
+    except Exception:
+        pass
+
+
 # ─── Gemini istemcisi — lazy init ──────────────────────────────────────────────
 _gemini_client = None
 
@@ -305,6 +328,7 @@ def generate_ai_comment(
     local_confidence: float,
     needs_decision: bool,
     news_evidence: str = None,
+    user_id: str = None,
 ) -> dict:
     """
     Phase-2: Gemini çağır (AFC ile kendi araştırmasını yapar) → DB güncelle.
@@ -335,6 +359,7 @@ def generate_ai_comment(
     )
 
     # 3. Gemini çağır
+    _publish_ws(user_id, {"stage": "gemini"})
     gemini_result = _call_gemini(prompt)
     if gemini_result is None:
         logger.warning("Gemini sonucu geçersiz, ai_comment yazılmıyor — article_id=%s", article_id)
@@ -354,5 +379,6 @@ def generate_ai_comment(
 
     # 5. DB güncelle (ai_comment + gerekirse status)
     asyncio.run(_update_ai_comment_and_status(article_id, ai_comment, local_verdict))
+    _publish_ws(user_id, {"stage": "complete", "task_id": article_id})
 
     return {"success": True, "article_id": article_id}
