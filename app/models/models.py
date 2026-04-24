@@ -112,6 +112,7 @@ class AnalysisResult(Base):
     confidence = Column(Float, nullable=True)
     signals    = Column(JSONB, nullable=True)
     ai_comment = Column(JSONB, nullable=True)
+    full_report = Column(JSONB, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     article = relationship("Article", back_populates="analysis_result")
