@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Search, Loader2, Link2, FileText, Image as ImageIcon } from "lucide-react";
 import ImageDropZone from "./ImageDropZone";
 
-const AnalysisForm = ({ onAnalyze, onAnalyzeUrl, onAnalyzeImage, loading, isPolling }) => {
+const AnalysisForm = ({ onAnalyze, onAnalyzeUrl, onAnalyzeImage, loading, isPolling, analysisStage }) => {
   const [mode, setMode]       = useState("text"); // 'text' | 'url' | 'image'
   const [text, setText]       = useState("");
   const [url, setUrl]         = useState("");
@@ -99,7 +99,13 @@ const AnalysisForm = ({ onAnalyze, onAnalyzeUrl, onAnalyzeImage, loading, isPoll
           ) : (
             <Search className="w-4 h-4" />
           )}
-          {loading ? (isPolling ? "Analiz ediliyor..." : "Gönderiliyor...") : "Analiz"}
+          {loading
+            ? isPolling
+              ? analysisStage === 'gemini' ? 'AI değerlendiriyor...'
+                : analysisStage === 'nlp'  ? 'Metin analiz ediliyor...'
+                : 'Analiz ediliyor...'
+            : 'Gönderiliyor...'
+            : 'Analiz'}
         </button>
       </div>
     </div>

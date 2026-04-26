@@ -59,6 +59,22 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
     engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
+    # NLP stage — WS progress
+    if user_id:
+        try:
+            import json as _json_p
+            from redis.asyncio import from_url as _redis_p
+            _rp = await _redis_p(settings.REDIS_URL, encoding="utf-8", decode_responses=True)
+            try:
+                await _rp.publish(
+                    f"user:{user_id}:events",
+                    _json_p.dumps({"type": "analysis_progress", "payload": {"stage": "nlp"}}),
+                )
+            finally:
+                await _rp.aclose()
+        except Exception:
+            pass
+
     # 1. Temizlik + linguistik sinyaller
     processed   = cleaner.process(raw_iddia=text)
     signals     = processed["signals"]
@@ -210,6 +226,7 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
                 local_confidence=confidence,
                 needs_decision=_uncertain,
                 news_evidence=news_evidence,
+                user_id=user_id,
             ),
             queue="ai_comment",
         )
@@ -275,6 +292,7 @@ def analyze_article(content_id: str, text: str, news_evidence: str = None, user_
 
 # Görsel analiz task'ını kaydet — worker startup'ta keşfedilsin
 from workers.image_analysis_task import analyze_image as _analyze_image_task  # noqa: F401
+from workers.deep_report_task import generate_deep_report as _generate_deep_report  # noqa: F401
 
 
 # ─────────────────────────────────────────────────────────────────────────────

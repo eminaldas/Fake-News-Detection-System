@@ -29,7 +29,7 @@ const Home = () => {
       return () => window.removeEventListener('rate-limit-exceeded', handler);
   }, []);
 
-  const { analyze, analyzeUrl, loading, result, error, isPolling } = useAnalysis();
+  const { analyze, analyzeUrl, loading, result, error, isPolling, analysisStage } = useAnalysis();
   const {
     loading: imgLoading,
     isPolling: imgPolling,
@@ -143,6 +143,7 @@ const Home = () => {
                 onAnalyzeImage={handleAnalyzeImage}
                 loading={loading || imgLoading}
                 isPolling={isPolling || imgPolling}
+                analysisStage={analysisStage}
                 _error={error}
               />
             </div>

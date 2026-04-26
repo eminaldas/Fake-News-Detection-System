@@ -766,3 +766,12 @@ class ForumSearchResponse(BaseModel):
 
 class ForumThreadReportCreate(BaseModel):
     reason: str = Field(..., pattern="^(spam|misinformation|hate_speech|off_topic)$")
+
+
+# ── Derin Rapor ───────────────────────────────────────────────────────────────
+
+class FullReportResponse(BaseModel):
+    task_id:  str
+    status:   str   # "queued" | "cached" | "not_found"
+    report:   Optional[dict] = None
+    message:  Optional[str] = None
