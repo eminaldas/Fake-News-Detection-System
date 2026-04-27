@@ -743,7 +743,7 @@ async def get_full_report(
 ):
     """Üretilmiş tam raporu getirir. Henüz hazır değilse 404."""
     row = await db.execute(
-        select(AnalysisResult.full_report)
+        select(AnalysisResult.full_report, AnalysisResult.confidence, AnalysisResult.status)
         .join(Article, AnalysisResult.article_id == Article.id)
         .where(Article.metadata_info.op("->>")(  "task_id") == task_id)
         .limit(1)
@@ -757,4 +757,6 @@ async def get_full_report(
         task_id=task_id,
         status="cached",
         report=data.full_report,
+        confidence=data.confidence,
+        ml_verdict=data.status,
     )

@@ -771,7 +771,9 @@ class ForumThreadReportCreate(BaseModel):
 # ── Derin Rapor ───────────────────────────────────────────────────────────────
 
 class FullReportResponse(BaseModel):
-    task_id:  str
-    status:   str   # "queued" | "cached" | "not_found"
-    report:   Optional[dict] = None
-    message:  Optional[str] = None
+    task_id:    str
+    status:     str            # "queued" | "cached" | "not_found"
+    report:     Optional[dict] = None
+    message:    Optional[str] = None
+    confidence: Optional[float] = None
+    ml_verdict: Optional[str]  = None

@@ -25,6 +25,14 @@ class AnalysisService {
         const response = await axiosInstance.get(`/analysis/analyze/full-report/${taskId}`);
         return response.data;
     }
+
+    static async submitFeedback(taskId, label) {
+        const response = await axiosInstance.post('/analysis/feedback', {
+            task_id: taskId,
+            submitted_label: label,
+        });
+        return response.data;
+    }
 }
 
 export default AnalysisService;

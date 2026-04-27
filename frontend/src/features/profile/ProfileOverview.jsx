@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Link2, FileText, ShieldCheck,
-         Search, Cpu, Star, Zap, Award } from 'lucide-react';
+         Search, Cpu, Star, Zap, Award, ExternalLink } from 'lucide-react';
 import AuthService from '../../services/auth.service';
 import axiosInstance from '../../api/axios';
 import InsightsPanel from '../insights/InsightsPanel';
@@ -31,6 +32,7 @@ const PredictionBadge = ({ prediction }) => {
 };
 
 const ProfileOverview = () => {
+    const navigate = useNavigate();
     const [history, setHistory]               = useState([]);
     const [historyPage, setHistoryPage]       = useState(1);
     const [historyTotal, setHistoryTotal]     = useState(0);
@@ -126,13 +128,18 @@ const ProfileOverview = () => {
                 ) : (
                     <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
                         {history.map(item => (
-                            <div key={item.id} className="px-4 py-3 flex items-center gap-3">
+                            <div
+                                key={item.id}
+                                onClick={() => item.task_id && navigate(`/analysis/report/${item.task_id}`)}
+                                className={`px-4 py-3 flex items-center gap-3 transition-colors ${item.task_id ? 'cursor-pointer hover:bg-surface-container-high/40' : ''}`}
+                            >
                                 <TypeBadge type={item.analysis_type} />
                                 <p className="flex-1 text-xs text-tx-secondary truncate">{item.title ?? item.task_id ?? '—'}</p>
                                 {item.prediction && <PredictionBadge prediction={item.prediction} />}
                                 <p className="text-[10px] text-muted flex-shrink-0">
                                     {new Date(item.created_at).toLocaleDateString('tr-TR')}
                                 </p>
+                                {item.task_id && <ExternalLink className="w-3 h-3 text-muted/50 flex-shrink-0" />}
                             </div>
                         ))}
                     </div>

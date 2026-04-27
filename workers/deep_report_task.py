@@ -45,36 +45,21 @@ def _get_gemini_client():
 
 
 _REPORT_SCHEMA = """{
-  "claims": [
+  "overall_assessment": "Haberin genel güvenilirliği hakkında 2-3 cümlelik değerlendirme. Kaynak belirterek yaz.",
+  "fact_checks": [
     {
-      "text": "İddia metni",
-      "verdict": "confirmed | refuted | uncertain",
-      "explanation": "Neden bu karar",
-      "source": "Kaynak adı veya null",
-      "source_url": "https://... veya null"
+      "claim": "Haberdeki spesifik iddia (kısa)",
+      "finding": "Reuters'ın 14 Nisan haberine göre... / Resmi kaynaklara bakıldığında... gibi kaynak belirterek 1-3 cümlelik açıklama",
+      "tone": "refuted | confirmed | mixed | uncertain"
     }
   ],
   "propaganda_techniques": [
     {
       "technique": "Teknik adı",
-      "explanation": "Açıklama"
+      "explanation": "Bu tekniğin haberde nasıl kullanıldığı"
     }
   ],
-  "entities": [
-    {
-      "name": "Varlık adı",
-      "type": "person | org | place",
-      "context": "Kısa bağlam"
-    }
-  ],
-  "source_profile": {
-    "domain": "ornek.com veya null",
-    "reliability_note": "Kaynak hakkında not"
-  },
-  "time_context": {
-    "relevant": true,
-    "note": "Zaman bağlamı notu"
-  },
+  "source_credibility": "Haberin yayınlandığı kaynak veya platform hakkında Gemini'nin bulduğu bilgiler. Kaynak bulunamazsa null.",
   "linguistic": {
     "emotion_tone": "neutral | fear | anger | excitement | sadness",
     "readability": "academic | standard | sensational",
@@ -109,13 +94,12 @@ Clickbait skoru: {clickbait:.3f} | Hedge oranı: {hedge:.3f} | Risk: {risk:.3f}
 Yukarıdaki haber metnini kapsamlı şekilde incele ve aşağıdaki JSON şemasını doldur.
 
 Kurallar:
-- Sadece metinde gerçekten var olan iddiaları claims listesine ekle (max 5)
-- Her iddia için Google Search ile araştırma yap; bulamazsan source_url = null
+- overall_assessment ZORUNLU: kendi cümlerinle, "Doğrulandı/Çürütüldü" gibi etiket kullanmadan yaz
+- fact_checks: Haberdeki 2-5 kritik iddiayı seç. Her finding için mutlaka Google Search yap ve kaynağı belirt ("Reuters'a göre...", "BBC Türkçe'ye göre...", "Resmi açıklamada..."). Kaynak bulamazsan da ne gördüğünü yaz.
+- fact_checks[].tone: "refuted" (yanlış), "confirmed" (doğru), "mixed" (kısmen doğru), "uncertain" (doğrulanamadı)
 - Propaganda tekniği tespit etmezsen propaganda_techniques = []
-- Haberde geçen önemli kişi/kurum/yer yoksa entities = []
-- Zaman bağlamı yoksa time_context.relevant = false
-- source_profile.domain: haberin yayınlandığı alan adı veya null
-- Türkçe yanıt ver
+- source_credibility: haberin kaynağı/yayın organı hakkında bulduklarını yaz; bulamazsan null
+- Türkçe yanıt ver, yargı rozeti kullanma — kendi cümlelerinle açıkla
 
 Yanıtı YALNIZCA geçerli JSON olarak ver. Markdown veya açıklama ekleme.
 
@@ -171,21 +155,20 @@ def _call_gemini_grounded(prompt: str) -> dict | None:
 
 def _validate_report(raw: dict) -> dict:
     """Zorunlu alanları garantile, geçersiz değerleri temizle."""
-    raw.setdefault("claims", [])
+    raw.setdefault("overall_assessment", "")
+    raw.setdefault("fact_checks", [])
     raw.setdefault("propaganda_techniques", [])
-    raw.setdefault("entities", [])
-    raw.setdefault("source_profile", {"domain": None, "reliability_note": None})
-    raw.setdefault("time_context", {"relevant": False, "note": None})
+    raw.setdefault("source_credibility", None)
     raw.setdefault("linguistic", {
         "emotion_tone": "neutral",
         "readability": "standard",
         "manipulation_density": 0.0,
     })
 
-    valid_verdicts = {"confirmed", "refuted", "uncertain"}
-    raw["claims"] = [
-        c for c in raw["claims"]
-        if isinstance(c, dict) and c.get("verdict") in valid_verdicts
+    valid_tones_fc = {"confirmed", "refuted", "mixed", "uncertain"}
+    raw["fact_checks"] = [
+        c for c in raw.get("fact_checks", [])
+        if isinstance(c, dict) and c.get("tone") in valid_tones_fc and c.get("finding")
     ][:5]
 
     valid_tones = {"neutral", "fear", "anger", "excitement", "sadness"}

@@ -18,16 +18,25 @@ export default function ClaimsSection({ claims }) {
                 const cfg = VERDICT_CONFIG[claim.verdict] || VERDICT_CONFIG.uncertain;
                 return (
                     <div key={i} className="rounded-xl p-4 border" style={{ background: cfg.bg, borderColor: `${cfg.color}33` }}>
-                        <div className="flex items-start gap-2 mb-2">
-                            <cfg.Icon className="w-4 h-4 mt-0.5 shrink-0" style={{ color: cfg.color }} />
+                        {/* İddia metni önce */}
+                        <p className="text-tx-primary text-sm font-semibold leading-snug mb-3">
+                            "{claim.text}"
+                        </p>
+
+                        {/* Karar rozeti */}
+                        <div className="flex items-center gap-1.5 mb-2">
+                            <cfg.Icon className="w-3.5 h-3.5 shrink-0" style={{ color: cfg.color }} />
                             <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: cfg.color }}>
                                 {cfg.label}
                             </span>
                         </div>
-                        <p className="text-tx-primary text-sm font-medium mb-1">"{claim.text}"</p>
-                        {claim.explanation && (
-                            <p className="text-tx-secondary text-xs leading-relaxed mb-2">{claim.explanation}</p>
-                        )}
+
+                        {/* Açıklama — zorunlu, yoksa fallback */}
+                        <p className="text-tx-secondary text-xs leading-relaxed mb-2">
+                            {claim.explanation || 'Bu iddia için araştırma kaynağına ulaşılamadı.'}
+                        </p>
+
+                        {/* Kaynak */}
                         {claim.source_url ? (
                             <a href={claim.source_url} target="_blank" rel="noopener noreferrer"
                                className="flex items-center gap-1 text-[10px] text-tx-secondary/60 hover:text-tx-primary transition-colors">

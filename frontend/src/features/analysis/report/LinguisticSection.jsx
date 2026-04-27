@@ -22,9 +22,9 @@ export default function LinguisticSection({ linguistic }) {
 
     return (
         <div className="space-y-3">
-            <h3 className="text-tx-secondary font-manrope font-bold text-[10px] tracking-widest uppercase">
+            <h2 className="font-manrope font-bold text-base text-tx-primary">
                 Dilbilimsel Analiz
-            </h3>
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="rounded-xl p-4 bg-surface-solid border border-brutal-border/40">
                     <span className="text-[9px] font-bold uppercase tracking-widest text-tx-secondary/60 block mb-2">Duygu Tonu</span>
