@@ -94,16 +94,16 @@ export default function FeedbackSection({ taskId, forumThreadId }) {
                         </p>
                     ) : (
                         <div className="flex flex-wrap justify-center gap-2">
-                            {VOTES.map(({ type, label, icon: Icon, color }) => ( // eslint-disable-line no-unused-vars
+                            {VOTES.map((vote) => (
                                 <button
-                                    key={type}
+                                    key={vote.type}
                                     disabled={voteState === STATE.loading}
-                                    onClick={() => submitVote(type)}
+                                    onClick={() => submitVote(vote.type)}
                                     className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
-                                    style={{ color, background: `${color}15`, border: `1px solid ${color}33` }}
+                                    style={{ color: vote.color, background: `${vote.color}15`, border: `1px solid ${vote.color}33` }}
                                 >
-                                    <Icon className="w-3.5 h-3.5" />
-                                    {label}
+                                    <vote.icon className="w-3.5 h-3.5" />
+                                    {vote.label}
                                 </button>
                             ))}
                         </div>
