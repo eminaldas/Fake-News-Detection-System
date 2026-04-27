@@ -10,11 +10,9 @@ import AnalysisResultCard from "../features/analysis/AnalysisResultCard";
 import AnalysisResultSkeleton from "../features/analysis/AnalysisResultSkeleton";
 import RecentHeadlines from "../components/features/analysis/RecentHeadlines";
 import AnalysisDisclaimer from "../features/analysis/AnalysisDisclaimer";
-import LiveDataCard from "../components/features/analysis/LiveDataCard";
-import BorsaCard   from "../components/features/analysis/BorsaCard";
+import HotAnalysesCard from "../components/features/analysis/HotAnalysesCard";
 import DepremCard  from "../components/features/analysis/DepremCard";
 import NamazCard   from "../components/features/analysis/NamazCard";
-import SporCard    from "../components/features/analysis/SporCard";
 
 const Home = () => {
   const { isAuthenticated } = useAuth();
@@ -192,16 +190,10 @@ const Home = () => {
           )}
         </div>
 
-        {/* Sağ: Hava + Piyasalar */}
+        {/* Sağ: En Çok Analiz Edilen */}
         <div className="hidden lg:flex lg:col-span-3 flex-col gap-3 animate-fade-right delay-300">
-          <LiveDataCard />
-          <BorsaCard />
+          <HotAnalysesCard />
         </div>
-      </div>
-
-      {/* ── Spor ── */}
-      <div className="hidden lg:block w-full max-w-350 mx-auto mt-5 pb-4 animate-fade-up delay-400">
-        <SporCard />
       </div>
     </div>
   );
