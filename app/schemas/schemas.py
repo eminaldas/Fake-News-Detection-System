@@ -249,6 +249,28 @@ class HotAnalysesResponse(BaseModel):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Benzer RSS Haberleri
+# ─────────────────────────────────────────────────────────────────────────────
+
+class SimilarNewsItem(BaseModel):
+    id:          str
+    title:       str
+    source_name: Optional[str]      = None
+    source_url:  Optional[str]      = None
+    image_url:   Optional[str]      = None
+    category:    Optional[str]      = None
+    pub_date:    Optional[datetime] = None
+    trust_score: Optional[float]    = None
+    similarity:  float
+
+    class Config:
+        from_attributes = True
+
+class SimilarNewsResponse(BaseModel):
+    items: List[SimilarNewsItem]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Haberler (RSS)
 # ─────────────────────────────────────────────────────────────────────────────
 

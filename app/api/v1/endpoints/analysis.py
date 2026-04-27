@@ -4,7 +4,7 @@ import io
 
 import imagehash
 from PIL import Image, UnidentifiedImageError
-from fastapi import APIRouter, Body, Depends, File, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 from celery.result import AsyncResult
@@ -29,6 +29,8 @@ from app.schemas.schemas import (
     SharedAnalysisResponse,
     SignalsRequest,
     SignalsResponse,
+    SimilarNewsItem,
+    SimilarNewsResponse,
     SimilarReportResponse,
     TaskStatusResponse,
     UrlAnalysisRequest,
@@ -814,3 +816,56 @@ async def get_full_report(
         confidence=data.confidence,
         ml_verdict=data.status,
     )
+
+
+@router.get("/similar-news/{task_id}", response_model=SimilarNewsResponse)
+async def get_similar_news(
+    task_id: str,
+    limit: int = Query(4, ge=1, le=8),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Analiz edilen makaleye anlamsal olarak benzer RSS haberlerini döndürür.
+    Article embedding'ini subquery ile alır; asyncpg Vector codec sorununu önler.
+    """
+    sql = text("""
+        WITH article_emb AS (
+            SELECT embedding
+            FROM articles
+            WHERE metadata_info->>'task_id' = :task_id
+              AND embedding IS NOT NULL
+            LIMIT 1
+        )
+        SELECT
+            na.id::text          AS id,
+            na.title             AS title,
+            na.source_name       AS source_name,
+            na.source_url        AS source_url,
+            na.image_url         AS image_url,
+            na.category          AS category,
+            na.pub_date          AS pub_date,
+            na.trust_score       AS trust_score,
+            (na.embedding <=> ae.embedding) AS dist
+        FROM news_articles na, article_emb ae
+        WHERE na.embedding IS NOT NULL
+        ORDER BY na.embedding <=> ae.embedding
+        LIMIT :limit
+    """)
+    rows = (await db.execute(sql, {"task_id": task_id, "limit": limit})).fetchall()
+
+    items = [
+        SimilarNewsItem(
+            id=str(row.id),
+            title=row.title,
+            source_name=row.source_name,
+            source_url=row.source_url,
+            image_url=row.image_url,
+            category=row.category,
+            pub_date=row.pub_date,
+            trust_score=row.trust_score,
+            similarity=round(max(0.0, 1.0 - float(row.dist)), 3),
+        )
+        for row in rows
+        if row.dist is not None and float(row.dist) < 0.6
+    ]
+    return SimilarNewsResponse(items=items)

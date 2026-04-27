@@ -49,6 +49,11 @@ class AnalysisService {
         );
         return response.data;
     }
+
+    static async getSimilarNews(taskId) {
+        const response = await axiosInstance.get(`/analysis/similar-news/${taskId}?limit=4`);
+        return response.data;
+    }
 }
 
 export default AnalysisService;

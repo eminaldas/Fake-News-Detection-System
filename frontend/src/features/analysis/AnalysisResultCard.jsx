@@ -14,6 +14,7 @@ import ForumSuggestion from '../forum/ForumSuggestion';
 import ShareDropdown from '../../components/ui/ShareDropdown';
 import { DISPLAY_THRESHOLD } from './signalConfig';
 import FullReportModal from './FullReportModal';
+import SimilarNewsSection from './SimilarNewsSection';
 
 /* ─── Sinyal açıklaması ────────────────────────────────────────────── */
 const SIGNAL_WEIGHT_ORDER = [
@@ -356,6 +357,7 @@ const AnalysisResultCard = ({ result }) => {
         <FeedbackBar result={result} />
         <ForumSuggestion articleId={articleId} />
         <RecommendationPanel context="post_analysis" title="İlgili Haberler" />
+        <SimilarNewsSection taskId={result.task_id ?? result.content_id} />
         {showModal && (
             <FullReportModal
                 taskId={result.task_id ?? result.content_id}
