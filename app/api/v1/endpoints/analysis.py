@@ -28,6 +28,7 @@ from app.schemas.schemas import (
     SharedAnalysisResponse,
     SignalsRequest,
     SignalsResponse,
+    SimilarReportResponse,
     TaskStatusResponse,
     UrlAnalysisRequest,
 )
@@ -728,6 +729,54 @@ async def request_full_report(
         task_id=task_id,
         status="queued",
         message="Derin analiz kuyruğa alındı.",
+    )
+
+
+@router.get(
+    "/analyze/check-similar/{task_id}",
+    response_model=SimilarReportResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def check_similar_report(
+    task_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Aynı task_id'nin embedding'ine yakın ve full_report'u olan başka makale var mı?"""
+    # Kaynak makaleyi ve embedding'ini al
+    row = await db.execute(
+        select(Article.embedding, Article.title)
+        .join(AnalysisResult, AnalysisResult.article_id == Article.id)
+        .where(Article.metadata_info.op("->>")(  "task_id") == task_id)
+        .limit(1)
+    )
+    source = row.first()
+    if not source or source.embedding is None:
+        return SimilarReportResponse(found=False)
+
+    # Benzer + full_report'u olan makaleyi bul (kendisi hariç)
+    result = await db.execute(
+        select(
+            Article.metadata_info.op("->>")(  "task_id").label("other_task_id"),
+            Article.title,
+            Article.embedding.cosine_distance(source.embedding).label("dist"),
+        )
+        .join(AnalysisResult, AnalysisResult.article_id == Article.id)
+        .where(AnalysisResult.full_report.isnot(None))
+        .where(Article.metadata_info.op("->>")(  "task_id") != task_id)
+        .where(Article.embedding.cosine_distance(source.embedding) < 0.15)
+        .order_by(Article.embedding.cosine_distance(source.embedding))
+        .limit(1)
+    )
+    similar = result.first()
+    if not similar:
+        return SimilarReportResponse(found=False)
+
+    return SimilarReportResponse(
+        found=True,
+        task_id=similar.other_task_id,
+        similarity=round((1 - similar.dist) * 100, 1),
+        title=similar.title,
     )
 
 
