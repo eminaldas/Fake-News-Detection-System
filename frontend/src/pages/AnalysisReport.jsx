@@ -140,7 +140,10 @@ export default function AnalysisReport() {
                         <LinguisticSection linguistic={report.linguistic} />
                     </div>
 
-                    <FeedbackSection taskId={taskId} />
+                    <FeedbackSection
+                        taskId={taskId}
+                        forumThreadId={report.forum_thread_id ?? null}
+                    />
 
                     <p className="text-tx-secondary/30 text-[10px] text-center pb-4">
                         {new Date(report.generated_at).toLocaleString('tr-TR')} · {report.model}

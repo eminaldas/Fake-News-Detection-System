@@ -770,6 +770,10 @@ class ForumThreadReportCreate(BaseModel):
 
 # ── Derin Rapor ───────────────────────────────────────────────────────────────
 
+class FullReportRequest(BaseModel):
+    user_note: Optional[str] = Field(None, max_length=500)
+
+
 class FullReportResponse(BaseModel):
     task_id:    str
     status:     str            # "queued" | "cached" | "not_found"
@@ -777,3 +781,10 @@ class FullReportResponse(BaseModel):
     message:    Optional[str] = None
     confidence: Optional[float] = None
     ml_verdict: Optional[str]  = None
+
+
+class SimilarReportResponse(BaseModel):
+    found:       bool
+    task_id:     Optional[str]   = None
+    similarity:  Optional[float] = None   # 0-100 arası
+    title:       Optional[str]   = None
