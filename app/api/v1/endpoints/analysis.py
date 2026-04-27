@@ -4,7 +4,7 @@ import io
 
 import imagehash
 from PIL import Image, UnidentifiedImageError
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 from celery.result import AsyncResult
@@ -23,6 +23,7 @@ from app.schemas.schemas import (
     AnalysisResponse,
     ContentAnalysisRequest,
     FeedbackRequest,
+    FullReportRequest,
     FullReportResponse,
     ImageAnalysisResponse,
     SharedAnalysisResponse,
@@ -689,6 +690,7 @@ async def get_shared_analysis(
 )
 async def request_full_report(
     task_id: str,
+    body: FullReportRequest = Body(default=FullReportRequest()),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -721,7 +723,11 @@ async def request_full_report(
         )
 
     generate_deep_report.apply_async(
-        kwargs={"task_id": task_id, "user_id": str(current_user.id)},
+        kwargs={
+            "task_id":   task_id,
+            "user_id":   str(current_user.id),
+            "user_note": body.user_note or "",
+        },
         queue="deep_report",
     )
 

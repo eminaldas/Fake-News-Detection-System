@@ -12,8 +12,8 @@ import FeedbackBar from './FeedbackBar';
 import RecommendationPanel from '../recommendations/RecommendationPanel';
 import ForumSuggestion from '../forum/ForumSuggestion';
 import ShareDropdown from '../../components/ui/ShareDropdown';
-import AnalysisService from '../../services/analysis.service';
 import { DISPLAY_THRESHOLD } from './signalConfig';
+import FullReportModal from './FullReportModal';
 
 /* ─── Sinyal açıklaması ────────────────────────────────────────────── */
 const SIGNAL_WEIGHT_ORDER = [
@@ -121,16 +121,7 @@ const AnalysisResultCard = ({ result }) => {
     const navigate           = useNavigate();
     const { isAuthenticated } = useAuth();
 
-    const handleFullReport = async () => {
-        const taskId = result.task_id ?? result.content_id;
-        if (!taskId) return;
-        try {
-            await AnalysisService.requestFullReport(taskId);
-        } catch {
-            // hata olsa da sayfaya git
-        }
-        navigate(`/analysis/report/${taskId}`);
-    };
+    const [showModal, setShowModal] = useState(false);
 
     // Hooks must come before the early return — compute values safely with optional chaining
     const isUrlAnalysis = !!result?.truth_score;
@@ -347,7 +338,7 @@ const AnalysisResultCard = ({ result }) => {
                 >
                     {isAuthenticated ? (
                         <button
-                            onClick={handleFullReport}
+                            onClick={() => setShowModal(true)}
                             className="flex items-center gap-2 text-sm font-bold text-tx-secondary hover:text-tx-primary transition-colors"
                         >
                             <FileSearch className="w-4 h-4" />
@@ -365,6 +356,12 @@ const AnalysisResultCard = ({ result }) => {
         <FeedbackBar result={result} />
         <ForumSuggestion articleId={articleId} />
         <RecommendationPanel context="post_analysis" title="İlgili Haberler" />
+        {showModal && (
+            <FullReportModal
+                taskId={result.task_id ?? result.content_id}
+                onClose={() => setShowModal(false)}
+            />
+        )}
         </>
     );
 };

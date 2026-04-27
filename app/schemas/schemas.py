@@ -770,6 +770,10 @@ class ForumThreadReportCreate(BaseModel):
 
 # ── Derin Rapor ───────────────────────────────────────────────────────────────
 
+class FullReportRequest(BaseModel):
+    user_note: Optional[str] = Field(None, max_length=500)
+
+
 class FullReportResponse(BaseModel):
     task_id:    str
     status:     str            # "queued" | "cached" | "not_found"

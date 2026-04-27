@@ -16,13 +16,21 @@ class AnalysisService {
         return response.data;
     }
 
-    static async requestFullReport(taskId) {
-        const response = await axiosInstance.post(`/analysis/analyze/full-report/${taskId}`);
+    static async requestFullReport(taskId, userNote = '') {
+        const response = await axiosInstance.post(
+            `/analysis/analyze/full-report/${taskId}`,
+            { user_note: userNote || undefined },
+        );
         return response.data;
     }
 
     static async getFullReport(taskId) {
         const response = await axiosInstance.get(`/analysis/analyze/full-report/${taskId}`);
+        return response.data;
+    }
+
+    static async checkSimilar(taskId) {
+        const response = await axiosInstance.get(`/analysis/analyze/check-similar/${taskId}`);
         return response.data;
     }
 
