@@ -745,7 +745,7 @@ async def check_similar_report(
     """Aynı task_id'nin embedding'ine yakın ve full_report'u olan başka makale var mı?"""
     # Kaynak makaleyi ve embedding'ini al
     row = await db.execute(
-        select(Article.embedding, Article.title)
+        select(Article.embedding)
         .join(AnalysisResult, AnalysisResult.article_id == Article.id)
         .where(Article.metadata_info.op("->>")(  "task_id") == task_id)
         .limit(1)
@@ -764,12 +764,11 @@ async def check_similar_report(
         .join(AnalysisResult, AnalysisResult.article_id == Article.id)
         .where(AnalysisResult.full_report.isnot(None))
         .where(Article.metadata_info.op("->>")(  "task_id") != task_id)
-        .where(Article.embedding.cosine_distance(source.embedding) < 0.15)
         .order_by(Article.embedding.cosine_distance(source.embedding))
         .limit(1)
     )
     similar = result.first()
-    if not similar:
+    if not similar or similar.dist >= 0.15:
         return SimilarReportResponse(found=False)
 
     return SimilarReportResponse(
