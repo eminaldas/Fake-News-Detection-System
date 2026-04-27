@@ -18,13 +18,17 @@ export default function HotAnalysesCard() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        setLoading(true);
         axiosInstance
             .get(`/articles/trending-analyses?hours=${hours}&limit=8`)
             .then(res => setItems(res.data.items || []))
             .catch(() => setItems([]))
             .finally(() => setLoading(false));
     }, [hours]);
+
+    const handleHoursChange = (h) => {
+        setHours(h);
+        setLoading(true);
+    };
 
     return (
         <div className="bg-surface rounded-2xl overflow-hidden border border-brutal-border dark:border-surface-solid animate-fade-right">
@@ -42,7 +46,7 @@ export default function HotAnalysesCard() {
                     {[12, 24].map(h => (
                         <button
                             key={h}
-                            onClick={() => setHours(h)}
+                            onClick={() => handleHoursChange(h)}
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-colors
                                 ${hours === h
                                     ? 'bg-brand text-white dark:bg-es-primary dark:text-black'
