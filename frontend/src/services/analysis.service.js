@@ -41,6 +41,14 @@ class AnalysisService {
         });
         return response.data;
     }
+
+    static async voteThread(threadId, voteType) {
+        const response = await axiosInstance.post(
+            `/forum/threads/${threadId}/vote`,
+            { vote_type: voteType },
+        );
+        return response.data;
+    }
 }
 
 export default AnalysisService;
