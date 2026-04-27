@@ -230,6 +230,24 @@ class TrendingHeadlineResponse(BaseModel):
         from_attributes = True
 
 
+class HotAnalysisItem(BaseModel):
+    task_id:       str
+    title:         str
+    request_count: int
+    status:        str
+    confidence:    Optional[float] = None
+    source_url:    Optional[str]   = None
+    source_domain: Optional[str]   = None
+
+    class Config:
+        from_attributes = True
+
+
+class HotAnalysesResponse(BaseModel):
+    items: List[HotAnalysisItem]
+    hours: int
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Haberler (RSS)
 # ─────────────────────────────────────────────────────────────────────────────
