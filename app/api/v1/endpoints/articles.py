@@ -7,9 +7,11 @@ from datetime import datetime, timezone, timedelta
 from app.api.deps import get_current_user
 from app.core.security import TokenData  # get_articles ve get için kullanılıyor
 from app.db.session import get_db
-from app.models.models import Article, AnalysisResult
+from app.models.models import AnalysisRequest, Article, AnalysisResult
 from app.schemas.schemas import (
     ArticleResponse,
+    HotAnalysesResponse,
+    HotAnalysisItem,
     PaginatedArticleResponse,
     TrendingHeadlineResponse,
 )
@@ -53,6 +55,64 @@ async def get_trending_headlines(
         )
         for article, analysis_status in rows
     ]
+
+
+@router.get("/trending-analyses", response_model=HotAnalysesResponse)
+async def get_trending_analyses(
+    hours: int = Query(24, ge=1, le=168),
+    limit: int = Query(8, ge=1, le=20),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Son N saatte en çok analiz isteği alan task'ları döndürür.
+    analysis_requests tablosunu task_id'ye göre gruplar.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+
+    stmt = (
+        select(
+            AnalysisRequest.task_id,
+            func.count(AnalysisRequest.id).label("request_count"),
+            Article.title,
+            Article.metadata_info,
+            AnalysisResult.status,
+            AnalysisResult.confidence,
+        )
+        .join(
+            Article,
+            Article.metadata_info.op("->>")(  "task_id") == AnalysisRequest.task_id,
+        )
+        .join(AnalysisResult, AnalysisResult.article_id == Article.id)
+        .where(
+            AnalysisRequest.created_at >= cutoff,
+            AnalysisRequest.task_id.isnot(None),
+        )
+        .group_by(
+            AnalysisRequest.task_id,
+            Article.title,
+            Article.metadata_info,
+            AnalysisResult.status,
+            AnalysisResult.confidence,
+        )
+        .order_by(func.count(AnalysisRequest.id).desc())
+        .limit(limit)
+    )
+
+    rows = (await db.execute(stmt)).all()
+
+    items = [
+        HotAnalysisItem(
+            task_id=row.task_id,
+            title=row.title or "—",
+            request_count=row.request_count,
+            status=row.status,
+            confidence=row.confidence,
+            source_url=(row.metadata_info or {}).get("source_url"),
+            source_domain=(row.metadata_info or {}).get("source_domain"),
+        )
+        for row in rows
+    ]
+    return HotAnalysesResponse(items=items, hours=hours)
 
 
 @router.get("/", response_model=PaginatedArticleResponse)
