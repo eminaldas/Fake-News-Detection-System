@@ -453,4 +453,13 @@
   }
   .dark .custom-scrollbar::-webkit-scrollbar-thumb       { background: rgba(16,185,129,0.08); }
   .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(16,185,129,0.18); }
+
+  /* ── Scrollbar Hide ── */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }

@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import axiosInstance from '../../api/axios';
 import { trackInteraction } from '../../services/interaction.service';
 
-const REASON_COLORS = {
-    'Senin için seçildi':    'text-es-primary',
-    'Çok okuduğun kategori': 'text-brand',
-    'İlgi alanın':           'text-authentic-text',
-    'Trend':                 'text-tx-secondary',
+const RISK_STYLE = (score) => {
+    if (score == null) return null;
+    return score > 0.6
+        ? { bg: '#ef44441a', color: '#ef4444' }
+        : { bg: '#3fff8b1a', color: '#3fff8b' };
 };
 
 export default function RecommendationPanel({ context = 'post_analysis', title = 'İlgili Haberler' }) {
@@ -14,16 +14,16 @@ export default function RecommendationPanel({ context = 'post_analysis', title =
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        axiosInstance.get(`/recommendations/?context=${context}&limit=5`)
+        axiosInstance.get(`/recommendations/?context=${context}&limit=6`)
             .then(res => setItems(res.data.items || []))
             .catch(() => {})
             .finally(() => setLoading(false));
     }, [context]);
 
     if (loading) return (
-        <div className="mt-4 space-y-2">
-            {[1,2,3].map(i => (
-                <div key={i} className="h-10 rounded-lg bg-base animate-pulse" />
+        <div className="mt-6 flex gap-3 overflow-hidden">
+            {[1, 2, 3].map(i => (
+                <div key={i} className="min-w-[200px] h-24 rounded-xl bg-base animate-pulse shrink-0" />
             ))}
         </div>
     );
@@ -31,56 +31,53 @@ export default function RecommendationPanel({ context = 'post_analysis', title =
     if (items.length === 0) return null;
 
     return (
-        <div className="mt-4 rounded-2xl border border-brutal-border overflow-hidden"
-             style={{ animation: 'slideUp 0.4s cubic-bezier(0.22,1,0.36,1)' }}>
-            <div className="px-4 py-3 border-b border-brutal-border bg-base">
+        <div className="mt-6" style={{ animation: 'slideUp 0.4s cubic-bezier(0.22,1,0.36,1)' }}>
+            <div className="px-1 mb-3">
                 <span className="text-xs font-extrabold uppercase tracking-widest text-tx-secondary">
                     📰 {title}
                 </span>
             </div>
-            <div className="divide-y divide-brutal-border">
-                {items.map(item => (
-                    <a
-                        key={item.id}
-                        href={item.source_url || '#'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => trackInteraction({
-                            content_id:        item.id,
-                            interaction_type:  'click',
-                            category:          item.category,
-                            nlp_score_at_time: item.nlp_score,
-                        })}
-                        className="flex items-center gap-3 px-4 py-3 hover:bg-base transition-colors group"
-                    >
-                        <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-tx-primary line-clamp-2 group-hover:text-brand transition-colors">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {items.map(item => {
+                    const risk = RISK_STYLE(item.nlp_score);
+                    return (
+                        <a
+                            key={item.id}
+                            href={item.source_url || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => trackInteraction({
+                                content_id:        item.id,
+                                interaction_type:  'click',
+                                category:          item.category,
+                                nlp_score_at_time: item.nlp_score,
+                            })}
+                            className="flex flex-col justify-between min-w-[190px] max-w-[220px] shrink-0
+                                       rounded-xl border border-brutal-border bg-surface p-3 gap-2
+                                       hover:border-brand/50 transition-colors group"
+                        >
+                            <p className="text-[12px] font-semibold text-tx-primary line-clamp-3
+                                          group-hover:text-brand transition-colors leading-snug">
                                 {item.title}
                             </p>
-                            <div className="flex items-center gap-2 mt-1">
-                                {item.reason && (
-                                    <span className={`text-[10px] font-bold ${REASON_COLORS[item.reason] || 'text-tx-secondary'}`}>
-                                        {item.reason}
-                                    </span>
-                                )}
+                            <div className="flex items-center justify-between gap-1 mt-auto">
                                 {item.source_name && (
-                                    <span className="text-[10px] text-tx-secondary opacity-60">
+                                    <span className="text-[10px] text-tx-secondary truncate">
                                         {item.source_name}
                                     </span>
                                 )}
+                                {risk && (
+                                    <span
+                                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
+                                        style={{ background: risk.bg, color: risk.color }}
+                                    >
+                                        %{Math.round(item.nlp_score * 100)} risk
+                                    </span>
+                                )}
                             </div>
-                        </div>
-                        {item.nlp_score != null && (
-                            <div className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
-                                 style={{
-                                     background: item.nlp_score > 0.6 ? '#ef44441a' : '#3fff8b1a',
-                                     color:      item.nlp_score > 0.6 ? '#ef4444'   : '#3fff8b',
-                                 }}>
-                                %{Math.round(item.nlp_score * 100)} risk
-                            </div>
-                        )}
-                    </a>
-                ))}
+                        </a>
+                    );
+                })}
             </div>
         </div>
     );
