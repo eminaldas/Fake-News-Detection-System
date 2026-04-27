@@ -7,6 +7,7 @@ import asyncio
 import json
 import logging
 import re
+import uuid
 from datetime import datetime, timezone
 
 from celery import Celery
@@ -16,7 +17,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
-from app.models.models import Article, AnalysisResult
+from app.models.models import Article, AnalysisResult, ForumThread, Tag, ThreadTag
 from workers.evidence_gatherer import sanitize_for_prompt
 
 logger = logging.getLogger(__name__)
@@ -191,6 +192,49 @@ def _validate_report(raw: dict) -> dict:
     return raw
 
 
+async def _create_report_thread(
+    session: AsyncSession,
+    article_id,
+    user_id: str | None,
+    task_id: str,
+    title: str | None,
+    overall_assessment: str,
+    source_url: str | None,
+) -> str | None:
+    """Tam rapor için forum thread açar. Hata olursa None döner."""
+    try:
+        thread_title = (title or "Haber Analizi")[:200]
+        source_line  = f"\n\n🔗 **Kaynak:** {source_url}" if source_url else ""
+        body = (
+            f"{overall_assessment[:800]}"
+            f"{source_line}"
+            f"\n\n📊 Rapor ID: `#{task_id[:8].upper()}`"
+            f"\n🤖 *Gemini AI + Google Search grounding ile oluşturuldu.*"
+        )
+        tag_row = await session.execute(select(Tag).where(Tag.name == "#tam-rapor"))
+        tag = tag_row.scalar_one_or_none()
+        if tag is None:
+            tag = Tag(name="#tam-rapor")
+            session.add(tag)
+            await session.flush()
+        thread = ForumThread(
+            title=thread_title,
+            body=body,
+            category="haberler",
+            article_id=article_id,
+            user_id=uuid.UUID(user_id) if user_id else None,
+        )
+        session.add(thread)
+        await session.flush()
+        session.add(ThreadTag(thread_id=thread.id, tag_id=tag.id))
+        await session.commit()
+        return str(thread.id)
+    except Exception as exc:
+        await session.rollback()
+        logger.warning("deep_report: forum thread olusturulamadi: %s", exc)
+        return None
+
+
 async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "") -> dict:
     engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -198,6 +242,8 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
     async with Session() as session:
         row = await session.execute(
             select(
+                Article.id.label("article_id"),
+                Article.title,
                 Article.raw_content,
                 Article.content,
                 Article.metadata_info,
@@ -251,6 +297,28 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
             .values(full_report=report)
         )
         await session.commit()
+
+    # Forum thread ac
+    source_url = (data.metadata_info or {}).get("source_url")
+    async with Session() as session:
+        thread_id = await _create_report_thread(
+            session=session,
+            article_id=data.article_id,
+            user_id=user_id,
+            task_id=task_id,
+            title=data.title,
+            overall_assessment=report.get("overall_assessment", ""),
+            source_url=source_url,
+        )
+    if thread_id:
+        report["forum_thread_id"] = thread_id
+        async with Session() as session:
+            await session.execute(
+                update(AnalysisResult)
+                .where(AnalysisResult.id == data.result_id)
+                .values(full_report=report)
+            )
+            await session.commit()
 
     # WS: report_ready event
     if user_id:
