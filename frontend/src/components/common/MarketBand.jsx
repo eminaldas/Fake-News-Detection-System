@@ -75,7 +75,7 @@ const MarketBand = () => {
       className="fixed top-0 left-0 right-0 z-50 h-10 flex items-center px-6"
       style={{
         background:   'var(--color-market-band-bg)',
-        borderBottom: '1px solid var(--color-border)',
+        borderBottom: '1px solid rgba(0,0,0,0.06)',
       }}
     >
       <div className="max-w-7xl mx-auto w-full flex items-center justify-between">

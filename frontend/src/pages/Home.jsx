@@ -101,8 +101,8 @@ const Home = () => {
         {/* Ana başlık */}
         <h1 style={{ animationDelay: '75ms' }}
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-manrope font-extrabold text-tx-primary tracking-tighter leading-[0.95] animate-fade-up">
-          Verify the{' '}
-          <span className="italic text-brand dark:text-es-primary">Truth</span>.
+          Doğrusu{' '}
+          <span className="italic text-brand dark:text-es-primary">Ne?</span>.
         </h1>
 
         {/* Subtitle */}
@@ -119,7 +119,9 @@ const Home = () => {
                       w-full max-w-[1400px] mx-auto pb-8 items-start">
 
         {/* Sol: Günlük Trendler + Deprem + Namaz */}
-        <div className="hidden lg:flex lg:col-span-3 flex-col gap-3 animate-fade-left delay-200">
+        <div className="hidden lg:flex lg:col-span-3 flex-col gap-3 animate-fade-left delay-200
+                        border-r border-brutal-border/20 dark:border-surface-solid pr-5
+                        [&>*]:border-0 [&>*]:shadow-none">
           <RecentHeadlines />
           <DepremCard />
           <NamazCard />
@@ -171,7 +173,7 @@ const Home = () => {
               <AnalysisResultSkeleton key="skeleton" />
             ) : result ? (
               <AnalysisResultCard
-                key={`result-${result.task_id ?? result.prediction ?? Math.random()}`}
+                key={`result-${result.task_id ?? result.prediction ?? 'analysis'}`}
                 result={result}
               />
             ) : null}
@@ -191,7 +193,9 @@ const Home = () => {
         </div>
 
         {/* Sağ: En Çok Analiz Edilen */}
-        <div className="hidden lg:flex lg:col-span-3 flex-col gap-3 animate-fade-right delay-300">
+        <div className="hidden lg:flex lg:col-span-3 flex-col gap-3 animate-fade-right delay-300
+                        border-l border-brutal-border/20 dark:border-surface-solid pl-5
+                        [&>*]:border-0 [&>*]:shadow-none">
           <HotAnalysesCard />
         </div>
       </div>

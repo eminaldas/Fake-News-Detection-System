@@ -74,6 +74,7 @@ const Navbar = () => {
         setSearchQ('');
     };
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
     useEffect(() => {
@@ -94,7 +95,7 @@ const Navbar = () => {
 
     return (
         <header className="fixed top-10 left-0 right-0 z-50"
-                style={{ borderBottom: '1px solid var(--color-navbar-bg)' }}>
+                style={{ borderBottom: '1px solid var(--color-border)' }}>
 
             {/* Nav arka planı */}
             <div
@@ -129,7 +130,7 @@ const Navbar = () => {
                             style={{
                                 color: isActive(item.path)
                                     ? 'var(--color-brand-primary)'
-                                    : '#ffffff',
+                                    : 'var(--color-text-secondary)',
                                 borderBottom: isActive(item.path)
                                     ? '2px solid var(--color-brand-primary)'
                                     : '2px solid transparent',
@@ -202,7 +203,7 @@ const Navbar = () => {
                     {isAuthenticated && user && (
                         <div className="relative ml-1" ref={profileRef}>
                             <button
-                                onClick={() => { setShowProfile(v => !v); setShowNotifs(false); }}
+                                onClick={() => { setShowProfile(v => !v); }}
                                 className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
                             >
                                 <div
@@ -316,7 +317,7 @@ const Navbar = () => {
                             onClick={() => setGundemParams({ forYou: '1' })}
                             className="px-4 py-2 text-[11px] font-black tracking-widest uppercase whitespace-nowrap transition-colors"
                             style={{
-                                color: !activeCategory ? 'var(--color-brand-primary)' : 'rgba(255,255,255,0.70)',
+                                color: !activeCategory ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)',
                                 borderBottom: !activeCategory ? '2px solid var(--color-brand-primary)' : '2px solid transparent',
                             }}
                         >
@@ -328,7 +329,7 @@ const Navbar = () => {
                                 onClick={() => setGundemParams({ category: c.value })}
                                 className="px-4 py-2 text-[11px] font-black tracking-widest uppercase whitespace-nowrap transition-colors"
                                 style={{
-                                    color: activeCategory === c.value ? 'var(--color-brand-primary)' : 'rgba(255,255,255,0.70)',
+                                    color: activeCategory === c.value ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)',
                                     borderBottom: activeCategory === c.value ? '2px solid var(--color-brand-primary)' : '2px solid transparent',
                                 }}
                             >
@@ -355,7 +356,7 @@ const Navbar = () => {
                                 style={{
                                     color: isActive(item.path)
                                         ? 'var(--color-brand-primary)'
-                                        : '#ffffff',
+                                        : 'var(--color-text-secondary)',
                                     borderLeft: isActive(item.path)
                                         ? '2px solid var(--color-brand-primary)'
                                         : '2px solid transparent',

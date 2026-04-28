@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Inter:wght@400;500;600&family=Outfit:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -13,9 +13,9 @@
   /* ─── LIGHT MOD ─────────────────────────────────────────────── */
   :root {
     /* Zemin */
-    --color-bg-base:          #f6f8fa;
-    --color-bg-surface:       #ffffff;
-    --color-bg-surface-solid: #eaeef2;
+    --color-bg-base:          #f9f9f8;
+    --color-bg-surface:       #f9f9f8;  /* kart bg = sayfa bg → görünmez arka plan */
+    --color-bg-surface-solid: #ffffff;  /* modal/dropdown için opak beyaz */
 
     /* Metin */
     --color-text-primary:     #24292f;
@@ -35,8 +35,8 @@
     --color-skeleton:         #eaeef2;
 
     /* Layout tokenlar */
-    --color-market-band-bg:  #eaeef2;
-    --color-navbar-bg:       #ffffff;
+    --color-market-band-bg:  #ffffff;
+    --color-navbar-bg:       rgba(249,249,248,0.96);
     --color-ticker-bg:       #1a9e4f;
     --color-accent-amber:    #d97706;
     --color-accent-blue:     #2563eb;
@@ -151,7 +151,7 @@
   }
 
   html {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Public Sans', system-ui, sans-serif;
   }
 
   button, a, [role="button"], label[for], select, input[type="submit"] {
@@ -159,14 +159,12 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Manrope', system-ui, sans-serif;
+    font-family: 'Public Sans', system-ui, sans-serif;
+    font-weight: 800;
   }
 
   body {
-    background:
-      radial-gradient(ellipse 55% 45% at -5% 0%,   rgba(26, 158, 79, 0.04) 0%, transparent 60%),
-      radial-gradient(ellipse 40% 35% at 105% 100%, rgba(26, 158, 79, 0.03) 0%, transparent 55%),
-      var(--color-bg-base);
+    background: var(--color-bg-base);
     color: var(--color-text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -186,9 +184,9 @@
    ═══════════════════════════════════════════════════════════════════ */
 @theme {
   /* Fontlar */
-  --font-inter:    'Inter',   sans-serif;
-  --font-outfit:   'Outfit',  sans-serif;
-  --font-manrope:  'Manrope', sans-serif;
+  --font-inter:    'Public Sans', sans-serif;
+  --font-outfit:   'Public Sans', sans-serif;
+  --font-manrope:  'Public Sans', sans-serif;
 
   /* Zemin */
   --color-base:           var(--color-bg-base);

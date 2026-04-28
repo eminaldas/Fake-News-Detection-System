@@ -46,6 +46,7 @@ const Layout = () => {
     const prevPathRef    = useRef(null);
 
     /* Yön bilgisini render sırasında hesapla */
+    /* eslint-disable react-hooks/refs */
     let pageClass;
     if (prevPathRef.current === null) {
         pageClass = 'animate-fade-up';
@@ -58,6 +59,7 @@ const Layout = () => {
     } else {
         pageClass = 'animate-fade-up';
     }
+    /* eslint-enable react-hooks/refs */
 
     /* Sayfa değişiminde en üste git */
     useEffect(() => {
@@ -72,18 +74,20 @@ const Layout = () => {
     return (
         <div className="min-h-screen flex flex-col transition-colors duration-300">
 
-            {/* ── Global ızgara ────────────────────────────────── */}
-            <div
-                className="fixed inset-0 pointer-events-none"
-                style={{
-                    zIndex: -10,
-                    backgroundImage:
-                        'linear-gradient(var(--color-border) 1px,transparent 1px),' +
-                        'linear-gradient(90deg,var(--color-border) 1px,transparent 1px)',
-                    backgroundSize: '40px 40px',
-                    opacity: isDarkMode ? 0.55 : 0.60,
-                }}
-            />
+            {/* ── Global ızgara — yalnızca dark modda görünür ── */}
+            {isDarkMode && (
+                <div
+                    className="fixed inset-0 pointer-events-none"
+                    style={{
+                        zIndex: -10,
+                        backgroundImage:
+                            'linear-gradient(var(--color-border) 1px,transparent 1px),' +
+                            'linear-gradient(90deg,var(--color-border) 1px,transparent 1px)',
+                        backgroundSize: '40px 40px',
+                        opacity: 0.55,
+                    }}
+                />
+            )}
 
             {/* ── Animasyonlu arka plan (her iki mod) ──────────── */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: -9 }}>
