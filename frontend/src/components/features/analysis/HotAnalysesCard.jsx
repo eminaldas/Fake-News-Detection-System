@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Flame, BarChart2 } from 'lucide-react';
 import axiosInstance from '../../../api/axios';
+import HotAnalysisModal from './HotAnalysisModal';
 
 const STATUS_COLOR = {
     FAKE:      { bg: '#ff735122', text: '#ff7351' },
@@ -13,9 +14,10 @@ const STATUS_LABEL = {
 };
 
 export default function HotAnalysesCard() {
-    const [items,   setItems]   = useState([]);
-    const [hours,   setHours]   = useState(24);
-    const [loading, setLoading] = useState(true);
+    const [items,        setItems]        = useState([]);
+    const [hours,        setHours]        = useState(24);
+    const [loading,      setLoading]      = useState(true);
+    const [selectedItem, setSelectedItem] = useState(null);
 
     useEffect(() => {
         axiosInstance
@@ -31,6 +33,7 @@ export default function HotAnalysesCard() {
     };
 
     return (
+        <>
         <div className="bg-surface rounded-2xl overflow-hidden border border-brutal-border dark:border-surface-solid animate-fade-right">
 
             {/* Başlık */}
@@ -81,7 +84,11 @@ export default function HotAnalysesCard() {
                             : null;
 
                         return (
-                            <div key={item.task_id} className="flex flex-col gap-1.5 px-4 py-3.5">
+                            <div
+                                key={item.task_id}
+                                className="flex flex-col gap-1.5 px-4 py-3.5 cursor-pointer hover:bg-surface-solid/40 transition-colors"
+                                onClick={() => setSelectedItem(item)}
+                            >
                                 <p className="text-[13px] font-medium leading-snug text-tx-primary line-clamp-2">
                                     {item.title}
                                 </p>
@@ -117,5 +124,13 @@ export default function HotAnalysesCard() {
                 )}
             </div>
         </div>
+
+        {selectedItem && (
+            <HotAnalysisModal
+                item={selectedItem}
+                onClose={() => setSelectedItem(null)}
+            />
+        )}
+        </>
     );
 }
