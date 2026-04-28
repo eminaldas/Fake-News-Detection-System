@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { X, FileSearch, AlertTriangle, Loader2 } from 'lucide-react';
 import AnalysisService from '../../services/analysis.service';
@@ -26,8 +27,8 @@ export default function FullReportModal({ taskId, onClose }) {
 
     const goExisting = () => navigate(`/analysis/report/${similar.task_id}`);
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    return createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
             <div
                 className="w-full max-w-md rounded-2xl border border-brutal-border/30 bg-surface-solid p-6 flex flex-col gap-5"
                 onClick={e => e.stopPropagation()}
@@ -105,6 +106,7 @@ export default function FullReportModal({ taskId, onClose }) {
                     </>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

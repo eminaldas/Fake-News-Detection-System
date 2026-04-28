@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
     MessageSquare,
@@ -305,9 +306,9 @@ function ThreadCard({ thread }) {
                 </div>
             </div>
 
-            {reportTarget && (
+            {reportTarget && createPortal(
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center"
+                    className="fixed inset-0 z-[9999] flex items-center justify-center"
                     style={{ background: 'rgba(0,0,0,0.65)' }}
                     onClick={e => { e.stopPropagation(); setReportTarget(null); }}
                 >
@@ -334,7 +335,8 @@ function ThreadCard({ thread }) {
                             Bildir
                         </button>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </article>
     );
@@ -431,7 +433,8 @@ const ForumFeed = () => {
                     {[
                         { id: 'discover',  label: 'Keşfet',         icon: Compass },
                         { id: 'following', label: 'Takip Edilenler', icon: Users   },
-                    ].map(({ id, label, icon: Icon }) => (
+                    // eslint-disable-next-line no-unused-vars
+                    ].map(({ id, label, icon: TabIcon }) => (
                         <button
                             key={id}
                             onClick={() => {
@@ -444,7 +447,7 @@ const ForumFeed = () => {
                                 color:      activeTab === id ? '#070f12' : 'var(--color-text-muted)',
                             }}
                         >
-                            <Icon className="w-3.5 h-3.5" />
+                            <TabIcon className="w-3.5 h-3.5" />
                             {label}
                         </button>
                     ))}

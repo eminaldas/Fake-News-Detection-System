@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { ThumbsUp, MessageSquare, Link as LinkIcon, Flag, X } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import { useAuth } from '../../contexts/AuthContext';
@@ -300,8 +301,8 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
                 />
             ))}
 
-            {reportTarget && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.65)' }}>
+            {reportTarget && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.65)' }}>
                     <div
                         className="rounded-2xl p-6 w-80 border"
                         style={{ background: 'var(--color-bg-surface)', borderColor: 'var(--color-border)' }}
@@ -350,7 +351,8 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
                             </>
                         )}
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );
