@@ -921,13 +921,13 @@ async def report_comment(
 
 @router.get("/trending", response_model=ForumTrendingResponse)
 async def get_trending(
+    hours:        int  = Query(168, ge=1, le=720, description="Kaç saatlik pencere"),
+    velocity:     bool = Query(False, description="Hız skoru hesaplansın mı"),
     current_user: Optional[User] = Depends(get_optional_user),
-    db: AsyncSession         = Depends(get_db),
+    db: AsyncSession             = Depends(get_db),
 ):
-    """Son 7 gün içindeki trend thread'ler ve trend etiketler."""
-    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
-
-    # Trend thread'ler: oy toplamı + yorum sayısı ile sıralı, son 7 gün, limit 5
+    """Trend thread'ler ve etiketler. hours ile zaman penceresi, velocity ile hızlı yükselen tespiti."""
+    cutoff          = datetime.now(timezone.utc) - timedelta(hours=hours)
     total_votes_col = (
         ForumThread.vote_suspicious
         + ForumThread.vote_authentic
@@ -937,9 +937,33 @@ async def get_trending(
         select(ForumThread)
         .where(ForumThread.created_at >= cutoff)
         .order_by(desc(total_votes_col + ForumThread.comment_count))
-        .limit(5)
+        .limit(10)
     )
     threads = threads_result.scalars().all()
+
+    rising_ids: set[str] = set()
+    if velocity and threads:
+        thread_ids = [t.id for t in threads]
+        cutoff_1h  = datetime.now(timezone.utc) - timedelta(hours=1)
+        cutoff_6h  = datetime.now(timezone.utc) - timedelta(hours=6)
+
+        res_1h = await db.execute(
+            select(ForumVote.thread_id, func.count().label('cnt'))
+            .where(ForumVote.thread_id.in_(thread_ids), ForumVote.created_at >= cutoff_1h)
+            .group_by(ForumVote.thread_id)
+        )
+        res_6h = await db.execute(
+            select(ForumVote.thread_id, func.count().label('cnt'))
+            .where(ForumVote.thread_id.in_(thread_ids), ForumVote.created_at >= cutoff_6h)
+            .group_by(ForumVote.thread_id)
+        )
+        v1h = {str(r.thread_id): r.cnt for r in res_1h}
+        v6h = {str(r.thread_id): r.cnt for r in res_6h}
+        for t in threads:
+            c1 = v1h.get(str(t.id), 0)
+            c6 = v6h.get(str(t.id), 0)
+            if c6 > 0 and (c1 / c6) > 0.50:
+                rising_ids.add(str(t.id))
 
     trending_threads = [
         ForumTrendingThread(
@@ -949,18 +973,15 @@ async def get_trending(
             comment_count=t.comment_count,
             total_votes=t.vote_suspicious + t.vote_authentic + t.vote_investigate,
             created_at=t.created_at,
+            is_rising=str(t.id) in rising_ids,
         )
         for t in threads
     ]
 
-    # Trend etiketler: kullanım sayısına göre, limit 10
     tags_result = await db.execute(
-        select(Tag)
-        .order_by(desc(Tag.usage_count))
-        .limit(10)
+        select(Tag).order_by(desc(Tag.usage_count)).limit(10)
     )
     tags = tags_result.scalars().all()
-
     trending_tags = [
         TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count)
         for tg in tags

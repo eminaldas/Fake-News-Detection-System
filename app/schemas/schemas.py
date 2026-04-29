@@ -692,6 +692,7 @@ class ForumTrendingThread(BaseModel):
     comment_count: int
     total_votes:   int
     created_at:    datetime
+    is_rising:     bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
