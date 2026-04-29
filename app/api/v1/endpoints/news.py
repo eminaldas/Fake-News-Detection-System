@@ -29,6 +29,7 @@ async def list_news(
     size:        int         = Query(20, ge=1, le=100),
     date_from:   date | None = Query(None, description="Başlangıç tarihi (YYYY-MM-DD)"),
     date_to:     date | None = Query(None, description="Bitiş tarihi (YYYY-MM-DD)"),
+    sort:        str  | None = Query(None, description="Sıralama: popular"),
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_optional_user),
 ):
@@ -70,13 +71,38 @@ async def list_news(
     )
     total = total_result.scalar_one()
 
-    items_result = await db.execute(
-        select(NewsArticle)
-        .where(*base_filter)
-        .order_by(func.coalesce(NewsArticle.pub_date, NewsArticle.created_at).desc())
-        .offset(offset)
-        .limit(size)
-    )
+    if sort == "popular":
+        hrs = (
+            func.extract('epoch', func.now() - func.coalesce(NewsArticle.pub_date, NewsArticle.created_at))
+            / 3600.0
+        )
+        cv_sub = (
+            select(ContentInteraction.content_id, func.count().label('cv'))
+            .where(ContentInteraction.interaction_type == 'click')
+            .group_by(ContentInteraction.content_id)
+            .subquery()
+        )
+        pop = (
+            NewsArticle.source_count * 0.5
+            + func.coalesce(cv_sub.c.cv, 0) * 0.3
+            + (1.0 / (hrs + 1.0)) * 0.2
+        )
+        items_result = await db.execute(
+            select(NewsArticle)
+            .where(*base_filter)
+            .outerjoin(cv_sub, NewsArticle.id == cv_sub.c.content_id)
+            .order_by(pop.desc())
+            .offset(offset)
+            .limit(size)
+        )
+    else:
+        items_result = await db.execute(
+            select(NewsArticle)
+            .where(*base_filter)
+            .order_by(func.coalesce(NewsArticle.pub_date, NewsArticle.created_at).desc())
+            .offset(offset)
+            .limit(size)
+        )
     items = items_result.scalars().all()
 
     # Topluluk istatistikleri — tek sorguda tüm makaleler için
