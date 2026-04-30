@@ -165,6 +165,7 @@ Yanıtı YALNIZCA geçerli JSON olarak ver:
 {_SOURCE_DISCOVERY_SCHEMA}"""
 
 
+# Retained for potential fallback use — not called from generate_ai_comment
 def _build_prompt(
     text: str,
     signals: dict,
@@ -283,12 +284,16 @@ def _build_enriched_prompt(
     source_lines = []
     for s in enriched_sources[:10]:
         gov = "devlet yanlısı" if s.get("government_aligned") else (
-            "taraflı" if s.get("political_lean") and abs(s["political_lean"]) > 0.5 else "bağımsız/bilinmiyor"
+            "taraflı" if s.get("political_lean") is not None and abs(s["political_lean"]) > 0.5
+            else "bağımsız/bilinmiyor"
         )
         lean_str = f"{s['political_lean']:+.2f}" if s.get("political_lean") is not None else "bilinmiyor"
+        safe_domain = sanitize_for_prompt(s.get('display_name') or s.get('domain', ''), max_len=80)
+        safe_date = sanitize_for_prompt(s.get('pub_date') or 'tarih?', max_len=20)
+        safe_stance = sanitize_for_prompt(s.get('stance', '?'), max_len=15)
         line = (
-            f"- {s.get('display_name') or s.get('domain')} [{s.get('pub_date') or 'tarih?'}] "
-            f"({gov}, lean={lean_str}): {s.get('stance', '?')} — "
+            f"- {safe_domain} [{safe_date}] "
+            f"({gov}, lean={lean_str}): {safe_stance} — "
             f"{sanitize_for_prompt(s.get('excerpt', ''), max_len=120)}"
         )
         source_lines.append(line)
@@ -314,7 +319,10 @@ def _build_enriched_prompt(
         if bias_meta.get("bias_summary") else ""
     )
 
-    news_block = f"\n\n[RSS HABER KAYNAKLARI]\n{news_evidence}" if news_evidence else ""
+    news_block = (
+        f"\n\n[RSS HABER KAYNAKLARI]\n{sanitize_for_prompt(news_evidence, max_len=500)}"
+        if news_evidence else ""
+    )
 
     if needs_decision:
         task_block = """[GÖREV]
@@ -499,8 +507,8 @@ async def _update_ai_comment_and_status(
     name="generate_ai_comment",
     rate_limit="5/m",
     queue="ai_comment",
-    time_limit=240,
-    soft_time_limit=200,
+    time_limit=420,
+    soft_time_limit=360,
 )
 def generate_ai_comment(
     article_id: str,
@@ -542,13 +550,21 @@ def generate_ai_comment(
         sources_error = True
         logger.warning("source_discovery: kaynak bulunamadı — article_id=%s", article_id)
     else:
-        # ── Step 2 + 3: Paralel bias lookup + temporal analiz ────────────────
+        # ── Step 2: bias enrichment (prerequisite for Steps 2b+3) ───────────
+        # ── Steps 2b+3: paralel — bias summary ve temporal analiz bağımsız ──
+        from concurrent.futures import ThreadPoolExecutor
         from app.core.bias_cache import enrich_sources_with_bias, compute_bias_summary
         from workers.temporal_analyzer import analyze_temporal
 
+        # Step 2: bias enrichment (prerequisite for Steps 2b+3)
         enriched_sources = enrich_sources_with_bias(raw_sources)
-        temporal = analyze_temporal(enriched_sources)
-        bias_summary_meta = compute_bias_summary(enriched_sources)
+
+        # Steps 2b+3: parallel — bias summary and temporal analysis are independent
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            future_bias = executor.submit(compute_bias_summary, enriched_sources)
+            future_temporal = executor.submit(analyze_temporal, enriched_sources)
+            bias_summary_meta = future_bias.result()
+            temporal = future_temporal.result()
 
     # ── Step 4: Gemini zenginleştirilmiş final yorum ─────────────────────────
     _publish_ws(user_id, {"stage": "gemini"})
