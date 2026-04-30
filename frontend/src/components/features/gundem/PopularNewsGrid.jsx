@@ -18,7 +18,7 @@ function NlpLabel({ score }) {
     if (score == null) return null;
     const pct = Math.round((1 - score) * 100);
     return (
-        <span className="text-[10px] font-bold" style={{ color: nlpColor(score) }}>
+        <span className="text-xs font-bold" style={{ color: nlpColor(score) }}>
             {pct}% güvenilir
         </span>
     );
@@ -173,19 +173,19 @@ function FeaturedCard({ article }) {
                     </span>
                 )}
             </a>
-            <div className="p-5 flex flex-col gap-3">
+            <div className="p-6 flex flex-col gap-4">
                 <a href={article.source_url} target="_blank" rel="noopener noreferrer"
                    className="hover:opacity-80 transition-opacity">
-                    <h2 className="text-2xl font-extrabold text-tx-primary leading-tight">
+                    <h2 className="text-3xl font-extrabold text-tx-primary leading-tight">
                         {article.title}
                     </h2>
                 </a>
-                <div className="flex items-center gap-2 flex-wrap text-xs text-tx-secondary">
+                <div className="flex items-center gap-2 flex-wrap text-sm text-tx-secondary">
                     {article.source_name && <span className="font-semibold">{article.source_name}</span>}
                     <span>·</span>
                     <span>{relTime(article.pub_date)}</span>
                     {(article.source_count || 0) > 1 && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                        <span className="px-2.5 py-1 rounded-full text-xs font-bold"
                               style={{
                                   background: 'var(--color-brand-accent)',
                                   color:      'var(--color-brand-primary)',
@@ -235,13 +235,13 @@ function SmallCard({ article }) {
                     </div>
                 )}
             </div>
-            <div className="p-3 flex flex-col gap-1.5 flex-1">
-                <h3 className="text-sm font-semibold text-tx-primary leading-snug">
+            <div className="p-4 flex flex-col gap-2 flex-1">
+                <h3 className="text-base font-bold text-tx-primary leading-snug">
                     {article.title}
                 </h3>
-                <div className="flex items-center gap-2 text-[10px] text-tx-secondary flex-wrap mt-auto pt-1">
+                <div className="flex items-center gap-2 text-xs text-tx-secondary flex-wrap mt-auto pt-1">
                     {article.source_name && (
-                        <span className="font-semibold truncate max-w-[100px]">{article.source_name}</span>
+                        <span className="font-semibold truncate max-w-[120px]">{article.source_name}</span>
                     )}
                     <span>·</span>
                     <span className="shrink-0">{relTime(article.pub_date)}</span>
@@ -279,13 +279,33 @@ function GridSkeleton() {
     );
 }
 
-export default function PopularNewsGrid({ articles, loading }) {
+function LoadMoreTrigger({ onVisible }) {
+    const ref = useRef(null);
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const obs = new IntersectionObserver(
+            ([entry]) => { if (entry.isIntersecting) onVisible(); },
+            { rootMargin: '200px' }
+        );
+        obs.observe(el);
+        return () => obs.disconnect();
+    }, [onVisible]);
+    return <div ref={ref} />;
+}
+
+export default function PopularNewsGrid({ articles, loading, loadingMore, hasMore, loadMore }) {
     if (loading) return <GridSkeleton />;
     if (!articles || articles.length === 0) return (
         <p className="text-muted text-sm text-center py-20">Henüz haber yok.</p>
     );
 
-    const [featured, ...rest] = articles;
+    // Featured = en yeni haber (pub_date'e göre), geri kalanlar popülerlik sırasında
+    const newest = [...articles].sort((a, b) =>
+        new Date(b.pub_date || 0) - new Date(a.pub_date || 0)
+    )[0];
+    const featured = newest || articles[0];
+    const rest = articles.filter(a => a.id !== featured.id);
 
     return (
         <div>
@@ -295,6 +315,24 @@ export default function PopularNewsGrid({ articles, loading }) {
             {rest.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {rest.map(a => <SmallCard key={a.id} article={a} />)}
+                </div>
+            )}
+
+            {/* Infinite scroll tetikleyici */}
+            {hasMore && !loadingMore && <LoadMoreTrigger onVisible={loadMore} />}
+
+            {/* Yükleniyor göstergesi */}
+            {loadingMore && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 animate-pulse">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)' }}>
+                            <div className="aspect-video bg-skeleton" />
+                            <div className="p-3 space-y-2">
+                                <div className="h-4 bg-skeleton rounded" />
+                                <div className="h-3 bg-skeleton rounded w-2/3" />
+                            </div>
+                        </div>
+                    ))}
                 </div>
             )}
         </div>

@@ -65,40 +65,43 @@ async def get_trending_analyses(
 ):
     """
     Son N saatte en çok analiz isteği alan task'ları döndürür.
-    analysis_requests tablosunu task_id'ye göre gruplar.
+    Eğer istenen pencerede sonuç yoksa otomatik olarak 7 güne genişler.
     """
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    async def _query(cutoff: datetime):
+        return (await db.execute(
+            select(
+                AnalysisRequest.task_id,
+                func.count(AnalysisRequest.id).label("request_count"),
+                Article.title,
+                Article.metadata_info,
+                AnalysisResult.status,
+                AnalysisResult.confidence,
+            )
+            .join(Article, Article.metadata_info.op("->>")(  "task_id") == AnalysisRequest.task_id)
+            .join(AnalysisResult, AnalysisResult.article_id == Article.id)
+            .where(
+                AnalysisRequest.created_at >= cutoff,
+                AnalysisRequest.task_id.isnot(None),
+            )
+            .group_by(
+                AnalysisRequest.task_id,
+                Article.title,
+                Article.metadata_info,
+                AnalysisResult.status,
+                AnalysisResult.confidence,
+            )
+            .order_by(func.count(AnalysisRequest.id).desc())
+            .limit(limit)
+        )).all()
 
-    stmt = (
-        select(
-            AnalysisRequest.task_id,
-            func.count(AnalysisRequest.id).label("request_count"),
-            Article.title,
-            Article.metadata_info,
-            AnalysisResult.status,
-            AnalysisResult.confidence,
-        )
-        .join(
-            Article,
-            Article.metadata_info.op("->>")(  "task_id") == AnalysisRequest.task_id,
-        )
-        .join(AnalysisResult, AnalysisResult.article_id == Article.id)
-        .where(
-            AnalysisRequest.created_at >= cutoff,
-            AnalysisRequest.task_id.isnot(None),
-        )
-        .group_by(
-            AnalysisRequest.task_id,
-            Article.title,
-            Article.metadata_info,
-            AnalysisResult.status,
-            AnalysisResult.confidence,
-        )
-        .order_by(func.count(AnalysisRequest.id).desc())
-        .limit(limit)
-    )
+    now = datetime.now(timezone.utc)
+    rows = await _query(now - timedelta(hours=hours))
 
-    rows = (await db.execute(stmt)).all()
+    # İstenen pencerede veri yoksa 7 güne genişlet
+    actual_hours = hours
+    if not rows:
+        rows = await _query(now - timedelta(days=7))
+        actual_hours = 168
 
     items = [
         HotAnalysisItem(
@@ -112,7 +115,7 @@ async def get_trending_analyses(
         )
         for row in rows
     ]
-    return HotAnalysesResponse(items=items, hours=hours)
+    return HotAnalysesResponse(items=items, hours=actual_hours)
 
 
 @router.get("/", response_model=PaginatedArticleResponse)

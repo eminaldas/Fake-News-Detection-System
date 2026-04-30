@@ -72,6 +72,12 @@ async def list_news(
     total = total_result.scalar_one()
 
     if sort == "popular":
+        # Yalnızca son 7 günü tara — eski yüksek-source_count kayıtları öne geçmesin
+        popular_cutoff = datetime.now(UTC) - timedelta(days=7)
+        popular_filter = [
+            *base_filter,
+            func.coalesce(NewsArticle.pub_date, NewsArticle.created_at) >= popular_cutoff,
+        ]
         hrs = (
             func.extract('epoch', func.now() - func.coalesce(NewsArticle.pub_date, NewsArticle.created_at))
             / 3600.0
@@ -89,7 +95,7 @@ async def list_news(
         )
         items_result = await db.execute(
             select(NewsArticle)
-            .where(*base_filter)
+            .where(*popular_filter)
             .outerjoin(cv_sub, NewsArticle.id == cv_sub.c.content_id)
             .order_by(pop.desc())
             .offset(offset)

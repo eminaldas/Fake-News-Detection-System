@@ -13,9 +13,9 @@
   /* ─── LIGHT MOD ─────────────────────────────────────────────── */
   :root {
     /* Zemin */
-    --color-bg-base:          #f9f9f8;
-    --color-bg-surface:       #f9f9f8;  /* kart bg = sayfa bg → görünmez arka plan */
-    --color-bg-surface-solid: #ffffff;  /* modal/dropdown için opak beyaz */
+    --color-bg-base:          #f6f8fa;
+    --color-bg-surface:       #ffffff;
+    --color-bg-surface-solid: #eaeef2;
 
     /* Metin */
     --color-text-primary:     #24292f;
@@ -35,8 +35,8 @@
     --color-skeleton:         #eaeef2;
 
     /* Layout tokenlar */
-    --color-market-band-bg:  #ffffff;
-    --color-navbar-bg:       rgba(249,249,248,0.96);
+    --color-market-band-bg:  #f6f8fa;
+    --color-navbar-bg:       rgba(255,255,255,0.92);
     --color-ticker-bg:       #1a9e4f;
     --color-accent-amber:    #d97706;
     --color-accent-blue:     #2563eb;
@@ -164,7 +164,9 @@
   }
 
   body {
-    background: var(--color-bg-base);
+    background:
+      radial-gradient(ellipse at 80% 0%, rgba(61,130,112,0.04) 0%, transparent 50%),
+      var(--color-bg-base);
     color: var(--color-text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

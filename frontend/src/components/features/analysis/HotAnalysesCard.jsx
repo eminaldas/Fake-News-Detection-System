@@ -19,10 +19,15 @@ export default function HotAnalysesCard() {
     const [loading,      setLoading]      = useState(true);
     const [selectedItem, setSelectedItem] = useState(null);
 
+    const [actualHours, setActualHours] = useState(24);
+
     useEffect(() => {
         axiosInstance
             .get(`/articles/trending-analyses?hours=${hours}&limit=8`)
-            .then(res => setItems(res.data.items || []))
+            .then(res => {
+                setItems(res.data.items || []);
+                setActualHours(res.data.hours || hours);
+            })
             .catch(() => setItems([]))
             .finally(() => setLoading(false));
     }, [hours]);
@@ -43,6 +48,11 @@ export default function HotAnalysesCard() {
                     <span className="text-xs font-black uppercase tracking-widest text-tx-primary">
                         En Çok Analiz Edilen
                     </span>
+                    {actualHours !== hours && (
+                        <span className="text-[9px] text-tx-secondary font-medium">
+                            (son {actualHours >= 168 ? '7 gün' : `${actualHours}s`})
+                        </span>
+                    )}
                 </div>
                 {/* Saat toggle */}
                 <div className="flex items-center gap-1">

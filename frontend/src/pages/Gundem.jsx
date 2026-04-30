@@ -15,7 +15,7 @@ export default function Gundem() {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo,   setDateTo]   = useState('');
 
-    const { articles, loading, error, newCount, refresh } =
+    const { articles, loading, loadingMore, error, newCount, hasMore, refresh, loadMore } =
         usePopularNews(category, dateFrom, dateTo);
 
     const { threads: trendThreads, loading: trendLoading } = useForumTrends();
@@ -77,7 +77,7 @@ export default function Gundem() {
                     placeholder="Haberlerde ara..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="pl-8 pr-4 py-2.5 rounded-lg text-xs font-medium bg-surface border border-brutal-border text-tx-primary placeholder:text-muted focus:outline-none transition-all w-64"
+                    className="pl-9 pr-4 py-3 rounded-lg text-sm font-medium bg-surface border border-brutal-border text-tx-primary placeholder:text-muted focus:outline-none transition-all w-72"
                     onFocus={e => { e.target.style.borderColor = 'var(--color-brand-primary)'; }}
                     onBlur={e  => { e.target.style.borderColor = 'var(--color-border)'; }}
                 />
@@ -100,7 +100,13 @@ export default function Gundem() {
             )}
 
             {/* Popüler haberler */}
-            <PopularNewsGrid articles={filtered} loading={loading} />
+            <PopularNewsGrid
+                articles={filtered}
+                loading={loading}
+                loadingMore={loadingMore}
+                hasMore={hasMore}
+                loadMore={loadMore}
+            />
 
             {/* Forum trend bandı */}
             <ForumTrendBand threads={trendThreads} loading={trendLoading} />

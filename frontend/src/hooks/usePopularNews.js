@@ -1,51 +1,86 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import NewsService from '../services/news.service';
 
-const POLL_MS = 3 * 60 * 1000;
+const PAGE_SIZE = 10;
+const POLL_MS   = 3 * 60 * 1000;
 
 export function usePopularNews(category, dateFrom, dateTo) {
-    const [articles, setArticles] = useState([]);
-    const [loading,  setLoading]  = useState(true);
-    const [error,    setError]    = useState(null);
-    const [newCount, setNewCount] = useState(0);
-    const totalRef = useRef(0);
+    const [articles,  setArticles]  = useState([]);
+    const [loading,   setLoading]   = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [error,     setError]     = useState(null);
+    const [newCount,  setNewCount]  = useState(0);
+    const [hasMore,   setHasMore]   = useState(true);
 
-    const fetchArticles = useCallback(async (silent = false) => {
-        if (!silent) setLoading(true);
+    const pageRef    = useRef(1);
+    const totalRef   = useRef(0);
+
+    const fetchPage = useCallback(async (page, append = false) => {
+        if (page === 1) setLoading(true); else setLoadingMore(true);
         setError(null);
         try {
             const data = await NewsService.getNews({
                 sort:      'popular',
-                size:      10,
+                size:      PAGE_SIZE,
+                page,
                 category:  category  || undefined,
                 date_from: dateFrom  || undefined,
                 date_to:   dateTo    || undefined,
             });
-            if (silent) {
-                const diff = (data.total || 0) - totalRef.current;
-                if (diff > 0) {
-                    setArticles(data.items);
-                    totalRef.current = data.total;
-                    setNewCount(diff);
-                    setTimeout(() => setNewCount(0), 4000);
-                }
-            } else {
-                setArticles(data.items || []);
-                totalRef.current = data.total || 0;
-                setNewCount(0);
-            }
+            const items = data.items || [];
+            const total = data.total || 0;
+            totalRef.current = total;
+            setArticles(prev => append ? [...prev, ...items] : items);
+            setHasMore(page * PAGE_SIZE < total);
         } catch {
-            if (!silent) setError('Haberler yüklenemedi.');
+            if (!append) setError('Haberler yüklenemedi.');
         } finally {
-            if (!silent) setLoading(false);
+            if (page === 1) setLoading(false); else setLoadingMore(false);
         }
     }, [category, dateFrom, dateTo]);
 
+    // İlk yükleme ve filtre değişince sıfırla
     useEffect(() => {
-        fetchArticles(false);
-        const id = setInterval(() => fetchArticles(true), POLL_MS);
-        return () => clearInterval(id);
-    }, [fetchArticles]);
+        pageRef.current = 1;
+        setArticles([]);
+        setHasMore(true);
+        fetchPage(1, false);
+    }, [fetchPage]);
 
-    return { articles, loading, error, newCount, refresh: () => fetchArticles(false) };
+    // Periyodik yenileme (sadece ilk sayfa, yeni haber sayısını günceller)
+    useEffect(() => {
+        const id = setInterval(async () => {
+            try {
+                const data = await NewsService.getNews({
+                    sort:     'popular',
+                    size:     PAGE_SIZE,
+                    page:     1,
+                    category: category || undefined,
+                });
+                const diff = (data.total || 0) - totalRef.current;
+                if (diff > 0) {
+                    setNewCount(diff);
+                    setTimeout(() => setNewCount(0), 5000);
+                }
+            } catch { /* sessizce geç */ }
+        }, POLL_MS);
+        return () => clearInterval(id);
+    }, [category]);
+
+    const loadMore = useCallback(() => {
+        if (loadingMore || !hasMore) return;
+        const next = pageRef.current + 1;
+        pageRef.current = next;
+        fetchPage(next, true);
+    }, [fetchPage, loadingMore, hasMore]);
+
+    const refresh = useCallback(() => {
+        pageRef.current = 1;
+        setArticles([]);
+        setHasMore(true);
+        setNewCount(0);
+        fetchPage(1, false);
+    }, [fetchPage]);
+
+    return { articles, loading, loadingMore, error, newCount, hasMore, refresh, loadMore };
 }

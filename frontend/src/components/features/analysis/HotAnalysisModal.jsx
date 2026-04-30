@@ -79,7 +79,7 @@ export default function HotAnalysisModal({ item, onClose }) {
             <div
                 className="w-full max-w-sm rounded-2xl overflow-hidden flex flex-col"
                 style={{
-                    background: 'var(--color-bg-surface-solid)',
+                    background: 'var(--color-bg-surface)',
                     border: `1px solid ${hex30}`,
                     borderTop: `3px solid ${theme.hex}`,
                     boxShadow: `0 8px 40px rgba(${theme.glowRgb},0.15), 0 2px 8px rgba(0,0,0,0.3)`,

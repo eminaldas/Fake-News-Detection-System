@@ -74,20 +74,18 @@ const Layout = () => {
     return (
         <div className="min-h-screen flex flex-col transition-colors duration-300">
 
-            {/* ── Global ızgara — yalnızca dark modda görünür ── */}
-            {isDarkMode && (
-                <div
-                    className="fixed inset-0 pointer-events-none"
-                    style={{
-                        zIndex: -10,
-                        backgroundImage:
-                            'linear-gradient(var(--color-border) 1px,transparent 1px),' +
-                            'linear-gradient(90deg,var(--color-border) 1px,transparent 1px)',
-                        backgroundSize: '40px 40px',
-                        opacity: 0.55,
-                    }}
-                />
-            )}
+            {/* ── Global ızgara ── */}
+            <div
+                className="fixed inset-0 pointer-events-none"
+                style={{
+                    zIndex: -10,
+                    backgroundImage:
+                        'linear-gradient(var(--color-border) 1px,transparent 1px),' +
+                        'linear-gradient(90deg,var(--color-border) 1px,transparent 1px)',
+                    backgroundSize: '40px 40px',
+                    opacity: isDarkMode ? 0.55 : 0.20,
+                }}
+            />
 
             {/* ── Animasyonlu arka plan (her iki mod) ──────────── */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: -9 }}>
