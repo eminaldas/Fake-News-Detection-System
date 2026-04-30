@@ -103,6 +103,22 @@ class Article(Base):
     analysis_result = relationship("AnalysisResult", back_populates="article", uselist=False)
 
 
+class SourceBias(Base):
+    __tablename__ = "source_bias"
+
+    domain             = Column(String(255), primary_key=True)
+    display_name       = Column(String(255), nullable=True)
+    political_lean     = Column(Float, nullable=True)      # -1.0 sol → +1.0 sağ/yandaş
+    government_aligned = Column(Boolean, default=False, nullable=False)
+    owner_entity       = Column(String(255), nullable=True)
+    media_group        = Column(String(255), nullable=True)
+    clickbait_tendency = Column(Float, default=0.0, nullable=False)
+    factual_accuracy   = Column(Float, default=0.5, nullable=False)
+    notable_incidents  = Column(JSONB, default=list, nullable=True)
+    topic_notes        = Column(JSONB, default=dict, nullable=True)
+    updated_at         = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class AnalysisResult(Base):
     __tablename__ = "analysis_results"
 
@@ -113,6 +129,8 @@ class AnalysisResult(Base):
     signals    = Column(JSONB, nullable=True)
     ai_comment = Column(JSONB, nullable=True)
     full_report = Column(JSONB, nullable=True)
+    source_bias_summary = Column(JSONB, nullable=True)
+    temporal_analysis   = Column(JSONB, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     article = relationship("Article", back_populates="analysis_result")
