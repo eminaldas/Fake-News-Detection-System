@@ -90,6 +90,19 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
     # kesin olarak bilindiği senaryolarda (ör. URL scraping pipeline) kullanılmalıdır.
     embedding = vectorizer.get_embedding(cleaned)
 
+    # Zero vector check — boş embedding analize girmiyor
+    if not any(embedding):
+        logger.warning(
+            "zero_vector: Boş embedding üretildi — metin çok kısa veya boş. task_id=%s",
+            content_id,
+        )
+        return {
+            "task_id": content_id,
+            "status": "FAILED",
+            "error": "zero_vector",
+            "message": "Metin çok kısa veya analiz edilemiyor. Lütfen daha uzun bir metin girin.",
+        }
+
     # 3. Risk skoru (kural tabanlı, genişletilmiş sinyal seti)
     #
     # Ağırlıklar — manipülatif sinyal türüne göre katkı payları:
