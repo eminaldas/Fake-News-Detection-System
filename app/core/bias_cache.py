@@ -3,10 +3,12 @@ Kaynak bias verilerini PostgreSQL'den RAM'e yükleyen ve sorgulayan modül.
 Her Celery worker process'i kendi cache'ini tutar; 24 saatte bir yenilenir.
 """
 import logging
+import threading
 import time
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
+_CACHE_LOCK = threading.Lock()
 
 _BIAS_CACHE: dict[str, dict] = {}
 _CACHE_LOADED_AT: float = 0.0
@@ -25,24 +27,29 @@ def _load_from_db() -> dict[str, dict]:
     """PostgreSQL'den tüm source_bias kayıtlarını senkron olarak yükler."""
     try:
         from sqlalchemy import create_engine, text
+        from sqlalchemy.engine import make_url
         from app.core.config import settings
 
-        sync_url = settings.DATABASE_URL.replace(
-            "postgresql+asyncpg://", "postgresql+psycopg2://"
-        )
+        url = make_url(settings.DATABASE_URL)
+        sync_url = url.set(drivername="postgresql+psycopg2")
         engine = create_engine(sync_url, pool_pre_ping=True, pool_size=1, max_overflow=0)
-        with engine.connect() as conn:
-            result = conn.execute(text("SELECT * FROM source_bias"))
-            rows = result.fetchall()
-            keys = result.keys()
-        engine.dispose()
+        try:
+            with engine.connect() as conn:
+                result = conn.execute(text("SELECT * FROM source_bias"))
+                rows = result.fetchall()
+                keys = list(result.keys())
 
-        cache = {}
-        for row in rows:
-            d = dict(zip(keys, row))
-            cache[d["domain"]] = d
-        logger.info("bias_cache: %d kaynak yüklendi.", len(cache))
-        return cache
+            cache = {}
+            for row in rows:
+                d = dict(zip(keys, row))
+                cache[d["domain"]] = d
+            logger.info("bias_cache: %d kaynak yüklendi.", len(cache))
+            return cache
+        except Exception as exc:
+            logger.warning("bias_cache: DB sorgu hatası: %s", exc)
+            return {}
+        finally:
+            engine.dispose()
     except Exception as exc:
         logger.warning("bias_cache: DB yükleme başarısız: %s", exc)
         return {}
@@ -51,8 +58,10 @@ def _load_from_db() -> dict[str, dict]:
 def _ensure_loaded() -> None:
     global _BIAS_CACHE, _CACHE_LOADED_AT
     if time.monotonic() - _CACHE_LOADED_AT > _CACHE_TTL:
-        _BIAS_CACHE = _load_from_db()
-        _CACHE_LOADED_AT = time.monotonic()
+        with _CACHE_LOCK:
+            if time.monotonic() - _CACHE_LOADED_AT > _CACHE_TTL:
+                _BIAS_CACHE = _load_from_db()
+                _CACHE_LOADED_AT = time.monotonic()
 
 
 def get_bias(domain_or_url: str) -> dict | None:
