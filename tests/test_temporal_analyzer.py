@@ -1,4 +1,5 @@
 import pytest
+from datetime import datetime, timezone
 from workers.temporal_analyzer import analyze_temporal
 
 
@@ -59,3 +60,38 @@ def test_temporal_note_populated_for_recycled():
     result = analyze_temporal(sources)
     assert result["temporal_note"] != ""
     assert "yıl" in result["temporal_note"] or "gün" in result["temporal_note"]
+
+
+def test_fresh_requires_oldest_source_recent():
+    """Old + recent source with gap < 365 should be unknown, not fresh."""
+    sources = [
+        {"pub_date": "2025-06-01", "domain": "aa.com.tr"},
+        {"pub_date": "2026-04-10", "domain": "ntv.com.tr"},
+    ]
+    result = analyze_temporal(sources)
+    assert result["freshness_flag"] == "unknown"
+
+
+def test_coordinated_spread_below_threshold_is_false():
+    """2 same-day sources below threshold of 3 should not trigger coordinated_spread."""
+    sources = [
+        {"pub_date": "2026-04-15", "domain": "sabah.com.tr"},
+        {"pub_date": "2026-04-15", "domain": "ahaber.com.tr"},
+        {"pub_date": "2026-04-16", "domain": "ntv.com.tr"},
+    ]
+    result = analyze_temporal(sources)
+    assert result["coordinated_spread"] is False
+
+
+def test_gap_boundary_364_not_recycled():
+    """gap == 364 days should not be recycled (threshold is >= 365)."""
+    from datetime import timedelta
+    now_dt = datetime.now(timezone.utc)
+    old_date = (now_dt - timedelta(days=364)).strftime("%Y-%m-%d")
+    recent_date = now_dt.strftime("%Y-%m-%d")
+    sources = [
+        {"pub_date": old_date, "domain": "aa.com.tr"},
+        {"pub_date": recent_date, "domain": "ntv.com.tr"},
+    ]
+    result = analyze_temporal(sources)
+    assert result["freshness_flag"] != "recycled"

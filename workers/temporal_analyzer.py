@@ -8,10 +8,10 @@ from datetime import datetime, timezone
 logger = logging.getLogger(__name__)
 
 _DATE_FORMATS = [
-    "%Y-%m-%d",
-    "%Y-%m-%dT%H:%M:%S",
-    "%Y-%m-%dT%H:%M:%SZ",
     "%Y-%m-%dT%H:%M:%S%z",
+    "%Y-%m-%dT%H:%M:%SZ",
+    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%d",
     "%d.%m.%Y",
     "%d/%m/%Y",
 ]
@@ -25,16 +25,16 @@ def _parse_date(raw: str | None) -> datetime | None:
     if not raw:
         return None
     raw_str = str(raw).strip()
-    # Try full string first, then truncated to 19 chars for datetime variants
-    candidates = [raw_str, raw_str[:19], raw_str[:10]]
     for fmt in _DATE_FORMATS:
-        for candidate in candidates:
-            try:
-                dt = datetime.strptime(candidate, fmt)
-                return dt.replace(tzinfo=timezone.utc)
-            except ValueError:
-                continue
-    return None
+        try:
+            dt = datetime.strptime(raw_str, fmt)
+            return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+        except ValueError:
+            continue
+    try:
+        return datetime.strptime(raw_str[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
 
 
 def analyze_temporal(sources: list[dict]) -> dict:
@@ -90,7 +90,7 @@ def analyze_temporal(sources: list[dict]) -> dict:
     result["temporal_gap_days"] = gap_days
 
     now = datetime.now(timezone.utc)
-    days_since_newest = (now - newest).days
+    days_since_oldest = (now - oldest).days
 
     if gap_days >= _RECYCLED_GAP_DAYS:
         result["freshness_flag"] = "recycled"
@@ -101,7 +101,7 @@ def analyze_temporal(sources: list[dict]) -> dict:
             f"en yeni: {result['latest_source_date']}. "
             f"Eski bilginin yeni bağlamda sunulma ihtimali değerlendirilmeli."
         )
-    elif days_since_newest <= _FRESH_THRESHOLD_DAYS:
+    elif days_since_oldest <= _FRESH_THRESHOLD_DAYS:
         result["freshness_flag"] = "fresh"
 
     # Koordineli yayılım: aynı gün _COORDINATED_MIN_SOURCES+ kaynak
