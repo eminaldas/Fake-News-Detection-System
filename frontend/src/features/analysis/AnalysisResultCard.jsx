@@ -294,7 +294,14 @@ const AnalysisResultCard = ({ result }) => {
                 )}
 
                 {/* Gemini AI Yorumu — sadece deep analysis sonuçlarında göster */}
-                {!result.isDirectMatch && <AICommentCard aiComment={aiComment} theme={theme} />}
+                {!result.isDirectMatch && (
+                    <AICommentCard
+                        aiComment={aiComment}
+                        theme={theme}
+                        sourceBiasSummary={result.source_bias_summary ?? null}
+                        temporalAnalysis={result.temporal_analysis ?? null}
+                    />
+                )}
             </div>
 
             {/* ── Footer: Geri Bildirim ── */}

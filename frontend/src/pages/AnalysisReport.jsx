@@ -8,6 +8,8 @@ import SourceCredibilitySection from '../features/analysis/report/SourceCredibil
 import LinguisticSection        from '../features/analysis/report/LinguisticSection';
 import FeedbackSection          from '../features/analysis/report/FeedbackSection';
 import ReportSkeleton           from '../features/analysis/report/ReportSkeleton';
+import VerdictExplanationSection from '../features/analysis/report/VerdictExplanationSection';
+import SourceBiasSection         from '../features/analysis/report/SourceBiasSection';
 
 function HygieneBar({ report, mlVerdict, confidence }) {
     const manipulation = report?.linguistic?.manipulation_density ?? null;
@@ -128,13 +130,18 @@ export default function AnalysisReport() {
                         </div>
                     )}
 
+                    {/* Karar gerekçesi */}
+                    <VerdictExplanationSection verdictExplanation={report.verdict_explanation} />
+
                     {/* Doğrulama bulguları */}
                     <FactChecksSection factChecks={report.fact_checks} />
 
                     {/* Propaganda */}
                     <PropagandaSection techniques={report.propaganda_techniques} />
 
-                    {/* Alt panel: kaynak + dilbilim */}
+                    {/* Kaynak bias analizi */}
+                    <SourceBiasSection sourceAnalysis={report.source_analysis} />
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <SourceCredibilitySection text={report.source_credibility} />
                         <LinguisticSection linguistic={report.linguistic} />

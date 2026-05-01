@@ -550,6 +550,8 @@ async def get_analysis_status(
             AnalysisResult.confidence,
             AnalysisResult.signals,
             AnalysisResult.ai_comment,
+            AnalysisResult.source_bias_summary,
+            AnalysisResult.temporal_analysis,
             Article.id.label("article_id"),
             Article.content.label("article_content"),
         )
@@ -571,6 +573,8 @@ async def get_analysis_status(
                 "confidence": match.confidence,
                 "signals": match.signals if isinstance(match.signals, dict) else (json.loads(match.signals) if match.signals else {}),
                 "ai_comment": match.ai_comment if isinstance(match.ai_comment, dict) else (json.loads(match.ai_comment) if match.ai_comment else None),
+                "source_bias_summary": match.source_bias_summary if isinstance(match.source_bias_summary, dict) else None,
+                "temporal_analysis": match.temporal_analysis if isinstance(match.temporal_analysis, dict) else None,
                 "processed_text_length": len(match.article_content or ""),
             },
         )
@@ -593,6 +597,8 @@ async def get_analysis_status(
                             AnalysisResult.confidence,
                             AnalysisResult.signals,
                             AnalysisResult.ai_comment,
+                            AnalysisResult.source_bias_summary,
+                            AnalysisResult.temporal_analysis,
                             Article.id.label("article_id"),
                             Article.content.label("article_content"),
                         )
@@ -606,6 +612,8 @@ async def get_analysis_status(
                         response.result = {
                             **celery_res,
                             "ai_comment": db_match.ai_comment if isinstance(db_match.ai_comment, dict) else (json.loads(db_match.ai_comment) if db_match.ai_comment else None),
+                            "source_bias_summary": db_match.source_bias_summary if isinstance(db_match.source_bias_summary, dict) else None,
+                            "temporal_analysis": db_match.temporal_analysis if isinstance(db_match.temporal_analysis, dict) else None,
                         }
                         return response
                 except Exception:

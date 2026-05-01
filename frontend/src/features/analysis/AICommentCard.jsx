@@ -1,12 +1,12 @@
 import React from 'react';
-import { Sparkles, ExternalLink, Search } from 'lucide-react';
+import { Sparkles, ExternalLink, Search, Clock, AlertTriangle } from 'lucide-react';
 
 /**
  * Gemini AI yorumunu gösterir.
  * aiComment === null    → mevcut değil (zaman aşımı veya atlandı)
  * aiComment === object  → özet paragraf + kanıt linkleri
  */
-const AICommentCard = ({ aiComment, theme }) => {
+const AICommentCard = ({ aiComment, theme, sourceBiasSummary = null, temporalAnalysis = null }) => {
     const hex08 = `${theme.hex}14`;
     const hex30 = `${theme.hex}4d`;
 
@@ -33,6 +33,22 @@ const AICommentCard = ({ aiComment, theme }) => {
             {/* İçerik */}
             {aiComment && (
                 <>
+                    {/* Temporal uyarı — recycled */}
+                    {temporalAnalysis?.freshness_flag === 'recycled' && (
+                        <div className="flex items-start gap-2 mb-3 px-3 py-2 rounded-lg"
+                             style={{ background: '#f59e0b14', border: '1px solid #f59e0b33' }}>
+                            <Clock className="w-3 h-3 mt-0.5 shrink-0 text-amber-500" />
+                            <p className="text-amber-500 text-[10px] font-bold leading-snug">
+                                Eski bilgi yeniden dolaşımda
+                                {temporalAnalysis.temporal_gap_days && (
+                                    <span className="font-normal opacity-80">
+                                        {' '}· {Math.round(temporalAnalysis.temporal_gap_days / 365 * 10) / 10} yıl önce yayınlandı
+                                    </span>
+                                )}
+                            </p>
+                        </div>
+                    )}
+
                     {/* reason_type pill badge */}
                     {aiComment.reason_type && (
                         <div className="flex items-center gap-1.5 mb-3">
@@ -82,6 +98,17 @@ const AICommentCard = ({ aiComment, theme }) => {
                                     </span>
                                 </a>
                             ))}
+                        </div>
+                    )}
+
+                    {/* Kaynak bias özeti */}
+                    {sourceBiasSummary?.bias_summary && (
+                        <div className="mt-3 pt-3 flex items-start gap-2"
+                             style={{ borderTop: `1px solid ${hex30}` }}>
+                            <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0 text-tx-secondary/50" />
+                            <p className="text-tx-secondary/70 text-[10px] leading-snug">
+                                {sourceBiasSummary.bias_summary}
+                            </p>
                         </div>
                     )}
                 </>
