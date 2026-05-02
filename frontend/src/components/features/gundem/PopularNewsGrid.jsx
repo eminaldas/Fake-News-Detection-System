@@ -145,62 +145,65 @@ function FeaturedCard({ article }) {
     const hasImg = article.image_url && !imgErr;
 
     return (
-        <div className="rounded-xl overflow-hidden border transition-all duration-300 hover:border-brand"
-             style={{ borderColor: 'var(--color-border)' }}>
-            <a href={article.source_url} target="_blank" rel="noopener noreferrer"
-               className="block aspect-video overflow-hidden relative"
-               style={{ background: 'var(--color-bg-surface-solid)' }}
-               onClick={() => trackInteraction({
-                   content_id: article.id, interaction_type: 'click',
-                   category: article.category,
-                   source_domain: (() => { try { return new URL(article.source_url).hostname; } catch { return null; } })(),
-                   nlp_score_at_time: article.nlp_score,
-               })}>
-                {hasImg ? (
-                    <img src={article.image_url} alt={article.title}
-                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
-                         onError={() => setImgErr(true)} />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center"
-                         style={{ background: 'var(--color-bg-surface-solid)' }}>
-                        <span className="text-muted text-xs">Görsel Yok</span>
-                    </div>
-                )}
-                {article.category && (
-                    <span className="absolute top-3 left-3 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full text-white"
-                          style={{ background: 'var(--color-brand-primary)' }}>
-                        {article.category}
-                    </span>
-                )}
-            </a>
-            <div className="p-6 flex flex-col gap-4">
-                <a href={article.source_url} target="_blank" rel="noopener noreferrer"
-                   className="hover:opacity-80 transition-opacity">
-                    <h2 className="text-3xl font-extrabold text-tx-primary leading-tight">
-                        {article.title}
-                    </h2>
-                </a>
-                <div className="flex items-center gap-2 flex-wrap text-sm text-tx-secondary">
-                    {article.source_name && <span className="font-semibold">{article.source_name}</span>}
-                    <span>·</span>
-                    <span>{relTime(article.pub_date)}</span>
-                    {(article.source_count || 0) > 1 && (
-                        <span className="px-2.5 py-1 rounded-full text-xs font-bold"
-                              style={{
-                                  background: 'var(--color-brand-accent)',
-                                  color:      'var(--color-brand-primary)',
-                                  border:     '1px solid var(--color-brand-light)',
-                              }}>
-                            {article.source_count} kaynak
-                        </span>
-                    )}
+        <a href={article.source_url} target="_blank" rel="noopener noreferrer"
+           className="col-span-2 row-span-2 group relative flex flex-col rounded-xl overflow-hidden border transition-all duration-300 hover:border-brand"
+           style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-surface-solid)' }}
+           onClick={() => trackInteraction({
+               content_id: article.id, interaction_type: 'click',
+               category: article.category,
+               source_domain: (() => { try { return new URL(article.source_url).hostname; } catch { return null; } })(),
+               nlp_score_at_time: article.nlp_score,
+           })}>
+
+            {/* Görsel tam kaplar */}
+            {hasImg ? (
+                <img src={article.image_url} alt={article.title}
+                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                     onError={() => setImgErr(true)} />
+            ) : (
+                <div className="absolute inset-0 flex items-center justify-center"
+                     style={{ background: 'var(--color-bg-surface-solid)' }}>
+                    <span className="text-muted text-xs">Görsel Yok</span>
                 </div>
-                <div className="flex items-center justify-between pt-1">
-                    <NlpLabel score={article.nlp_score} />
-                    <AnalyzeButton article={article} />
+            )}
+
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+            {/* Kategori rozeti */}
+            {article.category && (
+                <span className="absolute top-3 left-3 z-10 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full text-white"
+                      style={{ background: 'var(--color-brand-primary)' }}>
+                    {article.category}
+                </span>
+            )}
+
+            {/* Kaynak sayısı */}
+            {(article.source_count || 0) > 1 && (
+                <span className="absolute top-3 right-3 z-10 text-[9px] font-bold px-2 py-1 rounded-full"
+                      style={{ background: 'var(--color-brand-accent)', color: 'var(--color-brand-primary)' }}>
+                    {article.source_count} kaynak
+                </span>
+            )}
+
+            {/* Alt bilgi */}
+            <div className="absolute bottom-0 left-0 right-0 z-10 p-5">
+                <h2 className="text-white font-extrabold text-xl md:text-2xl leading-snug line-clamp-3 mb-3 drop-shadow">
+                    {article.title}
+                </h2>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-white/70 text-xs">
+                        {article.source_name && <span className="font-semibold">{article.source_name}</span>}
+                        <span>·</span>
+                        <span>{relTime(article.pub_date)}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <NlpLabel score={article.nlp_score} />
+                        <AnalyzeButton article={article} />
+                    </div>
                 </div>
             </div>
-        </div>
+        </a>
     );
 }
 
@@ -211,7 +214,7 @@ function SmallCard({ article }) {
     return (
         <a href={article.source_url} target="_blank" rel="noopener noreferrer"
            className="flex flex-col rounded-xl overflow-hidden border group transition-all duration-300 hover:border-brand"
-           style={{ borderColor: 'var(--color-border)' }}
+           style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-surface)' }}
            onClick={() => trackInteraction({
                content_id: article.id, interaction_type: 'click',
                category: article.category,
@@ -254,39 +257,41 @@ function SmallCard({ article }) {
 
 function GridSkeleton() {
     return (
-        <div className="animate-pulse">
-            <div className="rounded-xl overflow-hidden border mb-5" style={{ borderColor: 'var(--color-border)' }}>
-                <div className="aspect-video bg-skeleton" />
-                <div className="p-5 space-y-3">
-                    <div className="h-7 bg-skeleton rounded w-3/4" />
-                    <div className="h-7 bg-skeleton rounded w-1/2" />
-                    <div className="h-4 bg-skeleton rounded w-1/3" />
-                </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Array.from({ length: 9 }).map((_, i) => (
-                    <div key={i} className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)' }}>
-                        <div className="aspect-video bg-skeleton" />
-                        <div className="p-3 space-y-2">
-                            <div className="h-4 bg-skeleton rounded" />
-                            <div className="h-4 bg-skeleton rounded w-4/5" />
-                            <div className="h-3 bg-skeleton rounded w-1/2" />
-                        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-[220px] animate-pulse">
+            {/* Featured skeleton 2×2 */}
+            <div className="col-span-2 row-span-2 rounded-xl overflow-hidden border bg-skeleton"
+                 style={{ borderColor: 'var(--color-border)' }} />
+            {/* Small skeletons */}
+            {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-surface)' }}>
+                    <div className="aspect-video bg-skeleton" />
+                    <div className="p-3 space-y-2">
+                        <div className="h-3 bg-skeleton rounded w-2/3" />
+                        <div className="h-3 bg-skeleton rounded w-full" />
+                        <div className="h-3 bg-skeleton rounded w-4/5" />
                     </div>
-                ))}
-            </div>
+                </div>
+            ))}
         </div>
     );
 }
 
 function LoadMoreTrigger({ onVisible }) {
-    const ref = useRef(null);
+    const ref   = useRef(null);
+    const ready = useRef(false);
+
+    useEffect(() => {
+        // Sayfa ilk yüklendikten sonra kısa bekleme — az haber varken erken tetiklenmesin
+        const timer = setTimeout(() => { ready.current = true; }, 600);
+        return () => clearTimeout(timer);
+    }, []);
+
     useEffect(() => {
         const el = ref.current;
         if (!el) return;
         const obs = new IntersectionObserver(
-            ([entry]) => { if (entry.isIntersecting) onVisible(); },
-            { rootMargin: '200px' }
+            ([entry]) => { if (entry.isIntersecting && ready.current) onVisible(); },
+            { rootMargin: '80px' }
         );
         obs.observe(el);
         return () => obs.disconnect();
@@ -294,45 +299,36 @@ function LoadMoreTrigger({ onVisible }) {
     return <div ref={ref} />;
 }
 
-export default function PopularNewsGrid({ articles, loading, loadingMore, hasMore, loadMore }) {
+export default function PopularNewsGrid({ featured, articles, loading, loadingMore, hasMore, loadMore }) {
     if (loading) return <GridSkeleton />;
-    if (!articles || articles.length === 0) return (
+    if (!featured && (!articles || articles.length === 0)) return (
         <p className="text-muted text-sm text-center py-20">Henüz haber yok.</p>
     );
 
-    // Featured = en yeni haber (pub_date'e göre), geri kalanlar popülerlik sırasında
-    const newest = [...articles].sort((a, b) =>
-        new Date(b.pub_date || 0) - new Date(a.pub_date || 0)
-    )[0];
-    const featured = newest || articles[0];
-    const rest = articles.filter(a => a.id !== featured.id);
+    const rest = articles || [];
 
     return (
         <div>
-            <div className="mb-5">
+            {/* 4 kolonlu grid — featured 2×2, geri kalan 1×1 */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-[220px] mb-4">
                 <FeaturedCard article={featured} />
+                {rest.slice(0, 4).map(a => <SmallCard key={a.id} article={a} />)}
             </div>
-            {rest.length > 0 && (
+
+            {/* Kalan haberler 3 kolonlu normal grid */}
+            {rest.length > 4 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {rest.map(a => <SmallCard key={a.id} article={a} />)}
+                    {rest.slice(4).map(a => <SmallCard key={a.id} article={a} />)}
                 </div>
             )}
 
-            {/* Infinite scroll tetikleyici */}
             {hasMore && !loadingMore && <LoadMoreTrigger onVisible={loadMore} />}
 
-            {/* Yükleniyor göstergesi */}
             {loadingMore && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 animate-pulse">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)' }}>
-                            <div className="aspect-video bg-skeleton" />
-                            <div className="p-3 space-y-2">
-                                <div className="h-4 bg-skeleton rounded" />
-                                <div className="h-3 bg-skeleton rounded w-2/3" />
-                            </div>
-                        </div>
-                    ))}
+                <div className="flex flex-col items-center gap-3 py-8">
+                    <div className="w-7 h-7 rounded-full border-2 border-t-transparent animate-spin"
+                         style={{ borderColor: 'var(--color-brand-primary)', borderTopColor: 'transparent' }} />
+                    <span className="text-xs text-muted">Haberler yükleniyor…</span>
                 </div>
             )}
         </div>

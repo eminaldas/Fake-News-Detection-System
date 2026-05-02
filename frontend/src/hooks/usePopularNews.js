@@ -5,31 +5,58 @@ const PAGE_SIZE = 10;
 const POLL_MS   = 3 * 60 * 1000;
 
 export function usePopularNews(category, dateFrom, dateTo) {
-    const [articles,  setArticles]  = useState([]);
-    const [loading,   setLoading]   = useState(true);
+    const [featured,    setFeatured]    = useState(null);
+    const [articles,    setArticles]    = useState([]);
+    const [loading,     setLoading]     = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
-    const [error,     setError]     = useState(null);
-    const [newCount,  setNewCount]  = useState(0);
-    const [hasMore,   setHasMore]   = useState(true);
+    const [error,       setError]       = useState(null);
+    const [newCount,    setNewCount]    = useState(0);
+    const [hasMore,     setHasMore]     = useState(true);
 
-    const pageRef    = useRef(1);
-    const totalRef   = useRef(0);
+    const pageRef  = useRef(1);
+    const totalRef = useRef(0);
+    // featured id'yi takip et — date feed'den çıkarmak için
+    const featuredIdRef = useRef(null);
 
+    // Günün en popüler haberi — ayrı çağrı
+    const fetchFeatured = useCallback(async () => {
+        try {
+            const data = await NewsService.getNews({
+                sort:     'popular',
+                size:     1,
+                page:     1,
+                category: category || undefined,
+            });
+            const item = data.items?.[0] ?? null;
+            setFeatured(item);
+            featuredIdRef.current = item?.id ?? null;
+        } catch {
+            setFeatured(null);
+            featuredIdRef.current = null;
+        }
+    }, [category]);
+
+    // Geri kalan haberler — tarih sıralı (yeniden eskiye)
     const fetchPage = useCallback(async (page, append = false) => {
         if (page === 1) setLoading(true); else setLoadingMore(true);
         setError(null);
         try {
             const data = await NewsService.getNews({
-                sort:      'popular',
-                size:      PAGE_SIZE,
+                size:      PAGE_SIZE + 1,   // featured çıkabilir diye 1 ekstra al
                 page,
                 category:  category  || undefined,
                 date_from: dateFrom  || undefined,
                 date_to:   dateTo    || undefined,
+                // sort parametresi yok → backend pub_date DESC döner
             });
-            const items = data.items || [];
             const total = data.total || 0;
             totalRef.current = total;
+
+            // Featured olan haberi listeden çıkar
+            const items = (data.items || [])
+                .filter(a => a.id !== featuredIdRef.current)
+                .slice(0, PAGE_SIZE);
+
             setArticles(prev => append ? [...prev, ...items] : items);
             setHasMore(page * PAGE_SIZE < total);
         } catch {
@@ -39,22 +66,21 @@ export function usePopularNews(category, dateFrom, dateTo) {
         }
     }, [category, dateFrom, dateTo]);
 
-    // İlk yükleme ve filtre değişince sıfırla
+    // İlk yükleme ve filtre değişince
     useEffect(() => {
         pageRef.current = 1;
         setArticles([]);
         setHasMore(true);
-        fetchPage(1, false);
-    }, [fetchPage]);
+        // Önce featured çek, sonra listeyi getir
+        fetchFeatured().then(() => fetchPage(1, false));
+    }, [fetchFeatured, fetchPage]);
 
-    // Periyodik yenileme (sadece ilk sayfa, yeni haber sayısını günceller)
+    // Periyodik yenileme
     useEffect(() => {
         const id = setInterval(async () => {
             try {
                 const data = await NewsService.getNews({
-                    sort:     'popular',
-                    size:     PAGE_SIZE,
-                    page:     1,
+                    size: PAGE_SIZE, page: 1,
                     category: category || undefined,
                 });
                 const diff = (data.total || 0) - totalRef.current;
@@ -79,8 +105,8 @@ export function usePopularNews(category, dateFrom, dateTo) {
         setArticles([]);
         setHasMore(true);
         setNewCount(0);
-        fetchPage(1, false);
-    }, [fetchPage]);
+        fetchFeatured().then(() => fetchPage(1, false));
+    }, [fetchFeatured, fetchPage]);
 
-    return { articles, loading, loadingMore, error, newCount, hasMore, refresh, loadMore };
+    return { featured, articles, loading, loadingMore, error, newCount, hasMore, refresh, loadMore };
 }
