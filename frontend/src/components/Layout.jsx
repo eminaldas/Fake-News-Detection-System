@@ -34,9 +34,9 @@ const PARTICLES = [
 ];
 
 const ORBS = [
-    { left: '-8%',  top: '8%',   size: 600, dur: '35s', delay: '0s',  color: 'rgba(45, 58, 71,0.0)' },
-    { left: '65%',  top: '-8%',  size: 500, dur: '45s', delay: '10s', color: 'rgba(45, 58, 71,0.07)' },
-    { left: '35%',  top: '55%',  size: 450, dur: '40s', delay: '5s',  color: 'rgba(45, 58, 71,0.06)' },
+    { left: '-8%',  top: '8%',   size: 600, dur: '35s', delay: '0s',  color: 'rgba(26,158,79,0.12)' },
+    { left: '65%',  top: '-8%',  size: 500, dur: '45s', delay: '10s', color: 'rgba(26,158,79,0.10)' },
+    { left: '35%',  top: '55%',  size: 450, dur: '40s', delay: '5s',  color: 'rgba(26,158,79,0.09)' },
 ];
 
 const Layout = () => {
@@ -108,9 +108,9 @@ const Layout = () => {
                 {!isDarkMode && (
                     <>
                         <div className="absolute -top-40 -left-40 w-150 h-150 rounded-full animate-blob-1"
-                             style={{ background: 'rgba(100,116,139,0.04)', filter: 'blur(120px)' }} />
+                             style={{ background: 'rgba(26,158,79,0.12)', filter: 'blur(120px)' }} />
                         <div className="absolute -bottom-32 right-1/4 w-100 h-100 rounded-full animate-blob-2"
-                             style={{ background: 'rgba(100,116,139,0.03)', filter: 'blur(100px)' }} />
+                             style={{ background: 'rgba(26,158,79,0.12)', filter: 'blur(100px)' }} />
                     </>
                 )}
 
@@ -121,7 +121,7 @@ const Layout = () => {
                 )}
                 {!isDarkMode && (
                     <div className="absolute left-0 right-0 h-px animate-scan"
-                         style={{ background: 'linear-gradient(90deg,transparent,rgba(100,116,139,0.07),transparent)' }} />
+                         style={{ background: 'linear-gradient(90deg,transparent,rgba(26,158,79,0.12),transparent)' }} />
                 )}
 
                 {/* Floating dots — dark modda çok subtle yeşil, light modda gri */}
@@ -130,7 +130,7 @@ const Layout = () => {
                          style={{
                              left: p.left, top: p.top,
                              width: p.size, height: p.size,
-                             background: isDarkMode ? 'rgba(16,185,129,0.50)' : 'rgba(100,116,139,0.35)',
+                             background: isDarkMode ? 'rgba(16,185,129,0.50)' : 'rgba(26,158,79,0.12)',
                              animation: `particleRise ${p.dur} ${p.delay} ease-in-out infinite`,
                              boxShadow: isDarkMode ? '0 0 6px rgba(16,185,129,0.40)' : 'none',
                          }} />

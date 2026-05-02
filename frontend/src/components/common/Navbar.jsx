@@ -4,8 +4,6 @@ import { Moon, Sun, Menu, X, ChevronDown, User, Settings, Shield, BarChart2, Log
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import axiosInstance from '../../api/axios';
-import logo from '../../assets/images/emrald.png';
-import logoDark from '../../assets/images/logoDark.png';
 import NotificationBell from '../../features/notifications/NotificationBell';
 
 const GUNDEM_CATEGORIES = [
@@ -20,7 +18,7 @@ const GUNDEM_CATEGORIES = [
 
 const NAV_LINKS = [
     { name: 'Analiz',  path: '/'       },
-    { name: 'Gündem',  path: '/gundem' },
+    { name: 'Haberler', path: '/gundem' },
     { name: 'Forum',   path: '/forum'  },
     { name: 'Bildir',  path: '/report' },
 ];
@@ -110,14 +108,10 @@ const Navbar = () => {
             <div className="max-w-7xl mx-auto px-6 flex items-center justify-between py-2.5">
 
                 {/* ── LOGO ── */}
-                <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0">
-                    <div className="w-6 h-6 overflow-hidden shrink-0">
-                        <img src={logo}     alt="Logo" className="w-full h-full object-contain block dark:hidden" />
-                        <img src={logoDark} alt="Logo" className="w-full h-full object-contain hidden dark:block" />
+                <Link to="/" className="flex items-center hover:opacity-80 transition-opacity shrink-0 self-stretch -my-2.5">
+                    <div className="self-stretch aspect-square flex items-center justify-center px-3 bg-[#3e8371]">
+                        <span className="font-pacifico text-2xl text-white leading-none select-none">Ne</span>
                     </div>
-                    <span className="font-manrope font-extrabold tracking-tight text-brand">
-                        Haber
-                    </span>
                 </Link>
 
                 {/* ── NAV — masaüstü ── */}

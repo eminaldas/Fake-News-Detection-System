@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Flame, BarChart2 } from 'lucide-react';
+import { Flame, BarChart2, Sparkles } from 'lucide-react';
 import axiosInstance from '../../../api/axios';
 import HotAnalysisModal from './HotAnalysisModal';
 
@@ -19,23 +19,14 @@ export default function HotAnalysesCard() {
     const [loading,      setLoading]      = useState(true);
     const [selectedItem, setSelectedItem] = useState(null);
 
-    const [actualHours, setActualHours] = useState(24);
-
     useEffect(() => {
+        setLoading(true);
         axiosInstance
             .get(`/articles/trending-analyses?hours=${hours}&limit=8`)
-            .then(res => {
-                setItems(res.data.items || []);
-                setActualHours(res.data.hours || hours);
-            })
+            .then(res => setItems(res.data.items || []))
             .catch(() => setItems([]))
             .finally(() => setLoading(false));
     }, [hours]);
-
-    const handleHoursChange = (h) => {
-        setHours(h);
-        setLoading(true);
-    };
 
     return (
         <>
@@ -48,18 +39,12 @@ export default function HotAnalysesCard() {
                     <span className="text-xs font-black uppercase tracking-widest text-tx-primary">
                         En Çok Analiz Edilen
                     </span>
-                    {actualHours !== hours && (
-                        <span className="text-[9px] text-tx-secondary font-medium">
-                            (son {actualHours >= 168 ? '7 gün' : `${actualHours}s`})
-                        </span>
-                    )}
                 </div>
-                {/* Saat toggle */}
                 <div className="flex items-center gap-1">
                     {[12, 24].map(h => (
                         <button
                             key={h}
-                            onClick={() => handleHoursChange(h)}
+                            onClick={() => setHours(h)}
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-colors
                                 ${hours === h
                                     ? 'bg-brand text-white dark:bg-es-primary dark:text-black'
@@ -82,9 +67,17 @@ export default function HotAnalysesCard() {
                         </div>
                     ))
                 ) : items.length === 0 ? (
-                    <p className="px-4 py-8 text-center text-xs text-tx-secondary">
-                        Son {hours} saatte analiz verisi yok
-                    </p>
+                    <div className="flex flex-col items-center gap-3 px-5 py-10 text-center">
+                        <div className="w-10 h-10 rounded-full bg-brand/10 dark:bg-es-primary/10 flex items-center justify-center">
+                            <Sparkles className="w-5 h-5 text-brand dark:text-es-primary" />
+                        </div>
+                        <p className="text-sm font-semibold text-tx-primary leading-snug">
+                            Bu alanı sen doldurabilirsin
+                        </p>
+                        <p className="text-xs text-tx-secondary leading-relaxed">
+                            Şüpheli gördüğün bir haberi analiz et — burada ilk sırada görünsün.
+                        </p>
+                    </div>
                 ) : (
                     items.map(item => {
                         const colors = STATUS_COLOR[item.status] || STATUS_COLOR.AUTHENTIC;

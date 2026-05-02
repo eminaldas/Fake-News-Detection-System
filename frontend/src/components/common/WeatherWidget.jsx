@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from 'react';
+import { Sun, Cloud, CloudRain, CloudSnow, CloudDrizzle, CloudLightning, Wind } from 'lucide-react';
 
 const ISTANBUL = { lat: 41.0082, lon: 28.9784, city: 'İstanbul' };
 
-const WMO_ICONS = {
-    0:  '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
-    45: '🌫️', 48: '🌫️',
-    51: '🌦️', 53: '🌦️', 55: '🌦️',
-    61: '🌧️', 63: '🌧️', 65: '🌧️',
-    71: '❄️',  73: '❄️',  75: '❄️',
-    80: '🌧️', 81: '🌧️', 82: '🌧️',
-    85: '🌨️', 86: '🌨️',
-    95: '⛈️',  96: '⛈️',  99: '⛈️',
-};
+function wmoIcon(code) {
+    if (code === 0)                          return Sun;
+    if (code <= 2)                           return Cloud;
+    if (code === 3)                          return Cloud;
+    if (code <= 48)                          return Wind;
+    if (code <= 55)                          return CloudDrizzle;
+    if (code <= 65)                          return CloudRain;
+    if (code <= 75)                          return CloudSnow;
+    if (code <= 82)                          return CloudRain;
+    if (code <= 86)                          return CloudSnow;
+    return CloudLightning;
+}
 
 async function fetchWeather(lat, lon) {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&timezone=auto`;
@@ -71,13 +74,13 @@ const WeatherWidget = () => {
 
     if (!weather) return null;
 
-    const icon = WMO_ICONS[weather.code] ?? '🌡️';
+    const Icon = wmoIcon(weather.code);
 
     return (
-        <span className="hidden md:flex items-center gap-1.5 text-[11px] font-bold text-tx-primary tracking-tight select-none whitespace-nowrap">
-            <span className="text-base leading-none">{icon}</span>
+        <span className="hidden md:flex items-center gap-1.5 text-[13px] font-bold tracking-tight select-none whitespace-nowrap text-white">
+            <Icon className="w-3.5 h-3.5 shrink-0 text-white/60" />
             <span>{weather.temp}°C</span>
-            <span className="text-tx-secondary font-medium opacity-70">· {weather.city}</span>
+            <span className="font-medium text-white/50">· {weather.city}</span>
         </span>
     );
 };

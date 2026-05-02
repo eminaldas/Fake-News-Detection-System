@@ -23,15 +23,15 @@ function Tile({ label, unit, value, change, decimals, loading }) {
     return (
         <div
             className="flex flex-col justify-between p-3 rounded-xl"
-            style={{ background: 'var(--color-bg-surface-solid)', border: '1px solid var(--color-border)' }}
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
         >
             <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted">{label}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">{label}</span>
                 {chg !== null && (
                     <span className={`flex items-center gap-0.5 text-[9px] font-bold rounded-full px-1.5 py-0.5
-                        ${isUp   ? 'bg-emerald-500/15 text-emerald-400' :
-                          isDown ? 'bg-red-500/15 text-red-400' :
-                                   'bg-zinc-500/10 text-muted'}`}>
+                        ${isUp   ? 'bg-emerald-500/20 text-emerald-300' :
+                          isDown ? 'bg-red-500/20 text-red-300' :
+                                   'bg-white/10 text-white/50'}`}>
                         {isUp   ? <TrendingUp   className="w-2.5 h-2.5" /> :
                          isDown ? <TrendingDown className="w-2.5 h-2.5" /> : null}
                         {Math.abs(chg).toFixed(2)}%
@@ -40,14 +40,13 @@ function Tile({ label, unit, value, change, decimals, loading }) {
             </div>
 
             {loading ? (
-                <div className="h-6 w-20 rounded-lg animate-pulse" style={{ background: 'var(--color-border)' }} />
+                <div className="h-7 w-20 rounded-lg animate-pulse bg-white/10" />
             ) : value != null ? (
-                <span className="text-xl font-manrope font-black leading-none"
-                      style={{ color: 'var(--color-brand-secondary)' }}>
+                <span className="text-2xl font-manrope font-black leading-none text-white">
                     {unit}{Number(value).toLocaleString('tr-TR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
                 </span>
             ) : (
-                <span className="text-xl font-manrope font-black text-muted">—</span>
+                <span className="text-2xl font-manrope font-black text-white/30">—</span>
             )}
         </div>
     );
@@ -65,14 +64,14 @@ const BorsaCard = () => {
     }, []);
 
     return (
-        <div className="glass rounded-2xl overflow-hidden">
+        <div className="rounded-2xl overflow-hidden" style={{ background: '#0d1f1a' }}>
             {/* Başlık */}
             <div className="px-5 pt-5 pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4" style={{ color: 'var(--color-brand-secondary)' }} />
-                    <span className="text-sm font-manrope font-bold text-tx-primary">Piyasalar</span>
+                    <TrendingUp className="w-4 h-4 text-emerald-400" />
+                    <span className="text-sm font-manrope font-bold text-white">Piyasalar</span>
                 </div>
-                <span className="text-[10px] text-muted font-mono">
+                <span className="text-[10px] text-white/40 font-mono">
                     {new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                 </span>
             </div>
@@ -93,7 +92,7 @@ const BorsaCard = () => {
             </div>
 
             <div className="px-5 pb-3 text-right">
-                <span className="text-[9px] uppercase tracking-widest text-muted opacity-40">
+                <span className="text-[9px] uppercase tracking-widest text-white/20">
                     truncgil.com
                 </span>
             </div>

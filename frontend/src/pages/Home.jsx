@@ -11,8 +11,7 @@ import AnalysisResultSkeleton from "../features/analysis/AnalysisResultSkeleton"
 import RecentHeadlines from "../components/features/analysis/RecentHeadlines";
 import AnalysisDisclaimer from "../features/analysis/AnalysisDisclaimer";
 import HotAnalysesCard from "../components/features/analysis/HotAnalysesCard";
-import DepremCard  from "../components/features/analysis/DepremCard";
-import NamazCard   from "../components/features/analysis/NamazCard";
+import PopularNewsSection from "../features/analysis/PopularNewsSection";
 
 const Home = () => {
   const { isAuthenticated } = useAuth();
@@ -121,8 +120,6 @@ const Home = () => {
         {/* Sol: Günlük Trendler + Deprem + Namaz */}
         <div className="hidden lg:flex lg:col-span-3 flex-col gap-3 animate-fade-left delay-200">
           <RecentHeadlines />
-          <DepremCard />
-          <NamazCard />
         </div>
 
         {/* Orta: Analiz aracı */}
@@ -195,6 +192,9 @@ const Home = () => {
           <HotAnalysesCard />
         </div>
       </div>
+
+      {/* ── En Popüler Haberler ── */}
+      <PopularNewsSection />
     </div>
   );
 };

@@ -189,6 +189,7 @@
   --font-inter:    'Public Sans', sans-serif;
   --font-outfit:   'Public Sans', sans-serif;
   --font-manrope:  'Public Sans', sans-serif;
+  --font-pacifico: 'Pacifico', cursive;
 
   /* Zemin */
   --color-base:           var(--color-bg-base);
