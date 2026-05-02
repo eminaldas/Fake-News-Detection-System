@@ -72,8 +72,8 @@ async def list_news(
     total = total_result.scalar_one()
 
     if sort == "popular":
-        # Yalnızca son 7 günü tara — eski yüksek-source_count kayıtları öne geçmesin
-        popular_cutoff = datetime.now(UTC) - timedelta(days=7)
+        # Kategori filtresi varsa daha geniş pencere (düşük frekanslı kategoriler için)
+        popular_cutoff = datetime.now(UTC) - timedelta(days=30 if category else 2)
         popular_filter = [
             *base_filter,
             func.coalesce(NewsArticle.pub_date, NewsArticle.created_at) >= popular_cutoff,

@@ -97,12 +97,6 @@ async def get_trending_analyses(
     now = datetime.now(timezone.utc)
     rows = await _query(now - timedelta(hours=hours))
 
-    # İstenen pencerede veri yoksa 7 güne genişlet
-    actual_hours = hours
-    if not rows:
-        rows = await _query(now - timedelta(days=7))
-        actual_hours = 168
-
     items = [
         HotAnalysisItem(
             task_id=row.task_id,
@@ -115,7 +109,7 @@ async def get_trending_analyses(
         )
         for row in rows
     ]
-    return HotAnalysesResponse(items=items, hours=actual_hours)
+    return HotAnalysesResponse(items=items, hours=hours)
 
 
 @router.get("/", response_model=PaginatedArticleResponse)
