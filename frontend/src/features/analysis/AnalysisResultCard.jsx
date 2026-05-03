@@ -200,13 +200,17 @@ const AnalysisResultCard = ({ result }) => {
 
                 {/* Sol: ikon + başlık */}
                 <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 relative"
                          style={{ background: hex15 }}>
                         <theme.Icon className={`w-6 h-6 ${theme.statusCls}`} strokeWidth={2} />
+                        <div className="absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-none"
+                             style={{ background: theme.hex }} />
+                        <div className="absolute bottom-0.5 right-0.5 w-1.5 h-1.5 rounded-none"
+                             style={{ background: theme.hex }} />
                     </div>
                     <div className="min-w-0">
-                        <span className={`${theme.statusCls} font-manrope font-bold text-[10px] tracking-widest uppercase block mb-0.5`}>
-                            {theme.label}
+                        <span className={`${theme.statusCls} font-mono font-bold text-[10px] tracking-widest uppercase block mb-0.5`}>
+                            [ {theme.label} ]
                         </span>
                         <h2 className="text-tx-primary font-manrope font-extrabold text-lg sm:text-xl tracking-tight leading-tight">
                             {theme.mainTitle}
@@ -223,8 +227,8 @@ const AnalysisResultCard = ({ result }) => {
                     </div>
                 </div>
 
-                {/* Sağ: SVG skor halkası — AI yorum varsa gizle */}
-                {!aiComment && (
+                {/* Sağ: karma skor — AI yoksa halka, AI varsa metin */}
+                {!aiComment ? (
                     <div className="relative flex items-center justify-center shrink-0 self-center sm:self-auto">
                         <svg className="w-20 h-20 -rotate-90" viewBox="0 0 96 96">
                             <circle cx="48" cy="48" r="42"
@@ -247,6 +251,17 @@ const AnalysisResultCard = ({ result }) => {
                             </span>
                         </div>
                     </div>
+                ) : (
+                    <div className="flex flex-col items-end shrink-0 self-center sm:self-auto">
+                        <span className="font-manrope font-black text-3xl leading-none"
+                              style={{ color: theme.hex }}>
+                            %{displayScore}
+                        </span>
+                        <span className="font-mono text-[9px] tracking-widest uppercase mt-1"
+                              style={{ color: `${theme.hex}80` }}>
+                            VERACITY_SCORE
+                        </span>
+                    </div>
                 )}
             </div>
 
@@ -263,29 +278,30 @@ const AnalysisResultCard = ({ result }) => {
                     </div>
                 )}
 
-                {/* NLP Görüşü — sadece AI yorum yoksa göster */}
-                {!aiComment && (
-                    <div className="rounded-xl p-4 sm:p-5"
+                {/* İçerik Analizi — URL analizinde gizle, her zaman göster */}
+                {!isUrlAnalysis && signals && (
+                    <div className="rounded-xl overflow-hidden"
                          style={{ background: hex08, borderLeft: `3px solid ${hex30}` }}>
-                        <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center gap-2 px-4 sm:px-5 pt-4 pb-3">
                             <Brain className={`w-4 h-4 ${theme.statusCls}`} />
-                            <span className={`${theme.statusCls} font-manrope font-bold text-xs tracking-wide`}>
-                                NLP Analizi
+                            <span className={`${theme.statusCls} font-mono font-bold text-[10px] tracking-widest uppercase`}>
+                                // İçerik_Analizi
                             </span>
                         </div>
-                        <p className="text-tx-secondary leading-relaxed text-sm italic">
-                            "{explanation || (isAuthentic
-                                ? 'Analiz edilen metin, tarafsız bir dil yapısına ve doğrulanabilir veri setlerine yüksek uyum göstermektedir.'
-                                : isFake
-                                    ? 'İncelediğiniz metin, tipik yanıltıcı haber karakteristikleri taşımaktadır.'
-                                    : 'Sistem bu metin hakkında kesin bir yargıya varamadı. Lütfen farklı kaynaklardan teyit ediniz.')}"
-                        </p>
+                        <div className="px-4 sm:px-5 pb-2">
+                            <SignalPanel
+                                signals={signals}
+                                theme={theme}
+                                forceKeys={['clickbait_score', 'uppercase_ratio', 'exclamation_ratio', 'source_score']}
+                                sectionLabel=""
+                            />
+                        </div>
+                        {explanation && (
+                            <p className="px-4 sm:px-5 pb-4 sm:pb-5 text-tx-secondary leading-relaxed text-sm italic">
+                                "{explanation}"
+                            </p>
+                        )}
                     </div>
-                )}
-
-                {/* Sinyal Paneli — URL analizinde ve AUTHENTIC'te gösterme, FAKE'te max 3 */}
-                {!isUrlAnalysis && isFake && signals && (
-                    <SignalPanel signals={signals} theme={theme} maxSignals={3} />
                 )}
 
                 {/* Vurgulu Metin */}
