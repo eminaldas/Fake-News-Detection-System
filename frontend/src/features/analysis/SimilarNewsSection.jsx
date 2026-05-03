@@ -45,17 +45,17 @@ function NewsCard({ item }) {
                 category: item.category,
                 source_domain: item.source_name,
             })}
-            className="group flex flex-col overflow-hidden rounded-xl border border-brutal-border dark:border-surface-solid
-                       bg-surface hover:bg-surface-solid/40 dark:hover:bg-white/[0.03]
-                       transition-all duration-200 hover:shadow-md hover:border-brand dark:hover:border-es-primary"
+            className="group flex flex-col overflow-hidden
+                       border border-brutal-border dark:border-[#41494d]/50
+                       bg-surface dark:bg-[#0c1518]
+                       hover:shadow-[0_0_12px_rgba(63,255,139,0.14)] transition-all duration-300"
         >
-            {/* Görsel */}
             <div className="relative w-full aspect-[16/9] overflow-hidden bg-surface-solid shrink-0">
                 {item.image_url ? (
                     <img
                         src={item.image_url}
                         alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
                         loading="lazy"
                         onError={(e) => { e.target.style.display = 'none'; }}
                     />
@@ -66,25 +66,24 @@ function NewsCard({ item }) {
                 )}
             </div>
 
-            {/* İçerik */}
             <div className="flex flex-col gap-1.5 p-2.5 flex-1">
                 <div className="flex items-center justify-between gap-1">
                     {item.category && (
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide ${getCategoryColor(item.category)}`}>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wide ${getCategoryColor(item.category)}`}>
                             {item.category}
                         </span>
                     )}
-                    {ago && <span className="text-[9px] text-tx-secondary shrink-0">{ago}</span>}
+                    {ago && <span className="font-mono text-[9px] text-tx-secondary shrink-0">{ago}</span>}
                 </div>
                 <p className="text-[12px] font-semibold leading-snug text-tx-primary line-clamp-2 flex-1
                               group-hover:text-brand dark:group-hover:text-es-primary transition-colors">
                     {item.title}
                 </p>
-                <div className="flex items-center justify-between gap-1 mt-auto pt-1 border-t border-brutal-border/30 dark:border-surface-solid/40">
-                    <span className="text-[10px] text-tx-secondary truncate">{item.source_name}</span>
+                <div className="flex items-center justify-between gap-1 mt-auto pt-1 border-t border-brutal-border/30 dark:border-[#41494d]/30">
+                    <span className="font-mono text-[10px] text-tx-secondary truncate">{item.source_name}</span>
                     <div className="flex items-center gap-2 shrink-0">
                         {viewCount > 0 && (
-                            <span className="flex items-center gap-0.5 text-[9px] text-tx-secondary">
+                            <span className="flex items-center gap-0.5 font-mono text-[9px] text-tx-secondary">
                                 <Eye className="w-2.5 h-2.5" />{viewCount}
                             </span>
                         )}
@@ -98,12 +97,12 @@ function NewsCard({ item }) {
 
 function SkeletonCard() {
     return (
-        <div className="rounded-xl border border-brutal-border dark:border-surface-solid overflow-hidden animate-pulse bg-surface">
-            <div className="w-full aspect-[16/9] bg-brutal-border/20" />
+        <div className="border border-brutal-border dark:border-[#41494d]/30 overflow-hidden animate-pulse bg-surface dark:bg-[#0c1518]">
+            <div className="w-full aspect-[16/9] bg-brutal-border/20 dark:bg-[#41494d]/20" />
             <div className="p-2.5 space-y-2">
-                <div className="h-3 bg-brutal-border/20 rounded w-1/3" />
-                <div className="h-3 bg-brutal-border/15 rounded w-full" />
-                <div className="h-3 bg-brutal-border/10 rounded w-4/5" />
+                <div className="h-3 bg-brutal-border/20 dark:bg-[#41494d]/20 w-1/3" />
+                <div className="h-3 bg-brutal-border/15 dark:bg-[#41494d]/15 w-full" />
+                <div className="h-3 bg-brutal-border/10 dark:bg-[#41494d]/10 w-4/5" />
             </div>
         </div>
     );
@@ -125,14 +124,16 @@ export default function SimilarNewsSection({ taskId }) {
     if (!loading && items.length === 0) return null;
 
     return (
-        <section className="w-full max-w-[1400px] mx-auto px-4 md:px-6 pb-12 mt-6">
-            {/* Başlık */}
-            <div className="flex items-center gap-2 mb-5">
+        <section className="w-full max-w-[1400px] mx-auto px-4 md:px-6 pb-6 mt-6">
+            <div className="flex items-center gap-2 mb-1">
                 <Layers className="w-4 h-4 text-brand dark:text-es-primary" />
                 <h2 className="text-sm font-black uppercase tracking-widest text-tx-primary">
                     Benzer Haberler
                 </h2>
             </div>
+            <p className="font-mono text-[9px] text-tx-secondary/60 uppercase tracking-widest mb-4">
+                // Semantik Benzerlik / Vektör Arama
+            </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {loading

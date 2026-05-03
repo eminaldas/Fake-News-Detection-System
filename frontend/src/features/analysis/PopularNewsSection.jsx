@@ -38,8 +38,8 @@ function handleClick(item) {
     });
 }
 
-/* Büyük kart — 2 kolon × 2 satır */
-function FeaturedCard({ item }) {
+/* Rank 1 — image overlay hero */
+function HeroCard({ item }) {
     const ago = timeAgo(item.pub_date);
     const viewCount = item.community?.view_count ?? 0;
 
@@ -49,60 +49,49 @@ function FeaturedCard({ item }) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => handleClick(item)}
-            className="group relative flex flex-col overflow-hidden rounded-xl border border-brutal-border dark:border-surface-solid
-                       bg-surface col-span-2 row-span-2
-                       transition-all duration-200 hover:shadow-lg hover:border-brand dark:hover:border-es-primary"
+            className="group relative flex flex-col overflow-hidden
+                       col-span-1 sm:col-span-2 lg:col-span-2
+                       min-h-[220px] lg:min-h-[260px]
+                       border border-brutal-border dark:border-[#41494d]/50
+                       bg-surface-solid dark:bg-[#0c1518]
+                       hover:shadow-[0_0_18px_rgba(63,255,139,0.18)] transition-all duration-300"
         >
-            {/* Görsel — tam kapla */}
-            <div className="relative flex-1 overflow-hidden bg-surface-solid min-h-[180px]">
-                {item.image_url ? (
-                    <img
-                        src={item.image_url}
-                        alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 absolute inset-0"
-                        loading="lazy"
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                        <TrendingUp className="w-10 h-10 text-brutal-border/30" />
-                    </div>
-                )}
+            {item.image_url && (
+                <img
+                    src={item.image_url}
+                    alt={item.title}
+                    className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-75 transition-opacity duration-500"
+                    loading="lazy"
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
 
-                {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            {/* Rank badge */}
+            <div className="absolute top-3 left-3 z-10 w-7 h-7 rounded-full border border-brand dark:border-es-primary flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                <span className="font-mono font-bold text-[12px] text-brand dark:text-es-primary">1</span>
+            </div>
 
-                {/* Sıra rozeti */}
-                <div className="absolute top-3 left-3 w-7 h-7 rounded-full bg-brand dark:bg-es-primary
-                                flex items-center justify-center text-white dark:text-black text-[12px] font-black shadow-lg">
-                    1
-                </div>
+            {item.category && (
+                <span className={`absolute top-3 right-3 z-10 text-[9px] font-bold px-2 py-0.5 uppercase tracking-wide ${getCategoryColor(item.category)}`}>
+                    {item.category}
+                </span>
+            )}
 
-                {/* Kategori */}
-                {item.category && (
-                    <span className={`absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${getCategoryColor(item.category)}`}>
-                        {item.category}
-                    </span>
-                )}
-
-                {/* Başlık + meta — alt kısım üzerine */}
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <p className="text-white font-bold text-base leading-snug line-clamp-3 mb-2 drop-shadow">
-                        {item.title}
-                    </p>
-                    <div className="flex items-center justify-between">
-                        <span className="text-white/70 text-[11px] font-medium truncate max-w-[55%]">
-                            {item.source_name}
-                        </span>
-                        <div className="flex items-center gap-2.5">
-                            {ago && <span className="text-white/60 text-[10px]">{ago}</span>}
-                            {viewCount > 0 && (
-                                <span className="flex items-center gap-1 text-white/60 text-[10px]">
-                                    <Eye className="w-3 h-3" />{viewCount}
-                                </span>
-                            )}
-                            <ExternalLink className="w-3 h-3 text-white/50 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </div>
+            <div className="relative z-10 mt-auto p-4">
+                <p className="font-manrope font-bold text-white text-base md:text-lg leading-snug line-clamp-3 mb-2 drop-shadow group-hover:text-brand dark:group-hover:text-es-primary transition-colors">
+                    {item.title}
+                </p>
+                <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] text-white/60 truncate max-w-[55%]">{item.source_name}</span>
+                    <div className="flex items-center gap-2">
+                        {ago && <span className="font-mono text-[9px] text-white/50">{ago}</span>}
+                        {viewCount > 0 && (
+                            <span className="flex items-center gap-0.5 font-mono text-[9px] text-white/50">
+                                <Eye className="w-2.5 h-2.5" />{viewCount}
+                            </span>
+                        )}
+                        <ExternalLink className="w-2.5 h-2.5 text-white/40 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                 </div>
             </div>
@@ -110,8 +99,8 @@ function FeaturedCard({ item }) {
     );
 }
 
-/* Küçük kart — 1×1 */
-function SmallCard({ item, rank }) {
+/* Rank 2-3 — dikey kart */
+function VerticalCard({ item, rank }) {
     const ago = timeAgo(item.pub_date);
     const viewCount = item.community?.view_count ?? 0;
 
@@ -121,17 +110,17 @@ function SmallCard({ item, rank }) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => handleClick(item)}
-            className="group flex flex-col overflow-hidden rounded-xl border border-brutal-border dark:border-surface-solid
-                       bg-surface hover:bg-surface-solid/40 dark:hover:bg-white/[0.03]
-                       transition-all duration-200 hover:shadow-md hover:border-brand dark:hover:border-es-primary"
+            className="group flex flex-col overflow-hidden
+                       border border-brutal-border dark:border-[#41494d]/50
+                       bg-surface dark:bg-[#0c1518]
+                       hover:shadow-[0_0_14px_rgba(63,255,139,0.15)] transition-all duration-300"
         >
-            {/* Görsel */}
             <div className="relative w-full aspect-[16/9] overflow-hidden bg-surface-solid shrink-0">
                 {item.image_url ? (
                     <img
                         src={item.image_url}
                         alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
                         loading="lazy"
                         onError={(e) => { e.target.style.display = 'none'; }}
                     />
@@ -140,35 +129,30 @@ function SmallCard({ item, rank }) {
                         <TrendingUp className="w-6 h-6 text-brutal-border/40" />
                     </div>
                 )}
-                <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-brand dark:bg-es-primary
-                                flex items-center justify-center text-white dark:text-black text-[10px] font-black shadow">
-                    {rank}
+                <div className="absolute top-2 left-2 w-6 h-6 rounded-full border border-brand dark:border-es-primary flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                    <span className="font-mono font-bold text-[10px] text-brand dark:text-es-primary">{rank}</span>
                 </div>
+                {item.category && (
+                    <span className={`absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wide ${getCategoryColor(item.category)}`}>
+                        {item.category}
+                    </span>
+                )}
             </div>
 
-            {/* İçerik */}
-            <div className="flex flex-col gap-1.5 p-2.5 flex-1">
-                <div className="flex items-center justify-between gap-1">
-                    {item.category && (
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide ${getCategoryColor(item.category)}`}>
-                            {item.category}
-                        </span>
-                    )}
-                    {ago && <span className="text-[9px] text-tx-secondary shrink-0">{ago}</span>}
-                </div>
+            <div className="flex flex-col gap-1 p-2.5 flex-1">
                 <p className="text-[12px] font-semibold leading-snug text-tx-primary line-clamp-2 flex-1
                               group-hover:text-brand dark:group-hover:text-es-primary transition-colors">
                     {item.title}
                 </p>
-                <div className="flex items-center justify-between gap-1 mt-auto pt-1 border-t border-brutal-border/30 dark:border-surface-solid/40">
-                    <span className="text-[10px] text-tx-secondary truncate">{item.source_name}</span>
-                    <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center justify-between gap-1 pt-1 border-t border-brutal-border/30 dark:border-[#41494d]/30">
+                    <span className="font-mono text-[10px] text-tx-secondary truncate">{item.source_name}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        {ago && <span className="font-mono text-[9px] text-tx-secondary">{ago}</span>}
                         {viewCount > 0 && (
-                            <span className="flex items-center gap-0.5 text-[9px] text-tx-secondary">
+                            <span className="flex items-center gap-0.5 font-mono text-[9px] text-tx-secondary">
                                 <Eye className="w-2.5 h-2.5" />{viewCount}
                             </span>
                         )}
-                        <ExternalLink className="w-2.5 h-2.5 text-tx-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                 </div>
             </div>
@@ -176,22 +160,91 @@ function SmallCard({ item, rank }) {
     );
 }
 
-function SkeletonFeatured() {
+/* Rank 4-5 — yatay kart */
+function HorizontalCard({ item, rank }) {
+    const ago = timeAgo(item.pub_date);
+
     return (
-        <div className="col-span-2 row-span-2 rounded-xl border border-brutal-border dark:border-surface-solid overflow-hidden animate-pulse bg-surface">
-            <div className="w-full h-full min-h-[200px] bg-brutal-border/20" />
+        <a
+            href={item.source_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => handleClick(item)}
+            className="group flex overflow-hidden
+                       col-span-1 sm:col-span-1 lg:col-span-2
+                       border border-brutal-border dark:border-[#41494d]/50
+                       bg-surface dark:bg-[#0c1518]
+                       hover:shadow-[0_0_14px_rgba(63,255,139,0.15)] transition-all duration-300"
+        >
+            <div className="relative w-1/3 overflow-hidden bg-surface-solid shrink-0">
+                {item.image_url ? (
+                    <img
+                        src={item.image_url}
+                        alt={item.title}
+                        className="w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                        <TrendingUp className="w-5 h-5 text-brutal-border/40" />
+                    </div>
+                )}
+            </div>
+
+            <div className="relative flex flex-col justify-center p-3 flex-1 gap-1.5 min-w-0">
+                <div className="absolute top-2 right-2 w-5 h-5 rounded-full border border-brand dark:border-es-primary flex items-center justify-center bg-surface dark:bg-[#0c1518]">
+                    <span className="font-mono font-bold text-[9px] text-brand dark:text-es-primary">{rank}</span>
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-wrap pr-6">
+                    {item.category && (
+                        <span className="font-bold text-[9px] text-brand dark:text-es-primary uppercase tracking-wide">
+                            {item.category}
+                        </span>
+                    )}
+                    {ago && <span className="font-mono text-[9px] text-tx-secondary">{ago}</span>}
+                </div>
+
+                <p className="text-[12px] font-semibold leading-snug text-tx-primary line-clamp-2
+                              group-hover:text-brand dark:group-hover:text-es-primary transition-colors">
+                    {item.title}
+                </p>
+
+                <span className="font-mono text-[10px] text-tx-secondary truncate">{item.source_name}</span>
+            </div>
+        </a>
+    );
+}
+
+function SkeletonHero() {
+    return (
+        <div className="col-span-1 sm:col-span-2 lg:col-span-2 min-h-[220px] lg:min-h-[260px]
+                        border border-brutal-border dark:border-[#41494d]/30 animate-pulse bg-brutal-border/10 dark:bg-[#41494d]/10" />
+    );
+}
+
+function SkeletonVertical() {
+    return (
+        <div className="border border-brutal-border dark:border-[#41494d]/30 overflow-hidden animate-pulse bg-surface dark:bg-[#0c1518]">
+            <div className="w-full aspect-[16/9] bg-brutal-border/20 dark:bg-[#41494d]/20" />
+            <div className="p-2.5 space-y-2">
+                <div className="h-3 bg-brutal-border/20 dark:bg-[#41494d]/20 w-full" />
+                <div className="h-3 bg-brutal-border/15 dark:bg-[#41494d]/15 w-3/4" />
+            </div>
         </div>
     );
 }
 
-function SkeletonSmall() {
+function SkeletonHorizontal() {
     return (
-        <div className="rounded-xl border border-brutal-border dark:border-surface-solid overflow-hidden animate-pulse bg-surface">
-            <div className="w-full aspect-[16/9] bg-brutal-border/20" />
-            <div className="p-2.5 space-y-2">
-                <div className="h-3 bg-brutal-border/20 rounded w-1/3" />
-                <div className="h-3 bg-brutal-border/15 rounded w-full" />
-                <div className="h-3 bg-brutal-border/10 rounded w-4/5" />
+        <div className="col-span-1 sm:col-span-1 lg:col-span-2 flex h-[110px]
+                        border border-brutal-border dark:border-[#41494d]/30 overflow-hidden animate-pulse bg-surface dark:bg-[#0c1518]">
+            <div className="w-1/3 bg-brutal-border/20 dark:bg-[#41494d]/20" />
+            <div className="flex-1 p-3 space-y-2">
+                <div className="h-2 bg-brutal-border/20 dark:bg-[#41494d]/20 w-1/2" />
+                <div className="h-3 bg-brutal-border/15 dark:bg-[#41494d]/15 w-full" />
+                <div className="h-3 bg-brutal-border/10 dark:bg-[#41494d]/10 w-3/4" />
             </div>
         </div>
     );
@@ -213,22 +266,34 @@ export default function PopularNewsSection() {
     return (
         <section className="w-full max-w-[1400px] mx-auto px-4 md:px-6 pb-12 mt-4">
             {/* Başlık */}
-            <div className="flex items-center gap-2 mb-5">
+            <div className="flex items-center gap-2 mb-1">
                 <TrendingUp className="w-4 h-4 text-brand dark:text-es-primary" />
                 <h2 className="text-sm font-black uppercase tracking-widest text-tx-primary">
                     En Popüler Haberler
                 </h2>
-                <span className="text-[10px] text-tx-secondary font-medium">(son 2 gün)</span>
             </div>
+            <p className="font-mono text-[9px] text-tx-secondary/60 uppercase tracking-widest mb-4">
+                // Son 2 Gün / Görüntülenme Bazlı
+            </p>
 
-            {/* 5 kart yan yana */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                {loading
-                    ? Array.from({ length: 5 }).map((_, i) => <SkeletonSmall key={i} />)
-                    : news.map((item, i) => (
-                        <SmallCard key={item.id} item={item} rank={i + 1} />
-                    ))
-                }
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {loading ? (
+                    <>
+                        <SkeletonHero />
+                        <SkeletonVertical />
+                        <SkeletonVertical />
+                        <SkeletonHorizontal />
+                        <SkeletonHorizontal />
+                    </>
+                ) : (
+                    <>
+                        {news[0] && <HeroCard item={news[0]} />}
+                        {news[1] && <VerticalCard item={news[1]} rank={2} />}
+                        {news[2] && <VerticalCard item={news[2]} rank={3} />}
+                        {news[3] && <HorizontalCard item={news[3]} rank={4} />}
+                        {news[4] && <HorizontalCard item={news[4]} rank={5} />}
+                    </>
+                )}
             </div>
         </section>
     );
