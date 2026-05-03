@@ -19,15 +19,16 @@ function MarketItem({ label, unit, value, change, decimals }) {
   const chg    = parseChange(change);
   const isUp   = chg !== null && chg > 0;
   const isDown = chg !== null && chg < 0;
-  const changeColor = isUp ? '#3fff8b' : isDown ? '#ff7351' : 'rgba(255,255,255,0.35)';
+  const changeColor = isUp ? '#3fff8b' : isDown ? '#ff7351' : 'rgba(255,255,255,0.45)';
 
   return (
     <span className="flex items-center gap-1.5 font-mono">
-      <span className="text-[9px] font-bold uppercase tracking-widest"
-            style={{ color: 'rgba(255,255,255,0.35)' }}>
+      <span className="text-[11px] font-bold uppercase tracking-widest"
+            style={{ color: 'var(--color-market-label)' }}>
         {label}
       </span>
-      <span className="text-[12px] font-bold text-white">
+      <span className="text-[13px] font-bold"
+            style={{ color: 'var(--color-market-value)' }}>
         {value != null
           ? `${unit}${Number(value).toLocaleString('tr-TR', {
               minimumFractionDigits: decimals,
@@ -36,9 +37,9 @@ function MarketItem({ label, unit, value, change, decimals }) {
           : '—'}
       </span>
       {chg !== null && (
-        <span className="flex items-center gap-0.5 text-[10px] font-bold" style={{ color: changeColor }}>
-          {isUp   ? <TrendingUp   className="w-2.5 h-2.5" /> :
-           isDown ? <TrendingDown className="w-2.5 h-2.5" /> : null}
+        <span className="flex items-center gap-0.5 text-[11px] font-bold" style={{ color: changeColor }}>
+          {isUp   ? <TrendingUp   className="w-3 h-3" /> :
+           isDown ? <TrendingDown className="w-3 h-3" /> : null}
           {Math.abs(chg).toFixed(2)}%
         </span>
       )}
@@ -61,8 +62,8 @@ const MarketBand = () => {
     <div
       className="fixed top-0 left-0 right-0 z-50 h-10 flex items-center px-6"
       style={{
-        background:   '#070f12',
-        borderBottom: '1px solid rgba(65,73,77,0.5)',
+        background:   'var(--color-market-band-bg)',
+        borderBottom: '1px solid var(--color-terminal-border-raw)',
       }}
     >
       <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
@@ -70,13 +71,15 @@ const MarketBand = () => {
         {/* Sol: SYS badge + market items */}
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5 font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#3fff8b] animate-pulse shrink-0" />
-            <span className="text-[9px] font-bold tracking-widest text-[#3fff8b]/60 hidden sm:block">
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0"
+                  style={{ background: 'var(--color-market-sys)' }} />
+            <span className="text-[10px] font-bold tracking-widest hidden sm:block"
+                  style={{ color: 'var(--color-market-sys)' }}>
               SYS.ONLINE
             </span>
           </span>
 
-          <span className="h-3 w-px bg-[#41494d]" />
+          <span className="h-3 w-px" style={{ background: 'var(--color-terminal-border-raw)' }} />
 
           <div className="flex items-center gap-5">
             {ITEMS.map(item => (
@@ -95,8 +98,8 @@ const MarketBand = () => {
         {/* Sağ: Hava durumu + versiyon */}
         <div className="flex items-center gap-3">
           <WeatherWidget />
-          <span className="hidden lg:block font-mono text-[9px] tracking-widest"
-                style={{ color: 'rgba(63,255,139,0.35)' }}>
+          <span className="hidden lg:block font-mono text-[10px] tracking-widest"
+                style={{ color: 'var(--color-market-sys)' }}>
             VERITAS v2.4
           </span>
         </div>

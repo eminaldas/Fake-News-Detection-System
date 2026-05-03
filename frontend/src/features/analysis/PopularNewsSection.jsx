@@ -83,11 +83,11 @@ function HeroCard({ item }) {
                     {item.title}
                 </p>
                 <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] text-white/60 truncate max-w-[55%]">{item.source_name}</span>
+                    <span className="font-mono text-[11px] text-white/60 truncate max-w-[55%]">{item.source_name}</span>
                     <div className="flex items-center gap-2">
-                        {ago && <span className="font-mono text-[9px] text-white/50">{ago}</span>}
+                        {ago && <span className="font-mono text-[11px] text-white/50">{ago}</span>}
                         {viewCount > 0 && (
-                            <span className="flex items-center gap-0.5 font-mono text-[9px] text-white/50">
+                            <span className="flex items-center gap-0.5 font-mono text-[11px] text-white/50">
                                 <Eye className="w-2.5 h-2.5" />{viewCount}
                             </span>
                         )}
@@ -140,16 +140,16 @@ function VerticalCard({ item, rank }) {
             </div>
 
             <div className="flex flex-col gap-1 p-2.5 flex-1">
-                <p className="text-[12px] font-semibold leading-snug text-tx-primary line-clamp-2 flex-1
+                <p className="text-sm font-semibold leading-snug text-tx-primary line-clamp-2 flex-1
                               group-hover:text-brand dark:group-hover:text-es-primary transition-colors">
                     {item.title}
                 </p>
                 <div className="flex items-center justify-between gap-1 pt-1 border-t border-brutal-border/30 dark:border-[#41494d]/30">
-                    <span className="font-mono text-[10px] text-tx-secondary truncate">{item.source_name}</span>
+                    <span className="font-mono text-[11px] text-tx-secondary truncate">{item.source_name}</span>
                     <div className="flex items-center gap-1.5 shrink-0">
-                        {ago && <span className="font-mono text-[9px] text-tx-secondary">{ago}</span>}
+                        {ago && <span className="font-mono text-[11px] text-tx-secondary">{ago}</span>}
                         {viewCount > 0 && (
-                            <span className="flex items-center gap-0.5 font-mono text-[9px] text-tx-secondary">
+                            <span className="flex items-center gap-0.5 font-mono text-[11px] text-tx-secondary">
                                 <Eye className="w-2.5 h-2.5" />{viewCount}
                             </span>
                         )}
@@ -203,15 +203,15 @@ function HorizontalCard({ item, rank }) {
                             {item.category}
                         </span>
                     )}
-                    {ago && <span className="font-mono text-[9px] text-tx-secondary">{ago}</span>}
+                    {ago && <span className="font-mono text-[11px] text-tx-secondary">{ago}</span>}
                 </div>
 
-                <p className="text-[12px] font-semibold leading-snug text-tx-primary line-clamp-2
+                <p className="text-sm font-semibold leading-snug text-tx-primary line-clamp-2
                               group-hover:text-brand dark:group-hover:text-es-primary transition-colors">
                     {item.title}
                 </p>
 
-                <span className="font-mono text-[10px] text-tx-secondary truncate">{item.source_name}</span>
+                <span className="font-mono text-[11px] text-tx-secondary truncate">{item.source_name}</span>
             </div>
         </a>
     );

@@ -36,11 +36,25 @@
 
     /* Layout tokenlar */
     --color-market-band-bg:  #f6f8fa;
-    --color-navbar-bg:       rgba(255,255,255,0.92);
-    --color-ticker-bg:       #1a9e4f;
+    --color-navbar-bg:       rgba(255,255,255,0.94);
+    --color-navbar-border:   var(--color-border);
+    --color-ticker-bg:       #f8fffe;
+    --color-ticker-border:   rgba(16,185,129,0.20);
+    --color-ticker-source:   #1a9e4f;
+    --color-ticker-title:    #24292f;
+    --color-ticker-divider:  rgba(26,158,79,0.35);
+    --color-ticker-badge-bg: #1a9e4f;
+    --color-ticker-badge-fg: #ffffff;
     --color-accent-amber:    #d97706;
     --color-accent-blue:     #2563eb;
     --color-muted-green:     #16a34a;
+
+    /* ── Terminal / Cyber kartlar (light) ── */
+    --color-terminal-surface:    #f8fffe;
+    --color-terminal-border-raw: rgba(16,185,129,0.20);
+    --color-market-label:        rgba(255,255,255,0.65);
+    --color-market-value:        rgba(255,255,255,0.95);
+    --color-market-sys:          rgba(63,255,139,0.70);
 
     /* ── Durum: Doğru (Authentic) ── */
     --color-authentic-bg:     #dcfce7;
@@ -105,12 +119,26 @@
     --color-skeleton:         #1d2329;
 
     /* Layout tokenlar */
-    --color-market-band-bg:  #0c1116;
-    --color-navbar-bg:       #151b21;
-    --color-ticker-bg:       #10b981;
+    --color-market-band-bg:  #070f12;
+    --color-navbar-bg:       rgba(11,21,24,0.97);
+    --color-navbar-border:   rgba(65,73,77,0.65);
+    --color-ticker-bg:       #0c1518;
+    --color-ticker-border:   rgba(65,73,77,0.50);
+    --color-ticker-source:   rgba(63,255,139,0.65);
+    --color-ticker-title:    rgba(240,248,252,0.82);
+    --color-ticker-divider:  rgba(63,255,139,0.35);
+    --color-ticker-badge-bg: #3fff8b;
+    --color-ticker-badge-fg: #000000;
     --color-accent-amber:    #f59e0b;
     --color-accent-blue:     #3b82f6;
     --color-muted-green:     #10b981;
+
+    /* ── Terminal / Cyber kartlar (dark) ── */
+    --color-terminal-surface:    #0c1518;
+    --color-terminal-border-raw: rgba(65,73,77,0.50);
+    --color-market-label:        rgba(255,255,255,0.65);
+    --color-market-value:        rgba(255,255,255,0.95);
+    --color-market-sys:          rgba(63,255,139,0.70);
 
     /* ── Durum: Doğru (Authentic) ── */
     --color-authentic-bg:     #172621;
@@ -220,9 +248,12 @@
   --color-es-surface:   #272d35;
 
   /* Yeni layout tokenlar */
-  --color-market-band-bg: var(--color-market-band-bg);
-  --color-navbar-bg:      var(--color-navbar-bg);
-  --color-ticker-bg:      var(--color-ticker-bg);
+  --color-market-band-bg:     var(--color-market-band-bg);
+  --color-navbar-bg:          var(--color-navbar-bg);
+  --color-ticker-bg:          var(--color-ticker-bg);
+
+  /* Terminal / Cyber — Tailwind utility (bg-terminal-surface vb.) */
+  --color-terminal-surface:   var(--color-terminal-surface);
   --color-accent-amber:   var(--color-accent-amber);
   --color-accent-blue:    var(--color-accent-blue);
   --color-muted-green:    var(--color-muted-green);

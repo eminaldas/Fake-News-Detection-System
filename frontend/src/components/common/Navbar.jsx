@@ -94,21 +94,15 @@ const Navbar = () => {
     return (
         <header
             className="fixed top-10 left-0 right-0 z-50"
-            style={{
-                borderBottom: isDarkMode
-                    ? '1px solid rgba(65,73,77,0.65)'
-                    : '1px solid var(--color-border)',
-            }}
+            style={{ borderBottom: '1px solid var(--color-navbar-border)' }}
         >
             {/* Nav arka planı */}
             <div
                 className="absolute inset-0 pointer-events-none -z-10"
                 style={{
-                    background: isDarkMode
-                        ? 'rgba(4, 9, 13, 0.97)'
-                        : 'rgba(255,255,255,0.94)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
+                    background:            'var(--color-navbar-bg)',
+                    backdropFilter:        'blur(20px)',
+                    WebkitBackdropFilter:  'blur(20px)',
                 }}
             />
 
@@ -116,7 +110,8 @@ const Navbar = () => {
 
                 {/* ── LOGO ── */}
                 <Link to="/" className="flex items-center hover:opacity-80 transition-opacity shrink-0 self-stretch -my-2.5">
-                    <div className="self-stretch aspect-square flex items-center justify-center px-3 bg-[#3e8371]">
+                    <div className="self-stretch aspect-square flex items-center justify-center px-3"
+                         style={{ background: 'var(--color-brand-primary)' }}>
                         <span className="font-pacifico text-2xl text-white leading-none select-none">Ne</span>
                     </div>
                 </Link>
@@ -346,8 +341,8 @@ const Navbar = () => {
                 <div
                     className="md:hidden px-4 pb-3 animate-fade-up"
                     style={{
-                        background: isDarkMode ? 'rgba(4, 9, 13, 0.99)' : 'rgba(255,255,255,0.98)',
-                        borderTop: isDarkMode ? '1px solid rgba(65,73,77,0.5)' : '1px solid var(--color-border)',
+                        background: 'var(--color-navbar-bg)',
+                        borderTop:  '1px solid var(--color-navbar-border)',
                     }}
                 >
                     <nav className="flex flex-col pt-2 gap-0.5">

@@ -73,17 +73,17 @@ function NewsCard({ item }) {
                             {item.category}
                         </span>
                     )}
-                    {ago && <span className="font-mono text-[9px] text-tx-secondary shrink-0">{ago}</span>}
+                    {ago && <span className="font-mono text-[11px] text-tx-secondary shrink-0">{ago}</span>}
                 </div>
-                <p className="text-[12px] font-semibold leading-snug text-tx-primary line-clamp-2 flex-1
+                <p className="text-sm font-semibold leading-snug text-tx-primary line-clamp-2 flex-1
                               group-hover:text-brand dark:group-hover:text-es-primary transition-colors">
                     {item.title}
                 </p>
                 <div className="flex items-center justify-between gap-1 mt-auto pt-1 border-t border-brutal-border/30 dark:border-[#41494d]/30">
-                    <span className="font-mono text-[10px] text-tx-secondary truncate">{item.source_name}</span>
+                    <span className="font-mono text-[11px] text-tx-secondary truncate">{item.source_name}</span>
                     <div className="flex items-center gap-2 shrink-0">
                         {viewCount > 0 && (
-                            <span className="flex items-center gap-0.5 font-mono text-[9px] text-tx-secondary">
+                            <span className="flex items-center gap-0.5 font-mono text-[11px] text-tx-secondary">
                                 <Eye className="w-2.5 h-2.5" />{viewCount}
                             </span>
                         )}
@@ -131,7 +131,7 @@ export default function SimilarNewsSection({ taskId }) {
                     Benzer Haberler
                 </h2>
             </div>
-            <p className="font-mono text-[10px] text-tx-secondary/80 uppercase tracking-widest mb-4">
+            <p className="font-mono text-[11px] text-tx-secondary/80 uppercase tracking-widest mb-4">
                 // Semantik Benzerlik / Vektör Arama
             </p>
 
