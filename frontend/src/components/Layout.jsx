@@ -79,11 +79,11 @@ const Layout = () => {
                 className="fixed inset-0 pointer-events-none"
                 style={{
                     zIndex: -10,
-                    backgroundImage:
-                        'linear-gradient(var(--color-border) 1px,transparent 1px),' +
-                        'linear-gradient(90deg,var(--color-border) 1px,transparent 1px)',
+                    backgroundImage: isDarkMode
+                        ? 'linear-gradient(rgba(63,255,139,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(63,255,139,0.05) 1px,transparent 1px)'
+                        : 'linear-gradient(var(--color-border) 1px,transparent 1px),linear-gradient(90deg,var(--color-border) 1px,transparent 1px)',
                     backgroundSize: '40px 40px',
-                    opacity: isDarkMode ? 0.55 : 0.20,
+                    opacity: isDarkMode ? 1 : 0.18,
                 }}
             />
 

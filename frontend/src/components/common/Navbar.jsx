@@ -92,29 +92,32 @@ const Navbar = () => {
     }, []);
 
     return (
-        <header className="fixed top-10 left-0 right-0 z-50"
-                style={{ borderBottom: '1px solid var(--color-border)' }}>
-
+        <header
+            className="fixed top-10 left-0 right-0 z-50"
+            style={{
+                borderBottom: isDarkMode
+                    ? '1px solid rgba(65,73,77,0.65)'
+                    : '1px solid var(--color-border)',
+            }}
+        >
             {/* Nav arka planı */}
             <div
                 className="absolute inset-0 pointer-events-none -z-10"
                 style={{
-                    background: 'var(--color-navbar-bg)',
-                    backdropFilter: 'blur(16px)',
-                    WebkitBackdropFilter: 'blur(16px)',
+                    background: isDarkMode
+                        ? 'rgba(4, 9, 13, 0.97)'
+                        : 'rgba(255,255,255,0.94)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
                 }}
             />
 
             <div className="max-w-7xl mx-auto px-6 flex items-center justify-between py-2.5">
 
                 {/* ── LOGO ── */}
-                <Link to="/" className="flex items-center hover:opacity-90 transition-opacity shrink-0 self-stretch -my-2.5">
-                    <div className="self-stretch aspect-square flex items-center justify-center px-3 relative"
-                         style={{ background: 'var(--color-brand-primary)' }}>
-                        {/* köşe aksan */}
-                        <div className="absolute bottom-0 right-0 w-2 h-[2px]" style={{ background: 'rgba(0,0,0,0.3)' }} />
-                        <div className="absolute bottom-0 right-0 w-[2px] h-2" style={{ background: 'rgba(0,0,0,0.3)' }} />
-                        <span className="font-mono font-black text-xl text-black leading-none select-none tracking-tight">Ne</span>
+                <Link to="/" className="flex items-center hover:opacity-80 transition-opacity shrink-0 self-stretch -my-2.5">
+                    <div className="self-stretch aspect-square flex items-center justify-center px-3 bg-[#3e8371]">
+                        <span className="font-pacifico text-2xl text-white leading-none select-none">Ne</span>
                     </div>
                 </Link>
 
@@ -342,7 +345,10 @@ const Navbar = () => {
             {menuOpen && (
                 <div
                     className="md:hidden px-4 pb-3 animate-fade-up"
-                    style={{ background: 'var(--color-navbar-bg)', borderTop: '1px solid var(--color-border)' }}
+                    style={{
+                        background: isDarkMode ? 'rgba(4, 9, 13, 0.99)' : 'rgba(255,255,255,0.98)',
+                        borderTop: isDarkMode ? '1px solid rgba(65,73,77,0.5)' : '1px solid var(--color-border)',
+                    }}
                 >
                     <nav className="flex flex-col pt-2 gap-0.5">
                         {NAV_LINKS.map((item) => (

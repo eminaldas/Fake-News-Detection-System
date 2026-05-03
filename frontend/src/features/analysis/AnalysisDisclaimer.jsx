@@ -1,32 +1,52 @@
 import React from 'react';
-import { Info } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 const AnalysisDisclaimer = () => {
     return (
-        <div className="
-            animate-fade-up
-            mt-6 md:mt-8 p-4 rounded-2xl
-            bg-info-bg border border-info-border
-            flex items-start md:items-center gap-4
-            shadow-sm backdrop-blur-sm
-            transition-all duration-300
-        ">
-            <div className="flex-shrink-0 flex items-center justify-center">
-                <div className="w-10 h-10 rounded-full bg-info-icon-bg flex items-center justify-center text-info-icon">
-                    <Info size={22} strokeWidth={2.5} />
+        <div
+            className="animate-fade-up relative mt-6 md:mt-8 p-4 overflow-hidden transition-all duration-300"
+            style={{
+                background: 'var(--color-info-bg)',
+                border:     '1px solid var(--color-info-border)',
+            }}
+        >
+            {/* Mavi köşe notch'ları — 4 köşe */}
+            <div className="absolute top-0 left-0 w-3 h-[2px] pointer-events-none" style={{ background: 'var(--color-accent-blue)' }} />
+            <div className="absolute top-0 left-0 h-3 w-[2px] pointer-events-none" style={{ background: 'var(--color-accent-blue)' }} />
+            <div className="absolute top-0 right-0 w-3 h-[2px] pointer-events-none" style={{ background: 'var(--color-accent-blue)' }} />
+            <div className="absolute top-0 right-0 h-3 w-[2px] pointer-events-none" style={{ background: 'var(--color-accent-blue)' }} />
+            <div className="absolute bottom-0 left-0 w-3 h-[2px] pointer-events-none" style={{ background: 'var(--color-accent-blue)' }} />
+            <div className="absolute bottom-0 left-0 h-3 w-[2px] pointer-events-none" style={{ background: 'var(--color-accent-blue)' }} />
+            <div className="absolute bottom-0 right-0 w-3 h-[2px] pointer-events-none" style={{ background: 'var(--color-accent-blue)' }} />
+            <div className="absolute bottom-0 right-0 h-3 w-[2px] pointer-events-none" style={{ background: 'var(--color-accent-blue)' }} />
+
+            <div className="flex items-start gap-3">
+                {/* İkon kutusu */}
+                <div
+                    className="shrink-0 w-8 h-8 flex items-center justify-center"
+                    style={{ background: 'var(--color-info-icon-bg)' }}
+                >
+                    <AlertTriangle size={15} style={{ color: 'var(--color-info-icon)' }} strokeWidth={2.5} />
+                </div>
+
+                {/* Metin */}
+                <div className="flex-1 min-w-0">
+                    <p className="font-mono text-[10px] font-bold uppercase tracking-widest mb-1"
+                       style={{ color: 'var(--color-info-icon)' }}>
+                        // DİKKAT
+                    </p>
+                    <p className="text-[13px] leading-relaxed" style={{ color: 'var(--color-info-text)' }}>
+                        <span className="font-bold" style={{ color: 'var(--color-info-title)' }}>
+                            Önemli Not:
+                        </span>
+                        {' '}Analiz sonuçları dilbilimsel verilere dayalı bir tahmindir;{' '}
+                        <span className="font-bold" style={{ color: 'var(--color-info-accent)' }}>
+                            kesinlik ifade etmez.
+                        </span>
+                        {' '}Lütfen bilgileri resmi kaynaklardan teyit etmeyi unutmayınız.
+                    </p>
                 </div>
             </div>
-
-            <p className="text-sm md:text-[15px] leading-relaxed font-medium text-info-text">
-                <span className="text-info-title font-semibold">
-                    Önemli Not:
-                </span>
-                {" "}Analiz sonuçları dilbilimsel verilere dayalı bir tahmindir;
-                <span className="font-bold text-info-accent decoration-info-accent/30 underline-offset-2 mx-1">
-                    kesinlik ifade etmez.
-                </span>
-                Lütfen bilgileri resmi kaynaklardan teyit etmeyi unutmayınız.
-            </p>
         </div>
     );
 };
