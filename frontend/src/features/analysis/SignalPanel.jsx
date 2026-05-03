@@ -12,63 +12,76 @@ const SIGNAL_CONFIG = [
     { key: 'source_score',      label: 'Kaynak Güvenilirliği', norm: v => v * 100,        color: 'green' },
 ];
 
-// Kaynak güvenilirliği her zaman yeşil (pozitif sinyal)
 const SOURCE_HEX = '#3fff8b';
 
-const SignalPanel = ({ signals, theme, maxSignals = null }) => {
+const SignalPanel = ({
+    signals,
+    theme,
+    maxSignals   = null,
+    forceKeys    = null,
+    sectionLabel = 'Tespit Edilen Sinyaller',
+}) => {
     if (!signals) return null;
 
-    let visibleSignals = SIGNAL_CONFIG.filter(({ key, shouldShow }) => {
-        const value = signals[key] ?? 0;
-        if (shouldShow) return shouldShow(value);
-        return value > DISPLAY_THRESHOLD;
-    });
-
-    if (maxSignals !== null) {
-        visibleSignals = visibleSignals
-            .sort((a, b) => {
-                const va = Math.min(a.norm(signals[a.key] || 0), 100);
-                const vb = Math.min(b.norm(signals[b.key] || 0), 100);
-                return vb - va;
-            })
-            .slice(0, maxSignals);
+    let visibleSignals;
+    if (forceKeys) {
+        visibleSignals = SIGNAL_CONFIG.filter(({ key }) => forceKeys.includes(key));
+    } else {
+        visibleSignals = SIGNAL_CONFIG.filter(({ key, shouldShow }) => {
+            const value = signals[key] ?? 0;
+            if (shouldShow) return shouldShow(value);
+            return value > DISPLAY_THRESHOLD;
+        });
+        if (maxSignals !== null) {
+            visibleSignals = visibleSignals
+                .sort((a, b) => {
+                    const va = Math.min(a.norm(signals[a.key] || 0), 100);
+                    const vb = Math.min(b.norm(signals[b.key] || 0), 100);
+                    return vb - va;
+                })
+                .slice(0, maxSignals);
+        }
     }
 
     if (visibleSignals.length === 0) return null;
 
+    const gridCls = forceKeys
+        ? 'grid grid-cols-2 sm:grid-cols-4 gap-3'
+        : 'grid grid-cols-1 sm:grid-cols-3 gap-3';
+
     return (
         <div>
-            <p className="text-tx-secondary text-[10px] font-bold tracking-widest uppercase mb-3">
-                Tespit Edilen Sinyaller
-            </p>
-            {/* Bento grid: 1 kolon mobil, 3 kolon geniş */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {sectionLabel && (
+                <p className="text-tx-secondary text-[10px] font-mono font-bold tracking-widest uppercase mb-3">
+                    // {sectionLabel.toUpperCase().replace(/ /g, '_')}
+                </p>
+            )}
+            <div className={gridCls}>
                 {visibleSignals.map(({ key, label, norm, color }) => {
-                    const rawValue  = signals[key] || 0;
-                    const barWidth  = Math.min(norm(rawValue), 100).toFixed(1);
+                    const rawValue   = signals[key] || 0;
+                    const barWidth   = Math.min(norm(rawValue), 100).toFixed(1);
                     const displayPct = Math.round(parseFloat(barWidth));
-                    const isGreen   = color === 'green';
+                    const isGreen    = color === 'green';
 
                     const accentHex  = isGreen ? SOURCE_HEX : theme.hex;
-                    const valueColor = isGreen ? '#3fff8b' : theme.hex;
-                    const barFill    = accentHex;
-                    const barTrack   = `${accentHex}26`; // ~15% opacity
+                    const valueColor = accentHex;
+                    const barTrack   = `${accentHex}26`;
 
                     return (
                         <div
                             key={key}
-                            className="rounded-xl p-4 sm:p-5"
+                            className="rounded-xl p-4"
                             style={{
                                 background: 'var(--color-bg-surface)',
-                                border: `1px solid ${barFill}22`,
+                                border: `1px solid ${accentHex}22`,
                             }}
                         >
-                            <span className="text-tx-secondary text-[10px] font-bold tracking-widest uppercase block mb-3">
+                            <span className="text-tx-secondary text-[10px] font-mono font-bold tracking-widest uppercase block mb-3">
                                 {label}
                             </span>
                             <div className="flex items-end gap-2 mb-2">
                                 <span
-                                    className="text-2xl font-manrope font-black leading-none"
+                                    className="text-xl font-manrope font-black leading-none"
                                     style={{ color: valueColor }}
                                 >
                                     %{displayPct}
@@ -80,7 +93,7 @@ const SignalPanel = ({ signals, theme, maxSignals = null }) => {
                             >
                                 <div
                                     className="h-full rounded-full transition-all duration-700"
-                                    style={{ width: `${barWidth}%`, background: barFill }}
+                                    style={{ width: `${barWidth}%`, background: accentHex }}
                                 />
                             </div>
                         </div>
