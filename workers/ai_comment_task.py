@@ -115,6 +115,12 @@ def validate_gemini_response(raw: dict) -> dict | None:
     # Limit aşılırsa kes, reddetme — gemini-2.5-flash uzun özet üretebilir
     if len(summary) > 800:
         raw["summary"] = summary[:797] + "..."
+    news_summary = raw.get("news_summary")
+    if news_summary is not None:
+        if not isinstance(news_summary, str) or not news_summary.strip():
+            raw["news_summary"] = None
+        elif len(news_summary) > 250:
+            raw["news_summary"] = news_summary[:247] + "..."
     evidence = raw.get("evidence", [])
     if not isinstance(evidence, list):
         return None
@@ -219,6 +225,7 @@ Verdict kriterleri:
 JSON alanları:
 - "gemini_verdict": "FAKE" veya "AUTHENTIC" veya "IDDIA"
 - "reason_type": Kısa serbest etiket, senin belirlediğin (max 40 karakter). Örn: "Doğrulanamaz İddia", "Çelişen Bilgi", "Anonim Kaynak", "Spekülatif İçerik" — bunlarla sınırlı değilsin.
+- "news_summary": Haberin ne iddia ettiğini 1-2 cümleyle tarafsızca özetle, karar belirtme (max 200 karakter)
 - "summary": 2-3 cümle Türkçe açıklama — ne tespit edildi, neden bu karar verildi (max 500 karakter)
 - "evidence": ilgili haberlerden en fazla 3 kanıt [{"title":"...","url":"..."}]
 Yanıtı YALNIZCA geçerli JSON formatında ver. Başka hiçbir metin, açıklama veya markdown ekleme."""
@@ -235,6 +242,7 @@ Verdict kriterleri:
 JSON alanları:
 - "gemini_verdict": "FAKE" veya "AUTHENTIC" veya "IDDIA"
 - "reason_type": Kısa serbest etiket, senin belirlediğin (max 40 karakter). Örn: "Doğrulanamaz İddia", "Çelişen Bilgi", "Anonim Kaynak", "Spekülatif İçerik" — bunlarla sınırlı değilsin.
+- "news_summary": Haberin ne iddia ettiğini 1-2 cümleyle tarafsızca özetle, karar belirtme (max 200 karakter)
 - "summary": 2-3 cümle Türkçe açıklama — ne tespit edildi, neden bu karar verildi (max 500 karakter)
 - "evidence": ilgili haberlerden en fazla 3 kanıt [{{"title":"...","url":"..."}}]
 Yanıtı YALNIZCA geçerli JSON formatında ver. Başka hiçbir metin, açıklama veya markdown ekleme."""
@@ -336,6 +344,7 @@ Verdict kriterleri:
 JSON alanları:
 - "gemini_verdict": "FAKE" veya "AUTHENTIC" veya "IDDIA"
 - "reason_type": max 40 karakter serbest etiket
+- "news_summary": Haberin ne iddia ettiğini 1-2 cümleyle tarafsızca özetle, karar belirtme (max 200 karakter)
 - "summary": 2-3 cümle Türkçe açıklama (max 500 karakter). Kaynak yanlılığını ve tarih bilgisini açıklamana ekle.
 - "evidence": ilgili kaynaklardan en fazla 3 kanıt [{"title":"...","url":"...","date":"..."}]
 Yanıtı YALNIZCA geçerli JSON formatında ver."""
@@ -352,6 +361,7 @@ Verdict kriterleri:
 JSON alanları:
 - "gemini_verdict": "FAKE" veya "AUTHENTIC" veya "IDDIA"
 - "reason_type": max 40 karakter serbest etiket
+- "news_summary": Haberin ne iddia ettiğini 1-2 cümleyle tarafsızca özetle, karar belirtme (max 200 karakter)
 - "summary": 2-3 cümle Türkçe açıklama (max 500 karakter). Kaynak yanlılığını ve tarih bilgisini açıklamana ekle.
 - "evidence": ilgili kaynaklardan en fazla 3 kanıt [{{"title":"...","url":"...","date":"..."}}]
 Yanıtı YALNIZCA geçerli JSON formatında ver."""
@@ -592,6 +602,7 @@ def generate_ai_comment(
 
     ai_comment = {
         "summary":        gemini_result["summary"] if gemini_result else None,
+        "news_summary":   gemini_result.get("news_summary") if gemini_result else None,
         "evidence":       gemini_result.get("evidence", []) if gemini_result else [],
         "gemini_verdict": gemini_result.get("gemini_verdict") if gemini_result else None,
         "reason_type":    gemini_result.get("reason_type") if gemini_result else None,
