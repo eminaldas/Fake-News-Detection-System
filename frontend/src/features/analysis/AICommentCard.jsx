@@ -1,41 +1,38 @@
 import React from 'react';
-import { Sparkles, ExternalLink, Search, Clock, AlertTriangle } from 'lucide-react';
+import {
+    Sparkles, ExternalLink, Search, Clock, AlertTriangle,
+    FileText, CheckCircle2,
+} from 'lucide-react';
 
-/**
- * Gemini AI yorumunu gösterir.
- * aiComment === null    → mevcut değil (zaman aşımı veya atlandı)
- * aiComment === object  → özet paragraf + kanıt linkleri
- */
 const AICommentCard = ({ aiComment, theme, sourceBiasSummary = null, temporalAnalysis = null }) => {
     const hex08 = `${theme.hex}14`;
+    const hex15 = `${theme.hex}26`;
     const hex30 = `${theme.hex}4d`;
 
     return (
-        <div
-            className="rounded-xl p-4 sm:p-5"
-            style={{ background: hex08, borderLeft: `3px solid ${hex30}` }}
-        >
+        <div className="rounded-xl overflow-hidden" style={{ background: hex08, borderLeft: `3px solid ${hex30}` }}>
+
             {/* Başlık */}
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 px-4 sm:px-5 pt-4 sm:pt-5 pb-3">
                 <Sparkles className={`w-4 h-4 ${theme.statusCls}`} />
-                <span className={`${theme.statusCls} font-manrope font-bold text-xs tracking-wide`}>
-                    Gemini AI Analizi
+                <span className={`${theme.statusCls} font-mono font-bold text-[10px] tracking-widest uppercase`}>
+                    // AI_Analiz_Sonucu
                 </span>
             </div>
 
             {/* Mevcut değil */}
             {!aiComment && (
-                <p className="text-tx-secondary/50 text-sm italic">
+                <p className="text-tx-secondary/50 text-sm italic px-4 sm:px-5 pb-4">
                     AI yorumu şu an mevcut değil.
                 </p>
             )}
 
-            {/* İçerik */}
             {aiComment && (
-                <>
-                    {/* Temporal uyarı — recycled */}
+                <div className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-4">
+
+                    {/* Temporal uyarı */}
                     {temporalAnalysis?.freshness_flag === 'recycled' && (
-                        <div className="flex items-start gap-2 mb-3 px-3 py-2 rounded-lg"
+                        <div className="flex items-start gap-2 px-3 py-2 rounded-lg"
                              style={{ background: '#f59e0b14', border: '1px solid #f59e0b33' }}>
                             <Clock className="w-3 h-3 mt-0.5 shrink-0 text-amber-500" />
                             <p className="text-amber-500 text-[10px] font-bold leading-snug">
@@ -49,9 +46,9 @@ const AICommentCard = ({ aiComment, theme, sourceBiasSummary = null, temporalAna
                         </div>
                     )}
 
-                    {/* reason_type pill badge */}
+                    {/* reason_type pill */}
                     {aiComment.reason_type && (
-                        <div className="flex items-center gap-1.5 mb-3">
+                        <div className="flex items-center gap-1.5">
                             <Search className={`w-3 h-3 shrink-0 ${theme.statusCls} opacity-70`} />
                             <span
                                 className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
@@ -66,44 +63,79 @@ const AICommentCard = ({ aiComment, theme, sourceBiasSummary = null, temporalAna
                         </div>
                     )}
 
-                    {/* Özet */}
-                    <p className="text-tx-secondary leading-relaxed text-sm italic mb-3">
-                        "{aiComment.summary}"
-                    </p>
+                    {/* Haber Özeti */}
+                    {aiComment.news_summary && (
+                        <div className="rounded-lg p-3 sm:p-4"
+                             style={{ background: hex15, border: `1px solid ${hex15}` }}>
+                            <div className="flex items-center gap-1.5 mb-2">
+                                <FileText className={`w-3 h-3 ${theme.statusCls} opacity-70`} />
+                                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-tx-secondary/60">
+                                    // Haber_Özeti
+                                </span>
+                            </div>
+                            <p className="text-tx-secondary text-sm leading-relaxed">
+                                {aiComment.news_summary}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Doğrulama Yorumu */}
+                    {aiComment.summary && (
+                        <div>
+                            <div className="flex items-center gap-1.5 mb-2">
+                                <CheckCircle2 className={`w-3 h-3 ${theme.statusCls} opacity-70`} />
+                                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-tx-secondary/60">
+                                    // Doğrulama_Yorumu
+                                </span>
+                            </div>
+                            <p className="text-sm leading-relaxed italic" style={{ color: theme.hex }}>
+                                "{aiComment.summary}"
+                            </p>
+                        </div>
+                    )}
 
                     {/* Kanıt linkleri */}
                     {aiComment.evidence?.length > 0 && (
-                        <div className="space-y-1.5">
-                            <p className="text-tx-secondary/60 text-[10px] uppercase tracking-widest font-bold mb-2">
-                                İlgili Haberler
+                        <div>
+                            <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-tx-secondary/60 mb-2">
+                                // İlgili_Kaynaklar
                             </p>
-                            {aiComment.evidence.map((item, i) => (
-                                <a
-                                    key={i}
-                                    href={item.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-start gap-2 group"
-                                >
-                                    <ExternalLink
-                                        className={`w-3 h-3 mt-0.5 shrink-0 ${theme.statusCls} opacity-60 group-hover:opacity-100`}
-                                    />
-                                    <span className="text-tx-secondary text-xs leading-snug group-hover:text-tx-primary transition-colors line-clamp-2">
-                                        {item.title}
-                                        {item.date && (
-                                            <span className="text-tx-secondary/40 ml-1 not-italic">
-                                                ({item.date})
+                            <div className="space-y-1.5">
+                                {aiComment.evidence.map((item, i) => {
+                                    const domain = (() => {
+                                        try { return new URL(item.url).hostname.replace(/^www\./, ''); }
+                                        catch { return null; }
+                                    })();
+                                    return (
+                                        <a
+                                            key={i}
+                                            href={item.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-start gap-2 group"
+                                        >
+                                            <ExternalLink className={`w-3 h-3 mt-0.5 shrink-0 ${theme.statusCls} opacity-60 group-hover:opacity-100 transition-opacity`} />
+                                            <span className="text-xs leading-snug text-tx-secondary group-hover:text-tx-primary transition-colors line-clamp-2">
+                                                {domain && (
+                                                    <span className="font-bold mr-1.5" style={{ color: theme.hex }}>
+                                                        [{domain}]
+                                                    </span>
+                                                )}
+                                                {item.title}
+                                                {item.date && (
+                                                    <span className="text-tx-secondary/40 ml-1">({item.date})</span>
+                                                )}
                                             </span>
-                                        )}
-                                    </span>
-                                </a>
-                            ))}
+                                        </a>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
 
                     {/* Kaynak bias özeti */}
                     {sourceBiasSummary?.bias_summary && (
-                        <div className="mt-3 pt-3 flex items-start gap-2"
+                        <div className="flex items-start gap-2 pt-3"
                              style={{ borderTop: `1px solid ${hex30}` }}>
                             <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0 text-tx-secondary/50" />
                             <p className="text-tx-secondary/70 text-[10px] leading-snug">
@@ -111,7 +143,8 @@ const AICommentCard = ({ aiComment, theme, sourceBiasSummary = null, temporalAna
                             </p>
                         </div>
                     )}
-                </>
+
+                </div>
             )}
         </div>
     );
