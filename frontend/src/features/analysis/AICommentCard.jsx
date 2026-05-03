@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    Sparkles, ExternalLink, Search, Clock, AlertTriangle,
+    Sparkles, Search, Clock, AlertTriangle,
     FileText, CheckCircle2,
 } from 'lucide-react';
 
@@ -91,45 +91,6 @@ const AICommentCard = ({ aiComment, theme, sourceBiasSummary = null, temporalAna
                             <p className="text-sm leading-relaxed italic" style={{ color: theme.hex }}>
                                 "{aiComment.summary}"
                             </p>
-                        </div>
-                    )}
-
-                    {/* Kanıt linkleri */}
-                    {aiComment.evidence?.length > 0 && (
-                        <div>
-                            <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-tx-secondary/60 mb-2">
-                                // İlgili_Kaynaklar
-                            </p>
-                            <div className="space-y-1.5">
-                                {aiComment.evidence.map((item, i) => {
-                                    const domain = (() => {
-                                        try { return new URL(item.url).hostname.replace(/^www\./, ''); }
-                                        catch { return null; }
-                                    })();
-                                    return (
-                                        <a
-                                            key={i}
-                                            href={item.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-start gap-2 group"
-                                        >
-                                            <ExternalLink className={`w-3 h-3 mt-0.5 shrink-0 ${theme.statusCls} opacity-60 group-hover:opacity-100 transition-opacity`} />
-                                            <span className="text-xs leading-snug text-tx-secondary group-hover:text-tx-primary transition-colors line-clamp-2">
-                                                {domain && (
-                                                    <span className="font-bold mr-1.5" style={{ color: theme.hex }}>
-                                                        [{domain}]
-                                                    </span>
-                                                )}
-                                                {item.title}
-                                                {item.date && (
-                                                    <span className="text-tx-secondary/40 ml-1">({item.date})</span>
-                                                )}
-                                            </span>
-                                        </a>
-                                    );
-                                })}
-                            </div>
                         </div>
                     )}
 

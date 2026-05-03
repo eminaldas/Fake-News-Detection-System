@@ -12,6 +12,7 @@ import RecentHeadlines from "../components/features/analysis/RecentHeadlines";
 import AnalysisDisclaimer from "../features/analysis/AnalysisDisclaimer";
 import HotAnalysesCard from "../components/features/analysis/HotAnalysesCard";
 import PopularNewsSection from "../features/analysis/PopularNewsSection";
+import SimilarNewsSection from "../features/analysis/SimilarNewsSection";
 
 const Home = () => {
   const { isAuthenticated } = useAuth();
@@ -192,6 +193,11 @@ const Home = () => {
           <HotAnalysesCard />
         </div>
       </div>
+
+      {/* ── Benzer Haberler — sonuç varsa göster ── */}
+      {result && (
+          <SimilarNewsSection taskId={result.task_id ?? result.content_id} />
+      )}
 
       {/* ── En Popüler Haberler ── */}
       <PopularNewsSection />

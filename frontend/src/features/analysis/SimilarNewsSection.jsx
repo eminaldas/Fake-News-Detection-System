@@ -1,81 +1,111 @@
 import React, { useEffect, useState } from 'react';
-import { ExternalLink, Newspaper } from 'lucide-react';
+import { Layers, ExternalLink, Eye } from 'lucide-react';
 import AnalysisService from '../../services/analysis.service';
+import { trackInteraction } from '../../services/interaction.service';
 
 const CATEGORY_COLORS = {
-    spor:     { bg: '#3b82f620', text: '#3b82f6' },
-    ekonomi:  { bg: '#f59e0b20', text: '#f59e0b' },
-    siyaset:  { bg: '#8b5cf620', text: '#8b5cf6' },
-    dünya:    { bg: '#10b98120', text: '#10b981' },
-    teknoloji:{ bg: '#06b6d420', text: '#06b6d4' },
-    sağlık:   { bg: '#ef444420', text: '#ef4444' },
-    kültür:   { bg: '#f97316', text: '#fff' },
+    gündem:   'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+    spor:     'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+    ekonomi:  'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+    siyaset:  'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+    dünya:    'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+    teknoloji:'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300',
+    sağlık:   'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+    kültür:   'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300',
+    default:  'bg-surface-solid text-tx-secondary',
 };
 
-function formatDate(dateStr) {
+function getCategoryColor(category) {
+    if (!category) return CATEGORY_COLORS.default;
+    return CATEGORY_COLORS[category.toLowerCase()] || CATEGORY_COLORS.default;
+}
+
+function timeAgo(dateStr) {
     if (!dateStr) return null;
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 60) return `${minutes}dk`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}s`;
+    return `${Math.floor(hours / 24)}g`;
 }
 
 function NewsCard({ item }) {
-    const cat    = (item.category || '').toLowerCase();
-    const catStyle = CATEGORY_COLORS[cat] || { bg: '#6b728020', text: '#6b7280' };
-    const date   = formatDate(item.pub_date);
+    const ago = timeAgo(item.pub_date);
+    const viewCount = item.community?.view_count ?? 0;
 
     return (
         <a
-            href={item.source_url || '#'}
+            href={item.source_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="group flex flex-col rounded-2xl border border-brutal-border bg-surface
-                       overflow-hidden hover:border-brand/40 dark:hover:border-es-primary/40
-                       transition-all duration-200 hover:shadow-md"
+            onClick={() => trackInteraction({
+                content_id: item.id,
+                interaction_type: 'click',
+                category: item.category,
+                source_domain: item.source_name,
+            })}
+            className="group flex flex-col overflow-hidden rounded-xl border border-brutal-border dark:border-surface-solid
+                       bg-surface hover:bg-surface-solid/40 dark:hover:bg-white/[0.03]
+                       transition-all duration-200 hover:shadow-md hover:border-brand dark:hover:border-es-primary"
         >
             {/* Görsel */}
-            {item.image_url ? (
-                <div className="h-36 w-full overflow-hidden shrink-0">
+            <div className="relative w-full aspect-[16/9] overflow-hidden bg-surface-solid shrink-0">
+                {item.image_url ? (
                     <img
                         src={item.image_url}
                         alt={item.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={e => { e.currentTarget.parentElement.style.display = 'none'; }}
+                        loading="lazy"
+                        onError={(e) => { e.target.style.display = 'none'; }}
                     />
-                </div>
-            ) : (
-                <div className="h-24 w-full flex items-center justify-center shrink-0"
-                     style={{ background: catStyle.bg }}>
-                    <Newspaper className="w-8 h-8 opacity-30" style={{ color: catStyle.text }} />
-                </div>
-            )}
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                        <Layers className="w-6 h-6 text-brutal-border/40" />
+                    </div>
+                )}
+            </div>
 
             {/* İçerik */}
-            <div className="flex flex-col gap-2 p-4 flex-1">
-                {/* Kategori */}
-                {item.category && (
-                    <span
-                        className="text-[10px] font-bold uppercase tracking-widest w-fit px-2 py-0.5 rounded-full"
-                        style={{ background: catStyle.bg, color: catStyle.text }}
-                    >
-                        {item.category}
-                    </span>
-                )}
-
-                {/* Başlık */}
-                <p className="text-[13px] font-semibold leading-snug text-tx-primary line-clamp-3
+            <div className="flex flex-col gap-1.5 p-2.5 flex-1">
+                <div className="flex items-center justify-between gap-1">
+                    {item.category && (
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide ${getCategoryColor(item.category)}`}>
+                            {item.category}
+                        </span>
+                    )}
+                    {ago && <span className="text-[9px] text-tx-secondary shrink-0">{ago}</span>}
+                </div>
+                <p className="text-[12px] font-semibold leading-snug text-tx-primary line-clamp-2 flex-1
                               group-hover:text-brand dark:group-hover:text-es-primary transition-colors">
                     {item.title}
                 </p>
-
-                {/* Alt satır */}
-                <div className="flex items-center justify-between mt-auto pt-1 gap-2">
-                    <span className="text-[10px] text-tx-secondary truncate">
-                        {item.source_name}{date ? ` · ${date}` : ''}
-                    </span>
-                    <ExternalLink className="w-3 h-3 text-tx-secondary shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
+                <div className="flex items-center justify-between gap-1 mt-auto pt-1 border-t border-brutal-border/30 dark:border-surface-solid/40">
+                    <span className="text-[10px] text-tx-secondary truncate">{item.source_name}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                        {viewCount > 0 && (
+                            <span className="flex items-center gap-0.5 text-[9px] text-tx-secondary">
+                                <Eye className="w-2.5 h-2.5" />{viewCount}
+                            </span>
+                        )}
+                        <ExternalLink className="w-2.5 h-2.5 text-tx-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
                 </div>
             </div>
         </a>
+    );
+}
+
+function SkeletonCard() {
+    return (
+        <div className="rounded-xl border border-brutal-border dark:border-surface-solid overflow-hidden animate-pulse bg-surface">
+            <div className="w-full aspect-[16/9] bg-brutal-border/20" />
+            <div className="p-2.5 space-y-2">
+                <div className="h-3 bg-brutal-border/20 rounded w-1/3" />
+                <div className="h-3 bg-brutal-border/15 rounded w-full" />
+                <div className="h-3 bg-brutal-border/10 rounded w-4/5" />
+            </div>
+        </div>
     );
 }
 
@@ -85,45 +115,31 @@ export default function SimilarNewsSection({ taskId }) {
 
     useEffect(() => {
         if (!taskId) return;
+        setLoading(true);
         AnalysisService.getSimilarNews(taskId)
             .then(data => setItems(data.items || []))
             .catch(() => setItems([]))
             .finally(() => setLoading(false));
     }, [taskId]);
 
-    if (loading) return (
-        <div className="mt-8">
-            <div className="h-4 w-40 bg-brutal-border/30 rounded mb-4 animate-pulse" />
-            <div className="grid grid-cols-2 gap-4">
-                {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="rounded-2xl border border-brutal-border/30 overflow-hidden animate-pulse">
-                        <div className="h-28 bg-brutal-border/20" />
-                        <div className="p-4 space-y-2">
-                            <div className="h-2.5 bg-brutal-border/30 rounded w-1/3" />
-                            <div className="h-3 bg-brutal-border/25 rounded w-full" />
-                            <div className="h-3 bg-brutal-border/20 rounded w-4/5" />
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-
-    if (items.length === 0) return null;
+    if (!loading && items.length === 0) return null;
 
     return (
-        <div className="mt-8" style={{ animation: 'slideUp 0.4s cubic-bezier(0.22,1,0.36,1)' }}>
-            <div className="flex items-center gap-2 mb-4">
-                <Newspaper className="w-4 h-4 text-tx-secondary" />
-                <span className="text-xs font-extrabold uppercase tracking-widest text-tx-secondary">
+        <section className="w-full max-w-[1400px] mx-auto px-4 md:px-6 pb-12 mt-6">
+            {/* Başlık */}
+            <div className="flex items-center gap-2 mb-5">
+                <Layers className="w-4 h-4 text-brand dark:text-es-primary" />
+                <h2 className="text-sm font-black uppercase tracking-widest text-tx-primary">
                     Benzer Haberler
-                </span>
+                </h2>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-                {items.map(item => (
-                    <NewsCard key={item.id} item={item} />
-                ))}
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                {loading
+                    ? Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
+                    : items.map(item => <NewsCard key={item.id} item={item} />)
+                }
             </div>
-        </div>
+        </section>
     );
 }

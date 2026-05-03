@@ -9,12 +9,10 @@ import SignalPanel from './SignalPanel';
 import HighlightedText from './HighlightedText';
 import AICommentCard from './AICommentCard';
 import FeedbackBar from './FeedbackBar';
-import RecommendationPanel from '../recommendations/RecommendationPanel';
 import ForumSuggestion from '../forum/ForumSuggestion';
 import ShareDropdown from '../../components/ui/ShareDropdown';
 import { DISPLAY_THRESHOLD } from './signalConfig';
 import FullReportModal from './FullReportModal';
-import SimilarNewsSection from './SimilarNewsSection';
 
 /* ─── Sinyal açıklaması ────────────────────────────────────────────── */
 const SIGNAL_WEIGHT_ORDER = [
@@ -321,45 +319,39 @@ const AnalysisResultCard = ({ result }) => {
             </div>
 
             {/* ── Footer: Geri Bildirim ── */}
-            <div className="px-5 sm:px-7 py-4 flex flex-col sm:flex-row items-center justify-between gap-3"
-                 style={{ borderTop: `1px solid ${hex15}`, background: 'var(--color-bg-surface-solid)' }}>
-                <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                         style={{ background: hex15 }}>
-                        <MessageSquare className={`w-4 h-4 ${theme.statusCls}`} />
+            <div style={{ borderTop: `1px solid ${hex15}`, background: 'var(--color-bg-surface-solid)' }}>
+                {/* Satır 1: Bu sonuç doğru mu? + Hayır / Evet */}
+                <div className="px-5 sm:px-7 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                             style={{ background: hex15 }}>
+                            <MessageSquare className={`w-4 h-4 ${theme.statusCls}`} />
+                        </div>
+                        <p className="text-tx-secondary text-sm font-medium">Bu sonuç doğru mu?</p>
                     </div>
-                    <p className="text-tx-secondary text-sm font-medium">Bu sonuç doğru mu?</p>
+                    <div className="flex gap-2.5 w-full sm:w-auto">
+                        <button className="flex-1 sm:flex-none flex items-center justify-center gap-1.5
+                                           px-5 py-2 rounded-xl border border-brutal-border/40
+                                           text-tx-secondary font-manrope font-bold text-[11px] uppercase tracking-wider
+                                           hover:bg-surface-solid hover:text-tx-primary transition-colors active:scale-95">
+                            <ThumbsDown className="w-3.5 h-3.5" />
+                            Hayır
+                        </button>
+                        <button
+                            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5
+                                        px-6 py-2 rounded-xl ${theme.bgCls} ${theme.onBgCls}
+                                        font-manrope font-bold text-[11px] uppercase tracking-wider
+                                        hover:opacity-85 transition-opacity active:scale-95`}
+                            style={{ boxShadow: `0 4px 16px rgba(${theme.glowRgb},0.25)` }}
+                        >
+                            <ThumbsUp className="w-3.5 h-3.5" />
+                            Evet
+                        </button>
+                    </div>
                 </div>
-                <div className="flex gap-2.5 w-full sm:w-auto">
-                    <button className="flex-1 sm:flex-none flex items-center justify-center gap-1.5
-                                       px-5 py-2 rounded-xl border border-brutal-border/40
-                                       text-tx-secondary font-manrope font-bold text-[11px] uppercase tracking-wider
-                                       hover:bg-surface-solid hover:text-tx-primary transition-colors active:scale-95">
-                        <ThumbsDown className="w-3.5 h-3.5" />
-                        Hayır
-                    </button>
-                    <button
-                        className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5
-                                    px-6 py-2 rounded-xl ${theme.bgCls} ${theme.onBgCls}
-                                    font-manrope font-bold text-[11px] uppercase tracking-wider
-                                    hover:opacity-85 transition-opacity active:scale-95`}
-                        style={{ boxShadow: `0 4px 16px rgba(${theme.glowRgb},0.25)` }}
-                    >
-                        <ThumbsUp className="w-3.5 h-3.5" />
-                        Evet
-                    </button>
-                    {articleId && (
-                        <ShareDropdown
-                            url={`${window.location.origin}/s/analysis/${articleId}`}
-                            text={`${status === 'FAKE' ? 'SAHTE' : 'GÜVENİLİR'} (%${displayScore}) — ${(origText || '').slice(0, 80)} | Sahte Haber Dedektifi`}
-                        />
-                    )}
-                </div>
-                {/* Tam Rapor CTA */}
-                <div
-                    className="px-5 sm:px-7 py-3 flex items-center"
-                    style={{ borderTop: `1px solid ${hex15}` }}
-                >
+                {/* Satır 2: Tam Rapor + Paylaş */}
+                <div className="px-5 sm:px-7 py-3 flex items-center justify-between"
+                     style={{ borderTop: `1px solid ${hex15}` }}>
                     {isAuthenticated ? (
                         <button
                             onClick={() => setShowModal(true)}
@@ -374,13 +366,17 @@ const AnalysisResultCard = ({ result }) => {
                             {' '}— derin Gemini analizi için
                         </p>
                     )}
+                    {articleId && (
+                        <ShareDropdown
+                            url={`${window.location.origin}/s/analysis/${articleId}`}
+                            text={`${status === 'FAKE' ? 'SAHTE' : 'GÜVENİLİR'} (%${displayScore}) — ${(origText || '').slice(0, 80)} | Sahte Haber Dedektifi`}
+                        />
+                    )}
                 </div>
             </div>
         </div>
         <FeedbackBar result={result} />
         <ForumSuggestion articleId={articleId} />
-        <RecommendationPanel context="post_analysis" title="İlgili Haberler" />
-        <SimilarNewsSection taskId={result.task_id ?? result.content_id} />
         {showModal && (
             <FullReportModal
                 taskId={result.task_id ?? result.content_id}
