@@ -108,9 +108,13 @@ const Navbar = () => {
             <div className="max-w-7xl mx-auto px-6 flex items-center justify-between py-2.5">
 
                 {/* ── LOGO ── */}
-                <Link to="/" className="flex items-center hover:opacity-80 transition-opacity shrink-0 self-stretch -my-2.5">
-                    <div className="self-stretch aspect-square flex items-center justify-center px-3 bg-[#3e8371]">
-                        <span className="font-pacifico text-2xl text-white leading-none select-none">Ne</span>
+                <Link to="/" className="flex items-center hover:opacity-90 transition-opacity shrink-0 self-stretch -my-2.5">
+                    <div className="self-stretch aspect-square flex items-center justify-center px-3 relative"
+                         style={{ background: 'var(--color-brand-primary)' }}>
+                        {/* köşe aksan */}
+                        <div className="absolute bottom-0 right-0 w-2 h-[2px]" style={{ background: 'rgba(0,0,0,0.3)' }} />
+                        <div className="absolute bottom-0 right-0 w-[2px] h-2" style={{ background: 'rgba(0,0,0,0.3)' }} />
+                        <span className="font-mono font-black text-xl text-black leading-none select-none tracking-tight">Ne</span>
                     </div>
                 </Link>
 
@@ -147,7 +151,7 @@ const Navbar = () => {
                                 onChange={e => setSearchQ(e.target.value)}
                                 onBlur={() => { if (!searchQ) setSearchOpen(false); }}
                                 placeholder="Ara..."
-                                className="text-xs bg-transparent outline-none px-2 py-1 rounded-lg border w-32"
+                                className="text-xs bg-transparent outline-none px-2 py-1 border w-32 font-mono"
                                 style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
                             />
                         </form>

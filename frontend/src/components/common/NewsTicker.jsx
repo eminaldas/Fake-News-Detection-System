@@ -19,8 +19,8 @@ const NewsTicker = () => {
     useEffect(() => {
         axiosInstance
             .get('/articles/trending')
-            .then((res) => {
-                const data = res.data?.filter((h) => !!h.title);
+            .then(res => {
+                const data = res.data?.filter(h => !!h.title);
                 if (data?.length > 0) setItems(data);
             })
             .catch(() => {});
@@ -32,33 +32,45 @@ const NewsTicker = () => {
         <div
             className="fixed bottom-0 left-0 right-0 z-50 h-10 flex items-center overflow-hidden"
             style={{
-                background:   'var(--color-ticker-bg)',
-                borderTop:    '1px solid rgba(16,185,129,0.15)',
-                boxShadow:    '0 -4px 16px rgba(0,0,0,0.2)',
+                background: '#0c1518',
+                borderTop:  '1px solid rgba(65,73,77,0.5)',
+                boxShadow:  '0 -4px 20px rgba(0,0,0,0.4)',
             }}
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
         >
-            {/* Kenar solma efektleri */}
-            <div className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
-                 style={{ background: 'linear-gradient(to right, var(--color-ticker-bg), transparent)' }} />
-            <div className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
-                 style={{ background: 'linear-gradient(to left, var(--color-ticker-bg), transparent)' }} />
+            {/* HABER AKIŞI badge */}
+            <div
+                className="shrink-0 h-full flex items-center px-4 z-10"
+                style={{
+                    background:   '#3fff8b',
+                    borderRight:  '1px solid rgba(65,73,77,0.6)',
+                }}
+            >
+                <span className="font-mono font-bold text-[9px] uppercase tracking-widest text-black whitespace-nowrap">
+                    ▶ HABER AKIŞI
+                </span>
+            </div>
 
-            {/* Bant içeriği */}
+            {/* Sağ kenar solma */}
+            <div className="absolute right-0 top-0 bottom-0 w-12 z-10 pointer-events-none"
+                 style={{ background: 'linear-gradient(to left, #0c1518, transparent)' }} />
+
+            {/* Ticker */}
             <div
                 className="flex whitespace-nowrap animate-ticker"
                 style={{
-                    animationDuration: `${items.length * 6}s`,
+                    animationDuration:  `${items.length * 6}s`,
                     animationPlayState: paused ? 'paused' : 'running',
+                    marginLeft:         '1rem',
                 }}
             >
                 {doubled.map((item, idx) => (
-                    <span key={`${item.id}-${idx}`} className="flex items-center gap-2 px-6">
+                    <span key={`${item.id}-${idx}`} className="flex items-center gap-2 px-5">
                         {(item.source_domain || item.source_name) && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider"
-                                  style={{ background: 'rgba(6, 43, 31,0.1)', color: 'rgba(6, 43, 31,0.8)' }}>
-                                {item.source_domain || item.source_name}
+                            <span className="font-mono text-[9px] font-bold tracking-wide"
+                                  style={{ color: 'rgba(63,255,139,0.65)' }}>
+                                [{item.source_domain || item.source_name}]
                             </span>
                         )}
                         {item.source_url ? (
@@ -66,18 +78,20 @@ const NewsTicker = () => {
                                 href={item.source_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="font-manrope font-bold text-[11px] hover:underline"
-                                style={{ color: 'rgba(6, 43, 31,0.9)' }}
+                                className="font-inter font-medium text-[11px] transition-colors"
+                                style={{ color: 'rgba(240,248,252,0.80)' }}
+                                onMouseEnter={e => (e.target.style.color = '#3fff8b')}
+                                onMouseLeave={e => (e.target.style.color = 'rgba(240,248,252,0.80)')}
                             >
                                 {item.title}
                             </a>
                         ) : (
-                            <span className="font-manrope font-bold text-[11px]"
-                                  style={{ color: 'rgba(6, 43, 31,0.9)' }}>
+                            <span className="font-inter font-medium text-[11px]"
+                                  style={{ color: 'rgba(240,248,252,0.80)' }}>
                                 {item.title}
                             </span>
                         )}
-                        <span className="opacity-30 mx-3" style={{ color: '#0d4a36' }}>◆</span>
+                        <span className="mx-2 text-[8px]" style={{ color: 'rgba(63,255,139,0.35)' }}>◆</span>
                     </span>
                 ))}
             </div>

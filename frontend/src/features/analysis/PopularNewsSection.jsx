@@ -272,7 +272,7 @@ export default function PopularNewsSection() {
                     En Popüler Haberler
                 </h2>
             </div>
-            <p className="font-mono text-[9px] text-tx-secondary/60 uppercase tracking-widest mb-4">
+            <p className="font-mono text-[10px] text-tx-secondary/80 uppercase tracking-widest mb-4">
                 // Son 2 Gün / Görüntülenme Bazlı
             </p>
 

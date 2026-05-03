@@ -69,7 +69,7 @@ const AICommentCard = ({ aiComment, theme, sourceBiasSummary = null, temporalAna
                              style={{ background: hex15, border: `1px solid ${hex15}` }}>
                             <div className="flex items-center gap-1.5 mb-2">
                                 <FileText className={`w-3 h-3 ${theme.statusCls} opacity-70`} />
-                                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-tx-secondary/60">
+                                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-tx-secondary/80">
                                     // Haber_Özeti
                                 </span>
                             </div>
@@ -84,7 +84,7 @@ const AICommentCard = ({ aiComment, theme, sourceBiasSummary = null, temporalAna
                         <div>
                             <div className="flex items-center gap-1.5 mb-2">
                                 <CheckCircle2 className={`w-3 h-3 ${theme.statusCls} opacity-70`} />
-                                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-tx-secondary/60">
+                                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-tx-secondary/80">
                                     // Doğrulama_Yorumu
                                 </span>
                             </div>

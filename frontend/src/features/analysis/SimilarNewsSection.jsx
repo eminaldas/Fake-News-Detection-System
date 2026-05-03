@@ -131,7 +131,7 @@ export default function SimilarNewsSection({ taskId }) {
                     Benzer Haberler
                 </h2>
             </div>
-            <p className="font-mono text-[9px] text-tx-secondary/60 uppercase tracking-widest mb-4">
+            <p className="font-mono text-[10px] text-tx-secondary/80 uppercase tracking-widest mb-4">
                 // Semantik Benzerlik / Vektör Arama
             </p>
 

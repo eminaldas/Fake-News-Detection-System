@@ -84,8 +84,8 @@ const RecentHeadlines = () => {
 
             {/* Footer */}
             <div className="px-4 py-2 border-t border-brutal-border/50 dark:border-[#41494d]/30 flex justify-between items-center">
-                <span className="font-mono text-[9px] text-tx-secondary/40">// RSS_FEED_ACTIVE</span>
-                <span className="font-mono text-[9px] text-brand/50 dark:text-es-primary/50">v2.4</span>
+                <span className="font-mono text-[10px] text-tx-secondary/70">// RSS_FEED_ACTIVE</span>
+                <span className="font-mono text-[10px] text-brand/70 dark:text-es-primary/70">v2.4</span>
             </div>
         </div>
     );

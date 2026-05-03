@@ -68,8 +68,8 @@ const AnalysisForm = ({ onAnalyze, onAnalyzeUrl, onAnalyzeImage, loading, isPoll
         {mode === "text" && (
           <>
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[9px] text-tx-secondary/50 tracking-widest">// HEDEF_VERİ_GİRİŞİ</span>
-              <span className="font-mono text-[9px] text-tx-secondary/40">[{text.length}/5000 KAR]</span>
+              <span className="font-mono text-[10px] text-tx-secondary/80 tracking-widest">// HEDEF_VERİ_GİRİŞİ</span>
+              <span className="font-mono text-[10px] text-tx-secondary/70">[{text.length}/5000 KAR]</span>
             </div>
             <div className={`flex-grow relative border transition-all duration-200
                             ${text.length > 0
@@ -90,7 +90,7 @@ const AnalysisForm = ({ onAnalyze, onAnalyzeUrl, onAnalyzeImage, loading, isPoll
 
         {mode === "url" && (
           <div className="flex-grow flex flex-col justify-center gap-3">
-            <span className="font-mono text-[9px] text-tx-secondary/50 tracking-widest">// URL_HEDEF_GİRİŞİ</span>
+            <span className="font-mono text-[10px] text-tx-secondary/80 tracking-widest">// URL_HEDEF_GİRİŞİ</span>
             <div className="flex items-center gap-3 border border-brutal-border/50 dark:border-[#41494d]/40 bg-transparent px-3 md:px-4 py-3
                             focus-within:border-brand/50 dark:focus-within:border-es-primary/50
                             focus-within:shadow-[0_0_14px_rgba(63,255,139,0.08)_inset]
@@ -107,7 +107,7 @@ const AnalysisForm = ({ onAnalyze, onAnalyzeUrl, onAnalyzeImage, loading, isPoll
                 className="grow bg-transparent border-0 focus:ring-0 outline-none font-medium text-sm md:text-base placeholder:text-tx-secondary/50 placeholder:font-mono placeholder:text-xs disabled:opacity-50"
               />
             </div>
-            <p className="font-mono text-[9px] text-tx-secondary/50">
+            <p className="font-mono text-[10px] text-tx-secondary/70">
               // Makale scrape edilip BERT ve stilometrik analiz uygulanacaktır.
             </p>
           </div>
@@ -120,7 +120,7 @@ const AnalysisForm = ({ onAnalyze, onAnalyzeUrl, onAnalyzeImage, loading, isPoll
 
       {/* Footer */}
       <div className="px-4 md:px-5 py-3 flex justify-between items-center border-t border-brutal-border/40 dark:border-[#41494d]/40">
-        <span className="font-mono text-[9px] text-tx-secondary/40">
+        <span className="font-mono text-[10px] text-tx-secondary/70">
           {mode === "text" ? `// ${text.length}_KAR` : "// HAZIR"}
         </span>
         <button
