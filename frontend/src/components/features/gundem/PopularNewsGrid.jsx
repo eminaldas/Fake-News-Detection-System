@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X, Layers } from 'lucide-react';
 import AnalysisService from '../../../services/analysis.service';
 import AnalysisResultCard from '../../../features/analysis/AnalysisResultCard';
 import { trackInteraction } from '../../../services/interaction.service';
+
+const cardStyle    = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
+const borderStyle  = { borderColor: 'var(--color-terminal-border-raw)' };
 
 function nlpColor(score) {
     if (score == null) return 'var(--color-text-muted)';
@@ -18,7 +21,7 @@ function NlpLabel({ score }) {
     if (score == null) return null;
     const pct = Math.round((1 - score) * 100);
     return (
-        <span className="text-xs font-bold" style={{ color: nlpColor(score) }}>
+        <span className="font-mono text-xs font-bold" style={{ color: nlpColor(score) }}>
             {pct}% güvenilir
         </span>
     );
@@ -92,7 +95,7 @@ function AnalyzeButton({ article }) {
     };
 
     if (phase === 'loading') return (
-        <span className="flex items-center gap-1.5 text-[10px] text-muted">
+        <span className="flex items-center gap-1.5 font-mono text-[11px] text-muted">
             <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
@@ -104,7 +107,7 @@ function AnalyzeButton({ article }) {
     if (phase === 'done' && result) return (
         <>
             <button onClick={handleClick}
-                    className="text-[10px] font-bold transition-opacity hover:opacity-80"
+                    className="font-mono text-[11px] font-bold transition-opacity hover:opacity-80"
                     style={{ color: 'var(--color-brand-primary)' }}>
                 Sonucu Gör →
             </button>
@@ -112,11 +115,11 @@ function AnalyzeButton({ article }) {
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
                      style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(8px)' }}
                      onClick={() => setModal(false)}>
-                    <div className="w-full max-w-xl max-h-[88vh] overflow-y-auto rounded-2xl relative"
+                    <div className="w-full max-w-xl max-h-[88vh] overflow-y-auto relative"
                          onClick={e => e.stopPropagation()}>
                         <button onClick={() => setModal(false)}
                                 className="absolute top-4 right-4 z-10 text-white/40 hover:text-white transition-colors"
-                                style={{ background: 'rgba(0,0,0,0.5)', borderRadius: '6px', padding: '4px' }}>
+                                style={{ background: 'rgba(0,0,0,0.5)', padding: '4px' }}>
                             <X size={16} />
                         </button>
                         <AnalysisResultCard result={result} />
@@ -129,11 +132,11 @@ function AnalyzeButton({ article }) {
 
     return (
         <button onClick={handleClick} disabled={!article.source_url}
-                className="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80 disabled:opacity-40"
+                className="font-mono text-[11px] font-bold px-3 py-1 transition-all hover:brightness-110 disabled:opacity-40"
                 style={{
                     background: 'var(--color-brand-accent)',
                     color:      'var(--color-brand-primary)',
-                    border:     '1px solid var(--color-brand-light)',
+                    border:     '1px solid var(--color-terminal-border-raw)',
                 }}>
             Analiz Et →
         </button>
@@ -146,8 +149,9 @@ function FeaturedCard({ article }) {
 
     return (
         <a href={article.source_url} target="_blank" rel="noopener noreferrer"
-           className="col-span-2 row-span-2 group relative flex flex-col rounded-xl overflow-hidden border transition-all duration-300 hover:border-brand"
-           style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-surface-solid)' }}
+           className="col-span-2 row-span-2 group relative flex flex-col overflow-hidden border
+                      transition-all duration-300 hover:shadow-[0_0_20px_rgba(63,255,139,0.18)]"
+           style={borderStyle}
            onClick={() => trackInteraction({
                content_id: article.id, interaction_type: 'click',
                category: article.category,
@@ -155,44 +159,40 @@ function FeaturedCard({ article }) {
                nlp_score_at_time: article.nlp_score,
            })}>
 
-            {/* Görsel tam kaplar */}
             {hasImg ? (
                 <img src={article.image_url} alt={article.title}
-                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                     className="absolute inset-0 w-full h-full object-cover opacity-65 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700"
                      onError={() => setImgErr(true)} />
             ) : (
                 <div className="absolute inset-0 flex items-center justify-center"
-                     style={{ background: 'var(--color-bg-surface-solid)' }}>
-                    <span className="text-muted text-xs">Görsel Yok</span>
+                     style={{ background: 'var(--color-terminal-surface)' }}>
+                    <Layers className="w-10 h-10 text-brutal-border/30" />
                 </div>
             )}
 
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
 
-            {/* Kategori rozeti */}
             {article.category && (
-                <span className="absolute top-3 left-3 z-10 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full text-white"
+                <span className="absolute top-3 left-3 z-10 font-mono text-[10px] font-black uppercase tracking-widest px-2 py-1 text-white"
                       style={{ background: 'var(--color-brand-primary)' }}>
                     {article.category}
                 </span>
             )}
 
-            {/* Kaynak sayısı */}
             {(article.source_count || 0) > 1 && (
-                <span className="absolute top-3 right-3 z-10 text-[9px] font-bold px-2 py-1 rounded-full"
-                      style={{ background: 'var(--color-brand-accent)', color: 'var(--color-brand-primary)' }}>
+                <span className="absolute top-3 right-3 z-10 font-mono text-[10px] font-bold px-2 py-1"
+                      style={{ background: 'var(--color-brand-accent)', color: 'var(--color-brand-primary)', border: '1px solid var(--color-terminal-border-raw)' }}>
                     {article.source_count} kaynak
                 </span>
             )}
 
-            {/* Alt bilgi */}
             <div className="absolute bottom-0 left-0 right-0 z-10 p-5">
-                <h2 className="text-white font-extrabold text-xl md:text-2xl leading-snug line-clamp-3 mb-3 drop-shadow">
+                <h2 className="text-white font-extrabold text-xl md:text-2xl leading-snug line-clamp-3 mb-3 drop-shadow
+                               group-hover:text-brand transition-colors">
                     {article.title}
                 </h2>
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-white/70 text-xs">
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-white/70 font-mono text-[11px]">
                         {article.source_name && <span className="font-semibold">{article.source_name}</span>}
                         <span>·</span>
                         <span>{relTime(article.pub_date)}</span>
@@ -213,42 +213,53 @@ function SmallCard({ article }) {
 
     return (
         <a href={article.source_url} target="_blank" rel="noopener noreferrer"
-           className="flex flex-col rounded-xl overflow-hidden border group transition-all duration-300 hover:border-brand"
-           style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-surface)' }}
+           className="flex flex-col overflow-hidden border group
+                      transition-all duration-300 hover:shadow-[0_0_14px_rgba(63,255,139,0.15)]"
+           style={cardStyle}
            onClick={() => trackInteraction({
                content_id: article.id, interaction_type: 'click',
                category: article.category,
                source_domain: (() => { try { return new URL(article.source_url).hostname; } catch { return null; } })(),
                nlp_score_at_time: article.nlp_score,
            })}>
-            <div className="aspect-video overflow-hidden"
+
+            <div className="relative aspect-video overflow-hidden shrink-0"
                  style={{ background: 'var(--color-bg-surface-solid)' }}>
                 {hasImg ? (
                     <img src={article.image_url} alt={article.title}
-                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                         className="w-full h-full object-cover opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
                          onError={() => setImgErr(true)} />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center"
                          style={{ background: 'var(--color-bg-surface-solid)' }}>
-                        {article.category && (
-                            <span className="text-[10px] font-bold text-muted uppercase tracking-widest">
-                                {article.category}
-                            </span>
-                        )}
+                        <Layers className="w-6 h-6 text-brutal-border/30" />
                     </div>
                 )}
+                {article.category && (
+                    <span className="absolute bottom-2 left-2 font-mono text-[10px] font-black uppercase tracking-widest px-2 py-0.5 text-white"
+                          style={{ background: 'var(--color-brand-primary)' }}>
+                        {article.category}
+                    </span>
+                )}
             </div>
-            <div className="p-4 flex flex-col gap-2 flex-1">
-                <h3 className="text-base font-bold text-tx-primary leading-snug">
+
+            <div className="p-3.5 flex flex-col gap-2 flex-1">
+                <h3 className="text-base font-bold text-tx-primary leading-snug line-clamp-2
+                               group-hover:text-brand transition-colors">
                     {article.title}
                 </h3>
-                <div className="flex items-center gap-2 text-xs text-tx-secondary flex-wrap mt-auto pt-1">
+                <div className="flex items-center gap-2 flex-wrap mt-auto pt-1 border-t" style={borderStyle}>
                     {article.source_name && (
-                        <span className="font-semibold truncate max-w-[120px]">{article.source_name}</span>
+                        <span className="font-mono text-[11px] text-tx-secondary font-semibold truncate max-w-[120px]">
+                            {article.source_name}
+                        </span>
                     )}
-                    <span>·</span>
-                    <span className="shrink-0">{relTime(article.pub_date)}</span>
+                    <span className="text-tx-secondary/40">·</span>
+                    <span className="font-mono text-[11px] text-tx-secondary shrink-0">{relTime(article.pub_date)}</span>
                     <NlpLabel score={article.nlp_score} />
+                    <div className="ml-auto">
+                        <AnalyzeButton article={article} />
+                    </div>
                 </div>
             </div>
         </a>
@@ -258,17 +269,14 @@ function SmallCard({ article }) {
 function GridSkeleton() {
     return (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-[220px] animate-pulse">
-            {/* Featured skeleton 2×2 */}
-            <div className="col-span-2 row-span-2 rounded-xl overflow-hidden border bg-skeleton"
-                 style={{ borderColor: 'var(--color-border)' }} />
-            {/* Small skeletons */}
+            <div className="col-span-2 row-span-2 overflow-hidden border bg-skeleton" style={borderStyle} />
             {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-surface)' }}>
+                <div key={i} className="overflow-hidden border" style={{ ...borderStyle, background: 'var(--color-terminal-surface)' }}>
                     <div className="aspect-video bg-skeleton" />
                     <div className="p-3 space-y-2">
-                        <div className="h-3 bg-skeleton rounded w-2/3" />
-                        <div className="h-3 bg-skeleton rounded w-full" />
-                        <div className="h-3 bg-skeleton rounded w-4/5" />
+                        <div className="h-3 bg-skeleton w-2/3" />
+                        <div className="h-3 bg-skeleton w-full" />
+                        <div className="h-3 bg-skeleton w-4/5" />
                     </div>
                 </div>
             ))}
@@ -281,7 +289,6 @@ function LoadMoreTrigger({ onVisible }) {
     const ready = useRef(false);
 
     useEffect(() => {
-        // Sayfa ilk yüklendikten sonra kısa bekleme — az haber varken erken tetiklenmesin
         const timer = setTimeout(() => { ready.current = true; }, 600);
         return () => clearTimeout(timer);
     }, []);
@@ -302,20 +309,18 @@ function LoadMoreTrigger({ onVisible }) {
 export default function PopularNewsGrid({ featured, articles, loading, loadingMore, hasMore, loadMore }) {
     if (loading) return <GridSkeleton />;
     if (!featured && (!articles || articles.length === 0)) return (
-        <p className="text-muted text-sm text-center py-20">Henüz haber yok.</p>
+        <p className="font-mono text-sm text-tx-secondary/60 text-center py-20">// NO_ARTICLES_FOUND</p>
     );
 
     const rest = articles || [];
 
     return (
         <div>
-            {/* 4 kolonlu grid — featured 2×2, geri kalan 1×1 */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-[220px] mb-4">
                 <FeaturedCard article={featured} />
                 {rest.slice(0, 4).map(a => <SmallCard key={a.id} article={a} />)}
             </div>
 
-            {/* Kalan haberler 3 kolonlu normal grid */}
             {rest.length > 4 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {rest.slice(4).map(a => <SmallCard key={a.id} article={a} />)}
@@ -326,9 +331,9 @@ export default function PopularNewsGrid({ featured, articles, loading, loadingMo
 
             {loadingMore && (
                 <div className="flex flex-col items-center gap-3 py-8">
-                    <div className="w-7 h-7 rounded-full border-2 border-t-transparent animate-spin"
+                    <div className="w-7 h-7 border-2 border-t-transparent animate-spin"
                          style={{ borderColor: 'var(--color-brand-primary)', borderTopColor: 'transparent' }} />
-                    <span className="text-xs text-muted">Haberler yükleniyor…</span>
+                    <span className="font-mono text-xs text-tx-secondary/70">// HABERLER_YÜKLENİYOR</span>
                 </div>
             )}
         </div>

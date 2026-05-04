@@ -32,10 +32,10 @@ export default function Gundem() {
             {newCount > 0 && (
                 <button
                     onClick={refresh}
-                    className="w-full mb-6 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold cursor-pointer border transition-colors"
+                    className="w-full mb-6 flex items-center justify-center gap-2 py-3 px-4 font-mono text-xs font-bold cursor-pointer border transition-all hover:brightness-110"
                     style={{
-                        background:  'color-mix(in srgb, var(--color-brand-primary) 10%, transparent)',
-                        borderColor: 'color-mix(in srgb, var(--color-brand-primary) 40%, transparent)',
+                        background:  'var(--color-terminal-surface)',
+                        borderColor: 'var(--color-terminal-border-raw)',
                         color:       'var(--color-brand-primary)',
                     }}
                 >

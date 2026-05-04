@@ -2,9 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageCircle, Flame } from 'lucide-react';
 
-const CARD_W  = 280;
-const GAP     = 16;
-const SPEED   = 40; // px/saniye
+const CARD_W = 280;
+const GAP    = 16;
+const SPEED  = 40;
 
 const CAT_COLORS = {
     gündem:    '#3b82f6',
@@ -30,30 +30,40 @@ function TrendCard({ thread }) {
     return (
         <Link
             to={`/forum/thread/${thread.id}`}
-            className="flex-shrink-0 flex flex-col gap-2.5 rounded-xl p-4 transition-opacity hover:opacity-90"
+            className="flex-shrink-0 relative flex flex-col gap-2.5 p-4 transition-all hover:shadow-[0_0_12px_rgba(63,255,139,0.12)]"
             style={{
-                width:      CARD_W,
-                background: 'var(--color-bg-surface)',
-                border:     '1px solid var(--color-border)',
-                position:   'relative',
+                width:       CARD_W,
+                background:  'var(--color-terminal-surface)',
+                border:      '1px solid var(--color-terminal-border-raw)',
+                position:    'relative',
             }}
             onClick={e => e.stopPropagation()}
         >
+            {/* Corner accents */}
+            <div className="absolute top-0 left-0 w-3 h-[1.5px] pointer-events-none"
+                 style={{ background: `${catColor}80` }} />
+            <div className="absolute top-0 left-0 h-3 w-[1.5px] pointer-events-none"
+                 style={{ background: `${catColor}80` }} />
+
             {thread.is_rising && (
-                <span className="absolute top-3 right-3 flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+                <span className="absolute top-3 right-3 flex items-center gap-1 font-mono text-[10px] font-black uppercase tracking-widest px-2 py-0.5"
                       style={{ background: '#ff735120', color: '#ff7351', border: '1px solid #ff735140' }}>
                     <Flame className="w-2.5 h-2.5" />
                     Trend
                 </span>
             )}
-            <span className="text-[9px] font-black uppercase tracking-widest self-start px-2 py-0.5 rounded-full"
-                  style={{ background: `${catColor}20`, color: catColor, border: `1px solid ${catColor}40` }}>
+
+            <span className="font-mono text-[10px] font-black uppercase tracking-widest self-start px-2 py-0.5"
+                  style={{ background: `${catColor}18`, color: catColor, border: `1px solid ${catColor}35` }}>
                 {thread.category || 'Genel'}
             </span>
+
             <p className="text-sm font-semibold text-tx-primary leading-snug line-clamp-2">
                 {thread.title}
             </p>
-            <div className="flex items-center gap-3 text-[10px] text-tx-secondary mt-auto">
+
+            <div className="flex items-center gap-3 font-mono text-[11px] text-tx-secondary mt-auto pt-2 border-t"
+                 style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
                 <span className="flex items-center gap-1">
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round"
@@ -116,29 +126,33 @@ export default function ForumTrendBand({ threads, loading }) {
 
     return (
         <section className="mt-14">
+            {/* Başlık */}
             <div className="flex items-center justify-between mb-5">
                 <div>
+                    <p className="font-mono text-[11px] text-tx-secondary/70 mb-1">// FORUM_TRENDLERİ</p>
                     <h2 className="text-xl font-extrabold text-tx-primary">Forum Trendleri</h2>
-                    <p className="text-xs text-tx-secondary mt-0.5">Son 6 saatin en aktif tartışmaları</p>
+                    <p className="font-mono text-[11px] text-tx-secondary/60 mt-0.5">
+                        Son 6 saatin en aktif tartışmaları
+                    </p>
                 </div>
                 <div className="flex gap-2">
-                    <button
-                        onClick={() => handleArrow(-1)}
-                        className="w-8 h-8 rounded-full border flex items-center justify-center text-sm text-tx-secondary hover:text-tx-primary transition-colors"
-                        style={{ borderColor: 'var(--color-border)' }}
-                    >←</button>
-                    <button
-                        onClick={() => handleArrow(1)}
-                        className="w-8 h-8 rounded-full border flex items-center justify-center text-sm text-tx-secondary hover:text-tx-primary transition-colors"
-                        style={{ borderColor: 'var(--color-border)' }}
-                    >→</button>
+                    {[-1, 1].map(dir => (
+                        <button
+                            key={dir}
+                            onClick={() => handleArrow(dir)}
+                            className="w-8 h-8 border flex items-center justify-center text-sm text-tx-secondary hover:text-tx-primary hover:border-brand transition-colors"
+                            style={{ borderColor: 'var(--color-terminal-border-raw)' }}
+                        >
+                            {dir === -1 ? '←' : '→'}
+                        </button>
+                    ))}
                 </div>
             </div>
 
             <div className="relative">
-                <div className="absolute left-0 top-0 bottom-0 w-16 pointer-events-none z-10"
+                <div className="absolute left-0 top-0 bottom-0 w-12 pointer-events-none z-10"
                      style={{ background: 'linear-gradient(to right, var(--color-bg-base), transparent)' }} />
-                <div className="absolute right-0 top-0 bottom-0 w-16 pointer-events-none z-10"
+                <div className="absolute right-0 top-0 bottom-0 w-12 pointer-events-none z-10"
                      style={{ background: 'linear-gradient(to left, var(--color-bg-base), transparent)' }} />
 
                 <div
@@ -149,11 +163,7 @@ export default function ForumTrendBand({ threads, loading }) {
                         scrollbarWidth: 'none',
                         scrollSnapType: paused ? 'x mandatory' : 'none',
                     }}
-                    onMouseEnter={() => {
-                        setPaused(true);
-                        clearTimeout(pauseTimer.current);
-                        lastTsRef.current = null;
-                    }}
+                    onMouseEnter={() => { setPaused(true); clearTimeout(pauseTimer.current); lastTsRef.current = null; }}
                     onMouseLeave={() => setPaused(false)}
                 >
                     {doubled.map((t, i) => (
