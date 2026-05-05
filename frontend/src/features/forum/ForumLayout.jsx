@@ -3,21 +3,14 @@ import { NavLink, Outlet, useSearchParams, useLocation } from 'react-router-dom'
 import {
     TrendingUp, MessageSquare, Search,
     AlertTriangle, CheckCircle, Flame,
-    Clock, Zap, Newspaper, Activity, BookOpen,
-    Globe, Heart, Cpu, Dumbbell, Music, Leaf, Star,
+    Clock, Zap, Activity, BookOpen,
+    Globe, Star, ChevronRight,
 } from 'lucide-react';
 import axiosInstance from '../../api/axios';
-import { useAuth } from '../../contexts/AuthContext';
 
-const CATEGORIES = [
-    { key: 'gündem',    label: 'Gündem',    Icon: Newspaper  },
-    { key: 'ekonomi',   label: 'Ekonomi',   Icon: TrendingUp },
-    { key: 'sağlık',    label: 'Sağlık',    Icon: Heart      },
-    { key: 'teknoloji', label: 'Teknoloji', Icon: Cpu        },
-    { key: 'spor',      label: 'Spor',      Icon: Dumbbell   },
-    { key: 'kültür',    label: 'Kültür',    Icon: Music      },
-    { key: 'yaşam',     label: 'Yaşam',     Icon: Leaf       },
-];
+/* ── Tasarım sabitleri ── */
+const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
+const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 
 const SORT_OPTIONS = [
     { key: 'hot',           label: 'Popüler',    Icon: Flame   },
@@ -36,60 +29,47 @@ const SYSTEM_TAGS = [
     '#yanıltıcı-başlık', '#bağlam-eksik', '#eski-haber', '#sahte-alıntı',
 ];
 
-const SideCard = ({ children, className = '' }) => (
-    <div
-        className={`rounded-xl overflow-hidden ${className}`}
-        style={{
-            background: 'var(--color-bg-surface)',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.32)',
-        }}
-    >
-        {children}
+/* Section card — köşe aksan + border-b başlık */
+const Block = ({ title, children }) => (
+    <div className="relative border overflow-hidden" style={TS}>
+        <div className="absolute top-0 left-0 w-3 h-[2px] bg-brand pointer-events-none" />
+        <div className="absolute top-0 left-0 h-3 w-[2px] bg-brand pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-3 h-[2px] bg-brand pointer-events-none" />
+        <div className="absolute bottom-0 right-0 h-3 w-[2px] bg-brand pointer-events-none" />
+        <div className="px-4 py-3 border-b" style={BD}>
+            <span className="font-mono text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-brand-primary)' }}>
+                {title}
+            </span>
+        </div>
+        <div>{children}</div>
     </div>
 );
 
-const SideHeader = ({ label, accent }) => (
-    <div
-        className="flex items-center gap-3 px-4 py-3"
-        style={{ background: 'rgba(0,0,0,0.18)' }}
-    >
-        {accent && (
-            <div className="w-1 h-5 rounded-full shrink-0" style={{ background: 'var(--color-brand-primary)' }} />
-        )}
-        <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--color-text-primary)' }}>
-            {label}
-        </p>
-    </div>
-);
+const SIDEBAR_STYLE = { position: 'sticky', top: '6rem', alignSelf: 'start' };
 
-const SIDEBAR_STYLE = {
-    position: 'sticky',
-    top: '6rem',
-    alignSelf: 'start',
-};
+/* Aktif nav item stili */
+const activeStyle  = { color: 'var(--color-brand-primary)', borderLeftColor: 'var(--color-brand-primary)' };
+const idleStyle    = { color: 'var(--color-text-primary)',  borderLeftColor: 'transparent' };
 
 const ForumLayout = () => {
-    const { user } = useAuth();
-    const location = useLocation();
+    const location    = useLocation();
     const isSearchPage = location.pathname === '/forum/search';
     const [searchParams, setSearchParams] = useSearchParams();
     const currentSort = searchParams.get('sort') ?? 'hot';
 
-    const [trending,   setTrending]   = React.useState(null);
-    const [tagSearch,  setTagSearch]  = React.useState(searchParams.get('tag') ?? '');
+    const [trending,  setTrending]  = React.useState(null);
+    const [tagSearch, setTagSearch] = React.useState(searchParams.get('tag') ?? '');
 
     React.useEffect(() => {
         axiosInstance.get('/forum/trending').then(r => setTrending(r.data)).catch(() => {});
     }, []);
 
-const trendingTags  = trending?.trending_tags ?? [];
-    const trendingStats = trending
-        ? {
-            active:      trending.trending_threads.length,
-            underReview: trending.trending_threads.filter(t => t.status === 'under_review').length,
-            resolved:    trending.trending_threads.filter(t => t.status === 'resolved').length,
-        }
-        : null;
+    const trendingTags  = (trending?.trending_tags ?? []).filter(t => (t.usage_count ?? 0) > 0);
+    const trendingStats = trending ? {
+        active:      trending.trending_threads.length,
+        underReview: trending.trending_threads.filter(t => t.status === 'under_review').length,
+        resolved:    trending.trending_threads.filter(t => t.status === 'resolved').length,
+    } : null;
 
     const setSort = (s) => {
         const next = new URLSearchParams(searchParams);
@@ -105,33 +85,24 @@ const trendingTags  = trending?.trending_tags ?? [];
         setSearchParams(next);
     };
 
-    const navLinkActive = {
-        background: 'rgba(16,185,129,0.10)',
-        color: 'var(--color-brand-primary)',
-        borderLeft: '2px solid var(--color-brand-primary)',
-        paddingLeft: '10px',
-    };
-    const navLinkIdle = { color: 'var(--color-text-secondary)', paddingLeft: '12px' };
-
     return (
         <div className="w-full">
             <div
                 className="max-w-[1600px] mx-auto w-full px-4 md:px-6 py-6"
-                style={{ display: 'grid', gridTemplateColumns: '300px 1fr 280px', gap: '20px' }}
+                style={{ display: 'grid', gridTemplateColumns: '280px 1fr 260px', gap: '20px' }}
             >
 
-                {/* ══════════════════ SOL SIDEBAR ══════════════════ */}
-                <aside className="flex flex-col gap-3" style={SIDEBAR_STYLE}>
+                {/* ══════ SOL SIDEBAR ══════ */}
+                <aside className="flex flex-col gap-4" style={SIDEBAR_STYLE}>
 
                     {/* Keşfet */}
-                    <SideCard>
-                        <SideHeader label="Keşfet" accent />
-                        <nav className="flex flex-col p-2 gap-0.5">
+                    <Block title="// keşfet">
+                        <nav className="flex flex-col">
                             <NavLink
                                 to="/forum"
                                 end
-                                className="flex items-center gap-3 py-3 pr-3 rounded-md text-sm font-semibold transition-colors"
-                                style={({ isActive }) => isActive ? navLinkActive : navLinkIdle}
+                                className="flex items-center gap-3 px-4 py-2.5 border-l-2 font-mono text-sm font-semibold transition-colors"
+                                style={({ isActive }) => isActive ? activeStyle : idleStyle}
                             >
                                 <Activity className="w-4 h-4 shrink-0" />
                                 Tüm Tartışmalar
@@ -139,214 +110,196 @@ const trendingTags  = trending?.trending_tags ?? [];
                             {DISCOVER_OPTIONS.map(o => (
                                 <button
                                     key={o.key}
-                                    className="flex items-center gap-3 py-3 pl-3 pr-3 rounded-md text-sm font-semibold transition-colors text-left w-full hover:bg-white/5"
-                                    style={{ color: 'var(--color-text-muted)' }}
+                                    className="flex items-center gap-3 px-4 py-2.5 border-l-2 border-transparent font-mono text-sm w-full text-left transition-opacity"
+                                    style={{ color: 'var(--color-text-muted)', opacity: 0.45 }}
                                     title="Yakında"
+                                    disabled
                                 >
-                                    <o.Icon className="w-4 h-4 shrink-0 opacity-40" />
-                                    <span className="opacity-40">{o.label}</span>
-                                    <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded font-bold"
-                                          style={{ background: 'rgba(245,158,11,0.12)', color: 'var(--color-accent-amber)' }}>
+                                    <o.Icon className="w-4 h-4 shrink-0" />
+                                    {o.label}
+                                    <span
+                                        className="ml-auto font-mono text-[9px] px-1.5 py-0.5 font-bold"
+                                        style={{ background: 'rgba(245,158,11,0.12)', color: 'var(--color-accent-amber)' }}
+                                    >
                                         YAKINDA
                                     </span>
                                 </button>
                             ))}
                         </nav>
-                    </SideCard>
+                    </Block>
 
                     {/* Sırala */}
-                    <SideCard>
-                        <SideHeader label="Sırala" />
-                        <nav className="flex flex-col p-2 gap-0.5">
+                    <Block title="// sırala">
+                        <nav className="flex flex-col">
                             {SORT_OPTIONS.map(opt => (
                                 <button
                                     key={opt.key}
                                     onClick={() => setSort(opt.key)}
-                                    className="flex items-center gap-3 py-3 pr-3 rounded-md text-sm font-semibold transition-colors w-full text-left"
-                                    style={currentSort === opt.key ? navLinkActive : navLinkIdle}
+                                    className="flex items-center gap-3 px-4 py-2.5 border-l-2 font-mono text-sm font-semibold w-full text-left transition-colors"
+                                    style={currentSort === opt.key ? activeStyle : idleStyle}
                                 >
                                     <opt.Icon className="w-4 h-4 shrink-0" />
                                     {opt.label}
                                 </button>
                             ))}
                         </nav>
-                    </SideCard>
-
-
-                    {/* Kategoriler */}
-                    <SideCard>
-                        <SideHeader label="Kategoriler" />
-                        <nav className="flex flex-col p-2 gap-0.5">
-                            {CATEGORIES.map(c => (
-                                <NavLink
-                                    key={c.key}
-                                    to={`/forum?category=${c.key}`}
-                                    className="flex items-center gap-3 py-3 pr-3 rounded-md text-sm font-medium transition-colors hover:bg-white/5"
-                                    style={({ isActive }) => isActive ? navLinkActive : navLinkIdle}
-                                >
-                                    <c.Icon className="w-4 h-4 shrink-0" />
-                                    {c.label}
-                                </NavLink>
-                            ))}
-                        </nav>
-                    </SideCard>
+                    </Block>
 
                 </aside>
 
-                {/* ══════════════════ ORTA İÇERİK ══════════════════ */}
+                {/* ══════ ORTA İÇERİK ══════ */}
                 <main className="min-w-0">
                     <Outlet />
                 </main>
 
-                {/* ══════════════════ SAĞ SIDEBAR ══════════════════ */}
-                <aside className="flex flex-col gap-3" style={isSearchPage ? { visibility: 'hidden' } : SIDEBAR_STYLE}>
+                {/* ══════ SAĞ SIDEBAR ══════ */}
+                <aside
+                    className="flex flex-col gap-4"
+                    style={isSearchPage ? { visibility: 'hidden' } : SIDEBAR_STYLE}
+                >
 
-                    {/* Arama */}
-                    <SideCard>
-                        <SideHeader label="Arama" accent />
-                        <form onSubmit={applyTagSearch} className="p-3">
+                    {/* Etiket Ara */}
+                    <Block title="// etiket_ara">
+                        <form onSubmit={applyTagSearch} className="px-4 pb-3">
                             <div
-                                className="flex items-center gap-2 px-3 py-2.5 rounded-lg"
-                                style={{ background: 'var(--color-bg-base)', border: '1px solid var(--color-border)' }}
+                                className="flex items-center gap-2 border px-3 py-2.5 mb-3 transition-colors"
+                                style={BD}
+                                onFocus={e => e.currentTarget.style.borderColor = 'var(--color-brand-primary)'}
+                                onBlur={e  => e.currentTarget.style.borderColor = 'var(--color-terminal-border-raw)'}
                             >
-                                <Search className="w-4 h-4 shrink-0" style={{ color: 'var(--color-text-muted)' }} />
+                                <span className="font-mono text-sm shrink-0" style={{ color: 'var(--color-brand-primary)' }}>{'>'}</span>
                                 <input
                                     value={tagSearch}
                                     onChange={e => setTagSearch(e.target.value)}
-                                    placeholder="Etiket ara..."
-                                    className="bg-transparent outline-none flex-1 text-sm"
-                                    style={{ color: 'var(--color-text-primary)' }}
+                                    placeholder="ara..."
+                                    className="bg-transparent outline-none flex-1 font-mono text-sm"
+                                    style={{ color: 'var(--color-text-primary)', caretColor: 'var(--color-brand-primary)' }}
                                 />
                                 {tagSearch && (
                                     <button
                                         type="button"
                                         onClick={() => { setTagSearch(''); const n = new URLSearchParams(searchParams); n.delete('tag'); setSearchParams(n); }}
-                                        className="text-xs transition-colors hover:text-brand"
+                                        className="font-mono text-xs transition-opacity hover:opacity-60"
                                         style={{ color: 'var(--color-text-muted)' }}
                                     >
                                         ✕
                                     </button>
                                 )}
                             </div>
-                            <div className="flex flex-wrap gap-1.5 mt-3">
-                                {SYSTEM_TAGS.map(tag => (
-                                    <button
-                                        key={tag}
-                                        type="button"
-                                        onClick={() => { setTagSearch(tag); const n = new URLSearchParams(searchParams); n.set('tag', tag); setSearchParams(n); }}
-                                        className="px-2 py-0.5 rounded text-[10px] font-semibold transition-opacity hover:opacity-70"
-                                        style={{
-                                            background: searchParams.get('tag') === tag ? 'rgba(16,185,129,0.18)' : 'rgba(16,185,129,0.06)',
-                                            color: 'var(--color-brand-primary)',
-                                            border: `1px solid ${searchParams.get('tag') === tag ? 'rgba(16,185,129,0.35)' : 'rgba(16,185,129,0.12)'}`,
-                                        }}
-                                    >
-                                        {tag}
-                                    </button>
-                                ))}
+                            <div className="flex flex-wrap gap-1.5">
+                                {SYSTEM_TAGS.map(t => {
+                                    const isActive = searchParams.get('tag') === t;
+                                    return (
+                                        <button
+                                            key={t}
+                                            type="button"
+                                            onClick={() => { setTagSearch(t); const n = new URLSearchParams(searchParams); n.set('tag', t); setSearchParams(n); }}
+                                            className="font-mono text-[10px] font-semibold px-2 py-0.5 border transition-opacity hover:opacity-80"
+                                            style={{
+                                                color:       'var(--color-brand-primary)',
+                                                borderColor: isActive ? 'var(--color-brand-primary)' : 'rgba(16,185,129,0.25)',
+                                                background:  isActive ? 'rgba(16,185,129,0.12)' : 'transparent',
+                                            }}
+                                        >
+                                            {t}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </form>
-                    </SideCard>
+                    </Block>
 
                     {/* Trend Etiketler */}
                     {trendingTags.length > 0 && (
-                        <SideCard>
-                            <SideHeader label="Trend Etiketler" />
-                            <div className="flex flex-col p-3 gap-1">
-                                {trendingTags.slice(0, 8).map(t => (
+                        <Block title="// trend_etiketler">
+                            <div className="flex flex-col">
+                                {trendingTags.slice(0, 8).map((t, idx) => (
                                     <NavLink
                                         key={t.id}
                                         to={`/forum?tag=${encodeURIComponent(t.name)}`}
-                                        className="flex items-center justify-between px-2 py-2 rounded-lg transition-colors hover:bg-white/5 group"
+                                        className="flex items-center justify-between px-4 py-2.5 border-l-2 border-transparent font-mono text-sm transition-colors group"
+                                        style={{ color: 'var(--color-text-primary)' }}
+                                        onMouseEnter={e => e.currentTarget.style.borderLeftColor = 'var(--color-brand-primary)'}
+                                        onMouseLeave={e => e.currentTarget.style.borderLeftColor = 'transparent'}
                                     >
-                                        <span
-                                            className="text-sm font-medium truncate group-hover:text-brand transition-colors"
-                                            style={{ color: 'var(--color-text-secondary)' }}
-                                        >
-                                            {t.name}
+                                        <span className="truncate group-hover:text-brand transition-colors">
+                                            #{t.name}
                                         </span>
                                         <span
-                                            className="text-xs ml-2 shrink-0 px-2 py-0.5 rounded font-bold"
-                                            style={{ background: 'rgba(16,185,129,0.08)', color: 'var(--color-brand-primary)' }}
+                                            className="font-mono text-xs font-bold shrink-0 ml-2 px-1.5 py-0.5 border"
+                                            style={{ color: 'var(--color-brand-primary)', borderColor: 'rgba(16,185,129,0.25)' }}
                                         >
                                             {t.usage_count}
                                         </span>
                                     </NavLink>
                                 ))}
                             </div>
-                        </SideCard>
+                        </Block>
                     )}
 
                     {/* Popüler Tartışmalar */}
                     {trending?.trending_threads?.length > 0 && (
-                        <SideCard>
-                            <SideHeader label="Popüler Tartışmalar" />
-                            <div className="flex flex-col p-3 gap-1">
+                        <Block title="// popüler">
+                            <div className="flex flex-col">
                                 {trending.trending_threads.slice(0, 6).map((t, i) => (
                                     <NavLink
                                         key={t.id}
                                         to={`/forum/${t.id}`}
-                                        className="flex gap-3 px-2 py-2.5 rounded-lg transition-colors hover:bg-white/5 group"
+                                        className="flex gap-3 px-4 py-3 border-l-2 border-transparent transition-colors group"
+                                        onMouseEnter={e => e.currentTarget.style.borderLeftColor = 'var(--color-brand-primary)'}
+                                        onMouseLeave={e => e.currentTarget.style.borderLeftColor = 'transparent'}
                                     >
                                         <span
-                                            className="text-xs font-black mt-0.5 shrink-0 w-5 text-right"
-                                            style={{ color: 'var(--color-brand-primary)' }}
+                                            className="font-mono text-xs font-black mt-0.5 shrink-0 w-5 text-right"
+                                            style={{ color: 'var(--color-brand-primary)', opacity: 0.7 }}
                                         >
                                             {String(i + 1).padStart(2, '0')}
                                         </span>
                                         <div className="min-w-0 flex-1">
                                             <p
-                                                className="text-sm leading-snug line-clamp-2 group-hover:text-brand transition-colors"
-                                                style={{ color: 'var(--color-text-secondary)' }}
+                                                className="font-mono text-sm leading-snug line-clamp-2 group-hover:text-brand transition-colors"
+                                                style={{ color: 'var(--color-text-primary)' }}
                                             >
                                                 {t.title}
                                             </p>
-                                            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                                            <p className="font-mono text-[10px] mt-1 tracking-wide" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>
                                                 {t.comment_count ?? 0} yorum
                                             </p>
                                         </div>
+                                        <ChevronRight className="w-3.5 h-3.5 shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 transition-opacity" style={{ color: 'var(--color-brand-primary)' }} />
                                     </NavLink>
                                 ))}
                             </div>
-                        </SideCard>
+                        </Block>
                     )}
 
                     {/* Forum İstatistikleri */}
-                    <SideCard>
-                        <SideHeader label="Forum İstatistikleri" />
-                        <div className="flex flex-col gap-0 p-1">
-                            <div className="flex items-center justify-between px-3 py-3 rounded-lg"
-                                 style={{ background: 'rgba(16,185,129,0.04)' }}>
-                                <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                                    <MessageSquare className="w-4 h-4" style={{ color: 'var(--color-brand-primary)' }} />
-                                    Aktif Tartışma
-                                </span>
-                                <span className="text-sm font-black" style={{ color: 'var(--color-text-primary)' }}>
-                                    {trendingStats?.active ?? '—'}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between px-3 py-3 rounded-lg">
-                                <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                                    <AlertTriangle className="w-4 h-4" style={{ color: 'var(--color-accent-amber)' }} />
-                                    İnceleme Altında
-                                </span>
-                                <span className="text-sm font-black" style={{ color: 'var(--color-accent-amber)' }}>
-                                    {trendingStats?.underReview ?? '—'}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between px-3 py-3 rounded-lg">
-                                <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                                    <CheckCircle className="w-4 h-4" style={{ color: 'var(--color-brand-primary)' }} />
-                                    Çözüme Ulaşan
-                                </span>
-                                <span className="text-sm font-black" style={{ color: 'var(--color-brand-primary)' }}>
-                                    {trendingStats?.resolved ?? '—'}
-                                </span>
-                            </div>
+                    <Block title="// forum_stats">
+                        <div className="px-4 pb-2 flex flex-col gap-0">
+                            {[
+                                { label: 'AKTİF TARTIŞMA',  value: trendingStats?.active,      icon: MessageSquare,  color: 'var(--color-brand-primary)' },
+                                { label: 'İNCELEME ALTINDA', value: trendingStats?.underReview, icon: AlertTriangle,  color: 'var(--color-accent-amber)'  },
+                                { label: 'ÇÖZÜME ULAŞAN',    value: trendingStats?.resolved,    icon: CheckCircle,    color: 'var(--color-brand-primary)' },
+                            ].map(({ label, value, icon: Icon, color }, idx, arr) => (
+                                <div key={label}>
+                                    <div className="flex items-center justify-between py-2.5">
+                                        <div className="flex items-center gap-2.5">
+                                            <Icon className="w-4 h-4 shrink-0" style={{ color }} />
+                                            <span className="font-mono text-xs tracking-wider" style={{ color: 'var(--color-text-primary)' }}>
+                                                {label}
+                                            </span>
+                                        </div>
+                                        <span className="font-mono text-sm font-black" style={{ color }}>
+                                            {value ?? '—'}
+                                        </span>
+                                    </div>
+                                    {idx < arr.length - 1 && <div className="h-px" style={{ background: 'var(--color-terminal-border-raw)' }} />}
+                                </div>
+                            ))}
                         </div>
-                    </SideCard>
-                </aside>
+                    </Block>
 
+                </aside>
             </div>
         </div>
     );

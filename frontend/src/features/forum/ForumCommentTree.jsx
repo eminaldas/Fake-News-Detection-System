@@ -1,214 +1,218 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { ThumbsUp, MessageSquare, Link as LinkIcon, Flag, X } from 'lucide-react';
+import { ThumbsUp, MessageSquare, Link as LinkIcon, Flag, X, ChevronDown, ChevronUp } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import { useAuth } from '../../contexts/AuthContext';
 
+const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
+const BD = { borderColor: 'var(--color-terminal-border-raw)' };
+
 function timeAgo(dateStr) {
     const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
-    if (diff < 60)    return `${Math.floor(diff)}s`;
-    if (diff < 3600)  return `${Math.floor(diff / 60)}dk`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}sa`;
-    return `${Math.floor(diff / 86400)}g`;
+    if (diff < 60)     return `${Math.floor(diff)}S`;
+    if (diff < 3600)   return `${Math.floor(diff / 60)}DK`;
+    if (diff < 86400)  return `${Math.floor(diff / 3600)}SA`;
+    return `${Math.floor(diff / 86400)}G`;
 }
 
-const AVATAR_COLORS = [
-    ['rgba(16,185,129,0.15)',  'var(--color-brand-primary)'],
-    ['rgba(59,130,246,0.15)',  'var(--color-accent-blue)'],
-    ['rgba(245,158,11,0.15)',  'var(--color-accent-amber)'],
-    ['rgba(168,85,247,0.15)',  '#a855f7'],
-    ['rgba(239,68,68,0.15)',   'var(--color-fake-fill)'],
-];
+const PAL_BG   = ['rgba(16,185,129,0.15)','rgba(59,130,246,0.15)','rgba(245,158,11,0.15)','rgba(168,85,247,0.15)','rgba(239,68,68,0.15)'];
+const PAL_TEXT = ['var(--color-brand-primary)','var(--color-accent-blue)','var(--color-accent-amber)','#a855f7','var(--color-fake-fill)'];
 
-function getAvatarColor(username = '') {
-    const idx = username.charCodeAt(0) % AVATAR_COLORS.length;
-    return AVATAR_COLORS[idx];
+function avatarIdx(username = '') { return username.charCodeAt(0) % PAL_BG.length; }
+
+const DEPTH_INDENT  = 24;
+const MAX_DEPTH     = 2;
+
+/* Derinliğe göre sol-border rengi */
+function depthBorderColor(depth, highlighted) {
+    if (highlighted) return 'var(--color-brand-primary)';
+    if (depth === 0) return 'rgba(16,185,129,0.35)';
+    if (depth === 1) return 'rgba(16,185,129,0.18)';
+    return 'rgba(16,185,129,0.08)';
 }
-
-const DEPTH_INDENT = 20;
-const MAX_REPLY_DEPTH = 2;
 
 function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewComment, currentUserId, depth = 0 }) {
-    const [showReplies, setShowReplies]       = React.useState(true);
-    const [avatarBg, avatarColor]             = getAvatarColor(comment.username);
-    const [commentEditMode, setCommentEditMode] = React.useState(false);
-    const [commentEditBody, setCommentEditBody] = React.useState('');
+    const [showReplies,    setShowReplies]    = React.useState(true);
+    const [editMode,       setEditMode]       = React.useState(false);
+    const [editBody,       setEditBody]       = React.useState('');
+    const isAuthor = comment.user_id === currentUserId;
+    const idx      = avatarIdx(comment.username);
+    const borderL  = depthBorderColor(depth, comment.is_highlighted);
+    const avatarSz = depth === 0 ? 32 : 26;
 
-    const isCommentAuthor = comment.user_id === currentUserId;
-
-    const handleCommentEdit = async () => {
+    const handleEdit = async () => {
         try {
-            await axiosInstance.put(`/forum/comments/${comment.id}`, { body: commentEditBody });
-            setCommentEditMode(false);
+            await axiosInstance.put(`/forum/comments/${comment.id}`, { body: editBody });
+            setEditMode(false);
             onNewComment?.();
-        } catch { /* sessiz */ }
+        } catch {}
     };
 
-    const handleCommentDelete = async () => {
+    const handleDelete = async () => {
         if (!window.confirm('Bu yorumu silmek istediğinizden emin misiniz?')) return;
-        try {
-            await axiosInstance.delete(`/forum/comments/${comment.id}`);
-            onNewComment?.();
-        } catch { /* sessiz */ }
+        try { await axiosInstance.delete(`/forum/comments/${comment.id}`); onNewComment?.(); } catch {}
     };
-
-    const depthBorderColor = depth === 0
-        ? `rgba(16,185,129,${comment.is_highlighted ? '0.55' : '0.20'})`
-        : depth === 1
-        ? 'var(--color-border)'
-        : 'rgba(61,68,77,0.40)';
-
-    const depthBg = depth === 0
-        ? 'var(--color-bg-surface)'
-        : 'var(--color-bg-base)';
-
-    const avatarSize = depth === 0 ? 28 : depth === 1 ? 24 : 20;
 
     return (
         <div style={{ marginLeft: depth > 0 ? DEPTH_INDENT : 0, position: 'relative' }}>
-            {/* Thread bağlantı çizgisi */}
+            {/* Derinlik bağlantı çizgisi */}
             {depth > 0 && (
                 <div style={{
                     position:   'absolute',
-                    left:       -DEPTH_INDENT + 6,
+                    left:       -DEPTH_INDENT + 8,
                     top:        0,
-                    bottom:     0,
+                    bottom:     12,
                     width:      2,
-                    background: 'var(--color-border)',
-                    opacity:    depth === 1 ? 0.45 : 0.25,
-                    borderRadius: 1,
+                    background: depth === 1 ? 'rgba(16,185,129,0.25)' : 'rgba(16,185,129,0.12)',
                 }} />
             )}
 
+            {/* Yorum kartı */}
             <div
-                className="rounded-xl p-3 mb-2 transition-colors"
+                className="mb-3 border-l-[3px] transition-colors"
                 style={{
-                    background: depthBg,
-                    borderLeft: `2px solid ${depthBorderColor}`,
-                    boxShadow:  comment.is_highlighted ? '0 0 0 1px rgba(16,185,129,0.07) inset' : 'none',
+                    ...TS,
+                    borderLeftColor: borderL,
+                    background: comment.is_highlighted
+                        ? 'rgba(16,185,129,0.04)'
+                        : 'var(--color-terminal-surface)',
                 }}
             >
                 {/* Üst: avatar + kullanıcı + zaman */}
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-3 px-4 py-3 border-b" style={BD}>
+                    {/* Kare avatar */}
                     <div
-                        className="rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+                        className="flex items-center justify-center font-mono font-black shrink-0"
                         style={{
-                            width:      avatarSize,
-                            height:     avatarSize,
-                            background: avatarBg,
-                            color:      avatarColor,
+                            width:      avatarSz,
+                            height:     avatarSz,
+                            background: PAL_BG[idx],
+                            color:      PAL_TEXT[idx],
+                            border:     `1px solid ${PAL_TEXT[idx]}30`,
+                            fontSize:   depth === 0 ? 14 : 11,
                         }}
                     >
                         {(comment.username ?? '?')[0].toUpperCase()}
                     </div>
-                    <span className="text-[10px] font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                        {comment.username}
+
+                    <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                            {comment.username}
+                        </span>
+                        {comment.display_label && (
+                            <span className="font-mono text-[10px] tracking-wider" style={{ color: 'var(--color-brand-primary)' }}>
+                                {'▓'.repeat(Math.min(comment.stars || 1, 5))} {comment.display_label}
+                            </span>
+                        )}
+                        {comment.is_highlighted && (
+                            <span className="font-mono text-[10px] font-bold px-2 py-0.5 border"
+                                  style={{ color: 'var(--color-brand-primary)', borderColor: 'rgba(16,185,129,0.30)' }}>
+                                ÖNE ÇIKAN
+                            </span>
+                        )}
+                    </div>
+
+                    <span className="font-mono text-xs shrink-0 tracking-widest" style={{ color: 'var(--color-text-primary)', opacity: 0.4 }}>
+                        {timeAgo(comment.created_at)} ÖNCE
                     </span>
-                    {comment.display_label && (
-                        <span className="text-[8px] font-bold" style={{ color: 'var(--color-brand-primary)' }}>
-                            {'★'.repeat(comment.stars || 1)} {comment.display_label}
-                        </span>
-                    )}
-                    {comment.is_highlighted && (
-                        <span
-                            className="text-[8px] px-1.5 py-0.5 rounded-full font-bold"
-                            style={{ background: 'rgba(16,185,129,0.10)', color: 'var(--color-brand-primary)', border: '1px solid rgba(16,185,129,0.20)' }}
-                        >
-                            Öne Çıkan
-                        </span>
-                    )}
-                    <span className="text-[9px] text-muted ml-auto">{timeAgo(comment.created_at)}</span>
                 </div>
 
                 {/* Gövde */}
-                {commentEditMode ? (
-                    <div className="flex flex-col gap-1 mt-1 mb-2">
-                        <textarea
-                            value={commentEditBody}
-                            onChange={e => setCommentEditBody(e.target.value)}
-                            rows={3}
-                            className="w-full text-[11px] bg-transparent outline-none p-2 rounded-lg border resize-none"
-                            style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-base)', color: 'var(--color-text-secondary)' }}
-                        />
-                        <div className="flex gap-2">
-                            <button onClick={handleCommentEdit}
-                                className="text-[9px] px-3 py-1 rounded-lg font-bold"
-                                style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
-                                Kaydet
-                            </button>
-                            <button onClick={() => setCommentEditMode(false)}
-                                className="text-[9px] px-3 py-1 rounded-lg"
-                                style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
-                                İptal
-                            </button>
+                <div className="px-4 py-3">
+                    {editMode ? (
+                        <div className="flex flex-col gap-2">
+                            <textarea
+                                value={editBody}
+                                onChange={e => setEditBody(e.target.value)}
+                                rows={3}
+                                className="w-full font-mono text-sm bg-transparent outline-none px-3 py-2 border resize-none"
+                                style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'var(--color-bg-base)', color: 'var(--color-text-primary)' }}
+                            />
+                            <div className="flex gap-2">
+                                <button onClick={handleEdit}
+                                    className="font-mono text-sm px-4 py-1.5 font-bold transition-opacity hover:opacity-80"
+                                    style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
+                                    [ KAYDET ]
+                                </button>
+                                <button onClick={() => setEditMode(false)}
+                                    className="font-mono text-sm px-4 py-1.5 border transition-opacity hover:opacity-70"
+                                    style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}>
+                                    İptal
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                ) : (
-                    <p className="text-[11px] leading-relaxed mb-2" style={{ color: 'var(--color-text-secondary)' }}>
-                        {comment.body}
-                        {comment.is_edited && (
-                            <span className="ml-1 text-[8px] italic" style={{ color: 'var(--color-text-muted)' }}>(düzenlendi)</span>
-                        )}
-                    </p>
-                )}
+                    ) : (
+                        <p className="font-mono text-sm leading-relaxed" style={{ color: 'var(--color-text-primary)' }}>
+                            {comment.body}
+                            {comment.is_edited && (
+                                <span className="ml-2 font-mono text-[10px]" style={{ color: 'var(--color-text-primary)', opacity: 0.35 }}>
+                                    (düzenlendi)
+                                </span>
+                            )}
+                        </p>
+                    )}
 
-                {/* Kanıt linkleri */}
-                {comment.evidence_urls?.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-2">
-                        {comment.evidence_urls.map((url, i) => (
-                            <a
-                                key={i}
-                                href={url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-lg hover:opacity-80 transition-opacity"
-                                style={{ background: 'rgba(59,130,246,0.08)', color: 'var(--color-accent-blue)', border: '1px solid rgba(59,130,246,0.18)' }}
-                            >
-                                <LinkIcon className="w-2.5 h-2.5" />
-                                Kaynak {i + 1}
-                            </a>
-                        ))}
-                    </div>
-                )}
+                    {/* Kanıt linkleri */}
+                    {comment.evidence_urls?.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-3">
+                            {comment.evidence_urls.map((url, i) => (
+                                <a
+                                    key={i}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1.5 font-mono text-xs px-2 py-0.5 border transition-opacity hover:opacity-70"
+                                    style={{ color: 'var(--color-accent-blue)', borderColor: 'rgba(59,130,246,0.25)' }}
+                                >
+                                    <LinkIcon className="w-3 h-3" />
+                                    Kaynak {i + 1}
+                                </a>
+                            ))}
+                        </div>
+                    )}
+                </div>
 
                 {/* Alt: aksiyonlar */}
-                <div className="flex items-center gap-3 text-[9px] text-muted">
+                <div className="flex items-center gap-1 px-4 py-2 border-t flex-wrap" style={BD}>
                     <button
                         onClick={() => onHelpful(comment.id)}
-                        className="flex items-center gap-1 hover:text-brand transition-colors"
+                        className="flex items-center gap-1.5 px-2 py-1 font-mono text-xs transition-colors hover:text-brand"
+                        style={{ color: comment.helpful_count > 0 ? 'var(--color-brand-primary)' : 'var(--color-text-primary)' }}
                     >
-                        <ThumbsUp className="w-3 h-3" />
-                        {comment.helpful_count > 0 && (
-                            <span style={{ color: 'var(--color-brand-primary)' }}>{comment.helpful_count}</span>
-                        )}
-                        Faydalı
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                        {comment.helpful_count > 0 ? comment.helpful_count : 'Faydalı'}
                     </button>
 
-                    {depth <= MAX_REPLY_DEPTH ? (
+                    {depth <= MAX_DEPTH ? (
                         <button
                             onClick={() => onReply(comment.id, comment.username)}
-                            className="flex items-center gap-1 hover:text-tx-primary transition-colors"
+                            className="flex items-center gap-1.5 px-2 py-1 font-mono text-xs transition-colors hover:text-brand"
+                            style={{ color: 'var(--color-text-primary)' }}
                         >
-                            <MessageSquare className="w-3 h-3" />
+                            <MessageSquare className="w-3.5 h-3.5" />
                             Yanıtla
                         </button>
                     ) : (
-                        <span className="text-[8px] italic">↪ Maksimum derinlik</span>
+                        <span className="font-mono text-xs px-2 py-1" style={{ color: 'var(--color-text-primary)', opacity: 0.35 }}>
+                            ↪ max derinlik
+                        </span>
                     )}
 
-                    {isCommentAuthor && !commentEditMode && (
+                    {isAuthor && !editMode && (
                         <>
                             <button
-                                onClick={() => { setCommentEditBody(comment.body); setCommentEditMode(true); }}
-                                className="flex items-center gap-1 hover:text-tx-primary transition-colors"
+                                onClick={() => { setEditBody(comment.body); setEditMode(true); }}
+                                className="px-2 py-1 font-mono text-xs transition-opacity hover:opacity-60"
+                                style={{ color: 'var(--color-text-primary)' }}
                             >
-                                Düzenle
+                                düzenle
                             </button>
                             <button
-                                onClick={handleCommentDelete}
-                                className="flex items-center gap-1 hover:text-red-400 transition-colors"
+                                onClick={handleDelete}
+                                className="px-2 py-1 font-mono text-xs transition-opacity hover:opacity-60"
+                                style={{ color: '#ef4444' }}
                             >
-                                Sil
+                                sil
                             </button>
                         </>
                     )}
@@ -216,25 +220,29 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                     {comment.user_id !== currentUserId && (
                         <button
                             onClick={() => onReport(comment.id)}
-                            className="flex items-center gap-1 hover:text-red-400 transition-colors opacity-50 hover:opacity-100"
+                            className="flex items-center gap-1 px-2 py-1 font-mono text-xs transition-opacity hover:opacity-60"
+                            style={{ color: 'var(--color-text-primary)', opacity: 0.35 }}
                         >
-                            <Flag className="w-2.5 h-2.5" />
-                            Bildir
+                            <Flag className="w-3 h-3" />
                         </button>
                     )}
 
                     {comment.replies?.length > 0 && (
                         <button
                             onClick={() => setShowReplies(v => !v)}
-                            className="text-[9px] text-muted hover:text-tx-primary transition-colors ml-auto"
+                            className="flex items-center gap-1 px-2 py-1 font-mono text-xs ml-auto transition-opacity hover:opacity-70"
+                            style={{ color: 'var(--color-brand-primary)' }}
                         >
-                            {showReplies ? `▲ Gizle` : `▼ ${comment.replies.length} yanıt`}
+                            {showReplies
+                                ? <><ChevronUp className="w-3.5 h-3.5" /> Gizle</>
+                                : <><ChevronDown className="w-3.5 h-3.5" /> {comment.replies.length} yanıt</>
+                            }
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* Alt yorumlar */}
+            {/* Alt yanıtlar */}
             {showReplies && comment.replies?.length > 0 && (
                 <div>
                     {comment.replies.map(reply => (
@@ -265,23 +273,15 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
     const [reportSent,   setReportSent]   = React.useState(false);
 
     const handleHelpful = async (commentId) => {
-        try {
-            await axiosInstance.post(`/forum/comments/${commentId}/vote`);
-            onNewComment?.();
-        } catch {
-            // sessiz hata
-        }
+        try { await axiosInstance.post(`/forum/comments/${commentId}/vote`); onNewComment?.(); } catch {}
     };
 
-    const handleReport = (commentId) => {
-        setReportTarget(commentId);
-        setReportSent(false);
-    };
+    const handleReport = (commentId) => { setReportTarget(commentId); setReportSent(false); };
 
     if (!comments?.length) {
         return (
-            <p className="text-[11px] text-muted text-center py-8">
-                Henüz yorum yok. İlk yorumu sen yap!
+            <p className="font-mono text-sm text-center py-8" style={{ color: 'var(--color-text-primary)', opacity: 0.4 }}>
+                // henüz yorum yok — ilk yorumu sen yap
             </p>
         );
     }
@@ -301,39 +301,56 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
                 />
             ))}
 
+            {/* Bildir modalı */}
             {reportTarget && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.65)' }}>
+                <div
+                    className="fixed inset-0 z-[9999] flex items-center justify-center"
+                    style={{ background: 'rgba(0,0,0,0.75)' }}
+                    onClick={() => setReportTarget(null)}
+                >
                     <div
-                        className="rounded-2xl p-6 w-80 border"
-                        style={{ background: 'var(--color-bg-surface)', borderColor: 'var(--color-border)' }}
+                        className="relative border p-6 w-80"
+                        style={TS}
+                        onClick={e => e.stopPropagation()}
                     >
+                        {/* Köşe aksanları */}
+                        <div className="absolute top-0 left-0 w-3 h-[2px] bg-brand" />
+                        <div className="absolute top-0 left-0 h-3 w-[2px] bg-brand" />
+                        <div className="absolute bottom-0 right-0 w-3 h-[2px] bg-brand" />
+                        <div className="absolute bottom-0 right-0 h-3 w-[2px] bg-brand" />
+
                         <div className="flex items-center justify-between mb-4">
-                            <span className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Yorumu Bildir</span>
-                            <button onClick={() => setReportTarget(null)}>
-                                <X className="w-4 h-4 text-muted" />
+                            <span className="font-mono text-xs tracking-widest uppercase" style={{ color: 'var(--color-brand-primary)' }}>
+                                // YORUMU BİLDİR
+                            </span>
+                            <button onClick={() => setReportTarget(null)} style={{ color: 'var(--color-text-primary)', opacity: 0.5 }}>
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
                         {reportSent ? (
-                            <p className="text-xs text-muted">Bildiriminiz alındı, teşekkürler.</p>
+                            <p className="font-mono text-sm" style={{ color: 'var(--color-brand-primary)' }}>
+                                [ OK ] Bildiriminiz alındı, teşekkürler.
+                            </p>
                         ) : (
                             <>
-                                <div className="flex flex-col gap-2.5 mb-4">
+                                <div className="flex flex-col gap-3 mb-5">
                                     {[
                                         { value: 'spam',           label: 'Spam' },
                                         { value: 'hate_speech',    label: 'Hakaret / Nefret söylemi' },
                                         { value: 'misinformation', label: 'Yanıltıcı bilgi' },
                                         { value: 'off_topic',      label: 'Konu dışı' },
                                     ].map(opt => (
-                                        <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                                        <label key={opt.value} className="flex items-center gap-3 cursor-pointer">
                                             <input
                                                 type="radio"
                                                 name="reason"
                                                 value={opt.value}
                                                 checked={reportReason === opt.value}
                                                 onChange={() => setReportReason(opt.value)}
+                                                style={{ accentColor: 'var(--color-brand-primary)' }}
                                             />
-                                            <span className="text-xs" style={{ color: 'var(--color-text-primary)' }}>{opt.label}</span>
+                                            <span className="font-mono text-sm" style={{ color: 'var(--color-text-primary)' }}>{opt.label}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -343,10 +360,10 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
                                             .then(() => setReportSent(true))
                                             .catch(() => setReportSent(true));
                                     }}
-                                    className="w-full py-2.5 rounded-xl text-xs font-bold transition-all hover:opacity-90"
+                                    className="w-full py-2.5 font-mono text-sm font-bold tracking-wider transition-opacity hover:opacity-80"
                                     style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}
                                 >
-                                    Bildir
+                                    [ BİLDİR ]
                                 </button>
                             </>
                         )}
