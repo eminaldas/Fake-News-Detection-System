@@ -1,7 +1,8 @@
+import hashlib
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +13,7 @@ from app.core.rate_limit import check_login_limit, clear_login_limit, record_fai
 from app.core.security import (
     create_access_token,
     get_password_hash,
+    get_token_exp,
     hash_ip,
     verify_password,
 )
@@ -219,3 +221,39 @@ async def update_me(
     await db.commit()
     await db.refresh(current_user)
     return current_user
+
+
+_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh_token(
+    current_user: User = Depends(get_current_user),
+):
+    """Mevcut geçerli token ile yeni 30 dakikalık token üretir (proaktif yenileme)."""
+    expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expires_in    = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    token = create_access_token(
+        data={
+            "sub": str(current_user.id),
+            "username": current_user.username,
+            "role": current_user.role.value,
+        },
+        expires_delta=expires_delta,
+    )
+    return TokenResponse(access_token=token, token_type="bearer", expires_in=expires_in)
+
+
+@router.post("/logout", status_code=200)
+async def logout(
+    token: str = Depends(_oauth2_scheme),
+    redis=Depends(get_redis),
+):
+    """Token'ı Redis blacklist'e ekleyerek sunucu tarafında geçersiz kılar."""
+    exp = get_token_exp(token)
+    if exp:
+        ttl = max(0, exp - int(datetime.now(timezone.utc).timestamp()))
+        if ttl > 0:
+            token_hash = hashlib.sha256(token.encode()).hexdigest()
+            await redis.setex(f"blacklist:{token_hash}", ttl, "1")
+    return {"detail": "Çıkış yapıldı"}
