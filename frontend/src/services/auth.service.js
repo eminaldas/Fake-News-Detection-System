@@ -1,6 +1,6 @@
 import axiosInstance from '../api/axios';
 
-const TOKEN_KEY = 'fnds_token';
+const TOKEN_KEY  = 'fnds_token';
 const REMEMBER_KEY = 'fnds_remember';
 
 class AuthService {
@@ -15,12 +15,32 @@ class AuthService {
         }
     }
 
+    static _decodeToken(token) {
+        try { return JSON.parse(atob(token.split('.')[1])); } catch { return null; }
+    }
+
     static getToken() {
         return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
     }
 
     static isAuthenticated() {
         return !!this.getToken();
+    }
+
+    static isTokenExpired() {
+        const token = this.getToken();
+        if (!token) return true;
+        const payload = this._decodeToken(token);
+        if (!payload?.exp) return true;
+        return Date.now() >= payload.exp * 1000;
+    }
+
+    static isTokenExpiringSoon(thresholdMs = 5 * 60 * 1000) {
+        const token = this.getToken();
+        if (!token) return false;
+        const payload = this._decodeToken(token);
+        if (!payload?.exp) return false;
+        return Date.now() >= payload.exp * 1000 - thresholdMs;
     }
 
     static async login(username, password, rememberMe = false) {
@@ -75,6 +95,13 @@ class AuthService {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(REMEMBER_KEY);
         sessionStorage.removeItem(TOKEN_KEY);
+    }
+
+    static async serverLogout() {
+        try {
+            await axiosInstance.post('/auth/logout');
+        } catch { /* token zaten geçersiz olabilir */ }
+        this.logout();
     }
 }
 

@@ -13,16 +13,26 @@ export const AuthProvider = ({ children }) => {
             const me = await AuthService.getMe();
             setUser(me);
             setIsAuthenticated(true);
-        } catch {
+        } catch (error) {
             setUser(null);
             setIsAuthenticated(false);
+            if (error.status === 401 || error.status === 403) {
+                AuthService.logout();
+            }
         }
     }, []);
 
     useEffect(() => {
-        if (AuthService.isAuthenticated()) {
-            fetchUser().finally(() => setLoading(false));
+        if (!AuthService.isAuthenticated()) {
+            setLoading(false);
+            return;
         }
+        if (AuthService.isTokenExpired()) {
+            AuthService.logout();
+            setLoading(false);
+            return;
+        }
+        fetchUser().finally(() => setLoading(false));
     }, [fetchUser]);
 
     const login = async (username, password, rememberMe = false) => {
@@ -44,8 +54,8 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = () => {
-        AuthService.logout();
+    const logout = async () => {
+        await AuthService.serverLogout();
         setUser(null);
         setIsAuthenticated(false);
     };
