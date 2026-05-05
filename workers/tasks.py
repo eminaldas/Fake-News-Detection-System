@@ -351,9 +351,9 @@ celery_app.conf.beat_schedule = {
         "task": "workers.tasks.flush_audit_buffer",
         "schedule": 5.0,
     },
-    "update-preference-profiles-nightly": {
+    "update-preference-profiles-4x-daily": {
         "task":     "workers.tasks.update_preference_profiles",
-        "schedule": crontab(hour=2, minute=0),
+        "schedule": crontab(hour="2,8,14,20", minute=0),
     },
     "build-similarity-cache-daily": {
         "task":     "workers.tasks.build_similarity_cache",
