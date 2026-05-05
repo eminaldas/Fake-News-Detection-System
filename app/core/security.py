@@ -6,6 +6,7 @@ import bcrypt as _bcrypt
 
 from fastapi import HTTPException, status
 from jose import JWTError, jwt
+from jose.exceptions import ExpiredSignatureError
 
 from app.core.config import settings
 from app.schemas.schemas import TokenData
@@ -37,11 +38,6 @@ def create_access_token(
 
 
 def verify_token(token: str) -> TokenData:
-    exc = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
@@ -50,7 +46,33 @@ def verify_token(token: str) -> TokenData:
         username: str = payload.get("username")
         role: str = payload.get("role")
         if user_id is None:
-            raise exc
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         return TokenData(user_id=user_id, username=username, role=role)
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token süresi doldu",
+            headers={"WWW-Authenticate": "Bearer", "X-Auth-Error": "token_expired"},
+        )
     except JWTError:
-        raise exc
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer", "X-Auth-Error": "invalid_token"},
+        )
+
+
+def get_token_exp(token: str) -> Optional[int]:
+    """Token exp claim'ini doğrulama yapmadan okur (logout için)."""
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM],
+            options={"verify_exp": False},
+        )
+        return payload.get("exp")
+    except Exception:
+        return None

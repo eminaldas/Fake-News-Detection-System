@@ -1,3 +1,4 @@
+import hashlib
 from typing import Optional
 from uuid import UUID
 
@@ -7,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import TokenData, verify_token
+from app.db.redis import get_redis
 from app.db.session import get_db
 from app.models.models import User, UserRole
 
@@ -19,11 +21,23 @@ async def _get_user_by_id(user_id: str, db: AsyncSession) -> Optional[User]:
     return result.scalar_one_or_none()
 
 
+async def _is_blacklisted(token: str, redis) -> bool:
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    return bool(await redis.get(f"blacklist:{token_hash}"))
+
+
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
 ) -> User:
     token_data: TokenData = verify_token(token)
+    if await _is_blacklisted(token, redis):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token geçersiz kılındı",
+            headers={"WWW-Authenticate": "Bearer", "X-Auth-Error": "token_revoked"},
+        )
     user = await _get_user_by_id(token_data.user_id, db)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Kullanıcı bulunamadı")
@@ -35,11 +49,14 @@ async def get_current_user(
 async def get_optional_user(
     token: Optional[str] = Depends(oauth2_scheme_optional),
     db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
 ) -> Optional[User]:
     if token is None:
         return None
     try:
         token_data: TokenData = verify_token(token)
+        if await _is_blacklisted(token, redis):
+            return None
         user = await _get_user_by_id(token_data.user_id, db)
         if user is None or not user.is_active:
             return None

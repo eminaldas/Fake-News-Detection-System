@@ -47,6 +47,7 @@ services:
       - .env
     volumes:
       - .:/workspace
+      - hf_cache:/root/.cache/huggingface
     depends_on:
       db:
         condition: service_healthy
@@ -76,10 +77,11 @@ services:
       - .env
     volumes:
       - .:/workspace
+      - rss_beat_data:/beat
     depends_on:
       - redis
       - rss-worker
-    command: celery -A workers.rss_ingester beat --loglevel=info
+    command: celery -A workers.rss_ingester beat --loglevel=info --schedule=/beat/celerybeat-schedule
     restart: unless-stopped
 
   audit-beat:
@@ -139,3 +141,4 @@ volumes:
   postgres_data:
   redis_data:
   hf_cache:
+  rss_beat_data:
