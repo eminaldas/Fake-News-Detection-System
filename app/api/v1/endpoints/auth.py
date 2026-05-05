@@ -169,7 +169,7 @@ async def register(
         profile = UserPreferenceProfile(
             user_id            = user.id,
             declared_interests = weights,
-            category_weights   = weights,
+            category_weights   = {},
             interaction_count  = 0,
         )
         db.add(profile)
