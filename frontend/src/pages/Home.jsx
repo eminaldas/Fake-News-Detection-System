@@ -14,6 +14,56 @@ import HotAnalysesCard from "../components/features/analysis/HotAnalysesCard";
 import PopularNewsSection from "../features/analysis/PopularNewsSection";
 import SimilarNewsSection from "../features/analysis/SimilarNewsSection";
 
+/* ── Glitch Hero ── */
+function GlitchNe() {
+  const [dynStyle, setDynStyle] = React.useState({});
+  const [scanning, setScanning] = React.useState(false);
+  const raf = React.useRef(null);
+  const tid = React.useRef(null);
+
+  React.useEffect(() => {
+    function doGlitch() {
+      const dur = 350 + Math.random() * 250;
+      const t0  = performance.now();
+      setScanning(true);
+
+      function frame(ts) {
+        const p   = Math.min((ts - t0) / dur, 1);
+        const env = Math.sin(p * Math.PI);          // 0→peak→0
+        const rx  = (Math.random() - 0.5) * 16 * env;
+        const sk  = (Math.random() - 0.5) * 5  * env;
+        setDynStyle({
+          transform:  `skewX(${sk}deg) translateX(${rx * 0.35}px)`,
+          textShadow: `${rx}px 0 0 rgba(255,50,50,.8), ${-rx}px 0 0 rgba(0,220,255,.8)`,
+          opacity:    0.65 + Math.random() * 0.35,
+        });
+        if (p < 1) {
+          raf.current = requestAnimationFrame(frame);
+        } else {
+          setScanning(false);
+          setDynStyle({});
+          tid.current = setTimeout(doGlitch, 4000 + Math.random() * 5000);
+        }
+      }
+      raf.current = requestAnimationFrame(frame);
+    }
+
+    tid.current = setTimeout(doGlitch, 2000 + Math.random() * 2000);
+    return () => { cancelAnimationFrame(raf.current); clearTimeout(tid.current); };
+  }, []);
+
+  return (
+    <span className="font-pacifico inline-block relative" style={{ color: 'var(--color-text-primary)', ...dynStyle }}>
+      Ne?
+      {scanning && (
+        <span className="absolute inset-0 pointer-events-none" style={{
+          background: 'repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 3px)',
+        }} />
+      )}
+    </span>
+  );
+}
+
 const Home = () => {
   const { isAuthenticated } = useAuth();
   const [rateLimitExceeded, setRateLimitExceeded] = useState(false);
@@ -100,14 +150,13 @@ const Home = () => {
 
         {/* Ana başlık */}
         <h1 style={{ animationDelay: '75ms' }}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-manrope font-extrabold text-tx-primary tracking-tighter leading-[0.95] animate-fade-up">
-          Doğrusu{' '}
-          <span className="italic text-brand dark:text-es-primary">Ne?</span>.
+            className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-manrope font-extrabold text-tx-primary tracking-tighter leading-tight animate-fade-up">
+          <GlitchNe />
         </h1>
 
         {/* Subtitle */}
-        <p style={{ animationDelay: '150ms', color: 'var(--color-text-secondary)' }}
-           className="text-sm md:text-base max-w-sm md:max-w-xl mx-auto leading-relaxed font-inter px-2 md:px-0 animate-fade-up">
+        <p style={{ animationDelay: '150ms', color: 'var(--color-text-primary)', opacity: 0.75 }}
+           className="text-sm md:text-base max-w-sm md:max-w-xl mx-auto leading-relaxed font-mono px-2 md:px-0 animate-fade-up">
           Bilgi kirliliğinin ötesine geçin. Şüpheli haberi, iddiayı ya da metni
           aşağıya yapıştırın — sistem dilbilimsel sinyalleri değerlendirip
           bilgi tabanıyla karşılaştırarak gerçeklik analizi yapar.
