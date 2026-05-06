@@ -184,6 +184,8 @@ async def list_threads(
             created_at=t.created_at,
             author={"id": t.user.id, "username": t.user.username},
             tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in t.tags],
+            article_id=t.article_id,
+            image_urls=t.image_urls or [],
         )
         for t in threads
     ]
@@ -210,6 +212,7 @@ async def create_thread(
         title=body.title,
         body=body.body,
         category=body.category,
+        image_urls=body.image_urls or [],
         status="active",
     )
     db.add(thread)
@@ -229,11 +232,15 @@ async def create_thread(
         ar = (await db.execute(
             select(AnalysisResult).where(AnalysisResult.article_id == article.id)
         )).scalar_one_or_none()
+        meta = article.metadata_info or {}
         article_summary = ForumArticleSummary(
             id=article.id,
             title=article.title,
             ai_verdict=ar.status if ar else None,
             confidence=ar.confidence if ar else None,
+            image_url=meta.get('image_url'),
+            source_url=meta.get('source_url'),
+            source_name=meta.get('source_name'),
         )
 
     return ForumThreadDetail(
@@ -325,6 +332,8 @@ async def discover_threads(
             created_at=t.created_at,
             author={"id": t.user.id, "username": t.user.username} if t.user else {"id": None, "username": "?"},
             tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in (t.tags or [])],
+            article_id=t.article_id,
+            image_urls=t.image_urls or [],
         )
         for t in threads
     ]
@@ -371,11 +380,15 @@ async def get_thread(
             ar = (await db.execute(
                 select(AnalysisResult).where(AnalysisResult.article_id == article.id)
             )).scalar_one_or_none()
+            meta = article.metadata_info or {}
             article_summary = ForumArticleSummary(
                 id=article.id,
                 title=article.title,
                 ai_verdict=ar.status if ar else None,
                 confidence=ar.confidence if ar else None,
+                image_url=meta.get('image_url'),
+                source_url=meta.get('source_url'),
+                source_name=meta.get('source_name'),
             )
 
     user_vote = None
@@ -400,6 +413,8 @@ async def get_thread(
         created_at=thread.created_at,
         author={"id": thread.user.id, "username": thread.user.username},
         tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in thread.tags],
+        article_id=thread.article_id,
+        image_urls=thread.image_urls or [],
         article=article_summary,
         comments=comment_tree,
         current_user_vote=user_vote,

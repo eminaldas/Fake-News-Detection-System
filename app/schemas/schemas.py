@@ -606,6 +606,7 @@ class ForumThreadCreate(BaseModel):
     category:   Optional[str]  = None
     article_id: Optional[UUID] = None
     tag_names:  List[str]      = Field(default_factory=list, max_length=10)
+    image_urls: List[str]       = Field(default_factory=list, max_length=4)
 
     @field_validator("category")
     @classmethod
@@ -645,6 +646,8 @@ class ForumThreadSummary(BaseModel):
     created_at:       datetime
     author:           ForumThreadAuthor
     tags:             List[TagItem] = Field(default_factory=list)
+    image_urls:       List[str]      = Field(default_factory=list)
+    article_id:       Optional[UUID] = None
 
     model_config = ConfigDict(from_attributes=True)
 

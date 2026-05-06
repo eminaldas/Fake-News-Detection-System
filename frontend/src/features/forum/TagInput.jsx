@@ -1,8 +1,9 @@
 import React from 'react';
-import { X } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 
-// 300ms debounce helper
+const BD = { borderColor: 'var(--color-terminal-border-raw)' };
+const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
+
 function useDebounce(value, delay) {
     const [dv, setDv] = React.useState(value);
     React.useEffect(() => {
@@ -18,8 +19,8 @@ const TagInput = ({ value = [], onChange, category = '', maxTags = 10 }) => {
     const [showDrop,    setShowDrop]    = React.useState(false);
     const debounced = useDebounce(inputVal, 300);
     const wrapRef   = React.useRef(null);
+    const inputRef  = React.useRef(null);
 
-    // Dışarı tıklayınca dropdown kapat
     React.useEffect(() => {
         const handler = (e) => {
             if (wrapRef.current && !wrapRef.current.contains(e.target)) {
@@ -30,7 +31,6 @@ const TagInput = ({ value = [], onChange, category = '', maxTags = 10 }) => {
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
-    // Debounced search
     React.useEffect(() => {
         if (!debounced) { setSuggestions([]); return; }
         axiosInstance.get('/forum/tags', { params: { search: debounced, category, limit: 8 } })
@@ -63,56 +63,58 @@ const TagInput = ({ value = [], onChange, category = '', maxTags = 10 }) => {
     return (
         <div ref={wrapRef} className="relative">
             <div
-                className="flex flex-wrap gap-1.5 p-2 rounded-lg border min-h-[38px] cursor-text"
-                style={{ background: 'var(--color-bg-base)', borderColor: 'var(--color-border)' }}
-                onClick={() => document.getElementById('tag-input-field')?.focus()}
+                className="flex flex-wrap gap-1.5 px-3 py-2 border min-h-[36px] cursor-text"
+                style={BD}
+                onClick={() => inputRef.current?.focus()}
             >
                 {value.map(tag => (
                     <span
                         key={tag}
-                        className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full"
+                        className="flex items-center gap-1 font-mono text-[10px] px-2 py-0.5 border"
                         style={{
-                            background: 'rgba(16,185,129,0.10)',
+                            background: 'rgba(16,185,129,0.08)',
                             color:      'var(--color-brand-primary)',
-                            border:     '1px solid rgba(16,185,129,0.25)',
+                            borderColor: 'rgba(16,185,129,0.25)',
                         }}
                     >
                         {tag}
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); removeTag(tag); }}
-                            className="hover:opacity-70"
+                            className="font-mono text-[10px] transition-opacity hover:opacity-60 ml-0.5"
+                            style={{ color: 'var(--color-brand-primary)' }}
                         >
-                            <X className="w-2.5 h-2.5" />
+                            ✕
                         </button>
                     </span>
                 ))}
                 <input
-                    id="tag-input-field"
+                    ref={inputRef}
                     value={inputVal}
                     onChange={e => { setInputVal(e.target.value); setShowDrop(true); }}
                     onKeyDown={handleKeyDown}
                     onFocus={() => inputVal && setShowDrop(true)}
                     placeholder={value.length === 0 ? '# ile başlat, Enter ile ekle' : ''}
-                    className="flex-1 min-w-[120px] bg-transparent outline-none text-[11px] text-tx-primary placeholder:text-muted"
+                    className="flex-1 min-w-[100px] bg-transparent outline-none font-mono text-[11px]"
+                    style={{ color: 'var(--color-text-primary)', caretColor: 'var(--color-brand-primary)' }}
                 />
             </div>
 
-            {/* Öneri dropdown */}
             {showDrop && suggestions.length > 0 && (
                 <div
-                    className="absolute z-50 top-full mt-1 left-0 right-0 rounded-lg border shadow-lg overflow-hidden"
-                    style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+                    className="absolute z-50 top-full mt-0.5 left-0 right-0 border overflow-hidden"
+                    style={TS}
                 >
                     {suggestions.map(t => (
                         <button
                             key={t.id}
                             type="button"
                             onMouseDown={(e) => { e.preventDefault(); addTag(t.name); }}
-                            className="w-full text-left px-3 py-2 flex items-center justify-between hover:bg-white/5 transition-colors"
+                            className="w-full text-left px-3 py-2 flex items-center justify-between border-b transition-colors hover:bg-white/5"
+                            style={{ borderColor: 'var(--color-terminal-border-raw)' }}
                         >
-                            <span className="text-[11px] text-tx-primary">{t.name}</span>
-                            <span className="text-[9px] text-muted">{t.usage_count} kullanım</span>
+                            <span className="font-mono text-[11px]" style={{ color: 'var(--color-text-primary)' }}>{t.name}</span>
+                            <span className="font-mono text-[9px]" style={{ color: 'var(--color-brand-primary)', opacity: 0.7 }}>{t.usage_count}</span>
                         </button>
                     ))}
                 </div>

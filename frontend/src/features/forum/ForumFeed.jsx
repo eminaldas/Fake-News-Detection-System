@@ -171,6 +171,34 @@ function ThreadCard({ thread, index }) {
                     )}
                 </div>
 
+                {/* ── Görseller (başlıktan önce) ── */}
+                {local.image_urls?.length > 0 && (
+                    <div className={`grid gap-1 overflow-hidden border ${
+                        local.image_urls.length === 1 ? 'grid-cols-1' :
+                        local.image_urls.length === 2 ? 'grid-cols-2' :
+                        'grid-cols-3'
+                    }`} style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
+                        {local.image_urls.slice(0, 3).map((url, idx) => (
+                            <div key={idx} className="relative overflow-hidden"
+                                 style={{ height: local.image_urls.length === 1 ? 160 : 100 }}>
+                                <img
+                                    src={url}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                    onError={e => { e.currentTarget.parentElement.style.display = 'none'; }}
+                                />
+                                {/* +N badge: 3. karede daha fazla varsa */}
+                                {idx === 2 && local.image_urls.length > 3 && (
+                                    <div className="absolute inset-0 flex items-center justify-center font-mono font-black text-lg"
+                                         style={{ background: 'rgba(0,0,0,0.55)', color: '#fff' }}>
+                                        +{local.image_urls.length - 3}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+
                 {/* ── Başlık + gövde ── */}
                 <div className="flex flex-col gap-2">
                     <h3

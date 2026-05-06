@@ -374,6 +374,7 @@ class ForumThread(Base):
     view_count           = Column(Integer, server_default="0", nullable=False)
     fact_check_triggered = Column(Boolean, server_default="false", nullable=False)
     group_id             = Column(UUID(as_uuid=True), nullable=True)
+    image_urls           = Column(JSONB, nullable=False, server_default="[]")
     created_at      = Column(DateTime(timezone=True), server_default=func.now())
     updated_at      = Column(DateTime(timezone=True), onupdate=func.now())
 

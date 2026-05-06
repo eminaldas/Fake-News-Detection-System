@@ -21,7 +21,7 @@ const ForumCreateThread = () => {
     const navigate        = useNavigate();
     const articleId       = searchParams.get('article');
 
-    const [article,    _setArticle]   = React.useState(null);
+    const [article,    setArticle]    = React.useState(null);
     const [existing,   setExisting]   = React.useState([]);
     const [title,      setTitle]      = React.useState('');
     const [body,       setBody]       = React.useState('');
@@ -30,17 +30,20 @@ const ForumCreateThread = () => {
     const [submitting, setSubmitting] = React.useState(false);
     const [error,      setError]      = React.useState('');
 
-    // Bağlı haber bilgisini yükle
     React.useEffect(() => {
         if (!articleId) return;
         axiosInstance.get(`/forum/articles/${articleId}/threads`)
-            .then(r => setExisting(r.data.items ?? []))
+            .then(r => {
+                setExisting(r.data.items ?? []);
+                // İlk thread'in article verisinden başlık/görsel/kaynak al
+                const firstThread = r.data.items?.[0];
+                if (firstThread?.article) setArticle(firstThread.article);
+            })
             .catch(() => {});
-        // Article özet bilgisini trending verisinden değil, thread listesinin ilk kaydından alacağız;
-        // ya da doğrudan article endpoint'i yoksa thread oluştururken bağlarız.
-        // Article meta için analysis.py direct_match_data.db_article_id üzerinden gelmiş olacak.
-        // Burada sadece başlığı göstermek için articles search yapmak yerine
-        // form başarılı olunca navigate edeceğiz.
+        // news endpoint'inden article bilgisini çek
+        axiosInstance.get(`/news/${articleId}`)
+            .then(r => setArticle(r.data))
+            .catch(() => {});
     }, [articleId]);
 
     const handleSubmit = async (e) => {
@@ -81,27 +84,56 @@ const ForumCreateThread = () => {
             {/* Bağlı haber bandı */}
             {articleId && (
                 <div
-                    className="flex items-center gap-3 p-3 rounded-xl border"
-                    style={{ background: 'rgba(16,185,129,0.04)', borderColor: 'rgba(16,185,129,0.15)' }}
+                    className="flex items-center gap-3 p-3 border"
+                    style={{ background: 'rgba(168,85,247,0.04)', borderColor: 'rgba(168,85,247,0.20)' }}
                 >
-                    <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                        style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.20)' }}
-                    >
-                        <LinkIcon className="w-4 h-4" style={{ color: 'var(--color-brand-primary)' }} />
-                    </div>
+                    {article?.image_url && (
+                        <img
+                            src={article.image_url}
+                            alt=""
+                            className="w-14 h-10 object-cover shrink-0"
+                            onError={e => { e.currentTarget.style.display = 'none'; }}
+                        />
+                    )}
+                    {!article?.image_url && (
+                        <div
+                            className="w-8 h-8 flex items-center justify-center shrink-0"
+                            style={{ background: 'rgba(168,85,247,0.10)', border: '1px solid rgba(168,85,247,0.20)' }}
+                        >
+                            <LinkIcon className="w-4 h-4" style={{ color: '#a855f7' }} />
+                        </div>
+                    )}
                     <div className="flex-1 min-w-0">
-                        <p className="text-[9px] text-muted mb-0.5">Bağlı Haber</p>
-                        <p className="text-[11px] text-tx-primary font-semibold truncate">
+                        <p className="font-mono text-[9px] uppercase tracking-widest mb-0.5" style={{ color: '#a855f7', opacity: 0.7 }}>
+                            Bağlı Haber
+                        </p>
+                        <p className="font-mono text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>
                             {article?.title ?? `Haber ID: ${articleId.slice(0, 8)}…`}
                         </p>
+                        {article?.source_name && (
+                            <p className="font-mono text-[9px]" style={{ color: 'var(--color-text-muted)' }}>
+                                {article.source_name}
+                                {article.source_url && (
+                                    <a
+                                        href={article.source_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="ml-2 transition-opacity hover:opacity-70"
+                                        style={{ color: 'var(--color-accent-blue)' }}
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        ↗ kaynak
+                                    </a>
+                                )}
+                            </p>
+                        )}
                     </div>
                     <Link
                         to="/forum/new"
-                        className="text-[9px] text-muted border rounded px-2 py-1 hover:text-tx-primary transition-colors shrink-0"
-                        style={{ borderColor: 'var(--color-border)' }}
+                        className="font-mono text-xs transition-opacity hover:opacity-60 shrink-0"
+                        style={{ color: 'var(--color-text-muted)' }}
                     >
-                        <X className="w-3 h-3" />
+                        <X className="w-3.5 h-3.5" />
                     </Link>
                 </div>
             )}

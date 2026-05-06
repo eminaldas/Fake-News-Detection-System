@@ -1,11 +1,13 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { ThumbsUp, MessageSquare, Link as LinkIcon, Flag, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { ThumbsUp, MessageSquare, Flag, X, ChevronDown, ChevronUp } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import { useAuth } from '../../contexts/AuthContext';
 
 const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
+
+const REPLIES_INITIAL = 3;
 
 function timeAgo(dateStr) {
     const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
@@ -23,7 +25,6 @@ function avatarIdx(username = '') { return username.charCodeAt(0) % PAL_BG.lengt
 const DEPTH_INDENT  = 24;
 const MAX_DEPTH     = 2;
 
-/* Derinliğe göre sol-border rengi */
 function depthBorderColor(depth, highlighted) {
     if (highlighted) return 'var(--color-brand-primary)';
     if (depth === 0) return 'rgba(16,185,129,0.35)';
@@ -32,13 +33,19 @@ function depthBorderColor(depth, highlighted) {
 }
 
 function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewComment, currentUserId, depth = 0 }) {
-    const [showReplies,    setShowReplies]    = React.useState(true);
-    const [editMode,       setEditMode]       = React.useState(false);
-    const [editBody,       setEditBody]       = React.useState('');
+    /* Alt yanıtlar varsayılan kapalı */
+    const [showReplies,  setShowReplies]  = React.useState(false);
+    const [visibleCount, setVisibleCount] = React.useState(REPLIES_INITIAL);
+    const [editMode,     setEditMode]     = React.useState(false);
+    const [editBody,     setEditBody]     = React.useState('');
     const isAuthor = comment.user_id === currentUserId;
     const idx      = avatarIdx(comment.username);
     const borderL  = depthBorderColor(depth, comment.is_highlighted);
     const avatarSz = depth === 0 ? 32 : 26;
+
+    const replies       = comment.replies ?? [];
+    const visibleReplies = replies.slice(0, visibleCount);
+    const hiddenCount    = replies.length - visibleCount;
 
     const handleEdit = async () => {
         try {
@@ -55,7 +62,6 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
 
     return (
         <div style={{ marginLeft: depth > 0 ? DEPTH_INDENT : 0, position: 'relative' }}>
-            {/* Derinlik bağlantı çizgisi */}
             {depth > 0 && (
                 <div style={{
                     position:   'absolute',
@@ -67,7 +73,6 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                 }} />
             )}
 
-            {/* Yorum kartı */}
             <div
                 className="mb-3 border-l-[3px] transition-colors"
                 style={{
@@ -80,7 +85,6 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
             >
                 {/* Üst: avatar + kullanıcı + zaman */}
                 <div className="flex items-center gap-3 px-4 py-3 border-b" style={BD}>
-                    {/* Kare avatar */}
                     <div
                         className="flex items-center justify-center font-mono font-black shrink-0"
                         style={{
@@ -112,7 +116,7 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                         )}
                     </div>
 
-                    <span className="font-mono text-xs shrink-0 tracking-widest" style={{ color: 'var(--color-text-primary)', opacity: 0.4 }}>
+                    <span className="font-mono text-xs shrink-0 tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
                         {timeAgo(comment.created_at)} ÖNCE
                     </span>
                 </div>
@@ -145,30 +149,11 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                         <p className="font-mono text-sm leading-relaxed" style={{ color: 'var(--color-text-primary)' }}>
                             {comment.body}
                             {comment.is_edited && (
-                                <span className="ml-2 font-mono text-[10px]" style={{ color: 'var(--color-text-primary)', opacity: 0.35 }}>
+                                <span className="ml-2 font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
                                     (düzenlendi)
                                 </span>
                             )}
                         </p>
-                    )}
-
-                    {/* Kanıt linkleri */}
-                    {comment.evidence_urls?.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-3">
-                            {comment.evidence_urls.map((url, i) => (
-                                <a
-                                    key={i}
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-1.5 font-mono text-xs px-2 py-0.5 border transition-opacity hover:opacity-70"
-                                    style={{ color: 'var(--color-accent-blue)', borderColor: 'rgba(59,130,246,0.25)' }}
-                                >
-                                    <LinkIcon className="w-3 h-3" />
-                                    Kaynak {i + 1}
-                                </a>
-                            ))}
-                        </div>
                     )}
                 </div>
 
@@ -177,7 +162,7 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                     <button
                         onClick={() => onHelpful(comment.id)}
                         className="flex items-center gap-1.5 px-2 py-1 font-mono text-xs transition-colors hover:text-brand"
-                        style={{ color: comment.helpful_count > 0 ? 'var(--color-brand-primary)' : 'var(--color-text-primary)' }}
+                        style={{ color: comment.helpful_count > 0 ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}
                     >
                         <ThumbsUp className="w-3.5 h-3.5" />
                         {comment.helpful_count > 0 ? comment.helpful_count : 'Faydalı'}
@@ -187,13 +172,13 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                         <button
                             onClick={() => onReply(comment.id, comment.username)}
                             className="flex items-center gap-1.5 px-2 py-1 font-mono text-xs transition-colors hover:text-brand"
-                            style={{ color: 'var(--color-text-primary)' }}
+                            style={{ color: 'var(--color-text-muted)' }}
                         >
                             <MessageSquare className="w-3.5 h-3.5" />
                             Yanıtla
                         </button>
                     ) : (
-                        <span className="font-mono text-xs px-2 py-1" style={{ color: 'var(--color-text-primary)', opacity: 0.35 }}>
+                        <span className="font-mono text-xs px-2 py-1" style={{ color: 'var(--color-text-muted)', opacity: 0.35 }}>
                             ↪ max derinlik
                         </span>
                     )}
@@ -203,7 +188,7 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                             <button
                                 onClick={() => { setEditBody(comment.body); setEditMode(true); }}
                                 className="px-2 py-1 font-mono text-xs transition-opacity hover:opacity-60"
-                                style={{ color: 'var(--color-text-primary)' }}
+                                style={{ color: 'var(--color-text-muted)' }}
                             >
                                 düzenle
                             </button>
@@ -221,21 +206,22 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                         <button
                             onClick={() => onReport(comment.id)}
                             className="flex items-center gap-1 px-2 py-1 font-mono text-xs transition-opacity hover:opacity-60"
-                            style={{ color: 'var(--color-text-primary)', opacity: 0.35 }}
+                            style={{ color: 'var(--color-text-muted)', opacity: 0.4 }}
                         >
                             <Flag className="w-3 h-3" />
                         </button>
                     )}
 
-                    {comment.replies?.length > 0 && (
+                    {/* Alt yanıt aç/kapat */}
+                    {replies.length > 0 && (
                         <button
-                            onClick={() => setShowReplies(v => !v)}
+                            onClick={() => { setShowReplies(v => !v); if (!showReplies) setVisibleCount(REPLIES_INITIAL); }}
                             className="flex items-center gap-1 px-2 py-1 font-mono text-xs ml-auto transition-opacity hover:opacity-70"
                             style={{ color: 'var(--color-brand-primary)' }}
                         >
                             {showReplies
-                                ? <><ChevronUp className="w-3.5 h-3.5" /> Gizle</>
-                                : <><ChevronDown className="w-3.5 h-3.5" /> {comment.replies.length} yanıt</>
+                                ? <><ChevronUp className="w-3.5 h-3.5" /> gizle</>
+                                : <><ChevronDown className="w-3.5 h-3.5" /> {replies.length} yanıt</>
                             }
                         </button>
                     )}
@@ -243,9 +229,9 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
             </div>
 
             {/* Alt yanıtlar */}
-            {showReplies && comment.replies?.length > 0 && (
+            {showReplies && replies.length > 0 && (
                 <div>
-                    {comment.replies.map(reply => (
+                    {visibleReplies.map(reply => (
                         <CommentNode
                             key={reply.id}
                             comment={reply}
@@ -258,6 +244,15 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                             depth={depth + 1}
                         />
                     ))}
+                    {hiddenCount > 0 && (
+                        <button
+                            onClick={() => setVisibleCount(v => v + REPLIES_INITIAL)}
+                            className="ml-6 mb-3 px-3 py-1.5 font-mono text-xs border transition-opacity hover:opacity-70"
+                            style={{ borderColor: 'rgba(16,185,129,0.25)', color: 'var(--color-brand-primary)' }}
+                        >
+                            + {hiddenCount} yanıt daha göster
+                        </button>
+                    )}
                 </div>
             )}
         </div>
@@ -280,7 +275,7 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
 
     if (!comments?.length) {
         return (
-            <p className="font-mono text-sm text-center py-8" style={{ color: 'var(--color-text-primary)', opacity: 0.4 }}>
+            <p className="font-mono text-sm text-center py-8" style={{ color: 'var(--color-text-muted)' }}>
                 // henüz yorum yok — ilk yorumu sen yap
             </p>
         );
@@ -301,7 +296,6 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
                 />
             ))}
 
-            {/* Bildir modalı */}
             {reportTarget && createPortal(
                 <div
                     className="fixed inset-0 z-[9999] flex items-center justify-center"
@@ -313,7 +307,6 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
                         style={TS}
                         onClick={e => e.stopPropagation()}
                     >
-                        {/* Köşe aksanları */}
                         <div className="absolute top-0 left-0 w-3 h-[2px] bg-brand" />
                         <div className="absolute top-0 left-0 h-3 w-[2px] bg-brand" />
                         <div className="absolute bottom-0 right-0 w-3 h-[2px] bg-brand" />
@@ -323,7 +316,7 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
                             <span className="font-mono text-xs tracking-widest uppercase" style={{ color: 'var(--color-brand-primary)' }}>
                                 // YORUMU BİLDİR
                             </span>
-                            <button onClick={() => setReportTarget(null)} style={{ color: 'var(--color-text-primary)', opacity: 0.5 }}>
+                            <button onClick={() => setReportTarget(null)} style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
                                 <X className="w-4 h-4" />
                             </button>
                         </div>

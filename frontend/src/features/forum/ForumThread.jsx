@@ -1,9 +1,9 @@
 import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
-    AlertTriangle, Send, Link as LinkIcon, X,
+    AlertTriangle, Send, X,
     ShieldCheck, ShieldAlert, ChevronDown, ChevronUp,
-    ArrowLeft, MessageSquare,
+    ArrowLeft, MessageSquare, ExternalLink,
 } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import { useWebSocket } from '../../contexts/WebSocketContext';
@@ -30,7 +30,6 @@ const STATUS_LABEL = {
     resolved:     'ÇÖZÜLDÜ',
 };
 
-/* Section wrapper */
 function Block({ title, children, footer }) {
     return (
         <div className="relative border overflow-hidden" style={TS}>
@@ -55,7 +54,6 @@ function Block({ title, children, footer }) {
     );
 }
 
-/* Oy dağılım barı — segmented */
 function VoteSegBar({ suspicious, authentic, investigate }) {
     const total = suspicious + authentic + investigate || 1;
     const SEGS  = 10;
@@ -95,8 +93,6 @@ const ForumThread = () => {
     const [body,              setBody]              = React.useState('');
     const [parentId,          setParentId]          = React.useState(null);
     const [replyTo,           setReplyTo]           = React.useState(null);
-    const [evidenceUrls,      setEvidenceUrls]      = React.useState([]);
-    const [urlInput,          setUrlInput]          = React.useState('');
     const [submitting,        setSubmitting]        = React.useState(false);
     const [moderationWarning, setModerationWarning] = React.useState(false);
 
@@ -127,7 +123,11 @@ const ForumThread = () => {
         finally { setVoting(false); }
     };
 
-    const handleReply   = (commentId, username) => { setParentId(commentId); setReplyTo(username); document.getElementById('comment-input')?.focus(); };
+    const handleReply   = (commentId, username) => {
+        setParentId(commentId);
+        setReplyTo(username);
+        document.getElementById('comment-input')?.focus();
+    };
     const cancelReply   = () => { setParentId(null); setReplyTo(null); };
     const handleDelete  = async () => {
         if (!window.confirm('Tartışmayı silmek istediğinizden emin misiniz?')) return;
@@ -136,8 +136,6 @@ const ForumThread = () => {
     const submitEdit    = async () => {
         try { await axiosInstance.put(`/forum/threads/${threadId}`, { title: editTitle, body: editBody }); setEditMode(false); await load(); } catch {}
     };
-    const addUrl        = () => { const u = urlInput.trim(); if (u && !evidenceUrls.includes(u)) { setEvidenceUrls(p => [...p, u]); setUrlInput(''); } };
-    const removeUrl     = (u) => setEvidenceUrls(p => p.filter(x => x !== u));
 
     const submitComment = async (e) => {
         e.preventDefault();
@@ -145,19 +143,18 @@ const ForumThread = () => {
         setSubmitting(true);
         try {
             const res = await axiosInstance.post(`/forum/threads/${threadId}/comments`, {
-                body: body.trim(), parent_id: parentId ?? undefined, evidence_urls: evidenceUrls,
+                body: body.trim(), parent_id: parentId ?? undefined,
             });
             if (res.status === 202) {
                 setModerationWarning(true);
             } else {
-                setBody(''); setParentId(null); setReplyTo(null); setEvidenceUrls([]); setModerationWarning(false);
+                setBody(''); setParentId(null); setReplyTo(null); setModerationWarning(false);
                 await load();
             }
         } catch {}
         finally { setSubmitting(false); }
     };
 
-    /* ── Skeleton ── */
     if (loading) return (
         <div className="flex flex-col gap-4">
             {[...Array(3)].map((_, i) => (
@@ -181,85 +178,81 @@ const ForumThread = () => {
 
     return (
         <>
-        <div className="flex gap-5 items-start">
+        <div className="flex flex-col gap-4">
 
-            {/* ══════ SOL — Ana içerik ══════ */}
-            <div className="flex-1 min-w-0 flex flex-col gap-4">
+            {/* Geri */}
+            <button
+                onClick={() => navigate(-1)}
+                className="flex items-center gap-1.5 font-mono text-sm font-semibold transition-opacity hover:opacity-70 self-start"
+                style={{ color: 'var(--color-text-primary)' }}
+            >
+                <ArrowLeft className="w-4 h-4" /> geri
+            </button>
 
-                {/* ── Geri + başlık ── */}
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="flex items-center gap-1.5 font-mono text-sm font-semibold transition-opacity hover:opacity-70"
-                        style={{ color: 'var(--color-text-primary)' }}
-                    >
-                        <ArrowLeft className="w-4 h-4" /> geri
-                    </button>
-                </div>
+            {/* ── Ana kart: başlık + açıklama + meta ── */}
+            <Block>
+                <div className="p-5 flex flex-col gap-4">
 
-                {/* ── Thread Header kartı ── */}
-                <Block>
-                    <div className="p-5 flex flex-col gap-4">
-
-                        {/* Meta badges */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                            {thread.article && (
-                                <span
-                                    className="flex items-center gap-1.5 font-mono text-xs font-bold px-2.5 py-1 border"
-                                    style={{
-                                        color:       isFake ? 'var(--color-fake-text)'  : 'var(--color-brand-primary)',
-                                        borderColor: isFake ? 'rgba(239,68,68,0.35)'    : 'rgba(16,185,129,0.35)',
-                                        background:  isFake ? 'rgba(239,68,68,0.06)'    : 'rgba(16,185,129,0.06)',
-                                    }}
-                                >
-                                    {isFake ? <ShieldAlert className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5" />}
-                                    AI: %{confidencePct} {isFake ? 'Yanıltıcı' : 'Güvenilir'}
-                                </span>
-                            )}
-                            {thread.category && (
-                                <span className="font-mono text-xs font-bold uppercase tracking-wider px-2 py-0.5 border"
-                                      style={{ color: 'var(--color-accent-blue)', borderColor: 'rgba(59,130,246,0.30)' }}>
-                                    {thread.category}
-                                </span>
-                            )}
+                    {/* Meta badges */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {thread.article && (
                             <span
-                                className="font-mono text-xs font-bold uppercase tracking-wider px-2 py-0.5 border ml-auto"
-                                style={{ color: statusColor, borderColor: statusColor + '50' }}
+                                className="flex items-center gap-1.5 font-mono text-xs font-bold px-2.5 py-1 border"
+                                style={{
+                                    color:       isFake ? 'var(--color-fake-text)'  : 'var(--color-brand-primary)',
+                                    borderColor: isFake ? 'rgba(239,68,68,0.35)'    : 'rgba(16,185,129,0.35)',
+                                    background:  isFake ? 'rgba(239,68,68,0.06)'    : 'rgba(16,185,129,0.06)',
+                                }}
                             >
-                                {statusLabel}
+                                {isFake ? <ShieldAlert className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5" />}
+                                AI: %{confidencePct} {isFake ? 'Yanıltıcı' : 'Güvenilir'}
                             </span>
-                        </div>
+                        )}
+                        {thread.category && (
+                            <span className="font-mono text-xs font-bold uppercase tracking-wider px-2 py-0.5 border"
+                                  style={{ color: 'var(--color-accent-blue)', borderColor: 'rgba(59,130,246,0.30)' }}>
+                                {thread.category}
+                            </span>
+                        )}
+                        <span
+                            className="font-mono text-xs font-bold uppercase tracking-wider px-2 py-0.5 border ml-auto"
+                            style={{ color: statusColor, borderColor: statusColor + '50' }}
+                        >
+                            {statusLabel}
+                        </span>
+                    </div>
 
-                        {/* Başlık */}
-                        {editMode ? (
-                            <div className="flex flex-col gap-2">
-                                <input
-                                    value={editTitle}
-                                    onChange={e => setEditTitle(e.target.value)}
-                                    className="w-full bg-transparent font-mono text-base font-bold outline-none px-3 py-2 border"
-                                    style={{ borderColor: 'var(--color-brand-primary)', color: 'var(--color-text-primary)', background: 'var(--color-bg-base)' }}
-                                />
-                                <textarea
-                                    value={editBody}
-                                    onChange={e => setEditBody(e.target.value)}
-                                    rows={4}
-                                    className="w-full bg-transparent font-mono text-sm outline-none px-3 py-2 border resize-none"
-                                    style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-secondary)', background: 'var(--color-bg-base)' }}
-                                />
-                                <div className="flex gap-2">
-                                    <button onClick={submitEdit}
-                                        className="px-4 py-2 font-mono text-sm font-bold transition-opacity hover:opacity-80"
-                                        style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
-                                        [ KAYDET ]
-                                    </button>
-                                    <button onClick={() => setEditMode(false)}
-                                        className="px-4 py-2 font-mono text-sm border transition-opacity hover:opacity-70"
-                                        style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)' }}>
-                                        İptal
-                                    </button>
-                                </div>
+                    {/* Başlık + gövde (birleşik) */}
+                    {editMode ? (
+                        <div className="flex flex-col gap-2">
+                            <input
+                                value={editTitle}
+                                onChange={e => setEditTitle(e.target.value)}
+                                className="w-full bg-transparent font-mono text-base font-bold outline-none px-3 py-2 border"
+                                style={{ borderColor: 'var(--color-brand-primary)', color: 'var(--color-text-primary)', background: 'var(--color-bg-base)' }}
+                            />
+                            <textarea
+                                value={editBody}
+                                onChange={e => setEditBody(e.target.value)}
+                                rows={4}
+                                className="w-full bg-transparent font-mono text-sm outline-none px-3 py-2 border resize-none"
+                                style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)', background: 'var(--color-bg-base)' }}
+                            />
+                            <div className="flex gap-2">
+                                <button onClick={submitEdit}
+                                    className="px-4 py-2 font-mono text-sm font-bold transition-opacity hover:opacity-80"
+                                    style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
+                                    [ KAYDET ]
+                                </button>
+                                <button onClick={() => setEditMode(false)}
+                                    className="px-4 py-2 font-mono text-sm border transition-opacity hover:opacity-70"
+                                    style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)' }}>
+                                    İptal
+                                </button>
                             </div>
-                        ) : (
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-3">
                             <div className="flex items-start gap-3">
                                 <h2 className="flex-1 font-mono text-xl font-bold leading-snug" style={{ color: 'var(--color-text-primary)' }}>
                                     {thread.title}
@@ -286,256 +279,235 @@ const ForumThread = () => {
                                     )}
                                 </div>
                             </div>
-                        )}
 
-                        {/* Yazar + tarih */}
-                        <p className="font-mono text-sm" style={{ color: 'var(--color-text-primary)', opacity: 0.55 }}>
-                            {thread.author?.username} · {new Date(thread.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </p>
-
-                        {/* İnceleme uyarısı */}
-                        {thread.status === 'under_review' && (
-                            <div
-                                className="flex items-center gap-2.5 px-3 py-2.5 border font-mono text-sm"
-                                style={{ background: 'rgba(245,158,11,0.06)', borderColor: 'rgba(245,158,11,0.30)', color: 'var(--color-accent-amber)' }}
-                            >
-                                <AlertTriangle className="w-4 h-4 shrink-0" />
-                                Topluluk kararı AI kararıyla çelişiyor — inceleme altında
-                            </div>
-                        )}
-
-                        {/* Etiketler */}
-                        {thread.tags?.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5">
-                                {thread.tags.map(t => (
-                                    <span
-                                        key={t.id}
-                                        className="font-mono text-[10px] px-2 py-0.5 border"
-                                        style={{
-                                            color:       t.is_system ? 'var(--color-brand-primary)' : 'var(--color-text-muted)',
-                                            borderColor: t.is_system ? 'rgba(16,185,129,0.25)' : 'var(--color-terminal-border-raw)',
-                                        }}
-                                    >
-                                        #{t.name}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Oy butonları */}
-                        <div className="flex items-center gap-3 pt-3 border-t flex-wrap" style={BD}>
-                            <span className="font-mono text-xs font-bold tracking-widest uppercase shrink-0" style={{ color: 'var(--color-text-primary)', opacity: 0.5 }}>
-                                OY VER:
-                            </span>
-                            {isNews
-                                ? <NewsVoteBar    thread={thread} onVote={handleVote} disabled={voting} />
-                                : <GeneralVoteBar thread={thread} onVote={handleVote} disabled={voting} />
-                            }
-                        </div>
-                    </div>
-                </Block>
-
-                {/* ── Açıklama / Gövde — thread ile yorumlar arasında, katlanabilir ── */}
-                {thread.body && !editMode && (
-                    <div className="relative border overflow-hidden" style={TS}>
-                        <div className="absolute top-0 left-0 w-3 h-[2px] bg-brand pointer-events-none" />
-                        <div className="absolute top-0 left-0 h-3 w-[2px] bg-brand pointer-events-none" />
-                        <button
-                            className="w-full flex items-center justify-between px-4 py-3 border-b font-mono text-xs font-bold tracking-widest uppercase transition-opacity hover:opacity-80"
-                            style={{ ...BD, color: 'var(--color-brand-primary)', background: 'transparent' }}
-                            onClick={() => setBodyOpen(v => !v)}
-                        >
-                            <span>// AÇIKLAMA</span>
-                            {bodyOpen
-                                ? <ChevronUp className="w-4 h-4" />
-                                : <ChevronDown className="w-4 h-4" />
-                            }
-                        </button>
-                        {bodyOpen && (
-                            <div className="px-5 py-4">
-                                <p className="font-mono text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
-                                    {thread.body}
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* ── Yorumlar ── */}
-                <Block
-                    title={`// tartışma · ${thread.comment_count} yorum`}
-                    footer={
-                        <span className="font-mono text-[10px] opacity-30" style={{ color: 'var(--color-text-muted)' }}>
-                            // COMMENT_STREAM
-                        </span>
-                    }
-                >
-                    <div className="px-5 py-4">
-                        <ForumCommentTree
-                            comments={thread.comments ?? []}
-                            threadId={threadId}
-                            onReply={handleReply}
-                            onNewComment={load}
-                        />
-                    </div>
-
-                    {/* Yorum formu */}
-                    <form
-                        onSubmit={submitComment}
-                        className="border-t flex flex-col gap-3 p-5"
-                        style={BD}
-                    >
-                        {replyTo && (
-                            <div
-                                className="flex items-center gap-2 font-mono text-xs px-3 py-2 border"
-                                style={{ background: 'rgba(16,185,129,0.05)', borderColor: 'rgba(16,185,129,0.20)', color: 'var(--color-text-muted)' }}
-                            >
-                                <span>↪ <strong style={{ color: 'var(--color-brand-primary)' }}>{replyTo}</strong> kullanıcısına yanıt</span>
-                                <button type="button" onClick={cancelReply} className="ml-auto">
-                                    <X className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
-                        )}
-
-                        {moderationWarning && (
-                            <div className="border px-3 py-2.5" style={{ borderColor: 'rgba(245,158,11,0.30)', background: 'rgba(245,158,11,0.06)' }}>
-                                <p className="font-mono text-sm" style={{ color: 'var(--color-accent-amber)' }}>
-                                    Yorumunuz incelemeye alındı. İçeriği düzenleyip tekrar gönderebilirsiniz.
-                                </p>
-                            </div>
-                        )}
-
-                        <MentionTextarea
-                            id="comment-input"
-                            value={body}
-                            onChange={(val) => { setBody(val); setModerationWarning(false); }}
-                            rows={3}
-                            placeholder="Kanıt veya yorumunu ekle..."
-                            className="w-full bg-transparent resize-none font-mono text-sm outline-none px-3 py-2.5 border transition-colors"
-                            style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'var(--color-bg-base)', color: 'var(--color-text-primary)' }}
-                        />
-
-                        {/* Kanıt URL'leri */}
-                        {evidenceUrls.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5">
-                                {evidenceUrls.map(url => (
-                                    <div
-                                        key={url}
-                                        className="flex items-center gap-1.5 font-mono text-xs px-2 py-0.5 border"
-                                        style={{ color: 'var(--color-accent-blue)', borderColor: 'rgba(59,130,246,0.25)' }}
-                                    >
-                                        <LinkIcon className="w-3 h-3" />
-                                        <span className="max-w-[180px] truncate">{url}</span>
-                                        <button type="button" onClick={() => removeUrl(url)} className="ml-1">
-                                            <X className="w-3 h-3" />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2 flex-1 border px-3 py-2" style={BD}>
-                                <span className="font-mono text-xs shrink-0" style={{ color: 'var(--color-brand-primary)' }}>{'>'}</span>
-                                <input
-                                    value={urlInput}
-                                    onChange={e => setUrlInput(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addUrl())}
-                                    placeholder="kaynak linki ekle..."
-                                    className="font-mono text-sm bg-transparent outline-none flex-1"
-                                    style={{ color: 'var(--color-text-primary)' }}
-                                />
-                                {urlInput && (
-                                    <button type="button" onClick={addUrl}
-                                        className="font-mono text-xs px-2 py-0.5 border transition-opacity hover:opacity-70"
-                                        style={{ color: 'var(--color-accent-blue)', borderColor: 'rgba(59,130,246,0.25)' }}>
-                                        + ekle
-                                    </button>
-                                )}
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={!body.trim() || submitting}
-                                className="flex items-center gap-2 px-5 py-2.5 font-mono text-sm font-bold tracking-wider disabled:opacity-40 transition-opacity hover:opacity-80"
-                                style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}
-                            >
-                                <Send className="w-4 h-4" />
-                                [ GÖNDER ]
-                            </button>
-                        </div>
-                    </form>
-                </Block>
-            </div>
-
-            {/* ══════ SAĞ — İstatistik ══════ */}
-            <div className="w-52 flex-shrink-0 flex flex-col gap-4" style={{ position: 'sticky', top: '6rem', alignSelf: 'start' }}>
-
-                {/* Tartışma istatistikleri */}
-                <Block title="// istatistikler">
-                    <div className="px-4 py-3 flex flex-col gap-0">
-                        {[
-                            { label: 'TOPLAM OY',   value: totalVotes,           color: 'var(--color-text-primary)' },
-                            { label: 'YORUM',       value: thread.comment_count, color: 'var(--color-text-primary)' },
-                        ].map(({ label, value }, idx, arr) => (
-                            <div key={label}>
-                                <div className="flex items-center justify-between py-2.5">
-                                    <span className="font-mono text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{label}</span>
-                                    <span className="font-mono text-sm font-black" style={{ color: 'var(--color-brand-primary)' }}>{value}</span>
+                            {/* Thread görselleri */}
+                            {thread.image_urls?.length > 0 && (
+                                <div className={`grid gap-1 ${
+                                    thread.image_urls.length === 1 ? 'grid-cols-1' :
+                                    thread.image_urls.length === 2 ? 'grid-cols-2' :
+                                    thread.image_urls.length === 3 ? 'grid-cols-3' :
+                                    'grid-cols-2'
+                                }`}>
+                                    {thread.image_urls.map((url, idx) => (
+                                        <div
+                                            key={idx}
+                                            className={`overflow-hidden border ${
+                                                thread.image_urls.length === 4 && idx === 0 ? 'col-span-2 row-span-1' : ''
+                                            }`}
+                                            style={BD}
+                                        >
+                                            <img
+                                                src={url}
+                                                alt=""
+                                                className={`w-full object-cover ${
+                                                    thread.image_urls.length === 1 ? 'max-h-72' : 'h-40'
+                                                }`}
+                                                onError={e => { e.currentTarget.parentElement.style.display = 'none'; }}
+                                            />
+                                        </div>
+                                    ))}
                                 </div>
-                                {idx < arr.length - 1 && <div className="h-px" style={{ background: 'var(--color-terminal-border-raw)' }} />}
-                            </div>
-                        ))}
-                        <div className="h-px mt-1" style={{ background: 'var(--color-terminal-border-raw)' }} />
-                        <div className="flex items-center justify-between py-2.5">
-                            <span className="font-mono text-xs tracking-wider" style={{ color: 'var(--color-text-primary)' }}>DURUM</span>
-                            <span className="font-mono text-xs font-bold px-2 py-0.5 border" style={{ color: statusColor, borderColor: statusColor + '50' }}>
-                                {statusLabel}
-                            </span>
-                        </div>
-                    </div>
+                            )}
 
-                    {/* Oy dağılımı */}
-                    {totalVotes > 0 && (
-                        <div className="px-4 pb-4 flex flex-col gap-2">
-                            <VoteSegBar
-                                suspicious={thread.vote_suspicious}
-                                authentic={thread.vote_authentic}
-                                investigate={thread.vote_investigate}
-                            />
-                            <div className="flex items-center gap-3 font-mono text-[10px]">
-                                <span style={{ color: 'var(--color-fake-fill)' }}>! {thread.vote_suspicious}</span>
-                                <span style={{ color: 'var(--color-brand-primary)' }}>✓ {thread.vote_authentic}</span>
-                                <span style={{ color: 'var(--color-accent-amber)' }}>? {thread.vote_investigate}</span>
-                            </div>
+                            {/* Açıklama — başlıkla aynı kart içinde */}
+                            {thread.body && (
+                                <>
+                                    <button
+                                        className="flex items-center gap-2 font-mono text-[10px] font-bold tracking-widest uppercase transition-opacity hover:opacity-70 self-start"
+                                        style={{ color: 'var(--color-brand-primary)' }}
+                                        onClick={() => setBodyOpen(v => !v)}
+                                    >
+                                        {bodyOpen
+                                            ? <><ChevronUp className="w-3.5 h-3.5" /> açıklamayı gizle</>
+                                            : <><ChevronDown className="w-3.5 h-3.5" /> açıklamayı gör</>
+                                        }
+                                    </button>
+                                    {bodyOpen && (
+                                        <p className="font-mono text-sm leading-relaxed border-l-2 pl-3"
+                                           style={{ color: 'var(--color-text-primary)', borderLeftColor: 'rgba(16,185,129,0.30)' }}>
+                                            {thread.body}
+                                        </p>
+                                    )}
+                                </>
+                            )}
                         </div>
                     )}
-                </Block>
 
-                {/* Bağlı haber */}
-                {thread.article && (
-                    <Block title="// bağlı_haber">
-                        <div className="px-4 py-3 flex flex-col gap-3">
-                            <p className="font-mono text-sm leading-snug line-clamp-3" style={{ color: 'var(--color-text-primary)' }}>
-                                {thread.article.title}
-                            </p>
-                            {thread.article.source_domain && (
-                                <p className="font-mono text-xs" style={{ color: 'var(--color-text-primary)', opacity: 0.45 }}>
-                                    {thread.article.source_domain}
-                                </p>
-                            )}
-                            <Link
-                                to={`/forum?article=${thread.article.id}`}
-                                className="flex items-center gap-1.5 font-mono text-xs font-bold transition-opacity hover:opacity-70"
-                                style={{ color: 'var(--color-brand-primary)' }}
-                            >
-                                <MessageSquare className="w-3.5 h-3.5" />
-                                bu haberdeki tartışmalar →
-                            </Link>
+                    {/* Yazar + tarih */}
+                    <p className="font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                        {thread.author?.username} · {new Date(thread.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+
+                    {/* İnceleme uyarısı */}
+                    {thread.status === 'under_review' && (
+                        <div
+                            className="flex items-center gap-2.5 px-3 py-2.5 border font-mono text-sm"
+                            style={{ background: 'rgba(245,158,11,0.06)', borderColor: 'rgba(245,158,11,0.30)', color: 'var(--color-accent-amber)' }}
+                        >
+                            <AlertTriangle className="w-4 h-4 shrink-0" />
+                            Topluluk kararı AI kararıyla çelişiyor — inceleme altında
                         </div>
-                    </Block>
-                )}
-            </div>
+                    )}
 
+                    {/* Etiketler */}
+                    {thread.tags?.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                            {thread.tags.map(t => (
+                                <span
+                                    key={t.id}
+                                    className="font-mono text-[10px] px-2 py-0.5 border"
+                                    style={{
+                                        color:       t.is_system ? 'var(--color-brand-primary)' : 'var(--color-text-muted)',
+                                        borderColor: t.is_system ? 'rgba(16,185,129,0.25)' : 'var(--color-terminal-border-raw)',
+                                    }}
+                                >
+                                    #{t.name}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* ── Alt satır: oylar + istatistikler + bağlı haber ── */}
+                    <div className="flex flex-wrap items-center gap-3 pt-3 border-t" style={BD}>
+                        {/* Oy butonları */}
+                        {isNews
+                            ? <NewsVoteBar    thread={thread} onVote={handleVote} disabled={voting} />
+                            : <GeneralVoteBar thread={thread} onVote={handleVote} disabled={voting} />
+                        }
+
+                        {/* Ayırıcı */}
+                        <div className="w-px h-4 shrink-0" style={{ background: 'var(--color-terminal-border-raw)' }} />
+
+                        {/* Oy sayıları + dağılım */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {totalVotes > 0 && (
+                                <VoteSegBar
+                                    suspicious={thread.vote_suspicious}
+                                    authentic={thread.vote_authentic}
+                                    investigate={thread.vote_investigate}
+                                />
+                            )}
+                            <span className="font-mono text-[9px]" style={{ color: 'var(--color-fake-fill)' }}>! {thread.vote_suspicious}</span>
+                            <span className="font-mono text-[9px]" style={{ color: 'var(--color-brand-primary)' }}>✓ {thread.vote_authentic}</span>
+                            <span className="font-mono text-[9px]" style={{ color: 'var(--color-accent-amber)' }}>? {thread.vote_investigate}</span>
+                        </div>
+
+                        {/* Yorum sayısı */}
+                        <div className="flex items-center gap-1.5">
+                            <MessageSquare className="w-3 h-3" style={{ color: 'var(--color-text-muted)' }} />
+                            <span className="font-mono text-[9px]" style={{ color: 'var(--color-text-muted)' }}>{thread.comment_count}</span>
+                        </div>
+
+                        {/* Bağlı haber */}
+                        {thread.article && (
+                            <>
+                                <div className="w-px h-4 shrink-0" style={{ background: 'var(--color-terminal-border-raw)' }} />
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    {thread.article.image_url && (
+                                        <img
+                                            src={thread.article.image_url}
+                                            alt=""
+                                            className="w-8 h-6 object-cover shrink-0"
+                                            onError={e => { e.currentTarget.style.display = 'none'; }}
+                                        />
+                                    )}
+                                    <div className="min-w-0 flex-1">
+                                        <span className="font-mono text-[9px] uppercase tracking-widest mr-1.5" style={{ color: '#a855f7', opacity: 0.7 }}>
+                                            HABER:
+                                        </span>
+                                        <span className="font-mono text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                                            {thread.article.title?.length > 60
+                                                ? thread.article.title.slice(0, 60) + '…'
+                                                : thread.article.title}
+                                        </span>
+                                    </div>
+                                    {thread.article.source_url && (
+                                        <a
+                                            href={thread.article.source_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-1 font-mono text-[9px] shrink-0 transition-opacity hover:opacity-70"
+                                            style={{ color: 'var(--color-accent-blue)' }}
+                                            onClick={e => e.stopPropagation()}
+                                        >
+                                            <ExternalLink className="w-3 h-3" /> kaynak
+                                        </a>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </Block>
+
+            {/* ── Yorumlar ── */}
+            <Block
+                title={`// tartışma · ${thread.comment_count} yorum`}
+                footer={
+                    <span className="font-mono text-[10px] opacity-30" style={{ color: 'var(--color-text-muted)' }}>
+                        // COMMENT_STREAM
+                    </span>
+                }
+            >
+                {/* Yorum formu — ÜSTTE */}
+                <form
+                    onSubmit={submitComment}
+                    className="border-b flex flex-col gap-3 p-4"
+                    style={BD}
+                >
+                    {replyTo && (
+                        <div
+                            className="flex items-center gap-2 font-mono text-xs px-3 py-2 border"
+                            style={{ background: 'rgba(16,185,129,0.05)', borderColor: 'rgba(16,185,129,0.20)', color: 'var(--color-text-muted)' }}
+                        >
+                            <span>↪ <strong style={{ color: 'var(--color-brand-primary)' }}>{replyTo}</strong> kullanıcısına yanıt</span>
+                            <button type="button" onClick={cancelReply} className="ml-auto">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    )}
+
+                    {moderationWarning && (
+                        <div className="border px-3 py-2.5" style={{ borderColor: 'rgba(245,158,11,0.30)', background: 'rgba(245,158,11,0.06)' }}>
+                            <p className="font-mono text-sm" style={{ color: 'var(--color-accent-amber)' }}>
+                                Yorumunuz incelemeye alındı. İçeriği düzenleyip tekrar gönderebilirsiniz.
+                            </p>
+                        </div>
+                    )}
+
+                    <MentionTextarea
+                        id="comment-input"
+                        value={body}
+                        onChange={(val) => { setBody(val); setModerationWarning(false); }}
+                        rows={3}
+                        placeholder="Kanıt veya yorumunu ekle..."
+                        className="w-full bg-transparent resize-none font-mono text-sm outline-none px-3 py-2.5 border transition-colors"
+                        style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'var(--color-bg-base)', color: 'var(--color-text-primary)' }}
+                    />
+
+                    <div className="flex justify-end">
+                        <button
+                            type="submit"
+                            disabled={!body.trim() || submitting}
+                            className="flex items-center gap-2 px-5 py-2.5 font-mono text-sm font-bold tracking-wider disabled:opacity-40 transition-opacity hover:opacity-80"
+                            style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}
+                        >
+                            <Send className="w-4 h-4" />
+                            [ GÖNDER ]
+                        </button>
+                    </div>
+                </form>
+
+                {/* Yorum listesi */}
+                <div className="px-5 py-4">
+                    <ForumCommentTree
+                        comments={thread.comments ?? []}
+                        threadId={threadId}
+                        onReply={handleReply}
+                        onNewComment={load}
+                    />
+                </div>
+            </Block>
         </div>
         {showNudge && <LoginNudgeModal onClose={closeNudge} />}
         </>
