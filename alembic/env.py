@@ -21,6 +21,7 @@ if config.config_file_name is not None:
 
 # Import models so autogenerate can detect schema
 from app.models.models import Base  # noqa: E402
+import app.models.gamification  # noqa: F401  — registers UserXPEvent/UserBadge on Base.metadata
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
