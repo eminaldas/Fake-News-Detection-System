@@ -6,6 +6,7 @@ import MarketBand from './common/MarketBand';
 import NewsTicker from './common/NewsTicker';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import XPToast from './common/XPToast';
 
 const AUTH_PATHS  = ['/login', '/register'];
 const FORUM_PATHS = ['/forum'];
@@ -293,6 +294,8 @@ const Layout = () => {
                     </div>
                 </footer>
             )}
+
+            <XPToast />
         </div>
     );
 };
