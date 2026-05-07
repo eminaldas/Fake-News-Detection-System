@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Moon, Sun, Menu, X, ChevronDown, User, Settings, Shield, BarChart2, LogOut, Users, Search, MessageSquare } from 'lucide-react';
+import { Moon, Sun, Menu, X, ChevronDown, User, Settings, Shield, BarChart2, LogOut, Users, Search, MessageSquare, Award } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import axiosInstance from '../../api/axios';
@@ -255,6 +255,15 @@ const Navbar = () => {
         axiosInstance.get('/users/me/trust').then(r => setTrust(r.data)).catch(() => {});
     }, [user]);
 
+    const [userLevel, setUserLevel] = React.useState(null);
+
+    React.useEffect(() => {
+        if (!isAuthenticated) { setUserLevel(null); return; }
+        axiosInstance.get('/gamification/me/stats')
+            .then(r => setUserLevel(r.data.level))
+            .catch(() => {});
+    }, [isAuthenticated]);
+
     useEffect(() => {
         const handler = (e) => {
             if (profileRef.current && !profileRef.current.contains(e.target)) setShowProfile(false);
@@ -409,6 +418,12 @@ const Navbar = () => {
                                         {user.username?.[0]?.toUpperCase() ?? 'U'}
                                     </span>
                                 </div>
+                                {userLevel && (
+                                    <span className="font-mono text-[9px] px-1.5 py-0.5 border shrink-0"
+                                          style={{ borderColor: 'var(--color-brand-primary)', color: 'var(--color-brand-primary)' }}>
+                                        Lv.{userLevel}
+                                    </span>
+                                )}
                                 <ChevronDown
                                     size={11}
                                     className="hidden md:block transition-transform"
@@ -449,6 +464,13 @@ const Navbar = () => {
                                             style={{ color: 'var(--color-text-primary)' }}
                                         >
                                             <User size={14} className="shrink-0" /> Profilim
+                                        </Link>
+                                        <Link to="/badges"
+                                              className="flex items-center gap-2 px-4 py-2.5 border-b transition-colors hover:bg-white/5"
+                                              style={BD}
+                                              onClick={() => setShowProfile(false)}>
+                                            <Award className="w-4 h-4" style={{ color: 'var(--color-accent-amber)' }} />
+                                            <span className="font-mono text-sm">Rozetlerim</span>
                                         </Link>
                                         <Link
                                             to="/profile/settings"

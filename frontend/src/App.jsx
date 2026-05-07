@@ -45,6 +45,7 @@ import ForumSearch      from './pages/ForumSearch';
 import AdminModeration  from './pages/AdminModeration';
 import AdminDataset from './pages/AdminDataset';
 import AnalysisReport from './pages/AnalysisReport';
+import Badges from './pages/Badges';
 
 // /profile → kendi profiline yönlendir
 function ProfileRedirect() {
@@ -135,6 +136,9 @@ function App() {
 
                             {/* Kaydedilenler */}
                             <Route path="bookmarks" element={<RequireAuth><Bookmarks /></RequireAuth>} />
+
+                            {/* Rozetler */}
+                            <Route path="badges" element={<RequireAuth><Badges /></RequireAuth>} />
 
                             {/* Mesajlar */}
                             <Route path="messages"          element={<RequireAuth><Messages /></RequireAuth>} />
