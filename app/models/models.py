@@ -3,7 +3,7 @@ import enum
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
-    Boolean, CheckConstraint, Column, DateTime, Enum, Float, ForeignKey,
+    Boolean, CheckConstraint, Column, Date, DateTime, Enum, Float, ForeignKey,
     Index, Integer, String, Text, UniqueConstraint, func, text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -48,6 +48,11 @@ class User(Base):
     forum_trust_score    = Column(Float, nullable=False, server_default="0.0")
     forum_trust_tier     = Column(String(20), nullable=False, server_default="yeni_uye")
     forum_trust_category = Column(String(50), nullable=True)
+
+    total_xp        = Column(Integer, nullable=False, server_default="0", default=0)
+    level           = Column(Integer, nullable=False, server_default="1", default=1)
+    current_streak  = Column(Integer, nullable=False, server_default="0", default=0)
+    last_login_date = Column(Date, nullable=True)
 
     __table_args__ = (
         CheckConstraint(
