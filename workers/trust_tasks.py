@@ -45,6 +45,22 @@ celery_app.conf.update(
 # ─────────────────────────────────────────────────────────────────────────────
 # Yardımcı: tier hesaplama
 # ─────────────────────────────────────────────────────────────────────────────
+def _xp_to_level(total_xp: int) -> int:
+    """total_xp'den mevcut seviyeyi hesaplar."""
+    def xp_for(lvl: int) -> int:
+        if lvl <= 1:  return 0
+        if lvl <= 10: return sum(100 * i for i in range(1, lvl))
+        if lvl <= 20: return 4500 + (lvl - 10) * 500
+        if lvl <= 30: return 9500 + (lvl - 20) * 1000
+        return 19500 + (lvl - 30) * 1500
+
+    lvl = 1
+    while total_xp >= xp_for(lvl + 1):
+        lvl += 1
+        if lvl >= 200: return 200
+    return lvl
+
+
 def _score_to_tier(score: float) -> str:
     if score <= 25.0:
         return "yeni_uye"
@@ -76,17 +92,19 @@ async def _recalculate() -> dict:
                     u.id                              AS user_id,
                     COALESCE(SUM(c.helpful_count), 0) AS helpful_total,
                     COUNT(DISTINCT c.id)              AS comment_count,
-                    COUNT(DISTINCT t.id)              AS thread_count
+                    COUNT(DISTINCT t.id)              AS thread_count,
+                    u.total_xp                        AS total_xp
                 FROM users u
                 LEFT JOIN forum_comments c ON c.user_id = u.id
                 LEFT JOIN forum_threads  t ON t.author_id = u.id
-                GROUP BY u.id
+                GROUP BY u.id, u.total_xp
             """))
             signals = {
                 row.user_id: {
                     "helpful_total": int(row.helpful_total),
                     "comment_count": int(row.comment_count),
                     "thread_count":  int(row.thread_count),
+                    "total_xp":      int(row.total_xp or 0),
                 }
                 for row in signals_rows
             }
@@ -178,12 +196,14 @@ async def _recalculate() -> dict:
             score    = min(max(raw, 0.0), 100.0)
             tier     = _score_to_tier(score)
             category = user_top_category.get(user_id)
+            level    = _xp_to_level(sig["total_xp"])
 
             update_values.append({
                 "uid":      user_id,
                 "score":    score,
                 "tier":     tier,
                 "category": category,
+                "level":    level,
             })
 
         # ── Yazma fazı: kısa transaction, yalnızca UPDATE'ler ────────────────
@@ -195,13 +215,15 @@ async def _recalculate() -> dict:
                         SET
                             forum_trust_score    = data.score,
                             forum_trust_tier     = data.tier,
-                            forum_trust_category = data.category
+                            forum_trust_category = data.category,
+                            level                = data.level
                         FROM (
                             SELECT
                                 UNNEST(:uids::uuid[])    AS id,
                                 UNNEST(:scores::float[]) AS score,
                                 UNNEST(:tiers::text[])   AS tier,
-                                UNNEST(:cats::text[])    AS category
+                                UNNEST(:cats::text[])    AS category,
+                                UNNEST(:levels::int[])   AS level
                         ) AS data
                         WHERE users.id = data.id
                     """),
@@ -210,6 +232,7 @@ async def _recalculate() -> dict:
                         "scores": [v["score"]      for v in update_values],
                         "tiers":  [v["tier"]       for v in update_values],
                         "cats":   [v["category"]   for v in update_values],
+                        "levels": [v["level"]      for v in update_values],
                     },
                 )
 
