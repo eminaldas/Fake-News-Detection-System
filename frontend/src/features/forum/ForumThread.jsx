@@ -258,7 +258,7 @@ const ForumThread = () => {
                                     {thread.title}
                                 </h2>
                                 <div className="flex items-center gap-2 shrink-0">
-                                    <ShareDropdown url={`${window.location.origin}/s/forum/${thread.id}`} text={`Forum: ${thread.title}`} />
+                                    <ShareDropdown url={`${window.location.origin}/forum/${thread.id}`} text={`Forum: ${thread.title}`} />
                                     {isAuthor && (
                                         <>
                                             <button

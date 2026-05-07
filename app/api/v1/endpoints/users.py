@@ -16,15 +16,16 @@ from app.core.security import hash_ip
 from app.db.redis import get_redis
 from app.db.session import get_db
 from app.models.models import (
-    AnalysisRequest, AnalysisResult, Article, AuditLog, ContentInteraction,
-    ForumThread, ModelFeedback, User, UserFollow, UserNotification, UserPreferenceProfile,
+    AnalysisRequest, AnalysisResult, Article, AuditLog, Bookmark, ContentInteraction,
+    ForumThread, ForumVote, ModelFeedback, User, UserFollow, UserNotification, UserPreferenceProfile,
 )
 from app.schemas.schemas import (
     AnalysisRequestResponse, DataExportResponse, FeedbackHistoryItem,
     FeedbackHistoryResponse, FeedPreferencesResponse,
     FeedPreferencesUpdate, ForumThreadListResponse, ForumThreadSummary,
     ForumTrustInfo, MentionSearchItem, PaginatedAnalysisRequestResponse,
-    QuotaResponse, SessionItem, SessionListResponse, TagItem, UserProfileResponse,
+    ForumTrustInfo, QuotaResponse, SessionItem, SessionListResponse, TagItem,
+    UserListItem, UserProfileResponse,
     UserStatsResponse,
 )
 
@@ -498,16 +499,80 @@ async def get_user_profile(
     if current_user is not None:
         is_following = (await db.get(UserFollow, (current_user.id, user_id))) is not None
 
+    trust     = ForumTrustInfo.from_user(user)
     return UserProfileResponse(
         id=user.id,
         username=user.username,
         bio=user.bio,
+        avatar_url=user.avatar_url,
         follower_count=user.follower_count,
         following_count=user.following_count,
         is_following=is_following,
         thread_count=thread_count,
         created_at=user.created_at,
+        trust_tier=trust.tier,
+        trust_score=trust.score,
+        trust_stars=trust.stars,
+        trust_label=trust.display_label,
     )
+
+
+@router.get("/{user_id}/followers", response_model=dict)
+async def get_followers(
+    user_id: _uuid.UUID,
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+):
+    q = (
+        select(User)
+        .join(UserFollow, UserFollow.follower_id == User.id)
+        .where(UserFollow.followed_id == user_id)
+        .order_by(User.username)
+    )
+    total   = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
+    users   = (await db.execute(q.offset((page - 1) * size).limit(size))).scalars().all()
+    items   = [
+        UserListItem(
+            id=u.id,
+            username=u.username,
+            avatar_url=u.avatar_url,
+            trust_tier=u.forum_trust_tier,
+            trust_label=ForumTrustInfo.from_user(u).display_label,
+            trust_stars=ForumTrustInfo.from_user(u).stars,
+        )
+        for u in users
+    ]
+    return {"items": [i.model_dump() for i in items], "total": total, "page": page}
+
+
+@router.get("/{user_id}/following", response_model=dict)
+async def get_following(
+    user_id: _uuid.UUID,
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+):
+    q = (
+        select(User)
+        .join(UserFollow, UserFollow.followed_id == User.id)
+        .where(UserFollow.follower_id == user_id)
+        .order_by(User.username)
+    )
+    total   = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
+    users   = (await db.execute(q.offset((page - 1) * size).limit(size))).scalars().all()
+    items   = [
+        UserListItem(
+            id=u.id,
+            username=u.username,
+            avatar_url=u.avatar_url,
+            trust_tier=u.forum_trust_tier,
+            trust_label=ForumTrustInfo.from_user(u).display_label,
+            trust_stars=ForumTrustInfo.from_user(u).stars,
+        )
+        for u in users
+    ]
+    return {"items": [i.model_dump() for i in items], "total": total, "page": page}
 
 
 @router.get("/{user_id}/threads", response_model=ForumThreadListResponse)
@@ -544,7 +609,7 @@ async def get_user_threads(
             vote_investigate=t.vote_investigate,
             comment_count=t.comment_count,
             created_at=t.created_at,
-            author={"id": t.user.id, "username": t.user.username},
+            author={"id": t.user.id, "username": t.user.username, "avatar_url": t.user.avatar_url},
             tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in t.tags],
         )
         for t in threads
@@ -572,6 +637,26 @@ async def following_feed(
     total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
     threads = (await db.execute(q.offset((page - 1) * size).limit(size))).scalars().all()
 
+    bookmarked_ids: set = set()
+    user_votes: dict    = {}
+    if threads:
+        thread_ids = [t.id for t in threads]
+        bm_rows = (await db.execute(
+            select(Bookmark.thread_id).where(
+                Bookmark.user_id == current_user.id,
+                Bookmark.thread_id.in_(thread_ids),
+            )
+        )).scalars().all()
+        bookmarked_ids = set(bm_rows)
+
+        vote_rows = (await db.execute(
+            select(ForumVote.thread_id, ForumVote.vote_type).where(
+                ForumVote.user_id == current_user.id,
+                ForumVote.thread_id.in_(thread_ids),
+            )
+        )).all()
+        user_votes = {str(r.thread_id): r.vote_type for r in vote_rows}
+
     items = [
         ForumThreadSummary(
             id=t.id,
@@ -583,12 +668,74 @@ async def following_feed(
             vote_investigate=t.vote_investigate,
             comment_count=t.comment_count,
             created_at=t.created_at,
-            author={"id": t.user.id, "username": t.user.username},
+            author={"id": t.user.id, "username": t.user.username, "avatar_url": t.user.avatar_url},
             tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in t.tags],
+            is_bookmarked=t.id in bookmarked_ids,
+            current_user_vote=user_votes.get(str(t.id)),
         )
         for t in threads
     ]
     return ForumThreadListResponse(items=items, total=total, page=page, size=size)
+
+
+@router.get("/search", response_model=dict)
+async def search_users(
+    q:            str  = Query(..., min_length=2, max_length=50),
+    page:         int  = Query(1, ge=1),
+    size:         int  = Query(20, ge=1, le=50),
+    current_user: Optional[User] = Depends(get_optional_user),
+    db: AsyncSession             = Depends(get_db),
+):
+    """Kullanıcı adına göre arama."""
+    query = (
+        select(User)
+        .where(User.username.ilike(f"%{q}%"), User.is_active == True)
+        .order_by(
+            # Tam eşleşme önce
+            (User.username.ilike(q)).desc(),
+            User.follower_count.desc(),
+            User.username,
+        )
+    )
+    total = (await db.execute(select(func.count()).select_from(query.subquery()))).scalar_one()
+    users = (await db.execute(query.offset((page - 1) * size).limit(size))).scalars().all()
+
+    # Takip durumunu kontrol et
+    followed_ids: set = set()
+    if current_user and users:
+        rows = await db.execute(
+            select(UserFollow.followed_id).where(
+                UserFollow.follower_id == current_user.id,
+                UserFollow.followed_id.in_([u.id for u in users]),
+            )
+        )
+        followed_ids = {r for r in rows.scalars().all()}
+
+    thread_counts = {}
+    if users:
+        tc_rows = await db.execute(
+            select(ForumThread.user_id, func.count().label("cnt"))
+            .where(ForumThread.user_id.in_([u.id for u in users]))
+            .group_by(ForumThread.user_id)
+        )
+        thread_counts = {r.user_id: r.cnt for r in tc_rows.all()}
+
+    items = []
+    for u in users:
+        trust = ForumTrustInfo.from_user(u)
+        items.append({
+            "id":           str(u.id),
+            "username":     u.username,
+            "avatar_url":   u.avatar_url,
+            "bio":          u.bio,
+            "follower_count": u.follower_count,
+            "thread_count": thread_counts.get(u.id, 0),
+            "trust_tier":   trust.tier,
+            "trust_label":  trust.display_label,
+            "trust_stars":  trust.stars,
+            "is_following": u.id in followed_ids,
+        })
+    return {"items": items, "total": total, "page": page}
 
 
 @router.get("/mention-search", response_model=list[MentionSearchItem])

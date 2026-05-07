@@ -4,6 +4,7 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
     MessageSquare, Share2, Bookmark, Plus,
     Link as LinkIcon, Flag, AlertCircle, Users, Compass,
+    Copy, Check, Twitter, MessageCircle, Loader2,
 } from 'lucide-react';
 import NewsVoteBar    from './NewsVoteBar';
 import GeneralVoteBar from './GeneralVoteBar';
@@ -61,16 +62,21 @@ function VoteSegBar({ suspicious, authentic, investigate }) {
 }
 
 /* Yazar avatarı — kare (terminal stil) */
-function AuthorAvatar({ username, size = 8 }) {
+function AuthorAvatar({ username, avatarUrl, size = 8 }) {
     const palBg   = ['rgba(16,185,129,0.15)','rgba(59,130,246,0.15)','rgba(245,158,11,0.15)','rgba(239,68,68,0.15)','rgba(168,85,247,0.15)'];
     const palText = ['var(--color-brand-primary)','var(--color-accent-blue)','var(--color-accent-amber)','#ef4444','#a855f7'];
-    const idx = (username?.charCodeAt(0) ?? 0) % palBg.length;
+    const idx     = (username?.charCodeAt(0) ?? 0) % palBg.length;
+    const px      = size * 4; // tailwind w-8 = 32px
     return (
         <div
-            className={`w-${size} h-${size} flex items-center justify-center font-mono font-black text-sm shrink-0`}
-            style={{ background: palBg[idx], color: palText[idx], border: `1px solid ${palText[idx]}30` }}
+            className={`w-${size} h-${size} overflow-hidden flex items-center justify-center font-mono font-black text-sm shrink-0`}
+            style={{ background: palBg[idx], color: palText[idx], border: `1px solid ${palText[idx]}30`, minWidth: px, minHeight: px }}
         >
-            {(username ?? '?')[0].toUpperCase()}
+            {avatarUrl
+                ? <img src={avatarUrl} alt={username} className="w-full h-full object-cover"
+                       onError={e => { e.currentTarget.style.display = 'none'; }} />
+                : (username ?? '?')[0].toUpperCase()
+            }
         </div>
     );
 }
@@ -79,10 +85,25 @@ function AuthorAvatar({ username, size = 8 }) {
 function ThreadCard({ thread, index }) {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [local,    setLocal]    = React.useState(thread);
-    const [voting,   setVoting]   = React.useState(false);
-    const [bookmarked, setBookmarked] = React.useState(false);
-    const [reportOpen, setReportOpen] = React.useState(false);
+    const [local,          setLocal]          = React.useState(thread);
+    const [voting,         setVoting]         = React.useState(false);
+    const [bookmarked,     setBookmarked]     = React.useState(thread.is_bookmarked ?? false);
+    const [reportOpen,     setReportOpen]     = React.useState(false);
+    const [reportReason,   setReportReason]   = React.useState('');
+    const [reportSent,     setReportSent]     = React.useState(false);
+    const [reportSubmitting, setReportSubmitting] = React.useState(false);
+    const [shareOpen,  setShareOpen]  = React.useState(false);
+    const [copied,     setCopied]     = React.useState(false);
+    const shareRef = React.useRef(null);
+
+    React.useEffect(() => {
+        if (!shareOpen) return;
+        const handler = (e) => {
+            if (shareRef.current && !shareRef.current.contains(e.target)) setShareOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [shareOpen]);
 
     const handleVote = async (voteType) => {
         if (!user || voting) return;
@@ -101,7 +122,29 @@ function ThreadCard({ thread, index }) {
     };
 
     const stopNav = (e) => e.stopPropagation();
-    const handleShare = (e) => { e.preventDefault(); e.stopPropagation(); };
+
+    const shareUrl  = `${window.location.origin}/forum/${local.id}`;
+    const handleShare = (e) => {
+        e.preventDefault(); e.stopPropagation();
+        setShareOpen(v => !v);
+    };
+    const handleCopyLink = async (e) => {
+        e.stopPropagation();
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        setTimeout(() => { setCopied(false); setShareOpen(false); }, 1500);
+    };
+    const handleTwitter = (e) => {
+        e.stopPropagation();
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(local.title + '\n' + shareUrl)}`, '_blank');
+        setShareOpen(false);
+    };
+    const handleWhatsApp = (e) => {
+        e.stopPropagation();
+        window.open(`https://wa.me/?text=${encodeURIComponent(local.title + ' ' + shareUrl)}`, '_blank');
+        setShareOpen(false);
+    };
+
     const handleFlag  = (e) => {
         e.preventDefault(); e.stopPropagation();
         if (!user) return;
@@ -130,11 +173,16 @@ function ThreadCard({ thread, index }) {
 
                 {/* ── Yazar satırı ── */}
                 <div className="flex items-center gap-3">
-                    <AuthorAvatar username={local.author?.username} />
+                    <AuthorAvatar username={local.author?.username} avatarUrl={local.author?.avatar_url} />
                     <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
-                        <span className="font-mono text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                        <Link
+                            to={`/users/${local.author?.id}`}
+                            onClick={stopNav}
+                            className="font-mono text-sm font-bold transition-colors hover:text-brand hover:underline underline-offset-2"
+                            style={{ color: 'var(--color-text-primary)' }}
+                        >
                             {local.author?.username ?? 'Anonim'}
-                        </span>
+                        </Link>
                         {starStr && (
                             <span className="font-mono text-[10px] tracking-wider" style={{ color: 'var(--color-brand-primary)' }}>
                                 {starStr}
@@ -273,20 +321,62 @@ function ThreadCard({ thread, index }) {
 
                     {/* Aksiyonlar */}
                     <div className="flex items-center gap-1 ml-auto">
-                        <button
-                            className="p-1.5 transition-opacity hover:opacity-70"
-                            style={{ color: 'var(--color-text-muted)' }}
-                            onClick={handleShare}
-                        >
-                            <Share2 className="w-3.5 h-3.5" />
-                        </button>
+                        {/* Paylaş */}
+                        <div ref={shareRef} className="relative">
+                            <button
+                                className="p-1.5 transition-opacity hover:opacity-70"
+                                style={{ color: shareOpen ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}
+                                onClick={handleShare}
+                            >
+                                <Share2 className="w-3.5 h-3.5" />
+                            </button>
+                            {shareOpen && (
+                                <div
+                                    className="absolute right-0 bottom-full mb-1 w-44 border z-50 overflow-hidden"
+                                    style={TS}
+                                    onClick={e => e.stopPropagation()}
+                                >
+                                    <button
+                                        onClick={handleCopyLink}
+                                        className="flex items-center gap-2.5 w-full px-3 py-2 font-mono text-xs transition-colors hover:bg-white/5"
+                                        style={{ color: 'var(--color-text-primary)' }}
+                                    >
+                                        {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                        {copied ? 'Kopyalandı!' : 'Link Kopyala'}
+                                    </button>
+                                    <button
+                                        onClick={handleTwitter}
+                                        className="flex items-center gap-2.5 w-full px-3 py-2 font-mono text-xs transition-colors hover:bg-white/5"
+                                        style={{ color: 'var(--color-text-primary)' }}
+                                    >
+                                        <Twitter className="w-3.5 h-3.5" />
+                                        Twitter'da Paylaş
+                                    </button>
+                                    <button
+                                        onClick={handleWhatsApp}
+                                        className="flex items-center gap-2.5 w-full px-3 py-2 font-mono text-xs transition-colors hover:bg-white/5"
+                                        style={{ color: 'var(--color-text-primary)' }}
+                                    >
+                                        <MessageCircle className="w-3.5 h-3.5" />
+                                        WhatsApp'ta Paylaş
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Kaydet */}
                         <button
                             className="p-1.5 transition-opacity hover:opacity-70"
                             style={{ color: bookmarked ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}
                             onClick={handleBookmark}
                         >
-                            <Bookmark className="w-3.5 h-3.5" />
+                            <Bookmark
+                                className="w-3.5 h-3.5"
+                                fill={bookmarked ? 'currentColor' : 'none'}
+                            />
                         </button>
+
+                        {/* Bildir */}
                         <button
                             className="p-1.5 transition-opacity hover:opacity-70"
                             style={{ color: 'var(--color-text-muted)' }}
@@ -302,34 +392,113 @@ function ThreadCard({ thread, index }) {
             {reportOpen && createPortal(
                 <div
                     className="fixed inset-0 z-[9999] flex items-center justify-center"
-                    style={{ background: 'rgba(0,0,0,0.75)' }}
-                    onClick={() => setReportOpen(false)}
+                    style={{ background: 'rgba(0,0,0,0.80)' }}
+                    onClick={() => { setReportOpen(false); setReportReason(''); setReportSent(false); }}
                 >
                     <div
-                        className="relative border p-6 w-80"
+                        className="relative border w-96 max-w-[92vw]"
                         style={TS}
                         onClick={e => e.stopPropagation()}
                     >
-                        <div className="absolute top-0 left-0 w-3 h-[2px] bg-brand" />
-                        <div className="absolute top-0 left-0 h-3 w-[2px] bg-brand" />
-                        <div className="absolute bottom-0 right-0 w-3 h-[2px] bg-brand" />
-                        <div className="absolute bottom-0 right-0 h-3 w-[2px] bg-brand" />
-                        <p className="font-mono text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--color-brand-primary)' }}>
-                            // TARTIŞMAYI BİLDİR
-                        </p>
-                        <p className="font-mono text-sm mb-5" style={{ color: 'var(--color-text-secondary)' }}>
-                            Bu tartışmayı neden bildiriyorsunuz?
-                        </p>
-                        <button
-                            onClick={() => {
-                                axiosInstance.post(`/forum/threads/${local.id}/report`, { reason: 'spam' }).catch(() => {});
-                                setReportOpen(false);
-                            }}
-                            className="w-full py-2.5 font-mono text-sm font-bold tracking-wider transition-opacity hover:opacity-80"
-                            style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}
-                        >
-                            [ BİLDİR ]
-                        </button>
+                        <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand" />
+                        <div className="absolute top-0 left-0 h-4 w-[2px] bg-brand" />
+                        <div className="absolute bottom-0 right-0 w-4 h-[2px] bg-brand" />
+                        <div className="absolute bottom-0 right-0 h-4 w-[2px] bg-brand" />
+
+                        {/* Başlık */}
+                        <div className="px-5 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
+                            <span className="font-mono text-xs tracking-widest uppercase" style={{ color: 'var(--color-brand-primary)' }}>
+                                // İÇERİĞİ BİLDİR
+                            </span>
+                            <button onClick={() => { setReportOpen(false); setReportReason(''); setReportSent(false); }}
+                                    className="font-mono text-xs transition-opacity hover:opacity-60"
+                                    style={{ color: 'var(--color-text-muted)' }}>✕</button>
+                        </div>
+
+                        <div className="p-5">
+                            {reportSent ? (
+                                /* Geri bildirim durumu */
+                                <div className="flex flex-col items-center gap-3 py-4">
+                                    <div className="w-10 h-10 flex items-center justify-center"
+                                         style={{ border: '2px solid var(--color-brand-primary)', background: 'rgba(16,185,129,0.08)' }}>
+                                        <Check className="w-5 h-5" style={{ color: 'var(--color-brand-primary)' }} />
+                                    </div>
+                                    <p className="font-mono text-sm text-center" style={{ color: 'var(--color-text-primary)' }}>
+                                        {reportSent === 'already'
+                                            ? 'Bu içeriği zaten bildirdiniz.'
+                                            : 'Bildiriminiz alındı. Teşekkürler.'}
+                                    </p>
+                                    <p className="font-mono text-xs text-center" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>
+                                        {reportSent !== 'already' && 'Belirli sayıda bildirim sonrası içerik incelemeye alınır.'}
+                                    </p>
+                                    <button
+                                        onClick={() => { setReportOpen(false); setReportReason(''); setReportSent(false); }}
+                                        className="mt-2 px-5 py-2 font-mono text-xs font-bold transition-opacity hover:opacity-80"
+                                        style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
+                                        KAPAT
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    <p className="font-mono text-sm mb-4" style={{ color: 'var(--color-text-primary)' }}>
+                                        Bildirme nedeninizi seçin:
+                                    </p>
+                                    <div className="flex flex-col gap-1.5 mb-5">
+                                        {[
+                                            { value: 'misinformation', label: 'Yanlış / Yanıltıcı Bilgi' },
+                                            { value: 'manipulation',   label: 'Manipülasyon / Dezenformasyon' },
+                                            { value: 'hate_speech',    label: 'Nefret Söylemi' },
+                                            { value: 'harassment',     label: 'Hakaret / Saygısızlık' },
+                                            { value: 'spam',           label: 'Spam / Reklam' },
+                                            { value: 'inappropriate',  label: 'Uygunsuz İçerik' },
+                                            { value: 'off_topic',      label: 'Konu Dışı' },
+                                            { value: 'other',          label: 'Diğer' },
+                                        ].map(({ value, label }) => (
+                                            <button
+                                                key={value}
+                                                onClick={() => setReportReason(value)}
+                                                className="flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
+                                                style={{
+                                                    border: `1px solid ${reportReason === value ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)'}`,
+                                                    background: reportReason === value ? 'rgba(16,185,129,0.08)' : 'transparent',
+                                                    color: 'var(--color-text-primary)',
+                                                }}
+                                            >
+                                                <div className="w-4 h-4 flex items-center justify-center shrink-0"
+                                                     style={{ border: `1px solid ${reportReason === value ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)'}` }}>
+                                                    {reportReason === value && <div className="w-2 h-2 bg-brand" />}
+                                                </div>
+                                                <span className="font-mono text-xs">{label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button
+                                        disabled={!reportReason || reportSubmitting}
+                                        onClick={async () => {
+                                            setReportSubmitting(true);
+                                            try {
+                                                const { data } = await axiosInstance.post(
+                                                    `/forum/threads/${local.id}/report`,
+                                                    { reason: reportReason }
+                                                );
+                                                setReportSent(data.status === 'already_reported' ? 'already' : 'ok');
+                                            } catch {
+                                                setReportSent('ok');
+                                            } finally {
+                                                setReportSubmitting(false);
+                                            }
+                                        }}
+                                        className="w-full py-2.5 font-mono text-sm font-bold tracking-wider transition-opacity hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                        style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}
+                                    >
+                                        {reportSubmitting
+                                            ? <><span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> Gönderiliyor...</>
+                                            : '[ BİLDİR ]'
+                                        }
+                                    </button>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>,
                 document.body
@@ -399,7 +568,7 @@ const ForumFeed = () => {
                 <div className="absolute bottom-0 right-0 w-3 h-[2px] bg-brand pointer-events-none" />
                 <div className="absolute bottom-0 right-0 h-3 w-[2px] bg-brand pointer-events-none" />
 
-                <AuthorAvatar username={user?.username ?? '?'} size={8} />
+                <AuthorAvatar username={user?.username ?? '?'} avatarUrl={user?.avatar_url} size={8} />
                 <span className="font-mono text-xs mr-1" style={{ color: 'var(--color-brand-primary)' }}>{'>'}</span>
                 <span className="flex-1 font-mono text-sm" style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
                     yeni bir tartışma başlat veya iddia paylaş...

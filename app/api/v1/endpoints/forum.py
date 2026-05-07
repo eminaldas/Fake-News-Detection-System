@@ -32,7 +32,7 @@ from app.core.pubsub import publish_async
 from app.db.session import get_db
 from app.models.models import (
     Article, AnalysisResult, Bookmark, ForumComment, ForumCommentVote,
-    ForumReport, ForumThread, ForumVote, Tag, ThreadTag, User,
+    ForumReport, ForumThread, ForumThreadReport, ForumVote, Tag, ThreadTag, User,
 )
 from app.schemas.schemas import (
     ForumArticleSummary, ForumCommentCreate, ForumCommentItem, ForumCommentUpdate,
@@ -45,8 +45,9 @@ from app.schemas.schemas import (
 
 router = APIRouter()
 
-_MIN_VOTES_FOR_REVIEW = 5
+_MIN_VOTES_FOR_REVIEW        = 5
 _SUSPICIOUS_REVIEW_THRESHOLD = 0.60
+_THREAD_REPORT_THRESHOLD     = 5   # kaç benzersiz kullanıcı raporu sonrası under_review
 _INVESTIGATE_THRESHOLD = 10
 
 
@@ -62,7 +63,9 @@ def _build_comment_tree(flat: list) -> list:
             id=c.id,
             thread_id=c.thread_id,
             parent_id=c.parent_id,
+            user_id=c.user_id,
             username=c.user.username if c.user else "?",
+            avatar_url=c.user.avatar_url if c.user else None,
             body=c.body,
             evidence_urls=c.evidence_urls or [],
             helpful_count=c.helpful_count,
@@ -182,7 +185,7 @@ async def list_threads(
             vote_investigate=t.vote_investigate,
             comment_count=t.comment_count,
             created_at=t.created_at,
-            author={"id": t.user.id, "username": t.user.username},
+            author={"id": t.user.id, "username": t.user.username, "avatar_url": t.user.avatar_url},
             tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in t.tags],
             article_id=t.article_id,
             image_urls=t.image_urls or [],
@@ -254,7 +257,7 @@ async def create_thread(
         vote_investigate=thread.vote_investigate,
         comment_count=thread.comment_count,
         created_at=thread.created_at,
-        author={"id": current_user.id, "username": current_user.username},
+        author={"id": current_user.id, "username": current_user.username, "avatar_url": current_user.avatar_url},
         tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in (tags if body.tag_names else [])],
         article=article_summary,
         comments=[],
@@ -319,6 +322,27 @@ async def discover_threads(
     if category_weights and sort not in ("new", "controversial"):
         threads = sorted(threads, key=weighted_score, reverse=True)
 
+    # Kullanıcıya özgü bookmark + oy durumu
+    bookmarked_ids: set = set()
+    user_votes: dict    = {}
+    if current_user and threads:
+        thread_ids = [t.id for t in threads]
+        bm_rows = (await db.execute(
+            select(Bookmark.thread_id).where(
+                Bookmark.user_id == current_user.id,
+                Bookmark.thread_id.in_(thread_ids),
+            )
+        )).scalars().all()
+        bookmarked_ids = set(bm_rows)
+
+        vote_rows = (await db.execute(
+            select(ForumVote.thread_id, ForumVote.vote_type).where(
+                ForumVote.user_id == current_user.id,
+                ForumVote.thread_id.in_(thread_ids),
+            )
+        )).all()
+        user_votes = {str(r.thread_id): r.vote_type for r in vote_rows}
+
     items = [
         ForumThreadSummary(
             id=t.id,
@@ -330,10 +354,12 @@ async def discover_threads(
             vote_investigate=t.vote_investigate,
             comment_count=t.comment_count,
             created_at=t.created_at,
-            author={"id": t.user.id, "username": t.user.username} if t.user else {"id": None, "username": "?"},
+            author={"id": t.user.id, "username": t.user.username, "avatar_url": t.user.avatar_url} if t.user else {"id": None, "username": "?"},
             tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in (t.tags or [])],
             article_id=t.article_id,
             image_urls=t.image_urls or [],
+            is_bookmarked=t.id in bookmarked_ids,
+            current_user_vote=user_votes.get(str(t.id)),
         )
         for t in threads
     ]
@@ -411,7 +437,7 @@ async def get_thread(
         vote_investigate=thread.vote_investigate,
         comment_count=thread.comment_count,
         created_at=thread.created_at,
-        author={"id": thread.user.id, "username": thread.user.username},
+        author={"id": thread.user.id, "username": thread.user.username, "avatar_url": thread.user.avatar_url},
         tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in thread.tags],
         article_id=thread.article_id,
         image_urls=thread.image_urls or [],
@@ -845,6 +871,7 @@ async def update_comment(
         thread_id=comment.thread_id,
         parent_id=comment.parent_id,
         username=comment.user.username,
+        avatar_url=comment.user.avatar_url,
         body=comment.body,
         evidence_urls=comment.evidence_urls or [],
         helpful_count=comment.helpful_count,
@@ -1034,7 +1061,7 @@ async def get_article_threads(
             vote_investigate=t.vote_investigate,
             comment_count=t.comment_count,
             created_at=t.created_at,
-            author={"id": t.user.id, "username": t.user.username},
+            author={"id": t.user.id, "username": t.user.username, "avatar_url": t.user.avatar_url},
             tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in t.tags],
         )
         for t in threads
@@ -1102,8 +1129,9 @@ async def my_bookmarks(
             vote_investigate=t.vote_investigate,
             comment_count=t.comment_count,
             created_at=t.created_at,
-            author={"id": t.user.id, "username": t.user.username},
+            author={"id": t.user.id, "username": t.user.username, "avatar_url": t.user.avatar_url},
             tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in t.tags],
+            is_bookmarked=True,
         )
         for t in threads
     ]
@@ -1162,7 +1190,7 @@ async def search_threads(
             vote_investigate=t.vote_investigate,
             comment_count=t.comment_count,
             created_at=t.created_at,
-            author={"id": t.user.id, "username": t.user.username},
+            author={"id": t.user.id, "username": t.user.username, "avatar_url": t.user.avatar_url},
             tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in t.tags],
         )
         for t in threads
@@ -1186,9 +1214,40 @@ async def report_thread(
         raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
     if thread.user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Kendi tartışmanızı bildiremezsiniz")
-    thread.status = "under_review"
+
+    # Daha önce bildirdi mi?
+    existing = await db.get(ForumThreadReport, {"thread_id": thread_id, "reporter_id": current_user.id})
+    if not existing:
+        # Unique constraint'e göre get çalışmıyor, scalar kullan
+        existing = (await db.execute(
+            select(ForumThreadReport).where(
+                ForumThreadReport.thread_id   == thread_id,
+                ForumThreadReport.reporter_id == current_user.id,
+            )
+        )).scalar_one_or_none()
+
+    if existing:
+        return {"status": "already_reported", "message": "Bu içeriği zaten bildirdiniz."}
+
+    db.add(ForumThreadReport(
+        thread_id=thread_id,
+        reporter_id=current_user.id,
+        reason=body.reason,
+    ))
     await db.commit()
-    return {"message": "Bildiriminiz alındı."}
+
+    # Eşiğe ulaşıldıysa inceleme altına al
+    report_count = (await db.execute(
+        select(func.count()).select_from(ForumThreadReport).where(
+            ForumThreadReport.thread_id == thread_id
+        )
+    )).scalar_one()
+
+    if report_count >= _THREAD_REPORT_THRESHOLD and thread.status == "active":
+        thread.status = "under_review"
+        await db.commit()
+
+    return {"status": "reported", "message": "Bildiriminiz alındı. İnceleme sürecine dahil edildi."}
 
 
 # ── Moderation ──────────────────────────────────────────────────────────────
