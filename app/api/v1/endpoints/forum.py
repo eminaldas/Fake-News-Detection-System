@@ -29,7 +29,10 @@ from workers.moderation_task import check_toxicity
 from app.api.deps import get_current_user, get_optional_user, get_admin_user
 from app.core.notifications import send_notification
 from app.core.pubsub import publish_async
+from app.db.redis import get_redis
 from app.db.session import get_db
+from app.models.gamification import XPActionType
+from app.services.xp_service import award_xp
 from app.models.models import (
     Article, AnalysisResult, Bookmark, ForumComment, ForumCommentVote,
     ForumReport, ForumThread, ForumThreadReport, ForumVote, Tag, ThreadTag, User,
@@ -229,6 +232,10 @@ async def create_thread(
 
     await db.commit()
     await db.refresh(thread)
+
+    _redis = await get_redis()
+    await award_xp(db, _redis, current_user.id, XPActionType.thread_created, str(thread.id))
+    await db.commit()
 
     article_summary = None
     if article:
@@ -639,6 +646,11 @@ async def vote_thread(
     await db.commit()
     await db.refresh(thread)
 
+    if current_vote is not None:
+        _redis = await get_redis()
+        await award_xp(db, _redis, current_user.id, XPActionType.vote_cast, str(thread_id))
+        await db.commit()
+
     return ForumVoteResult(
         vote_suspicious=thread.vote_suspicious,
         vote_authentic=thread.vote_authentic,
@@ -782,6 +794,11 @@ async def add_comment(
             payload=comment_payload,
         )
 
+    _redis = await get_redis()
+    _action = XPActionType.evidence_added if body.evidence_urls else XPActionType.comment_created
+    await award_xp(db, _redis, current_user.id, _action, str(comment.id))
+    await db.commit()
+
     item = ForumCommentItem(
         id=comment.id,
         thread_id=comment.thread_id,
@@ -830,6 +847,10 @@ async def helpful_vote(
         db.add(ForumCommentVote(comment_id=comment_id, user_id=current_user.id))
         comment.helpful_count += 1
 
+    await db.commit()
+
+    _redis = await get_redis()
+    await award_xp(db, _redis, comment.user_id, XPActionType.helpful_received, str(comment.id))
     await db.commit()
 
 
