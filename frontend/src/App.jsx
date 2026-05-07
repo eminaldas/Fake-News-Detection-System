@@ -138,7 +138,7 @@ function App() {
                             <Route path="bookmarks" element={<RequireAuth><Bookmarks /></RequireAuth>} />
 
                             {/* Rozetler */}
-                            <Route path="badges" element={<RequireAuth><Badges /></RequireAuth>} />
+                            <Route path="badges" element={<Badges />} />
 
                             {/* Mesajlar */}
                             <Route path="messages"          element={<RequireAuth><Messages /></RequireAuth>} />
