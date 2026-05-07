@@ -8,19 +8,12 @@ import AnalysisService from '../../services/analysis.service';
 import axiosInstance from '../../api/axios';
 import InsightsPanel from '../insights/InsightsPanel';
 import HistoryModal from './HistoryModal';
+import GamificationService from '../../services/gamification.service';
+import BadgeShowcaseModal from '../../components/common/BadgeShowcaseModal';
 
 /* ── Tasarım sabitleri ── */
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
-
-const BADGES = [
-    { icon: ShieldCheck, name: 'Gerçek Avcı',     locked: false },
-    { icon: Search,      name: 'Kaynak Dedektifi', locked: false },
-    { icon: Cpu,         name: 'BERT Ustası',      locked: false },
-    { icon: Zap,         name: 'Örüntü Bulucu',    locked: true  },
-    { icon: Award,       name: 'Sinyal Uzmanı',    locked: true  },
-    { icon: Star,        name: 'İlk Sentinel',     locked: false },
-];
 
 /* Köşe aksan çifti */
 const Corner = () => (
@@ -74,9 +67,23 @@ const ProfileOverview = () => {
     const [trust, setTrust]                   = useState(null);
     const [selectedItem, setSelectedItem]     = useState(null);
     const [fullReports, setFullReports]       = useState(new Set());
+    const [showcase,       setShowcase]       = useState([]);
+    const [xpStats,        setXpStats]        = useState(null);
+    const [showBadgeModal, setShowBadgeModal] = useState(false);
 
     useEffect(() => {
         axiosInstance.get('/users/me/stats').then(r => setStats(r.data)).catch(() => {});
+        GamificationService.getMyStats()
+            .then(setXpStats)
+            .catch(() => {});
+        GamificationService.getMyBadges()
+            .then(data => {
+                const s = (data.earned || [])
+                    .filter(b => b.is_showcased)
+                    .sort((a, b) => (a.showcase_order ?? 99) - (b.showcase_order ?? 99));
+                setShowcase(s);
+            })
+            .catch(() => {});
     }, []);
 
     useEffect(() => {
@@ -190,35 +197,83 @@ const ProfileOverview = () => {
                 ))}
             </div>
 
-            {/* ── Rozetler ── */}
-            <div className="relative border overflow-hidden" style={S}>
-                <Corner />
-                <div className="px-4 py-3 border-b" style={BD}>
-                    <span className="font-mono text-xs tracking-widest uppercase" style={{ color: 'var(--color-brand-primary)' }}>
-                        // ROZETLER
-                    </span>
+            {/* XP & Seviye */}
+            {xpStats && (
+                <div className="relative border mb-4 p-4" style={S}>
+                    <Corner />
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="font-mono text-[10px] uppercase tracking-widest"
+                              style={{ color: 'var(--color-brand-primary)' }}>
+                            // LEVEL {xpStats.level}
+                        </span>
+                        <span className="font-mono text-[10px]"
+                              style={{ color: 'var(--color-text-muted)' }}>
+                            {xpStats.total_xp} XP
+                        </span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full overflow-hidden"
+                         style={{ background: 'var(--color-terminal-border-raw)' }}>
+                        <div className="h-full rounded-full transition-all"
+                             style={{ width: `${xpStats.xp_progress_pct}%`, background: 'var(--color-brand-primary)' }} />
+                    </div>
+                    <p className="font-mono text-[10px] mt-1"
+                       style={{ color: 'var(--color-text-muted)' }}>
+                        Sonraki seviye: {xpStats.xp_to_next_level} XP kaldı
+                    </p>
                 </div>
-                <div className="p-4 flex flex-wrap gap-2">
-                    {BADGES.map(({ icon: Icon, name, locked }) => (
-                        <div
-                            key={name}
-                            className="flex items-center gap-2 px-3 py-2 border text-xs font-mono"
-                            style={{
-                                borderColor: locked ? 'var(--color-terminal-border-raw)' : 'var(--color-brand-primary)',
-                                color: locked ? 'var(--color-text-muted)' : 'var(--color-text-primary)',
-                                opacity: locked ? 0.4 : 1,
-                                background: locked ? 'transparent' : 'rgba(16,185,129,0.06)',
-                            }}
-                        >
-                            {locked
-                                ? <Lock className="w-3.5 h-3.5 shrink-0" />
-                                : <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
-                            }
-                            {name}
-                        </div>
-                    ))}
+            )}
+
+            {/* Rozet Vitrini */}
+            <div className="relative border mb-4" style={S}>
+                <Corner />
+                <div className="px-4 py-2 border-b flex items-center justify-between" style={BD}>
+                    <span className="font-mono text-[10px] uppercase tracking-widest"
+                          style={{ color: 'var(--color-brand-primary)' }}>// ROZET VİTRİNİ</span>
+                    <button onClick={() => setShowBadgeModal(true)}
+                            className="font-mono text-[9px] px-2 py-0.5 border transition-colors hover:bg-white/5"
+                            style={{ color: 'var(--color-accent-blue)', borderColor: 'var(--color-accent-blue)' }}>
+                        Düzenle
+                    </button>
+                </div>
+                <div className="flex gap-3 px-4 py-3">
+                    {[0, 1, 2].map(i => {
+                        const badge = showcase[i];
+                        if (!badge) return (
+                            <div key={i}
+                                 className="flex-1 h-16 border flex items-center justify-center"
+                                 style={{ borderColor: 'var(--color-terminal-border-raw)', borderStyle: 'dashed' }}>
+                                <span className="font-mono text-[10px]"
+                                      style={{ color: 'var(--color-text-muted)' }}>boş</span>
+                            </div>
+                        );
+                        return (
+                            <div key={badge.key}
+                                 className="flex-1 h-16 border flex flex-col items-center justify-center gap-1"
+                                 style={{ borderColor: badge.color, background: `${badge.color}10` }}>
+                                <span className="font-mono text-xs font-black" style={{ color: badge.color }}>
+                                    {badge.name[0]}
+                                </span>
+                                <span className="font-mono text-[9px] text-center px-1 leading-tight"
+                                      style={{ color: badge.color }}>{badge.name}</span>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
+
+            {showBadgeModal && (
+                <BadgeShowcaseModal
+                    onClose={() => setShowBadgeModal(false)}
+                    onSave={() => {
+                        GamificationService.getMyBadges().then(data => {
+                            const s = (data.earned || [])
+                                .filter(b => b.is_showcased)
+                                .sort((a, b) => (a.showcase_order ?? 99) - (b.showcase_order ?? 99));
+                            setShowcase(s);
+                        });
+                    }}
+                />
+            )}
 
             {/* ── Insights ── */}
             <InsightsPanel />
