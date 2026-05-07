@@ -59,6 +59,10 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:5173"
     BASE_URL:     str = "http://localhost:8000"
 
+    # Google OAuth
+    GOOGLE_CLIENT_ID:     str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+
     # Gemini AI
     GEMINI_API_KEY:         str   = ""
     GEMINI_MODEL:           str   = "gemini-2.5-flash"

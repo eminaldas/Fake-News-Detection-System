@@ -60,14 +60,34 @@ class AuthService {
         return response.data;
     }
 
-    static async register(email, username, password, interests = [], marketingSource = null) {
-        const response = await axiosInstance.post('/auth/register', {
-            email,
-            username,
-            password,
-            interests,
-            ...(marketingSource ? { marketing_source: marketingSource } : {}),
-        });
+    static async register(email, username, password) {
+        const response = await axiosInstance.post('/auth/register', { email, username, password });
+        if (response.data.access_token) {
+            this._saveToken(response.data.access_token, true);
+        }
+        return response.data;
+    }
+
+    static async googleLogin(credential) {
+        const response = await axiosInstance.post('/auth/google', { credential });
+        if (response.data.access_token) {
+            this._saveToken(response.data.access_token, true);
+        }
+        return response.data;
+    }
+
+    static async sendVerification() {
+        const response = await axiosInstance.post('/auth/send-verification');
+        return response.data;
+    }
+
+    static async verifyEmail(token) {
+        const response = await axiosInstance.post('/auth/verify-email', { token });
+        return response.data;
+    }
+
+    static async completeOnboarding(data) {
+        const response = await axiosInstance.put('/auth/complete-onboarding', data);
         return response.data;
     }
 

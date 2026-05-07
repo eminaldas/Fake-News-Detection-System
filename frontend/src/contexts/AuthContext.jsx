@@ -45,9 +45,30 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const register = async (email, username, password, interests = [], marketingSource = null) => {
+    const register = async (email, username, password) => {
         try {
-            await AuthService.register(email, username, password, interests, marketingSource);
+            const data = await AuthService.register(email, username, password);
+            await fetchUser();
+            return { success: true, needsVerification: data.needs_verification, needsOnboarding: data.needs_onboarding };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    };
+
+    const googleLogin = async (credential) => {
+        try {
+            const data = await AuthService.googleLogin(credential);
+            await fetchUser();
+            return { success: true, needsOnboarding: data.needs_onboarding };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    };
+
+    const completeOnboarding = async (data) => {
+        try {
+            const updated = await AuthService.completeOnboarding(data);
+            setUser(updated);
             return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
@@ -68,6 +89,8 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         register,
+        googleLogin,
+        completeOnboarding,
         refreshUser: fetchUser,
     };
 

@@ -64,16 +64,51 @@ class RegisterRequest(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id:            UUID
-    email:         str
-    username:      str
-    role:          UserRole
-    is_active:     bool
-    created_at:    datetime
-    last_login_at: Optional[datetime] = None
+    id:                   UUID
+    email:                str
+    username:             str
+    role:                 UserRole
+    is_active:            bool
+    created_at:           datetime
+    last_login_at:        Optional[datetime] = None
+    avatar_url:           Optional[str]      = None
+    is_email_verified:    bool               = False
+    onboarding_completed: bool               = False
 
     class Config:
         from_attributes = True
+
+
+class RegisterResponse(BaseModel):
+    access_token:       str
+    token_type:         str  = "bearer"
+    expires_in:         int
+    user:               UserResponse
+    needs_verification: bool
+    needs_onboarding:   bool = True
+
+
+class GoogleAuthRequest(BaseModel):
+    credential: str
+
+
+class GoogleAuthResponse(BaseModel):
+    access_token:         str
+    token_type:           str  = "bearer"
+    expires_in:           int
+    user:                 UserResponse
+    is_new_user:          bool
+    needs_onboarding:     bool
+
+
+class OnboardingRequest(BaseModel):
+    avatar_url:       Optional[str]  = None
+    interests:        List[str]      = Field(default_factory=list)
+    marketing_source: Optional[str]  = None
+
+
+class EmailVerifyRequest(BaseModel):
+    token: str
 
 
 class UpdateProfileRequest(BaseModel):
@@ -581,7 +616,9 @@ class ForumCommentItem(BaseModel):
     id:             UUID
     thread_id:      UUID
     parent_id:      Optional[UUID] = None
+    user_id:        Optional[UUID] = None
     username:       str
+    avatar_url:     Optional[str]  = None
     body:           str
     evidence_urls:  List[str]      = Field(default_factory=list)
     helpful_count:  int
@@ -628,8 +665,9 @@ class ForumThreadCreate(BaseModel):
 
 
 class ForumThreadAuthor(BaseModel):
-    id:       UUID
-    username: str
+    id:         UUID
+    username:   str
+    avatar_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -648,6 +686,8 @@ class ForumThreadSummary(BaseModel):
     tags:             List[TagItem] = Field(default_factory=list)
     image_urls:       List[str]      = Field(default_factory=list)
     article_id:       Optional[UUID] = None
+    is_bookmarked:    bool           = False
+    current_user_vote: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -712,8 +752,10 @@ class ForumThreadListResponse(BaseModel):
     size:  int
 
 
+_VALID_REASONS = "^(spam|hate_speech|misinformation|manipulation|harassment|inappropriate|off_topic|other)$"
+
 class ForumReportCreate(BaseModel):
-    reason: str = Field(..., pattern="^(spam|hate_speech|misinformation|off_topic)$")
+    reason: str = Field(..., pattern=_VALID_REASONS)
 
 
 class ModerationQueueItem(BaseModel):
@@ -785,14 +827,29 @@ class ForumNotificationListResponse(BaseModel):
 # ── Sosyal / Takip ────────────────────────────────────────────────────────────
 
 class UserProfileResponse(BaseModel):
-    id:              UUID
-    username:        str
-    bio:             Optional[str] = None
-    follower_count:  int
-    following_count: int
-    is_following:    bool = False
-    thread_count:    int = 0
-    created_at:      datetime
+    id:                UUID
+    username:          str
+    bio:               Optional[str] = None
+    avatar_url:        Optional[str] = None
+    follower_count:    int
+    following_count:   int
+    is_following:      bool          = False
+    thread_count:      int           = 0
+    created_at:        datetime
+    trust_tier:        str           = "yeni_uye"
+    trust_score:       float         = 0.0
+    trust_stars:       int           = 0
+    trust_label:       str           = "Yeni Üye"
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserListItem(BaseModel):
+    id:          UUID
+    username:    str
+    avatar_url:  Optional[str] = None
+    trust_tier:  str           = "yeni_uye"
+    trust_label: str           = "Yeni Üye"
+    trust_stars: int           = 0
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -809,7 +866,7 @@ class ForumSearchResponse(BaseModel):
 
 
 class ForumThreadReportCreate(BaseModel):
-    reason: str = Field(..., pattern="^(spam|misinformation|hate_speech|off_topic)$")
+    reason: str = Field(..., pattern=_VALID_REASONS)
 
 
 # ── Derin Rapor ───────────────────────────────────────────────────────────────

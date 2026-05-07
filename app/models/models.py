@@ -29,7 +29,10 @@ class User(Base):
     id              = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email           = Column(String(255), unique=True, nullable=False, index=True)
     username        = Column(String(100), unique=True, nullable=False, index=True)
-    hashed_password = Column(String(255), nullable=False)
+    hashed_password      = Column(String(255), nullable=True)          # nullable → Google kullanıcıları
+    google_id            = Column(String(255), nullable=True, unique=True)
+    is_email_verified    = Column(Boolean, nullable=False, server_default="false", default=False)
+    onboarding_completed = Column(Boolean, nullable=False, server_default="false", default=False)
     role            = Column(Enum(UserRole), nullable=False, default=UserRole.user)
     is_active       = Column(Boolean, nullable=False, default=True)
     preferences     = Column(JSONB, nullable=True)
@@ -453,22 +456,55 @@ class ForumCommentVote(Base):
     )
 
 
+_REPORT_REASONS = "('spam','hate_speech','misinformation','manipulation','harassment','inappropriate','off_topic','other')"
+
+
 class ForumReport(Base):
     __tablename__ = "forum_reports"
 
     id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     comment_id  = Column(UUID(as_uuid=True), ForeignKey("forum_comments.id", ondelete="CASCADE"), nullable=False)
     reporter_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    reason      = Column(String(20), nullable=False)
+    reason      = Column(String(50), nullable=False)
     created_at  = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
         UniqueConstraint("comment_id", "reporter_id", name="uq_forum_report_comment_reporter"),
-        CheckConstraint(
-            "reason IN ('spam','hate_speech','misinformation','off_topic')",
-            name="ck_forum_report_reason",
-        ),
         Index("idx_forum_report_comment", "comment_id"),
+    )
+
+
+class ForumThreadReport(Base):
+    __tablename__ = "forum_thread_reports"
+
+    id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    thread_id   = Column(UUID(as_uuid=True), ForeignKey("forum_threads.id", ondelete="CASCADE"), nullable=False)
+    reporter_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    reason      = Column(String(50), nullable=False)
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("thread_id", "reporter_id", name="uq_thread_report"),
+        Index("idx_thread_report_thread", "thread_id"),
+    )
+
+
+class DirectMessage(Base):
+    __tablename__ = "direct_messages"
+
+    id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    sender_id   = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    receiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    content     = Column(Text, nullable=False)
+    msg_type    = Column(String(10), nullable=False, server_default="text")
+    is_read     = Column(Boolean, nullable=False, default=False)
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+
+    sender   = relationship("User", foreign_keys=[sender_id])
+    receiver = relationship("User", foreign_keys=[receiver_id])
+
+    __table_args__ = (
+        Index("idx_dm_receiver_unread", "receiver_id", "is_read"),
     )
 
 
