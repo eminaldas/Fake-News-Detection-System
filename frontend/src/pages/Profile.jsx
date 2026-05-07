@@ -4,8 +4,8 @@ import { MessageSquare, Users, Calendar } from 'lucide-react';
 import axiosInstance from '../api/axios';
 import { useAuth } from '../contexts/AuthContext';
 
-/* ── Avatar — harf tabanlı, ForumFeed ile aynı palet ─────────── */
-function UserAvatar({ username, size = 'lg' }) {
+/* ── Avatar ───────────────────────────────────────────────────── */
+function UserAvatar({ username, avatarUrl, size = 'lg' }) {
     const colors = [
         'rgba(16,185,129,0.20)', 'rgba(59,130,246,0.20)',
         'rgba(245,158,11,0.20)', 'rgba(239,68,68,0.20)',
@@ -15,8 +15,18 @@ function UserAvatar({ username, size = 'lg' }) {
         'var(--color-brand-primary)', 'var(--color-accent-blue)',
         'var(--color-accent-amber)', '#ef4444', '#a855f7',
     ];
-    const idx = (username?.charCodeAt(0) ?? 0) % colors.length;
+    const idx       = (username?.charCodeAt(0) ?? 0) % colors.length;
     const sizeClass = size === 'lg' ? 'w-20 h-20 text-3xl' : 'w-10 h-10 text-base';
+
+    if (avatarUrl) {
+        return (
+            <div className={`${sizeClass} rounded-full overflow-hidden shrink-0`}
+                 style={{ border: `2px solid ${textColors[idx]}` }}>
+                <img src={avatarUrl} alt={username} className="w-full h-full object-cover"
+                     onError={e => { e.currentTarget.parentElement.innerHTML = `<div class="${sizeClass} rounded-full flex items-center justify-center font-black" style="background:${colors[idx]};color:${textColors[idx]}">${(username??'?')[0].toUpperCase()}</div>`; }} />
+            </div>
+        );
+    }
     return (
         <div
             className={`${sizeClass} rounded-full flex items-center justify-center font-black shrink-0`}
@@ -216,7 +226,7 @@ export default function Profile() {
                     boxShadow: '0 4px 24px rgba(0,0,0,0.32)',
                 }}
             >
-                <UserAvatar username={profile.username} size="lg" />
+                <UserAvatar username={profile.username} avatarUrl={profile.avatar_url} size="lg" />
 
                 <div className="flex-1 min-w-0">
                     <h1

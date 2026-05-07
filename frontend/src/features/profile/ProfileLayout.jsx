@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import {
     LayoutDashboard, SlidersHorizontal, ShieldCheck,
-    Bell, ThumbsUp,
+    Bell, ThumbsUp, Bookmark, MessagesSquare,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import axiosInstance from '../../api/axios';
@@ -13,6 +13,8 @@ const NAV_ITEMS = [
     { to: '/profile/security',       label: 'Güvenlik',           icon: ShieldCheck },
     { to: '/profile/notifications',  label: 'Bildirimler',        icon: Bell },
     { to: '/profile/feedback',       label: 'Geri Bildirimlerim', icon: ThumbsUp },
+    { to: '/profile/bookmarks',      label: 'Kaydedilenler',      icon: Bookmark },
+    { to: '/profile/threads',        label: 'Tartışmalarım',      icon: MessagesSquare },
 ];
 
 const ProfileLayout = () => {
@@ -64,16 +66,25 @@ const ProfileLayout = () => {
                         // USER_SESSION
                     </p>
                     <div className="flex items-center gap-3.5">
-                        {/* Kare avatar */}
+                        {/* Avatar */}
                         <div
-                            className="w-12 h-12 flex items-center justify-center font-mono font-black text-xl shrink-0"
+                            className="w-12 h-12 overflow-hidden flex items-center justify-center font-mono font-black text-xl shrink-0"
                             style={{
                                 background: 'rgba(16,185,129,0.10)',
                                 border: '2px solid var(--color-brand-primary)',
                                 color: 'var(--color-brand-primary)',
                             }}
                         >
-                            {user?.username?.[0]?.toUpperCase() ?? 'U'}
+                            {user?.avatar_url ? (
+                                <img
+                                    src={user.avatar_url}
+                                    alt={user?.username}
+                                    className="w-full h-full object-cover"
+                                    onError={e => { e.currentTarget.style.display = 'none'; }}
+                                />
+                            ) : (
+                                user?.username?.[0]?.toUpperCase() ?? 'U'
+                            )}
                         </div>
                         <div className="min-w-0">
                             <p

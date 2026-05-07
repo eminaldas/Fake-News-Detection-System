@@ -18,6 +18,8 @@ import ProfileAiLab         from './features/profile/ProfileAiLab';
 import ProfileSecurity      from './features/profile/ProfileSecurity';
 import ProfileNotifications from './features/profile/ProfileNotifications';
 import ProfileFeedback      from './features/profile/ProfileFeedback';
+import ProfileBookmarks    from './features/profile/ProfileBookmarks';
+import ProfileThreads     from './features/profile/ProfileThreads';
 import AdminUsers from './pages/AdminUsers';
 import AdminSecurity from './pages/AdminSecurity';
 import AdminAnalytics from './pages/AdminAnalytics';
@@ -33,11 +35,23 @@ import ForumThread        from './features/forum/ForumThread';
 import ForumCreateThread  from './features/forum/ForumCreateThread';
 import SharedAnalysis    from './pages/SharedAnalysis';
 import Profile          from './pages/Profile';
+import UserProfile      from './pages/UserProfile';
+import ProfileSettings  from './pages/ProfileSettings';
 import Bookmarks        from './pages/Bookmarks';
+import EmailVerification from './pages/EmailVerification';
+import Onboarding       from './pages/Onboarding';
+import Messages         from './pages/Messages';
 import ForumSearch      from './pages/ForumSearch';
 import AdminModeration  from './pages/AdminModeration';
 import AdminDataset from './pages/AdminDataset';
 import AnalysisReport from './pages/AnalysisReport';
+
+// /profile → kendi profiline yönlendir
+function ProfileRedirect() {
+    const { user } = useAuth();
+    if (!user) return null;
+    return <Navigate to={`/users/${user.id}`} replace />;
+}
 
 // Listens to auth state and manages the WS connection lifecycle
 function WsLifecycle() {
@@ -67,16 +81,19 @@ function App() {
                             <Route path="hakkimizda" element={<About />} />
                             <Route path="gundem"     element={<Gundem />} />
                             <Route path="login"      element={<Login />} />
-                            <Route path="register"   element={<Register />} />
+                            <Route path="register"          element={<Register />} />
+                            <Route path="email-verification" element={<EmailVerification />} />
+                            <Route path="verify-email"       element={<EmailVerification />} />
+                            <Route path="onboarding"         element={<RequireAuth><Onboarding /></RequireAuth>} />
 
-                            {/* Giriş yapılmış kullanıcı */}
-                            <Route path="profile" element={<RequireAuth><ProfileLayout /></RequireAuth>}>
-                                <Route index element={<Navigate to="overview" replace />} />
-                                <Route path="overview"      element={<ProfileOverview />} />
-                                <Route path="ai-lab"        element={<ProfileAiLab />} />
-                                <Route path="security"      element={<ProfileSecurity />} />
-                                <Route path="notifications" element={<ProfileNotifications />} />
-                                <Route path="feedback"      element={<ProfileFeedback />} />
+                            {/* Kendi profili */}
+                            <Route path="profile" element={<RequireAuth><ProfileRedirect /></RequireAuth>} />
+                            <Route path="profile/settings" element={<RequireAuth><ProfileSettings /></RequireAuth>} />
+                            <Route path="profile/bookmarks" element={<RequireAuth><ProfileLayout /></RequireAuth>}>
+                                <Route index element={<ProfileBookmarks />} />
+                            </Route>
+                            <Route path="profile/threads" element={<RequireAuth><ProfileLayout /></RequireAuth>}>
+                                <Route index element={<ProfileThreads />} />
                             </Route>
 
                             {/* Forum */}
@@ -114,10 +131,14 @@ function App() {
                             } />
 
                             {/* Kullanıcı profili */}
-                            <Route path="users/:userId" element={<Profile />} />
+                            <Route path="users/:userId" element={<UserProfile />} />
 
                             {/* Kaydedilenler */}
                             <Route path="bookmarks" element={<RequireAuth><Bookmarks /></RequireAuth>} />
+
+                            {/* Mesajlar */}
+                            <Route path="messages"          element={<RequireAuth><Messages /></RequireAuth>} />
+                            <Route path="messages/:userId"  element={<RequireAuth><Messages /></RequireAuth>} />
 
                             {/* Paylaşılan analiz — auth gerekmez */}
                             <Route path="analysis/share/:articleId" element={<SharedAnalysis />} />
