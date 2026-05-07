@@ -145,6 +145,31 @@ const ForumLayout = () => {
                         </nav>
                     </Block>
 
+                    {/* Marka kartı */}
+                    <div className="relative border overflow-hidden" style={TS}>
+                        <div className="absolute top-0 left-0 w-3 h-[2px] bg-brand pointer-events-none" />
+                        <div className="absolute top-0 left-0 h-3 w-[2px] bg-brand pointer-events-none" />
+                        <div className="absolute bottom-0 right-0 w-3 h-[2px] bg-brand pointer-events-none" />
+                        <div className="absolute bottom-0 right-0 h-3 w-[2px] bg-brand pointer-events-none" />
+                        <div className="px-4 py-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="font-mono text-sm font-black tracking-widest"
+                                      style={{ color: 'var(--color-brand-primary)' }}>NE_HABER</span>
+                                <span className="font-mono text-[9px] px-1 py-0.5 border"
+                                      style={{ color: 'var(--color-brand-primary)', borderColor: 'rgba(16,185,129,0.30)' }}>v2.4</span>
+                            </div>
+                            <p className="font-mono text-[10px] leading-relaxed"
+                               style={{ color: 'var(--color-text-muted)' }}>
+                                BERT tabanlı Türkçe<br />haber doğrulama platformu.
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-3">
+                                <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
+                                <span className="font-mono text-[9px]"
+                                      style={{ color: 'var(--color-brand-primary)' }}>SİSTEM AKTİF</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </aside>
 
                 {/* ══════ ORTA İÇERİK ══════ */}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import { ThumbsUp, MessageSquare, Flag, X, ChevronDown, ChevronUp } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import { useAuth } from '../../contexts/AuthContext';
@@ -86,7 +87,7 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                 {/* Üst: avatar + kullanıcı + zaman */}
                 <div className="flex items-center gap-3 px-4 py-3 border-b" style={BD}>
                     <div
-                        className="flex items-center justify-center font-mono font-black shrink-0"
+                        className="overflow-hidden flex items-center justify-center font-mono font-black shrink-0"
                         style={{
                             width:      avatarSz,
                             height:     avatarSz,
@@ -96,13 +97,23 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                             fontSize:   depth === 0 ? 14 : 11,
                         }}
                     >
-                        {(comment.username ?? '?')[0].toUpperCase()}
+                        {comment.avatar_url
+                            ? <img src={comment.avatar_url} alt={comment.username}
+                                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                   onError={e => { e.currentTarget.style.display = 'none'; }} />
+                            : (comment.username ?? '?')[0].toUpperCase()
+                        }
                     </div>
 
                     <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-                        <span className="font-mono text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                        <Link
+                            to={`/users/${comment.user_id}`}
+                            className="font-mono text-sm font-bold transition-colors hover:text-brand hover:underline underline-offset-2"
+                            style={{ color: 'var(--color-text-primary)' }}
+                            onClick={e => e.stopPropagation()}
+                        >
                             {comment.username}
-                        </span>
+                        </Link>
                         {comment.display_label && (
                             <span className="font-mono text-[10px] tracking-wider" style={{ color: 'var(--color-brand-primary)' }}>
                                 {'▓'.repeat(Math.min(comment.stars || 1, 5))} {comment.display_label}

@@ -1,18 +1,20 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Github } from 'lucide-react';
+import { Github, Shield, Search, FileText, MessageSquare, X, Plus } from 'lucide-react';
 import Navbar from './common/Navbar';
 import MarketBand from './common/MarketBand';
 import NewsTicker from './common/NewsTicker';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 
-const AUTH_PATHS = ['/login', '/register'];
+const AUTH_PATHS  = ['/login', '/register'];
+const FORUM_PATHS = ['/forum'];
 
 const FOOTER_LINKS = [
-    { label: 'Hakkımızda', to: '/hakkimizda' },
-    { label: 'Gizlilik',   to: '#'           },
-    { label: 'İletişim',   to: '/hakkimizda' },
-    { label: 'Kullanım Koşulları', to: '#'   },
+    { label: 'Hakkımızda',      to: '/hakkimizda' },
+    { label: 'Gizlilik',        to: '#'           },
+    { label: 'İletişim',        to: '/hakkimizda' },
+    { label: 'Kullanım Koşulları', to: '#'        },
 ];
 
 /* Floating dot particles — dark modda hafif görünür */
@@ -40,9 +42,13 @@ const ORBS = [
 ];
 
 const Layout = () => {
-    const { pathname }   = useLocation();
-    const { isDarkMode } = useTheme();
-    const isAuth         = AUTH_PATHS.includes(pathname);
+    const { pathname }          = useLocation();
+    const { isDarkMode }        = useTheme();
+    const { isAuthenticated }   = useAuth();
+    const isAuth                = AUTH_PATHS.includes(pathname);
+    const isForum               = pathname.startsWith('/forum');
+    const isMessages            = pathname.startsWith('/messages');
+    const [fabOpen, setFabOpen] = useState(false);
     const prevPathRef    = useRef(null);
 
     /* Yön bilgisini render sırasında hesapla */
@@ -137,10 +143,10 @@ const Layout = () => {
                 ))}
             </div>
 
-            {!isAuth && <MarketBand />}
+            <MarketBand />
             <Navbar />
 
-            <main className={`grow ${isAuth ? 'pt-24 md:pt-28' : 'pt-32 md:pt-36'} pb-10 overflow-x-hidden`}>
+            <main className="grow pt-32 md:pt-36 pb-10 overflow-x-hidden">
                 <div key={pathname} className={pageClass}>
                     <Outlet />
                 </div>
@@ -148,35 +154,142 @@ const Layout = () => {
 
             {!isAuth && <NewsTicker />}
 
-            {!isAuth && (
-                <footer className="mt-24 pb-10 border-t border-brutal-border dark:border-es-primary/10 bg-surface dark:bg-es-surface">
-                    <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-8">
+            {/* ── Hızlı erişim FAB (sağ alt) ── */}
+            {isAuthenticated && !isAuth && !isMessages && (
+                <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+                    {/* Menü seçenekleri */}
+                    {fabOpen && (
+                        <div className="flex flex-col items-end gap-2 mb-1 animate-fade-up">
+                            <Link
+                                to="/messages"
+                                onClick={() => setFabOpen(false)}
+                                className="flex items-center gap-2 px-4 py-2.5 font-mono text-xs font-bold shadow-xl transition-opacity hover:opacity-80"
+                                style={{
+                                    background: 'var(--color-terminal-surface)',
+                                    border: '1px solid var(--color-terminal-border-raw)',
+                                    color: 'var(--color-text-primary)',
+                                    borderLeft: '2px solid var(--color-brand-primary)',
+                                }}
+                            >
+                                <MessageSquare className="w-3.5 h-3.5" style={{ color: 'var(--color-brand-primary)' }} />
+                                Mesajlar
+                            </Link>
+                            <Link
+                                to="/forum"
+                                onClick={() => setFabOpen(false)}
+                                className="flex items-center gap-2 px-4 py-2.5 font-mono text-xs font-bold shadow-xl transition-opacity hover:opacity-80"
+                                style={{
+                                    background: 'var(--color-terminal-surface)',
+                                    border: '1px solid var(--color-terminal-border-raw)',
+                                    color: 'var(--color-text-primary)',
+                                    borderLeft: '2px solid var(--color-brand-primary)',
+                                }}
+                            >
+                                <Search className="w-3.5 h-3.5" style={{ color: 'var(--color-brand-primary)' }} />
+                                Forum
+                            </Link>
+                        </div>
+                    )}
 
-                        <div className="flex flex-col items-center md:items-start gap-1">
-                            <span className="font-manrope font-extrabold tracking-tight text-tx-primary dark:text-es-primary">
-                                Ne Haber
-                            </span>
-                            <p className="text-xs text-tx-secondary">
-                                © {new Date().getFullYear()} Fake News Detection System
+                    {/* Ana buton */}
+                    <button
+                        onClick={() => setFabOpen(v => !v)}
+                        className="w-12 h-12 flex items-center justify-center shadow-2xl transition-all duration-200 hover:scale-105 active:scale-95"
+                        style={{
+                            background: 'var(--color-brand-primary)',
+                            color: '#070f12',
+                            border: '2px solid var(--color-brand-primary)',
+                            boxShadow: '0 8px 24px rgba(16,185,129,0.35)',
+                        }}
+                    >
+                        {fabOpen
+                            ? <X className="w-5 h-5" />
+                            : <Plus className="w-5 h-5" />
+                        }
+                    </button>
+                </div>
+            )}
+
+            {!isAuth && !isForum && (
+                <footer style={{
+                    background: 'var(--color-terminal-surface)',
+                    borderTop: '1px solid var(--color-terminal-border-raw)',
+                    marginTop: '6rem',
+                }}>
+                    <div className="max-w-7xl mx-auto px-6 py-10">
+                        <div className="flex flex-col md:flex-row items-start justify-between gap-8">
+
+                            {/* Marka */}
+                            <div className="flex flex-col gap-3">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-mono text-lg font-black tracking-widest uppercase"
+                                          style={{ color: 'var(--color-brand-primary)' }}>
+                                        NE_HABER
+                                    </span>
+                                    <span className="font-mono text-[10px] px-1.5 py-0.5 border"
+                                          style={{ color: 'var(--color-brand-primary)', borderColor: 'rgba(16,185,129,0.30)' }}>
+                                        v2.4
+                                    </span>
+                                </div>
+                                <p className="font-mono text-xs leading-relaxed max-w-xs"
+                                   style={{ color: 'var(--color-text-muted)' }}>
+                                    Türkçe haber doğrulama platformu.<br />
+                                    BERT tabanlı yapay zeka ile sahte haber tespiti.
+                                </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
+                                    <span className="font-mono text-[10px]"
+                                          style={{ color: 'var(--color-brand-primary)' }}>
+                                        SİSTEM AKTİF
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Özellikler */}
+                            <div className="flex flex-col gap-2">
+                                <p className="font-mono text-[10px] uppercase tracking-widest mb-1"
+                                   style={{ color: 'var(--color-text-muted)' }}>// ÖZELLIKLER</p>
+                                {[
+                                    { icon: Search,   label: 'Haber Analizi' },
+                                    { icon: Shield,   label: 'Kaynak Doğrulama' },
+                                    { icon: FileText, label: 'Derin Rapor' },
+                                ].map(({ icon: Icon, label }) => (
+                                    <div key={label} className="flex items-center gap-2">
+                                        <Icon className="w-3 h-3 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
+                                        <span className="font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                                            {label}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Linkler */}
+                            <div className="flex flex-col gap-2">
+                                <p className="font-mono text-[10px] uppercase tracking-widest mb-1"
+                                   style={{ color: 'var(--color-text-muted)' }}>// BAĞLANTILAR</p>
+                                {FOOTER_LINKS.map(({ label, to }) => (
+                                    <Link key={label} to={to}
+                                          className="font-mono text-xs transition-opacity hover:opacity-60"
+                                          style={{ color: 'var(--color-text-muted)' }}>
+                                        › {label}
+                                    </Link>
+                                ))}
+                            </div>
+
+                        </div>
+
+                        {/* Alt çizgi */}
+                        <div className="mt-8 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3"
+                             style={{ borderTop: '1px solid var(--color-terminal-border-raw)' }}>
+                            <p className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}>
+                                © {new Date().getFullYear()} NE_HABER_SİSTEMİ · TÜM_HAKLAR_SAKLIDIR
                             </p>
-                        </div>
-
-                        <div className="flex flex-wrap justify-center gap-6">
-                            {FOOTER_LINKS.map(({ label, to }) => (
-                                <Link key={label} to={to}
-                                      className="text-xs text-tx-secondary hover:text-tx-primary transition-colors">
-                                    {label}
-                                </Link>
-                            ))}
-                        </div>
-
-                        <div className="flex gap-3">
                             <a href="https://github.com" target="_blank" rel="noopener noreferrer"
-                               className="w-8 h-8 rounded-full border border-brutal-border flex items-center justify-center text-tx-secondary hover:text-tx-primary hover:border-tx-primary transition-all">
-                                <Github size={14} />
+                               className="flex items-center gap-1.5 font-mono text-[10px] transition-opacity hover:opacity-60"
+                               style={{ color: 'var(--color-text-muted)' }}>
+                                <Github size={12} /> GitHub
                             </a>
                         </div>
-
                     </div>
                 </footer>
             )}
