@@ -11,6 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import AuthService from '../services/auth.service';
 import AnalysisService from '../services/analysis.service';
 import HistoryModal from '../features/profile/HistoryModal';
+import GamificationService from '../services/gamification.service';
 
 /* ── Tasarım ───────────────────────────────────────────────── */
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
@@ -135,34 +136,6 @@ function FollowModal({ userId, mode, onClose }) {
     );
 }
 
-/* ── Rozet tanımları ─────────────────────────────────────── */
-function getBadges(profile, stats, isOwn) {
-    const badges = [];
-    badges.push({ icon: UserCheck, label: 'Kayıtlı Üye', color: 'var(--color-brand-primary)', locked: false });
-    if (profile.thread_count >= 1)
-        badges.push({ icon: MessageSquare, label: 'Tartışmacı', color: 'var(--color-accent-blue)', locked: false });
-    if (profile.thread_count >= 10)
-        badges.push({ icon: Zap, label: 'Aktif Tartışmacı', color: 'var(--color-accent-amber)', locked: false });
-    if (profile.follower_count >= 10)
-        badges.push({ icon: Users, label: 'Takip Edilen', color: '#a855f7', locked: false });
-    if (profile.trust_tier !== 'yeni_uye')
-        badges.push({ icon: Shield, label: 'Doğrulayıcı', color: 'var(--color-accent-blue)', locked: false });
-    if (['analist', 'dedektif'].includes(profile.trust_tier))
-        badges.push({ icon: Search, label: 'Kaynak Analist', color: 'var(--color-accent-amber)', locked: false });
-    if (profile.trust_tier === 'dedektif')
-        badges.push({ icon: Award, label: 'Forum Dedektifi', color: 'var(--color-brand-primary)', locked: false });
-    if (isOwn && stats && stats.total_analyzed >= 1)
-        badges.push({ icon: Cpu, label: 'BERT Kullanıcısı', color: 'var(--color-brand-primary)', locked: false });
-    if (isOwn && stats && stats.total_analyzed >= 50)
-        badges.push({ icon: TrendingUp, label: 'Analiz Uzmanı', color: '#ef4444', locked: false });
-    // Kilitli
-    if (profile.trust_tier === 'yeni_uye')
-        badges.push({ icon: Lock, label: 'Doğrulayıcı', color: 'var(--color-text-muted)', locked: true });
-    if (!['analist', 'dedektif'].includes(profile.trust_tier))
-        badges.push({ icon: Lock, label: 'Sinyal Uzmanı', color: 'var(--color-text-muted)', locked: true });
-    return badges;
-}
-
 /* ── Thead özet kartı ────────────────────────────────────── */
 function ThreadMini({ thread }) {
     function timeAgo(d) {
@@ -218,6 +191,9 @@ export default function UserProfile() {
     const [fullReports, setFullReports] = useState(new Set());
     const [selectedItem, setSelectedItem] = useState(null);
 
+    const [showcase, setShowcase] = useState([]);
+    const [xpStats,  setXpStats]  = useState(null);
+
     const [activeTab, setActiveTab] = useState('overview');
     const [followModal, setFollowModal] = useState(null); // 'followers' | 'following' | null
 
@@ -230,6 +206,12 @@ export default function UserProfile() {
             .then(({ data }) => { setProfile(data); setFollowing(data.is_following ?? false); })
             .catch(() => {})
             .finally(() => setLoading(false));
+        GamificationService.getUserShowcase(userId)
+            .then(setShowcase)
+            .catch(() => {});
+        GamificationService.getUserStats(userId)
+            .then(setXpStats)
+            .catch(() => {});
     }, [userId]);
 
     /* Kendi istatistikleri */
@@ -297,7 +279,6 @@ export default function UserProfile() {
         </div>
     );
 
-    const badges     = getBadges(profile, stats, isOwnProfile);
     const tierColor  = TIER_COLOR[profile.trust_tier] ?? 'var(--color-text-muted)';
     const stars      = profile.trust_stars ?? 0;
     const joined     = new Date(profile.created_at).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
@@ -419,6 +400,39 @@ export default function UserProfile() {
                         </>
                     )}
                 </div>
+
+                {/* XP Bar */}
+                {xpStats && (
+                    <div className="px-5 pb-3">
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="font-mono text-[10px]" style={{ color: 'var(--color-brand-primary)' }}>
+                                SEVİYE {xpStats.level}
+                            </span>
+                            <span className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                                {xpStats.total_xp} XP
+                            </span>
+                        </div>
+                        <div className="w-full h-1 rounded-full overflow-hidden"
+                             style={{ background: 'var(--color-terminal-border-raw)' }}>
+                            <div style={{ width: `${xpStats.xp_progress_pct}%`, background: 'var(--color-brand-primary)' }}
+                                 className="h-full rounded-full" />
+                        </div>
+                    </div>
+                )}
+
+                {/* Rozet Vitrini */}
+                {showcase.length > 0 && (
+                    <div className="flex items-center gap-2 px-5 pb-4 flex-wrap">
+                        {showcase.map(b => (
+                            <div key={b.key}
+                                 className="flex items-center gap-1.5 px-2.5 py-1 border"
+                                 style={{ borderColor: b.color, color: b.color }}>
+                                <span className="font-mono text-[10px] font-black">{b.name[0]}</span>
+                                <span className="font-mono text-[10px]">{b.name}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* ── Sekmeler ── */}
@@ -439,33 +453,6 @@ export default function UserProfile() {
             {/* ── Genel Bakış ── */}
             {activeTab === 'overview' && (
                 <div className="space-y-5">
-
-                    {/* Rozetler */}
-                    <div className="relative border overflow-hidden" style={S}>
-                        <Corner />
-                        <div className="px-4 py-3 border-b" style={BD}>
-                            <span className="font-mono text-xs tracking-widest uppercase"
-                                  style={{ color: 'var(--color-brand-primary)' }}>// ROZETLER</span>
-                        </div>
-                        <div className="p-4 flex flex-wrap gap-2">
-                            {badges.map(({ icon: Icon, label, color, locked }) => (
-                                <div key={label}
-                                     className="flex items-center gap-2 px-3 py-2 border font-mono text-xs"
-                                     style={{
-                                         borderColor: locked ? 'var(--color-terminal-border-raw)' : color,
-                                         color: locked ? 'var(--color-text-muted)' : 'var(--color-text-primary)',
-                                         opacity: locked ? 0.35 : 1,
-                                         background: locked ? 'transparent' : `${color}12`,
-                                     }}>
-                                    {locked
-                                        ? <Lock className="w-3.5 h-3.5 shrink-0" />
-                                        : <Icon className="w-3.5 h-3.5 shrink-0" style={{ color }} />
-                                    }
-                                    {label}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
 
                     {/* Kendi: haftalık özet */}
                     {isOwnProfile && stats && (
