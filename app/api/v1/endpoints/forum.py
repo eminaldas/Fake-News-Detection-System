@@ -840,18 +840,21 @@ async def helpful_vote(
         )
     )).scalar_one_or_none()
 
+    is_new_vote = False
     if existing:
         await db.delete(existing)
         comment.helpful_count = max(0, comment.helpful_count - 1)
     else:
         db.add(ForumCommentVote(comment_id=comment_id, user_id=current_user.id))
         comment.helpful_count += 1
+        is_new_vote = True
 
     await db.commit()
 
-    _redis = await get_redis()
-    await award_xp(db, _redis, comment.user_id, XPActionType.helpful_received, str(comment.id))
-    await db.commit()
+    if is_new_vote:
+        _redis = await get_redis()
+        await award_xp(db, _redis, comment.user_id, XPActionType.helpful_received, str(comment.id))
+        await db.commit()
 
 
 @router.put("/comments/{comment_id}", response_model=ForumCommentItem)
