@@ -18,7 +18,9 @@ from app.core.rate_limit import check_rate_limit
 from app.core.security import hash_ip
 from app.db.redis import get_redis
 from app.db.session import get_db
+from app.models.gamification import XPActionType
 from app.models.models import AnalysisRequest, AnalysisType, Article, AnalysisResult, ImageCache, NewsArticle, User, ModelFeedback
+from app.services.xp_service import award_xp
 from app.schemas.schemas import (
     AnalysisResponse,
     ContentAnalysisRequest,
@@ -244,6 +246,11 @@ async def analyze_content(
         db.add(ar)
         await db.commit()
 
+        if current_user:
+            redis = await get_redis()
+            await award_xp(db, redis, current_user.id, XPActionType.analysis_created, str(ar.id))
+            await db.commit()
+
         log.info(
             "analysis.requested",
             user_id=str(current_user.id) if current_user else None,
@@ -289,6 +296,11 @@ async def analyze_content(
     )
     db.add(ar)
     await db.commit()
+
+    if current_user:
+        redis = await get_redis()
+        await award_xp(db, redis, current_user.id, XPActionType.analysis_created, str(ar.id))
+        await db.commit()
 
     log.info(
         "analysis.requested",
