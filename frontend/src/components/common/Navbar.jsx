@@ -1,10 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Moon, Sun, Menu, X, ChevronDown, User, Settings, Shield, BarChart2, LogOut, Users, Search } from 'lucide-react';
+import { Moon, Sun, Menu, X, ChevronDown, User, Settings, Shield, BarChart2, LogOut, Users, Search, MessageSquare } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import axiosInstance from '../../api/axios';
 import NotificationBell from '../../features/notifications/NotificationBell';
+import { useWebSocket } from '../../contexts/WebSocketContext';
+
+function UnreadBadge() {
+    const [count, setCount] = React.useState(0);
+    const { subscribe }     = useWebSocket();
+    const { isAuthenticated } = useAuth();
+
+    React.useEffect(() => {
+        if (!isAuthenticated) return;
+        axiosInstance.get('/messages/unread-count').then(r => setCount(r.data.count ?? 0)).catch(() => {});
+    }, [isAuthenticated]);
+
+    React.useEffect(() => {
+        const unsub = subscribe('dm.new_message', () => {
+            setCount(v => v + 1);
+        });
+        return unsub;
+    }, [subscribe]);
+
+    if (count === 0) return null;
+    return (
+        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center font-mono text-[9px] font-black"
+              style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
+            {count > 9 ? '9+' : count}
+        </span>
+    );
+}
 
 const GUNDEM_CATEGORIES = [
     { label: 'Gündem',    value: 'gündem'    },
@@ -321,6 +348,19 @@ const Navbar = () => {
                     {/* Bildirimler */}
                     {isAuthenticated && user && <NotificationBell />}
 
+                    {/* Mesajlar */}
+                    {isAuthenticated && user && (
+                        <Link
+                            to="/messages"
+                            className="relative p-1.5 transition-opacity hover:opacity-70"
+                            style={{ color: 'var(--color-text-primary)' }}
+                            title="Mesajlar"
+                        >
+                            <MessageSquare className="w-5 h-5" />
+                            <UnreadBadge />
+                        </Link>
+                    )}
+
                     {/* Giriş yok */}
                     {!isAuthenticated && (
                         <div className="hidden md:flex items-center gap-2 ml-1">
@@ -349,7 +389,7 @@ const Navbar = () => {
                                 className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
                             >
                                 <div
-                                    className="w-7 h-7 rounded-full flex items-center justify-center font-mono font-black text-xs"
+                                    className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center font-mono font-black text-xs shrink-0"
                                     style={{
                                         background: 'var(--color-brand-primary)',
                                         color:      'var(--color-bg-base)',
@@ -357,7 +397,17 @@ const Navbar = () => {
                                         boxShadow:  '0 0 0 1px var(--color-bg-base)',
                                     }}
                                 >
-                                    {user.username?.[0]?.toUpperCase() ?? 'U'}
+                                    {user.avatar_url ? (
+                                        <img
+                                            src={user.avatar_url}
+                                            alt={user.username}
+                                            className="w-full h-full object-cover"
+                                            onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }}
+                                        />
+                                    ) : null}
+                                    <span style={{ display: user.avatar_url ? 'none' : 'flex' }}>
+                                        {user.username?.[0]?.toUpperCase() ?? 'U'}
+                                    </span>
                                 </div>
                                 <ChevronDown
                                     size={11}
@@ -393,12 +443,20 @@ const Navbar = () => {
                                     {/* Linkler */}
                                     <div className="py-1">
                                         <Link
-                                            to="/profile"
+                                            to={`/users/${user.id}`}
                                             onClick={() => setShowProfile(false)}
                                             className="flex items-center gap-3 px-4 py-2.5 font-mono text-sm transition-colors hover:bg-brand/5"
                                             style={{ color: 'var(--color-text-primary)' }}
                                         >
                                             <User size={14} className="shrink-0" /> Profilim
+                                        </Link>
+                                        <Link
+                                            to="/profile/settings"
+                                            onClick={() => setShowProfile(false)}
+                                            className="flex items-center gap-3 px-4 py-2.5 font-mono text-sm transition-colors hover:bg-brand/5"
+                                            style={{ color: 'var(--color-text-primary)' }}
+                                        >
+                                            <Settings size={14} className="shrink-0" /> Ayarlar
                                         </Link>
 
                                         {isAdmin && (

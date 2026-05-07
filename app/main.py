@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import HTMLResponse
 
-from app.api.v1.endpoints import ab as ab_endpoint, admin, admin_logs, analysis, articles, auth, forum, insights, interactions, market, news, notifications, recommendations, sources, users, ws as ws_endpoint
+from app.api.v1.endpoints import ab as ab_endpoint, admin, admin_logs, analysis, articles, auth, forum, insights, interactions, market, messages, news, notifications, recommendations, sources, users, ws as ws_endpoint
 from app.api.v1.endpoints import share as share_router
 from app.core.logging import get_logger, setup_logging
 from app.core.seo import inject_thread_meta, is_bot
@@ -128,6 +128,7 @@ app.include_router(insights.router,        prefix="/api/v1/insights",        tag
 app.include_router(notifications.router,   prefix="/api/v1/notifications",   tags=["Notifications"])
 app.include_router(sources.router,         prefix="/api/v1/sources",         tags=["Sources"])
 app.include_router(forum.router,           prefix="/api/v1/forum",            tags=["Forum"])
+app.include_router(messages.router,        prefix="/api/v1/messages",         tags=["Messages"])
 app.include_router(ws_endpoint.router,     prefix="/api/v1")
 app.include_router(share_router.router, prefix="/s", tags=["Share"])
 app.mount("/static", StaticFiles(directory="static"), name="static")
