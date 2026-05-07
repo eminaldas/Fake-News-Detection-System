@@ -24,7 +24,10 @@ from app.core.security import (
     verify_password,
 )
 from app.db.redis import get_redis
+from app.db.redis import get_redis as _get_redis_auth
 from app.db.session import get_db
+from app.models.gamification import XPActionType as _XPAction
+from app.services.xp_service import award_xp as _award_xp
 from app.api.deps import get_current_user
 from app.models.models import User, UserRole
 from app.schemas.schemas import (
@@ -127,6 +130,13 @@ async def login(
     # last_login_at güncelle
     user.last_login_at = datetime.now(timezone.utc)
     await db.commit()
+
+    try:
+        _redis = await _get_redis_auth()
+        await _award_xp(db, _redis, user.id, _XPAction.daily_login)
+        await db.commit()
+    except Exception:
+        pass  # XP hatası login'i bloklamamalı
 
     log.info("user.login.success", user_id=str(user.id), ip_hash=hash_ip(ip), remember_me=remember_me_param)
     is_new_ip = await update_ip_history(redis, str(user.id), ip)
@@ -254,6 +264,13 @@ async def google_auth(
     user.last_login_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(user)
+
+    try:
+        _redis = await _get_redis_auth()
+        await _award_xp(db, _redis, user.id, _XPAction.daily_login)
+        await db.commit()
+    except Exception:
+        pass
 
     # Yeni kullanıcıya hoş geldin emaili gönder
     if is_new and bool(settings.SMTP_HOST and settings.SMTP_USER):

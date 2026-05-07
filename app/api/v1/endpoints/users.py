@@ -14,7 +14,10 @@ from app.core.notifications import send_notification
 from app.core.rate_limit import _midnight_epoch
 from app.core.security import hash_ip
 from app.db.redis import get_redis
+from app.db.redis import get_redis as _get_redis
 from app.db.session import get_db
+from app.models.gamification import XPActionType
+from app.services.xp_service import award_xp
 from app.models.models import (
     AnalysisRequest, AnalysisResult, Article, AuditLog, Bookmark, ContentInteraction,
     ForumThread, ForumVote, ModelFeedback, User, UserFollow, UserNotification, UserPreferenceProfile,
@@ -476,6 +479,8 @@ async def toggle_follow(
             notif_type="new_follower",
             payload={"actor": current_user.username, "actor_id": str(current_user.id)},
         )
+        _redis = await _get_redis()
+        await award_xp(db, _redis, user_id, XPActionType.followed)
     await db.commit()
     return Response(status_code=204)
 
