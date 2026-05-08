@@ -47,14 +47,12 @@ import AdminDataset from './pages/AdminDataset';
 import AnalysisReport from './pages/AnalysisReport';
 import Badges from './pages/Badges';
 
-// /profile → kendi profiline yönlendir
 function ProfileRedirect() {
     const { user } = useAuth();
     if (!user) return null;
     return <Navigate to={`/users/${user.id}`} replace />;
 }
 
-// Listens to auth state and manages the WS connection lifecycle
 function WsLifecycle() {
     const { isAuthenticated } = useAuth();
     useEffect(() => {
