@@ -22,30 +22,23 @@ def upgrade() -> None:
     op.add_column('users', sa.Column('current_streak',  sa.Integer(), nullable=False, server_default='0'))
     op.add_column('users', sa.Column('last_login_date', sa.Date(),    nullable=True))
 
-    # 2) xpactiontype enum oluştur
-    xpactiontype = postgresql.ENUM(
-        'analysis_created', 'thread_created', 'comment_created', 'vote_cast',
-        'evidence_added', 'helpful_received', 'followed', 'daily_login',
-        name='xpactiontype'
-    )
-    xpactiontype.create(op.get_bind(), checkfirst=True)
-
-    # 3) user_xp_events tablosu
-    op.create_table(
-        'user_xp_events',
-        sa.Column('id',          sa.Integer(),                  nullable=False),
-        sa.Column('user_id',     postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column('action_type',
-                  sa.Enum('analysis_created', 'thread_created', 'comment_created', 'vote_cast',
-                          'evidence_added', 'helpful_received', 'followed', 'daily_login',
-                          name='xpactiontype'),
-                  nullable=False),
-        sa.Column('xp_amount',  sa.Integer(),               nullable=False),
-        sa.Column('ref_id',     sa.String(64),              nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('id'),
-    )
+    # 2) xpactiontype enum + user_xp_events tablosu (ham SQL — SQLAlchemy'nin auto-create sorununu atlar)
+    op.execute("""
+        CREATE TYPE xpactiontype AS ENUM (
+            'analysis_created', 'thread_created', 'comment_created', 'vote_cast',
+            'evidence_added', 'helpful_received', 'followed', 'daily_login'
+        )
+    """)
+    op.execute("""
+        CREATE TABLE user_xp_events (
+            id          SERIAL PRIMARY KEY,
+            user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            action_type xpactiontype NOT NULL,
+            xp_amount   INTEGER NOT NULL,
+            ref_id      VARCHAR(64),
+            created_at  TIMESTAMPTZ DEFAULT now()
+        )
+    """)
     op.create_index('ix_user_xp_events_user_id',    'user_xp_events', ['user_id'],    unique=False)
     op.create_index('ix_user_xp_events_created_at', 'user_xp_events', ['created_at'], unique=False)
 
