@@ -211,22 +211,23 @@ async def award_xp(
         if count > daily_limit:
             return {"xp_gained": 0, "new_badges": []}
 
+    # Kullanıcıyı bir kez fetch et — hem streak hem XP güncellemesi için kullanılır
+    user_row = (await db.execute(select(User).where(User.id == user_id))).scalar_one()
+
     # Günlük giriş — streak güncelleme
     if action_type == XPActionType.daily_login:
-        user = (await db.execute(select(User).where(User.id == user_id))).scalar_one()
         today_date = date.today()
-        if user.last_login_date == today_date:
+        if user_row.last_login_date == today_date:
             return {"xp_gained": 0, "new_badges": []}
         from datetime import timedelta
         yesterday = today_date - timedelta(days=1)
-        user.current_streak = (user.current_streak + 1) if user.last_login_date == yesterday else 1
-        user.last_login_date = today_date
+        user_row.current_streak = (user_row.current_streak + 1) if user_row.last_login_date == yesterday else 1
+        user_row.last_login_date = today_date
 
     # XP event kaydet
     db.add(UserXPEvent(user_id=user_id, action_type=action_type, xp_amount=xp_amount, ref_id=ref_id))
 
     # total_xp güncelle (level nightly'de hesaplanır)
-    user_row = (await db.execute(select(User).where(User.id == user_id))).scalar_one()
     user_row.total_xp = (user_row.total_xp or 0) + xp_amount
 
     await db.flush()

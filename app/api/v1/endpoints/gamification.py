@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from redis.asyncio import Redis
 from sqlalchemy import func, select, desc, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -130,7 +130,7 @@ async def my_badges(current_user: User = Depends(get_current_user), db: AsyncSes
 
 @router.post("/me/showcase")
 async def update_showcase(
-    badge_keys:   List[str],
+    badge_keys:   List[str]    = Body(...),
     current_user: User         = Depends(get_current_user),
     db: AsyncSession           = Depends(get_db),
 ):
