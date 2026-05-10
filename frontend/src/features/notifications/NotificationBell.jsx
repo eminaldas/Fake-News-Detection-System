@@ -12,6 +12,7 @@ const TYPE_LABELS = {
     fact_check_started: 'Haber kontrolü başlatıldı',
     fact_check_done:    'Haber kontrolü tamamlandı',
     new_follower:       'Sizi takip eden biri var',
+    dm:                 'size mesaj gönderdi',
 };
 
 const TYPE_PREFIX = {
@@ -22,6 +23,7 @@ const TYPE_PREFIX = {
     fact_check_started: '📰',
     fact_check_done:    '✓',
     new_follower:       '→',
+    dm:                 '📩',
 };
 
 function relativeTime(isoString) {
@@ -35,6 +37,7 @@ function relativeTime(isoString) {
 
 function resolveLink(notif) {
     const p = notif.payload ?? {};
+    if (notif.type === 'dm' && p.sender_id) return `/messages/${p.sender_id}`;
     if (p.thread_id)  return `/forum/${p.thread_id}`;
     if (p.article_id) return `/archive/${p.article_id}`;
     return null;
@@ -70,6 +73,26 @@ export default function NotificationBell() {
                     created_at: payload.created_at ?? new Date().toISOString(),
                 }, ...prev]);
             }
+        });
+        return unsub;
+    }, [subscribe]);
+
+    /* DM bildirimleri — yeni mesaj gelince bell'de göster */
+    useEffect(() => {
+        const unsub = subscribe('dm.new_message', (payload) => {
+            setUnread(prev => prev + 1);
+            const dmNotif = {
+                id:         `dm_${payload.id ?? Date.now()}`,
+                type:       'dm',
+                payload:    {
+                    sender_id:   payload.sender_id,
+                    sender_name: payload.sender_name,
+                    text:        payload.content,
+                },
+                read_at:    null,
+                created_at: payload.created_at ?? new Date().toISOString(),
+            };
+            setItems(prev => [dmNotif, ...prev]);
         });
         return unsub;
     }, [subscribe]);
@@ -186,7 +209,10 @@ export default function NotificationBell() {
                             const label  = TYPE_LABELS[n.type] ?? n.type;
                             const prefix = TYPE_PREFIX[n.type] ?? '·';
                             const isRead = !!n.read_at;
-                            return (
+                            const displayLabel = n.type === 'dm' && n.payload?.sender_name
+                                ? `${n.payload.sender_name} size mesaj gönderdi`
+                                : label;
+                        return (
                                 <button
                                     key={n.id}
                                     onClick={() => handleMarkOne(n)}
@@ -203,7 +229,7 @@ export default function NotificationBell() {
                                         </span>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-mono text-sm font-semibold leading-snug" style={{ color: 'var(--color-text-primary)' }}>
-                                                {label}
+                                                {displayLabel}
                                             </p>
                                             {n.payload?.text && (
                                                 <p className="font-mono text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--color-text-secondary)' }}>

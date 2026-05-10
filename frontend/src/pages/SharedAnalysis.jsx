@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ShieldCheck, ShieldAlert, AlertCircle, ArrowRight, Calendar, Percent } from 'lucide-react';
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+import axiosInstance from '../api/axios';
 
 function formatDate(isoString) {
   if (!isoString) return '—';
@@ -25,7 +23,7 @@ const SharedAnalysis = () => {
 
     async function fetchAnalysis() {
       try {
-        const res = await axios.get(`${API_BASE_URL}/analysis/share/${articleId}`);
+        const res = await axiosInstance.get(`/analysis/share/${articleId}`);
         if (!cancelled) setData(res.data);
       } catch (err) {
         if (!cancelled) {

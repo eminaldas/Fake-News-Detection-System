@@ -1,12 +1,12 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Github, Shield, Search, FileText, MessageSquare, X, Plus } from 'lucide-react';
+import { Github, Shield, Search, FileText } from 'lucide-react';
 import Navbar from './common/Navbar';
 import MarketBand from './common/MarketBand';
 import NewsTicker from './common/NewsTicker';
 import { useTheme } from '../contexts/ThemeContext';
-import { useAuth } from '../contexts/AuthContext';
 import XPToast from './common/XPToast';
+import MiniMessenger from './common/MiniMessenger';
 
 const AUTH_PATHS  = ['/login', '/register'];
 const FORUM_PATHS = ['/forum'];
@@ -43,14 +43,12 @@ const ORBS = [
 ];
 
 const Layout = () => {
-    const { pathname }          = useLocation();
-    const { isDarkMode }        = useTheme();
-    const { isAuthenticated }   = useAuth();
-    const isAuth                = AUTH_PATHS.includes(pathname);
-    const isForum               = pathname.startsWith('/forum');
-    const isMessages            = pathname.startsWith('/messages');
-    const [fabOpen, setFabOpen] = useState(false);
-    const prevPathRef    = useRef(null);
+    const { pathname }  = useLocation();
+    const { isDarkMode } = useTheme();
+    const isAuth         = AUTH_PATHS.includes(pathname);
+    const isForum     = pathname.startsWith('/forum');
+    const isMessages  = pathname.startsWith('/messages');
+    const prevPathRef = useRef(null);
 
     /* Yön bilgisini render sırasında hesapla */
     /* eslint-disable react-hooks/refs */
@@ -155,61 +153,8 @@ const Layout = () => {
 
             {!isAuth && <NewsTicker />}
 
-            {/* ── Hızlı erişim FAB (sağ alt) ── */}
-            {isAuthenticated && !isAuth && !isMessages && (
-                <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
-                    {/* Menü seçenekleri */}
-                    {fabOpen && (
-                        <div className="flex flex-col items-end gap-2 mb-1 animate-fade-up">
-                            <Link
-                                to="/messages"
-                                onClick={() => setFabOpen(false)}
-                                className="flex items-center gap-2 px-4 py-2.5 font-mono text-xs font-bold shadow-xl transition-opacity hover:opacity-80"
-                                style={{
-                                    background: 'var(--color-terminal-surface)',
-                                    border: '1px solid var(--color-terminal-border-raw)',
-                                    color: 'var(--color-text-primary)',
-                                    borderLeft: '2px solid var(--color-brand-primary)',
-                                }}
-                            >
-                                <MessageSquare className="w-3.5 h-3.5" style={{ color: 'var(--color-brand-primary)' }} />
-                                Mesajlar
-                            </Link>
-                            <Link
-                                to="/forum"
-                                onClick={() => setFabOpen(false)}
-                                className="flex items-center gap-2 px-4 py-2.5 font-mono text-xs font-bold shadow-xl transition-opacity hover:opacity-80"
-                                style={{
-                                    background: 'var(--color-terminal-surface)',
-                                    border: '1px solid var(--color-terminal-border-raw)',
-                                    color: 'var(--color-text-primary)',
-                                    borderLeft: '2px solid var(--color-brand-primary)',
-                                }}
-                            >
-                                <Search className="w-3.5 h-3.5" style={{ color: 'var(--color-brand-primary)' }} />
-                                Forum
-                            </Link>
-                        </div>
-                    )}
-
-                    {/* Ana buton */}
-                    <button
-                        onClick={() => setFabOpen(v => !v)}
-                        className="w-12 h-12 flex items-center justify-center shadow-2xl transition-all duration-200 hover:scale-105 active:scale-95"
-                        style={{
-                            background: 'var(--color-brand-primary)',
-                            color: '#070f12',
-                            border: '2px solid var(--color-brand-primary)',
-                            boxShadow: '0 8px 24px rgba(16,185,129,0.35)',
-                        }}
-                    >
-                        {fabOpen
-                            ? <X className="w-5 h-5" />
-                            : <Plus className="w-5 h-5" />
-                        }
-                    </button>
-                </div>
-            )}
+            {/* ── Mini mesajlaşma (LinkedIn stili, sağ alt) ── */}
+            {!isAuth && !isMessages && <MiniMessenger />}
 
             {!isAuth && !isForum && (
                 <footer style={{

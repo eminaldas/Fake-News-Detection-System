@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Moon, Sun, Menu, X, ChevronDown, User, Settings, Shield, BarChart2, LogOut, Users, Search, MessageSquare, Award } from 'lucide-react';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Moon, Sun, Menu, X, ChevronDown, User, Settings, Shield, BarChart2, LogOut, Users, MessageSquare, Award } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import axiosInstance from '../../api/axios';
@@ -225,27 +225,16 @@ function TrustProgress({ trust }) {
 
 const Navbar = () => {
     const location              = useLocation();
-    const navigate              = useNavigate();
     const { isDarkMode, toggleTheme } = useTheme();
     const { isAuthenticated, user, isAdmin, logout } = useAuth();
     const [menuOpen,    setMenuOpen]    = useState(false);
     const [showProfile, setShowProfile] = useState(false);
     const [trust,       setTrust]       = useState(null);
-    const [searchOpen,  setSearchOpen]  = useState(false);
-    const [searchQ,     setSearchQ]     = useState('');
     const profileRef = useRef(null);
     const isActive   = (path) => location.pathname === path;
     const [gundemParams, setGundemParams] = useSearchParams();
     const isGundem       = location.pathname === '/gundem';
     const activeCategory = isGundem ? gundemParams.get('category') : null;
-
-    const handleSearchSubmit = (e) => {
-        e.preventDefault();
-        if (!searchQ.trim()) return;
-        navigate(`/forum/search?q=${encodeURIComponent(searchQ)}`);
-        setSearchOpen(false);
-        setSearchQ('');
-    };
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { setMenuOpen(false); }, [location.pathname]);
@@ -321,29 +310,6 @@ const Navbar = () => {
                 {/* ── SAĞ ARAÇLAR ── */}
                 <div className="flex items-center gap-2">
 
-                    {/* Arama */}
-                    {searchOpen ? (
-                        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
-                            <input
-                                autoFocus
-                                value={searchQ}
-                                onChange={e => setSearchQ(e.target.value)}
-                                onBlur={() => { if (!searchQ) setSearchOpen(false); }}
-                                placeholder="ara..."
-                                className="font-mono text-xs bg-transparent outline-none px-2 py-1 border w-32"
-                                style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}
-                            />
-                        </form>
-                    ) : (
-                        <button
-                            onClick={() => setSearchOpen(true)}
-                            className="p-2 transition-colors hover:bg-white/5"
-                            style={{ color: 'var(--color-text-primary)' }}
-                        >
-                            <Search className="w-4 h-4" />
-                        </button>
-                    )}
-
                     {/* Tema toggle */}
                     <button
                         onClick={toggleTheme}
@@ -418,12 +384,6 @@ const Navbar = () => {
                                         {user.username?.[0]?.toUpperCase() ?? 'U'}
                                     </span>
                                 </div>
-                                {userLevel && (
-                                    <span className="font-mono text-[9px] px-1.5 py-0.5 border shrink-0"
-                                          style={{ borderColor: 'var(--color-brand-primary)', color: 'var(--color-brand-primary)' }}>
-                                        Lv.{userLevel}
-                                    </span>
-                                )}
                                 <ChevronDown
                                     size={11}
                                     className="hidden md:block transition-transform"
@@ -444,9 +404,23 @@ const Navbar = () => {
 
                                     {/* Kullanıcı başlık */}
                                     <div className="px-4 py-3 border-b" style={BD}>
-                                        <p className="font-mono text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>
-                                            {user.username}
-                                        </p>
+                                        <div className="flex items-center justify-between gap-2">
+                                            <p className="font-mono text-sm font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>
+                                                {user.username}
+                                            </p>
+                                            {userLevel && (
+                                                <span
+                                                    className="font-mono text-[9px] px-2 py-0.5 border shrink-0"
+                                                    style={{
+                                                        borderColor: 'var(--color-brand-primary)',
+                                                        color:       'var(--color-brand-primary)',
+                                                        background:  'rgba(16,185,129,0.08)',
+                                                    }}
+                                                >
+                                                    SEVİYE {userLevel}
+                                                </span>
+                                            )}
+                                        </div>
                                         <p className="font-mono text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                                             {user.email ?? 'Kullanıcı'}
                                         </p>

@@ -8,7 +8,7 @@ import uuid as _uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select, func, or_, and_, update, desc, text
+from sqlalchemy import select, func, or_, and_, update, desc, text, case
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -72,14 +72,14 @@ async def list_conversations(
     # En son mesajları group by partner
     subq = (
         select(
-            func.case(
+            case(
                 (DirectMessage.sender_id == uid, DirectMessage.receiver_id),
                 else_=DirectMessage.sender_id
             ).label("partner_id"),
             func.max(DirectMessage.created_at).label("last_at"),
         )
         .where(or_(DirectMessage.sender_id == uid, DirectMessage.receiver_id == uid))
-        .group_by("partner_id")
+        .group_by(text("partner_id"))
         .subquery()
     )
 

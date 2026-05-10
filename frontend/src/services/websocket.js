@@ -32,7 +32,20 @@ class WebSocketService {
     }
 
     _open() {
-        const url = `ws://localhost:8000/api/v1/ws?token=${this._token}`;
+        /* VITE_API_URL:
+           - Dev:  tanımsız → fallback 'http://localhost:8000/api/v1'  (backend direkt)
+           - Prod: '/api/v1'  (nginx proxy, relative)                   */
+        const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+        let wsBase;
+        if (apiUrl.startsWith('/')) {
+            // Prod — nginx üzerinden, mevcut host'tan türet
+            const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            wsBase = `${proto}://${window.location.host}${apiUrl}`;
+        } else {
+            // Dev — http → ws dönüştür
+            wsBase = apiUrl.replace(/^http/, 'ws');
+        }
+        const url = `${wsBase}/ws?token=${this._token}`;
         this._ws  = new WebSocket(url);
 
         this._ws.onopen = () => {
