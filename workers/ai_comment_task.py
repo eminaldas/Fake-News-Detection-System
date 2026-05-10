@@ -371,6 +371,7 @@ JSON alanları:
 - "news_summary": Haberin ne iddia ettiğini 1-2 cümleyle tarafsızca özetle, karar belirtme (max 200 karakter)
 - "summary": 2-3 cümle Türkçe açıklama (max 500 karakter). Kaynak yanlılığını ve tarih bilgisini açıklamana ekle.
 - "evidence": ilgili kaynaklardan en fazla 3 kanıt [{"title":"...","url":"...","date":"..."}]
+- "false_claims": Haberde tespit ettiğin olgusal hatalar. YALNIZCA Google Search ile doğrulayabildiğin iddiaları ekle. Kanıtlayamazsan boş liste bırak: []. Her madde: {"wrong_text": "haberdeki yanlış ifade (max 200 karakter)", "correction": "doğrusu nedir (max 300 karakter)", "source_title": "kaynağın başlığı", "source_url": "https://..."}
 Yanıtı YALNIZCA geçerli JSON formatında ver."""
     else:
         task_block = f"""[GÖREV]
@@ -388,6 +389,7 @@ JSON alanları:
 - "news_summary": Haberin ne iddia ettiğini 1-2 cümleyle tarafsızca özetle, karar belirtme (max 200 karakter)
 - "summary": 2-3 cümle Türkçe açıklama (max 500 karakter). Kaynak yanlılığını ve tarih bilgisini açıklamana ekle.
 - "evidence": ilgili kaynaklardan en fazla 3 kanıt [{{"title":"...","url":"...","date":"..."}}]
+- "false_claims": Haberde tespit ettiğin olgusal hatalar. YALNIZCA Google Search ile doğrulayabildiğin iddiaları ekle. Kanıtlayamazsan boş liste bırak: []. Her madde: {{"wrong_text": "haberdeki yanlış ifade (max 200 karakter)", "correction": "doğrusu nedir (max 300 karakter)", "source_title": "kaynağın başlığı", "source_url": "https://..."}}
 Yanıtı YALNIZCA geçerli JSON formatında ver."""
 
     return f"""[SİSTEM]
