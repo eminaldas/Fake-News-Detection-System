@@ -557,7 +557,7 @@ async def main(dry_run: bool):
         except Exception as e:
             logger.error("Agent döngüsünde kritik hata: %s", e)
         logger.info("Döngü bitti. 60 saniye bekleniyor...")
-        await asyncio.sleep(60)
+        await asyncio.sleep(settings.NEWS_AGENT_INTERVAL)
 
 
 if __name__ == "__main__":

@@ -32,7 +32,8 @@ class Settings(BaseSettings):
     # Redis / Celery
     REDIS_URL: str = "redis://localhost:6379/0"
     CELERY_RATE_LIMIT: str = "10/s"
-    NEWS_AGENT_INTERVAL: int = 60
+    NEWS_AGENT_INTERVAL: int = 900
+    AUDIT_FLUSH_INTERVAL: int = 30
 
     # NLP
     TRANSFORMER_MODEL: str = "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr"
