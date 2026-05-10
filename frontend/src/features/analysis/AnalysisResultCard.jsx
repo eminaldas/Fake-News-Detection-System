@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
     ShieldCheck, ShieldX, Shield, Brain, MessageSquare,
-    Link2, Info, ThumbsUp, ThumbsDown, FileSearch,
+    Link2, Info, ThumbsUp, ThumbsDown, FileSearch, ExternalLink,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -275,6 +275,21 @@ const AnalysisResultCard = ({ result }) => {
                             {result.scraped_title}
                         </p>
                     </div>
+                )}
+
+                {/* URL analizi: haber linki */}
+                {isUrlAnalysis && (result.source_url || result.url) && (
+                    <a
+                        href={result.source_url || result.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity"
+                    >
+                        <ExternalLink className={`w-3 h-3 shrink-0 ${theme.statusCls}`} />
+                        <span className={`text-[11px] font-mono truncate ${theme.statusCls}`}>
+                            Haber Linki →
+                        </span>
+                    </a>
                 )}
 
                 {/* İçerik Analizi — URL analizinde gizle, her zaman göster */}
