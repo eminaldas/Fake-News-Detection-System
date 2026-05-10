@@ -93,8 +93,8 @@ services:
       - rss-worker
     command: celery -A workers.rss_ingester beat --loglevel=info --schedule=/beat/celerybeat-schedule
     restart: unless-stopped
-    mem_limit: 300m
-    memswap_limit: 300m
+    mem_limit: 600m
+    memswap_limit: 600m
 
   audit-beat:
     image: fake-news-detection-system-app
@@ -111,8 +111,8 @@ services:
         condition: service_started
     command: celery -A workers.tasks beat --loglevel=info
     restart: unless-stopped
-    mem_limit: 300m
-    memswap_limit: 300m
+    mem_limit: 600m
+    memswap_limit: 600m
 
   frontend:
     build:
