@@ -272,17 +272,21 @@ export default function Messages() {
     const [showNewConv,   setShowNewConv]   = useState(false);
     const [convSearch,    setConvSearch]    = useState('');
 
-    const bottomRef = useRef(null);
-    const inputRef  = useRef(null);
+    const msgContainerRef = useRef(null);
+    const inputRef        = useRef(null);
+    const convReqIdRef    = useRef(0);
 
-    /* Konuşmaları yükle */
-    const loadConversations = useCallback(async () => {
-        setConvLoad(true);
+    /* Konuşmaları yükle — requestId ile stale response'u yok say.
+       silent=true ise loader gösterme (send sonrası sessiz yenileme). */
+    const loadConversations = useCallback(async (silent = false) => {
+        const reqId = ++convReqIdRef.current;
+        if (!silent) setConvLoad(true);
         try {
             const { data } = await axiosInstance.get('/messages/conversations');
+            if (reqId !== convReqIdRef.current) return;
             setConversations(data.conversations ?? []);
         } catch { /* sessiz */ }
-        finally { setConvLoad(false); }
+        finally { if (reqId === convReqIdRef.current) setConvLoad(false); }
     }, []);
 
     useEffect(() => { loadConversations(); }, [loadConversations]);
@@ -314,9 +318,10 @@ export default function Messages() {
         }
     }, [paramUserId]);
 
-    /* Alt'a scroll */
+    /* Mesaj alanını alta scroll — sadece container içinde, sayfa body'si etkilenmesin */
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+        const el = msgContainerRef.current;
+        if (el) el.scrollTop = el.scrollHeight;
     }, [messages]);
 
     /* WebSocket — yeni mesaj gelince */
@@ -390,6 +395,7 @@ export default function Messages() {
             });
             setText('');
             inputRef.current?.focus();
+            loadConversations(true); // loader göstermeden yenile
         } catch { /* sessiz */ }
         finally { setSending(false); }
     };
@@ -504,7 +510,7 @@ export default function Messages() {
                         </div>
 
                         {/* Mesajlar */}
-                        <div className="flex-1 overflow-y-auto px-4 py-4">
+                        <div ref={msgContainerRef} className="flex-1 overflow-y-auto px-4 py-4">
                             {msgLoad ? (
                                 <div className="flex justify-center pt-10">
                                     <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-brand-primary)' }} />
@@ -525,7 +531,6 @@ export default function Messages() {
                                     />
                                 ))
                             )}
-                            <div ref={bottomRef} />
                         </div>
 
                         {/* Input alanı */}
