@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import AnalysisService from '../services/analysis.service';
 import { useWebSocket } from '../contexts/WebSocketContext';
+import GamificationService from '../services/gamification.service';
 
 export const useAnalysis = () => {
     const [loading, setLoading]             = useState(false);
@@ -30,6 +31,7 @@ export const useAnalysis = () => {
                     setLoading(false);
                     setPollingTaskId(null);
                     setAnalysisStage(null);
+                    GamificationService.checkAndShowXPGain('Analiz Tamamlandı');
                 }
             }).catch(() => {});
         });
@@ -51,6 +53,7 @@ export const useAnalysis = () => {
                     setPollingTaskId(null);
                     setAnalysisStage(null);
                     clearInterval(interval);
+                    GamificationService.checkAndShowXPGain('Analiz Tamamlandı');
                 } else if (isTimedOut && response.status === 'SUCCESS') {
                     setResult({ ...(response.result || response), originalText: pendingTextRef.current });
                     pendingTextRef.current = null;
@@ -58,6 +61,7 @@ export const useAnalysis = () => {
                     setPollingTaskId(null);
                     setAnalysisStage(null);
                     clearInterval(interval);
+                    GamificationService.checkAndShowXPGain('Analiz Tamamlandı');
                 } else if (isFailed) {
                     setError(response.result?.error || 'Analiz başarısız.');
                     setLoading(false);
@@ -108,6 +112,7 @@ export const useAnalysis = () => {
                     originalText:    text,
                 });
                 setLoading(false);
+                GamificationService.checkAndShowXPGain('Analiz Oluşturuldu');
             } else if (data.task_id) {
                 pendingTextRef.current = text;
                 setPollingTaskId(data.task_id);

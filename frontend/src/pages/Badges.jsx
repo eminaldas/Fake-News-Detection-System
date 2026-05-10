@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Award, Trophy, BarChart2 } from 'lucide-react';
+import {
+    Award, Trophy, BarChart2, Star, Shield, Search, Cpu, Zap,
+    MessageSquare, TrendingUp, Users, Calendar, Lock, Crown,
+} from 'lucide-react';
 import GamificationService from '../services/gamification.service';
 import { useAuth } from '../contexts/AuthContext';
 
-const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
+/* ── Tasarım sabitleri ─────────────────────────────────────────── */
+const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
+
 const Corner = () => (
     <>
         <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand pointer-events-none" />
@@ -15,46 +20,114 @@ const Corner = () => (
     </>
 );
 
-const LEVEL_BADGE_KEYS = ['level_1','level_10','level_20','level_30','level_40','level_50'];
+/* Lucide icon adından component'e map */
+const ICON_MAP = {
+    User: Award, Search, FileSearch: Search, BarChart2, Shield,
+    Star, Cpu, TrendingUp, MessageSquare, Zap, Link: Zap,
+    Award, Users, Calendar, CalendarCheck: Calendar,
+    ShieldCheck: Shield, ThumbsUp: Award, UserCheck: Users,
+    Newspaper: Award, BookOpen: Award, Trophy, DollarSign: TrendingUp,
+    Globe: Award, Globe2: Award, Microscope: Award, Music: Award,
+    Bird: Zap, Crown,
+};
 
+function getIcon(iconName) {
+    return ICON_MAP[iconName] || Award;
+}
+
+const LEVEL_BADGE_KEYS = ['level_1', 'level_10', 'level_20', 'level_30', 'level_40', 'level_50'];
+
+/* ── Rozet Kartı ───────────────────────────────────────────────── */
 function BadgeCard({ badge, earned }) {
+    const Icon = getIcon(badge.icon);
     const progress  = !earned ? (badge.progress  ?? 0) : null;
     const threshold = !earned ? (badge.threshold ?? 1) : null;
     const pct = threshold ? Math.min((progress / threshold) * 100, 100) : 0;
+
     return (
-        <div className="relative border p-4 flex flex-col gap-2"
-             style={{ borderColor: earned ? badge.color : 'var(--color-terminal-border-raw)', background: earned ? `${badge.color}08` : 'transparent' }}>
+        <div className="relative border overflow-hidden transition-all"
+             style={{
+                 background:   'var(--color-terminal-surface)',
+                 borderColor:  earned ? badge.color : 'var(--color-terminal-border-raw)',
+                 borderWidth:  earned ? '1.5px' : '1px',
+                 opacity:      earned ? 1 : 0.75,
+             }}>
             {earned && <Corner />}
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 flex items-center justify-center border shrink-0"
-                     style={{ borderColor: earned ? badge.color : 'var(--color-terminal-border-raw)', color: earned ? badge.color : 'var(--color-text-muted)' }}>
-                    <span className="font-mono text-lg font-black">{badge.name[0]}</span>
+
+            {/* Üst renk şerit */}
+            {earned && (
+                <div className="h-1 w-full" style={{ background: badge.color, opacity: 0.7 }} />
+            )}
+
+            <div className="p-5">
+                <div className="flex items-start gap-4">
+                    {/* İkon */}
+                    <div className="shrink-0 w-14 h-14 flex items-center justify-center border-2"
+                         style={{
+                             borderColor:  earned ? badge.color : 'var(--color-terminal-border-raw)',
+                             background:   earned ? `${badge.color}18` : 'rgba(255,255,255,0.03)',
+                             color:        earned ? badge.color : 'var(--color-text-muted)',
+                         }}>
+                        <Icon className="w-6 h-6" />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                            <p className="font-mono text-base font-black tracking-wide"
+                               style={{ color: earned ? badge.color : 'var(--color-text-primary)' }}>
+                                {badge.name}
+                            </p>
+                            {earned && (
+                                <span className="font-mono text-[9px] font-bold px-2 py-0.5 shrink-0"
+                                      style={{ background: `${badge.color}25`, color: badge.color, border: `1px solid ${badge.color}50` }}>
+                                    ✓ KAZANILDI
+                                </span>
+                            )}
+                            {!earned && (
+                                <Lock className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-text-muted)' }} />
+                            )}
+                        </div>
+                        <p className="font-mono text-xs"
+                           style={{ color: 'var(--color-text-primary)', opacity: earned ? 0.8 : 0.55 }}>
+                            {badge.description}
+                        </p>
+                    </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                    <p className="font-mono text-sm font-bold"
-                       style={{ color: earned ? badge.color : 'var(--color-text-muted)' }}>{badge.name}</p>
-                    <p className="font-mono text-[10px]"
-                       style={{ color: 'var(--color-text-muted)' }}>{badge.description}</p>
-                </div>
-                {earned && (
-                    <span className="font-mono text-[9px] px-1.5 py-0.5 shrink-0"
-                          style={{ background: `${badge.color}20`, color: badge.color }}>KAZANILDI</span>
+
+                {/* İlerleme çubuğu */}
+                {!earned && threshold != null && (
+                    <div className="mt-4">
+                        <div className="flex justify-between mb-1.5">
+                            <span className="font-mono text-[10px]"
+                                  style={{ color: 'var(--color-text-primary)', opacity: 0.6 }}>
+                                İlerleme
+                            </span>
+                            <span className="font-mono text-[10px] font-bold"
+                                  style={{ color: 'var(--color-brand-primary)' }}>
+                                {progress} / {threshold}
+                            </span>
+                        </div>
+                        <div className="w-full h-2 overflow-hidden"
+                             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid var(--color-terminal-border-raw)' }}>
+                            <div className="h-full transition-all duration-500"
+                                 style={{
+                                     width: `${pct}%`,
+                                     background: pct > 0 ? 'var(--color-brand-primary)' : 'transparent',
+                                 }} />
+                        </div>
+                    </div>
                 )}
             </div>
-            {!earned && threshold && (
-                <div>
-                    <div className="w-full h-1 rounded-full overflow-hidden"
-                         style={{ background: 'var(--color-terminal-border-raw)' }}>
-                        <div className="h-full rounded-full transition-all"
-                             style={{ width: `${pct}%`, background: 'var(--color-brand-primary)' }} />
-                    </div>
-                    <p className="font-mono text-[9px] mt-0.5"
-                       style={{ color: 'var(--color-text-muted)' }}>{progress}/{threshold}</p>
-                </div>
-            )}
         </div>
     );
 }
+
+/* ── Sıralama Sekmesi ──────────────────────────────────────────── */
+const RANK_STYLES = [
+    { bg: 'rgba(255,215,0,0.12)', border: '#FFD700', text: '#FFD700', label: '#1' },
+    { bg: 'rgba(192,192,192,0.12)', border: '#C0C0C0', text: '#C0C0C0', label: '#2' },
+    { bg: 'rgba(205,127,50,0.12)', border: '#CD7F32', text: '#CD7F32', label: '#3' },
+];
 
 function LeaderboardTab() {
     const [period,  setPeriod]  = useState('alltime');
@@ -74,57 +147,149 @@ function LeaderboardTab() {
 
     return (
         <div>
-            <div className="flex flex-wrap gap-2 mb-4">
-                {Object.entries(PERIOD_LABELS).map(([v, l]) => (
-                    <button key={v} onClick={() => setPeriod(v)}
-                            className="font-mono text-xs px-3 py-1 border transition-colors"
-                            style={{ borderColor: period === v ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)', color: period === v ? 'var(--color-brand-primary)' : 'var(--color-text-muted)', background: period === v ? 'rgba(26,158,79,0.10)' : 'transparent' }}>
-                        {l}
-                    </button>
-                ))}
-                <span className="self-center" style={{ color: 'var(--color-terminal-border-raw)' }}>|</span>
-                {Object.entries(TYPE_LABELS).map(([v, l]) => (
-                    <button key={v} onClick={() => setType(v)}
-                            className="font-mono text-xs px-3 py-1 border transition-colors"
-                            style={{ borderColor: type === v ? 'var(--color-accent-blue)' : 'var(--color-terminal-border-raw)', color: type === v ? 'var(--color-accent-blue)' : 'var(--color-text-muted)', background: type === v ? 'rgba(59,130,246,0.10)' : 'transparent' }}>
-                        {l}
-                    </button>
-                ))}
+            {/* Filtreler */}
+            <div className="relative border mb-5 p-4" style={TS}>
+                <Corner />
+                <div className="flex flex-wrap gap-4">
+                    <div>
+                        <p className="font-mono text-[9px] uppercase tracking-widest mb-2"
+                           style={{ color: 'var(--color-brand-primary)' }}>Dönem</p>
+                        <div className="flex gap-1.5">
+                            {Object.entries(PERIOD_LABELS).map(([v, l]) => (
+                                <button key={v} onClick={() => setPeriod(v)}
+                                        className="font-mono text-xs px-3 py-1.5 border transition-all"
+                                        style={{
+                                            borderColor: period === v ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)',
+                                            color:       period === v ? '#070f12' : 'var(--color-text-primary)',
+                                            background:  period === v ? 'var(--color-brand-primary)' : 'transparent',
+                                            fontWeight:  period === v ? 700 : 400,
+                                        }}>
+                                    {l}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <p className="font-mono text-[9px] uppercase tracking-widest mb-2"
+                           style={{ color: 'var(--color-accent-blue)' }}>Kategori</p>
+                        <div className="flex gap-1.5">
+                            {Object.entries(TYPE_LABELS).map(([v, l]) => (
+                                <button key={v} onClick={() => setType(v)}
+                                        className="font-mono text-xs px-3 py-1.5 border transition-all"
+                                        style={{
+                                            borderColor: type === v ? 'var(--color-accent-blue)' : 'var(--color-terminal-border-raw)',
+                                            color:       type === v ? '#070f12' : 'var(--color-text-primary)',
+                                            background:  type === v ? 'var(--color-accent-blue)' : 'transparent',
+                                            fontWeight:  type === v ? 700 : 400,
+                                        }}>
+                                    {l}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </div>
-            {loading && <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>// yükleniyor...</p>}
-            {!loading && data && (
-                <div className="flex flex-col gap-1">
+
+            {loading && (
+                <div className="relative border p-8 text-center" style={TS}>
+                    <p className="font-mono text-sm" style={{ color: 'var(--color-brand-primary)' }}>
+                        // sıralama yükleniyor...
+                    </p>
+                </div>
+            )}
+
+            {!loading && data && data.entries.length === 0 && (
+                <div className="relative border p-8 text-center" style={TS}>
+                    <Corner />
+                    <p className="font-mono text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                        Henüz veri yok
+                    </p>
+                </div>
+            )}
+
+            {!loading && data && data.entries.length > 0 && (
+                <div className="flex flex-col gap-2">
                     {data.entries.map(entry => {
-                        const isMe = user && entry.user_id === user.id;
+                        const isMe    = user && entry.user_id === user.id;
+                        const rankSty = entry.rank <= 3 ? RANK_STYLES[entry.rank - 1] : null;
+
                         return (
                             <Link key={entry.user_id} to={`/users/${entry.user_id}`}
-                                  className="flex items-center gap-3 px-4 py-3 border transition-colors hover:bg-white/3"
-                                  style={{ borderColor: isMe ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)', background: isMe ? 'rgba(26,158,79,0.05)' : 'transparent' }}>
-                                <span className="font-mono text-xs w-6 shrink-0 text-right"
-                                      style={{ color: entry.rank <= 3 ? 'var(--color-accent-amber)' : 'var(--color-text-muted)' }}>
-                                    {entry.rank <= 3 ? ['🥇','🥈','🥉'][entry.rank - 1] : `#${entry.rank}`}
-                                </span>
-                                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-black text-sm"
-                                     style={{ background: 'rgba(26,158,79,0.15)', color: 'var(--color-brand-primary)' }}>
+                                  className="relative border overflow-hidden flex items-center gap-4 px-5 py-4 transition-all hover:brightness-110"
+                                  style={{
+                                      background:  rankSty ? rankSty.bg : isMe ? 'rgba(26,158,79,0.08)' : 'var(--color-terminal-surface)',
+                                      borderColor: rankSty ? rankSty.border : isMe ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)',
+                                      borderWidth: (rankSty || isMe) ? '1.5px' : '1px',
+                                  }}>
+
+                                {/* Rank */}
+                                <div className="shrink-0 w-10 text-center">
+                                    {entry.rank <= 3 ? (
+                                        <div>
+                                            <span className="text-2xl leading-none">
+                                                {['🥇', '🥈', '🥉'][entry.rank - 1]}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <span className="font-mono text-sm font-black"
+                                              style={{ color: isMe ? 'var(--color-brand-primary)' : 'var(--color-text-primary)', opacity: 0.7 }}>
+                                            #{entry.rank}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Avatar */}
+                                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-black text-base border-2"
+                                     style={{
+                                         background:  rankSty ? `${rankSty.text}20` : 'rgba(26,158,79,0.15)',
+                                         borderColor: rankSty ? rankSty.border : isMe ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)',
+                                         color:       rankSty ? rankSty.text : 'var(--color-brand-primary)',
+                                     }}>
                                     {entry.username[0]?.toUpperCase()}
                                 </div>
+
+                                {/* İsim + Level + Rozetler */}
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-mono text-sm font-bold"
-                                       style={{ color: isMe ? 'var(--color-brand-primary)' : 'var(--color-text-primary)' }}>
-                                        {entry.username}{isMe && <span className="ml-2 text-[9px] opacity-60">(sen)</span>}
-                                    </p>
-                                    <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                                        <span className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Lv.{entry.level}</span>
-                                        {entry.showcase_badges.map(b => (
-                                            <span key={b.key} className="font-mono text-[9px] px-1.5 py-0.5 border"
-                                                  style={{ borderColor: b.color, color: b.color }}>{b.name}</span>
-                                        ))}
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-mono text-sm font-black"
+                                              style={{ color: rankSty ? rankSty.text : isMe ? 'var(--color-brand-primary)' : 'var(--color-text-primary)' }}>
+                                            {entry.username}
+                                        </span>
+                                        {isMe && (
+                                            <span className="font-mono text-[9px] px-1.5 py-0.5 border"
+                                                  style={{ borderColor: 'var(--color-brand-primary)', color: 'var(--color-brand-primary)' }}>
+                                                sen
+                                            </span>
+                                        )}
+                                        <span className="font-mono text-[10px] px-1.5 py-0.5 border"
+                                              style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)', opacity: 0.7 }}>
+                                            Lv.{entry.level}
+                                        </span>
                                     </div>
+                                    {entry.showcase_badges.length > 0 && (
+                                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                            {entry.showcase_badges.map(b => (
+                                                <span key={b.key}
+                                                      className="font-mono text-[9px] px-1.5 py-0.5 border"
+                                                      style={{ borderColor: b.color, color: b.color, background: `${b.color}10` }}>
+                                                    {b.name}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                                <span className="font-mono text-sm font-black shrink-0"
-                                      style={{ color: 'var(--color-brand-primary)' }}>
-                                    {entry.value.toLocaleString('tr-TR')} {TYPE_LABELS[type]}
-                                </span>
+
+                                {/* Puan */}
+                                <div className="shrink-0 text-right">
+                                    <p className="font-mono text-xl font-black"
+                                       style={{ color: rankSty ? rankSty.text : isMe ? 'var(--color-brand-primary)' : 'var(--color-text-primary)' }}>
+                                        {entry.value.toLocaleString('tr-TR')}
+                                    </p>
+                                    <p className="font-mono text-[9px] uppercase tracking-wider"
+                                       style={{ color: 'var(--color-text-primary)', opacity: 0.5 }}>
+                                        {TYPE_LABELS[type]}
+                                    </p>
+                                </div>
                             </Link>
                         );
                     })}
@@ -134,16 +299,23 @@ function LeaderboardTab() {
     );
 }
 
+/* ── Ana Sayfa ─────────────────────────────────────────────────── */
 export default function Badges() {
     const [tab,     setTab]     = useState('levels');
     const [badges,  setBadges]  = useState(null);
     const [loading, setLoading] = useState(true);
+    const [stats,   setStats]   = useState(null);
     const { isAuthenticated } = useAuth();
 
     useEffect(() => {
         if (!isAuthenticated) { setLoading(false); return; }
-        GamificationService.getMyBadges()
-            .then(setBadges).catch(() => {}).finally(() => setLoading(false));
+        Promise.all([
+            GamificationService.getMyBadges(),
+            GamificationService.getMyStats(),
+        ])
+            .then(([b, s]) => { setBadges(b); setStats(s); })
+            .catch(() => {})
+            .finally(() => setLoading(false));
     }, [isAuthenticated]);
 
     const earnedKeys = new Set((badges?.earned || []).map(b => b.key));
@@ -157,80 +329,181 @@ export default function Badges() {
     const catLocked      = (badges?.locked  || []).filter(b => b.category === 'category');
 
     const TABS = [
-        { key: 'levels',       label: '// SEVİYE',    Icon: Award     },
+        { key: 'levels',       label: '// SEVİYELER', Icon: Award     },
         { key: 'achievements', label: '// BAŞARIMLAR', Icon: Trophy    },
-        { key: 'leaderboard',  label: '// SIRA',       Icon: BarChart2 },
+        { key: 'leaderboard',  label: '// SIRALAMA',   Icon: BarChart2 },
     ];
 
     return (
-        <div className="max-w-3xl mx-auto px-4 py-8">
-            <div className="relative border mb-6" style={S}>
+        <div className="max-w-4xl mx-auto px-4 py-8">
+
+            {/* Başlık */}
+            <div className="relative border mb-6 overflow-hidden" style={TS}>
                 <Corner />
-                <div className="px-5 py-4">
-                    <h1 className="font-mono text-lg font-black tracking-wider"
-                        style={{ color: 'var(--color-brand-primary)' }}>// ROZETLER & BAŞARIMLAR</h1>
-                    <p className="font-mono text-xs mt-1"
-                       style={{ color: 'var(--color-text-muted)' }}>
-                        Aktivitelerini rozetlere dönüştür, sıralamada yerini al
-                    </p>
+                <div className="px-6 py-5 flex items-center justify-between gap-4 flex-wrap">
+                    <div>
+                        <h1 className="font-mono text-xl font-black tracking-wider"
+                            style={{ color: 'var(--color-brand-primary)' }}>
+                            // ROZETLER & BAŞARIMLAR
+                        </h1>
+                        <p className="font-mono text-xs mt-1"
+                           style={{ color: 'var(--color-text-primary)', opacity: 0.7 }}>
+                            Aktivitelerini rozetlere dönüştür · sıralamada yerini al
+                        </p>
+                    </div>
+                    {stats && (
+                        <div className="flex items-center gap-4">
+                            <div className="text-right">
+                                <p className="font-mono text-2xl font-black"
+                                   style={{ color: 'var(--color-brand-primary)' }}>
+                                    {stats.total_xp.toLocaleString('tr-TR')}
+                                </p>
+                                <p className="font-mono text-[9px] uppercase tracking-widest"
+                                   style={{ color: 'var(--color-text-primary)', opacity: 0.5 }}>
+                                    toplam xp
+                                </p>
+                            </div>
+                            <div className="border-l pl-4" style={BD}>
+                                <p className="font-mono text-2xl font-black"
+                                   style={{ color: 'var(--color-accent-amber)' }}>
+                                    {stats.level}
+                                </p>
+                                <p className="font-mono text-[9px] uppercase tracking-widest"
+                                   style={{ color: 'var(--color-text-primary)', opacity: 0.5 }}>
+                                    seviye
+                                </p>
+                            </div>
+                            <div className="border-l pl-4" style={BD}>
+                                <p className="font-mono text-2xl font-black"
+                                   style={{ color: 'var(--color-accent-blue)' }}>
+                                    {(badges?.earned || []).length}
+                                </p>
+                                <p className="font-mono text-[9px] uppercase tracking-widest"
+                                   style={{ color: 'var(--color-text-primary)', opacity: 0.5 }}>
+                                    rozet
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
+                {stats && (
+                    <div className="px-6 pb-4">
+                        <div className="flex justify-between mb-1">
+                            <span className="font-mono text-[10px]"
+                                  style={{ color: 'var(--color-text-primary)', opacity: 0.6 }}>
+                                Seviye {stats.level} → {stats.level + 1}
+                            </span>
+                            <span className="font-mono text-[10px] font-bold"
+                                  style={{ color: 'var(--color-brand-primary)' }}>
+                                {stats.xp_to_next_level} XP kaldı
+                            </span>
+                        </div>
+                        <div className="w-full h-2 border overflow-hidden"
+                             style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'var(--color-terminal-border-raw)' }}>
+                            <div className="h-full transition-all duration-700"
+                                 style={{ width: `${stats.xp_progress_pct}%`, background: 'var(--color-brand-primary)' }} />
+                        </div>
+                    </div>
+                )}
             </div>
 
+            {/* Sekmeler */}
             <div className="flex border-b mb-6" style={BD}>
                 {TABS.map(({ key, label, Icon }) => (
                     <button key={key} onClick={() => setTab(key)}
-                            className="px-4 py-2.5 font-mono text-xs border-b-2 transition-colors flex items-center gap-1.5"
-                            style={{ borderColor: tab === key ? 'var(--color-brand-primary)' : 'transparent', color: tab === key ? 'var(--color-brand-primary)' : 'var(--color-text-muted)', marginBottom: '-1px' }}>
-                        <Icon className="w-3.5 h-3.5" />
+                            className="px-5 py-3 font-mono text-xs border-b-2 transition-all flex items-center gap-2"
+                            style={{
+                                borderBottomColor: tab === key ? 'var(--color-brand-primary)' : 'transparent',
+                                color:    tab === key ? 'var(--color-brand-primary)' : 'var(--color-text-primary)',
+                                opacity:  tab === key ? 1 : 0.6,
+                                fontWeight: tab === key ? 700 : 400,
+                                marginBottom: '-1px',
+                            }}>
+                        <Icon className="w-4 h-4" />
                         {label}
                     </button>
                 ))}
             </div>
 
+            {/* Giriş yapılmamış */}
             {!isAuthenticated && tab !== 'leaderboard' && (
-                <div className="relative border p-8 text-center" style={S}>
+                <div className="relative border p-10 text-center" style={TS}>
                     <Corner />
-                    <p className="font-mono text-sm mb-3" style={{ color: 'var(--color-text-muted)' }}>
+                    <Award className="w-10 h-10 mx-auto mb-4" style={{ color: 'var(--color-text-primary)', opacity: 0.3 }} />
+                    <p className="font-mono text-base font-bold mb-2"
+                       style={{ color: 'var(--color-text-primary)' }}>
                         Rozetlerini görmek için giriş yap
                     </p>
-                    <Link to="/login" className="font-mono text-xs px-4 py-2 border transition-colors hover:bg-white/5"
+                    <p className="font-mono text-xs mb-5"
+                       style={{ color: 'var(--color-text-primary)', opacity: 0.5 }}>
+                        Aktivitelerine göre rozetler kazan ve sıralamaya gir
+                    </p>
+                    <Link to="/login"
+                          className="inline-block font-mono text-sm font-bold px-6 py-2.5 border-2 transition-all hover:bg-brand/10"
                           style={{ color: 'var(--color-brand-primary)', borderColor: 'var(--color-brand-primary)' }}>
                         Giriş Yap
                     </Link>
                 </div>
             )}
 
-            {loading && <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>// yükleniyor...</p>}
-
-            {!loading && tab === 'levels' && isAuthenticated && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {levelBadges.map(b => <BadgeCard key={b.key} badge={b} earned={earnedKeys.has(b.key)} />)}
+            {loading && (
+                <div className="relative border p-8 text-center" style={TS}>
+                    <p className="font-mono text-sm" style={{ color: 'var(--color-brand-primary)' }}>
+                        // yükleniyor...
+                    </p>
                 </div>
             )}
 
+            {/* Seviyeler sekmesi */}
+            {!loading && tab === 'levels' && isAuthenticated && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {levelBadges.map(b => (
+                        <BadgeCard key={b.key} badge={b} earned={earnedKeys.has(b.key)} />
+                    ))}
+                </div>
+            )}
+
+            {/* Başarımlar sekmesi */}
             {!loading && tab === 'achievements' && isAuthenticated && (
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-8">
                     {(activityEarned.length + activityLocked.length) > 0 && (
                         <section>
-                            <p className="font-mono text-[10px] uppercase tracking-widest mb-3"
-                               style={{ color: 'var(--color-text-muted)' }}>Aktivite & Kilometre Taşları</p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {[...activityEarned, ...activityLocked].map(b => <BadgeCard key={b.key} badge={b} earned={earnedKeys.has(b.key)} />)}
+                            <div className="flex items-center gap-3 mb-4">
+                                <Trophy className="w-4 h-4" style={{ color: 'var(--color-accent-amber)' }} />
+                                <p className="font-mono text-xs font-bold uppercase tracking-widest"
+                                   style={{ color: 'var(--color-accent-amber)' }}>
+                                    Aktivite & Kilometre Taşları
+                                </p>
+                                <div className="flex-1 h-px" style={{ background: 'var(--color-terminal-border-raw)' }} />
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {[...activityEarned, ...activityLocked].map(b => (
+                                    <BadgeCard key={b.key} badge={b} earned={earnedKeys.has(b.key)} />
+                                ))}
                             </div>
                         </section>
                     )}
                     {(catEarned.length + catLocked.length) > 0 && (
                         <section>
-                            <p className="font-mono text-[10px] uppercase tracking-widest mb-3"
-                               style={{ color: 'var(--color-text-muted)' }}>Kategori Uzmanlığı</p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {[...catEarned, ...catLocked].map(b => <BadgeCard key={b.key} badge={b} earned={earnedKeys.has(b.key)} />)}
+                            <div className="flex items-center gap-3 mb-4">
+                                <Star className="w-4 h-4" style={{ color: 'var(--color-accent-blue)' }} />
+                                <p className="font-mono text-xs font-bold uppercase tracking-widest"
+                                   style={{ color: 'var(--color-accent-blue)' }}>
+                                    Kategori Uzmanlığı
+                                </p>
+                                <div className="flex-1 h-px" style={{ background: 'var(--color-terminal-border-raw)' }} />
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {[...catEarned, ...catLocked].map(b => (
+                                    <BadgeCard key={b.key} badge={b} earned={earnedKeys.has(b.key)} />
+                                ))}
                             </div>
                         </section>
                     )}
                 </div>
             )}
 
+            {/* Sıralama sekmesi */}
             {tab === 'leaderboard' && <LeaderboardTab />}
         </div>
     );
