@@ -636,6 +636,7 @@ def generate_ai_comment(
         "evidence":       gemini_result.get("evidence", []) if gemini_result else [],
         "gemini_verdict": gemini_result.get("gemini_verdict") if gemini_result else None,
         "reason_type":    gemini_result.get("reason_type") if gemini_result else None,
+        "false_claims":   gemini_result.get("false_claims", []) if gemini_result else [],
         "ml_status":      local_verdict,
         "ml_confidence":  round(local_confidence, 4),
         "model":          settings.GEMINI_MODEL,
