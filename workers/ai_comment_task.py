@@ -149,8 +149,8 @@ def validate_gemini_response(raw: dict) -> dict | None:
             valid_claims.append({
                 "wrong_text":   wrong.strip()[:200],
                 "correction":   correction.strip()[:300],
-                "source_title": str(c.get("source_title", "") or "")[:150],
-                "source_url":   c["source_url"],
+                "source_title": str(c.get("source_title", "")).strip()[:150],
+                "source_url":   c.get("source_url"),
             })
         raw["false_claims"] = valid_claims
     return raw
