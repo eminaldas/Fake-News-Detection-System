@@ -7,6 +7,8 @@ import { useAuth } from './contexts/AuthContext';
 import AuthService from './services/auth.service';
 import wsService from './services/websocket';
 import RequireAuth from './components/RequireAuth';
+import RequireAdmin from './components/RequireAdmin';
+import AdminLayout  from './layouts/AdminLayout';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import Archive from './pages/Archive';
@@ -103,32 +105,6 @@ function App() {
                                 <Route path=":threadId" element={<ForumThread />} />
                             </Route>
 
-                            {/* Admin */}
-                            <Route path="admin" element={
-                                <RequireAuth><Dashboard /></RequireAuth>
-                            } />
-                            <Route path="admin/users" element={
-                                <RequireAuth><AdminUsers /></RequireAuth>
-                            } />
-                            <Route path="admin/security" element={
-                                <RequireAuth><AdminSecurity /></RequireAuth>
-                            } />
-                            <Route path="admin/analytics" element={
-                                <RequireAuth><AdminAnalytics /></RequireAuth>
-                            } />
-                            <Route path="admin/forum" element={
-                                <RequireAuth><AdminForum /></RequireAuth>
-                            } />
-                            <Route path="admin/ab-test" element={
-                                <RequireAuth><AdminABTest /></RequireAuth>
-                            } />
-                            <Route path="admin/moderation" element={
-                                <RequireAuth><AdminModeration /></RequireAuth>
-                            } />
-                            <Route path="admin/dataset" element={
-                                <RequireAuth><AdminDataset /></RequireAuth>
-                            } />
-
                             {/* Kullanıcı profili */}
                             <Route path="users/:userId" element={<UserProfile />} />
 
@@ -150,8 +126,22 @@ function App() {
                                 <RequireAuth><AnalysisReport /></RequireAuth>
                             } />
 
-                            <Route path="*" element={<NotFound />} />
                         </Route>
+                        {/* Admin — ayri layout, RequireAdmin sadece bir kez */}
+                        <Route
+                          path="admin"
+                          element={<RequireAdmin><AdminLayout /></RequireAdmin>}
+                        >
+                          <Route index                element={<Dashboard />}      />
+                          <Route path="users"         element={<AdminUsers />}     />
+                          <Route path="security"      element={<AdminSecurity />}  />
+                          <Route path="analytics"     element={<AdminAnalytics />} />
+                          <Route path="forum"         element={<AdminForum />}     />
+                          <Route path="ab-test"       element={<AdminABTest />}    />
+                          <Route path="moderation"    element={<AdminModeration />}/>
+                          <Route path="dataset"       element={<AdminDataset />}   />
+                        </Route>
+                        <Route path="*" element={<NotFound />} />
                     </Routes>
                 </BrowserRouter>
                 </WebSocketProvider>
