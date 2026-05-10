@@ -5,6 +5,7 @@ import pickle
 from datetime import datetime, timezone
 
 from celery import Celery
+from celery.signals import worker_process_init
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
@@ -34,22 +35,30 @@ celery_app.conf.update(
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
-# NLP singleton'ları — worker sürecinde bir kez yüklenir
+# NLP singleton'ları — beat process'te None kalır, worker process'te yüklenir
 # ─────────────────────────────────────────────────────────────────────────────
-cleaner    = NewsCleaner()
-vectorizer = TurkishVectorizer()
+cleaner          = None
+vectorizer       = None
+classifier_model = None
 
 _MODEL_PATH = os.path.join(
     os.path.dirname(os.path.dirname(__file__)),
     "ml_engine", "models", "fake_news_classifier.pkl",
 )
-try:
-    with open(_MODEL_PATH, "rb") as f:
-        classifier_model = pickle.load(f)
-    logger.info("Fake News Classifier yüklendi.")
-except Exception as exc:
-    logger.warning("Classifier yüklenemedi, kural tabanlı fallback kullanılacak: %s", exc)
-    classifier_model = None
+
+
+@worker_process_init.connect
+def _load_models(**kwargs):
+    global cleaner, vectorizer, classifier_model
+    cleaner    = NewsCleaner()
+    vectorizer = TurkishVectorizer()
+    try:
+        with open(_MODEL_PATH, "rb") as f:
+            classifier_model = pickle.load(f)
+        logger.info("Fake News Classifier yüklendi.")
+    except Exception as exc:
+        logger.warning("Classifier yüklenemedi, kural tabanlı fallback kullanılacak: %s", exc)
+        classifier_model = None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -347,9 +356,9 @@ def nightly_model_retrain_task() -> None:
 
 
 celery_app.conf.beat_schedule = {
-    "flush-audit-buffer-every-5s": {
+    "flush-audit-buffer": {
         "task": "workers.tasks.flush_audit_buffer",
-        "schedule": 5.0,
+        "schedule": float(settings.AUDIT_FLUSH_INTERVAL),
     },
     "update-preference-profiles-4x-daily": {
         "task":     "workers.tasks.update_preference_profiles",

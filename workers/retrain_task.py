@@ -58,12 +58,17 @@ _VALID_STATUSES = (
     "FALSE", "false",
 )
 
-_cleaner    = NewsCleaner()
-_vectorizer = TurkishVectorizer()
+_cleaner    = None
+_vectorizer = None
 
 
 def retrain_model() -> None:
     """Celery tarafından çağrılır — sync wrapper."""
+    global _cleaner, _vectorizer
+    if _cleaner is None:
+        _cleaner = NewsCleaner()
+    if _vectorizer is None:
+        _vectorizer = TurkishVectorizer()
     asyncio.run(_retrain_async())
 
 

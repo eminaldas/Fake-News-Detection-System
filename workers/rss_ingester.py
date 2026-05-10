@@ -23,6 +23,7 @@ import sqlalchemy
 from sqlalchemy import select
 from celery import Celery
 from celery.schedules import crontab
+from celery.signals import worker_process_init
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
@@ -32,8 +33,15 @@ from app.models.models import NewsArticle
 from ml_engine.vectorizer import TurkishVectorizer
 from ml_engine.processing.cleaner import NewsCleaner, _compute_risk, _classify_content
 
-vectorizer = TurkishVectorizer()
-_cleaner = NewsCleaner()
+vectorizer = None
+_cleaner   = None
+
+
+@worker_process_init.connect
+def _load_models(**kwargs):
+    global vectorizer, _cleaner
+    vectorizer = TurkishVectorizer()
+    _cleaner   = NewsCleaner()
 
 logger = logging.getLogger(__name__)
 
