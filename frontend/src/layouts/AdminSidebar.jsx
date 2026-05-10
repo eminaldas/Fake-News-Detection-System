@@ -13,13 +13,13 @@ const NAV_SECTIONS = [
     label: 'Genel',
     items: [
       { to: '/admin',            end: true,  icon: LayoutDashboard, label: 'Dashboard'    },
-      { to: '/admin/users',                  icon: Users,           label: 'Kullanicilar' },
-      { to: '/admin/security',               icon: ShieldAlert,     label: 'Guvenlik', badge: true },
+      { to: '/admin/users',                  icon: Users,           label: 'Kullanıcılar' },
+      { to: '/admin/security',               icon: ShieldAlert,     label: 'Güvenlik', badge: true },
       { to: '/admin/analytics',              icon: BarChart2,       label: 'Analitik'    },
     ],
   },
   {
-    label: 'Icerik',
+    label: 'İçerik',
     items: [
       { to: '/admin/forum',      icon: MessageSquare, label: 'Forum'       },
       { to: '/admin/moderation', icon: Flag,          label: 'Moderasyon'  },
@@ -36,7 +36,7 @@ const AdminSidebar = ({ open, onToggle }) => {
   useEffect(() => {
     axiosInstance
       .get('/admin/logs/alerts')
-      .then(res => setAlertCount(res.data?.data?.length ?? 0))
+      .then(res => setAlertCount(res.data?.alerts?.length ?? 0))
       .catch(() => {});
   }, []);
 
@@ -60,7 +60,7 @@ const AdminSidebar = ({ open, onToggle }) => {
         )}
         <button
           onClick={onToggle}
-          title={open ? 'Daralt' : 'Genislet'}
+          title={open ? 'Daralt' : 'Genişlet'}
           className="ml-auto w-5 h-5 flex items-center justify-center rounded bg-[var(--color-bg-base)] border border-[var(--color-border)] hover:bg-[var(--color-brand-accent)] transition-colors shrink-0"
         >
           {open
@@ -78,7 +78,7 @@ const AdminSidebar = ({ open, onToggle }) => {
           <div key={section.label}>
             {open
               ? (
-                <p className="px-2 pt-3 pb-1 text-[7px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">
+                <p className="px-2 pt-3 pb-1 text-[7px] font-bold font-mono uppercase tracking-widest text-[var(--color-text-muted)]">
                   {section.label}
                 </p>
               )
@@ -105,7 +105,7 @@ const AdminSidebar = ({ open, onToggle }) => {
                     />
                     {open && (
                       <>
-                        <span className="truncate">{item.label}</span>
+                        <span className="truncate font-mono">{item.label}</span>
                         {item.badge && alertCount > 0 && (
                           <span className="ml-auto text-[7px] font-bold px-1 py-0.5 rounded bg-[var(--color-fake-bg)] text-[var(--color-fake-text)]">
                             {alertCount}
@@ -127,11 +127,11 @@ const AdminSidebar = ({ open, onToggle }) => {
         <div className="px-1.5 pb-3">
           <button
             onClick={handleLogout}
-            title={!open ? 'Cikis' : undefined}
+            title={!open ? 'Çıkış' : undefined}
             className="flex items-center gap-2 w-full rounded-md px-2 py-[7px] text-[9px] font-semibold text-[var(--color-text-muted)] hover:bg-[var(--color-bg-base)] transition-colors"
           >
             <LogOut className="w-3.5 h-3.5 shrink-0" />
-            {open && <span>Cikis</span>}
+            {open && <span className="font-mono">Çıkış</span>}
           </button>
         </div>
       </div>
