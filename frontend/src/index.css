@@ -393,6 +393,19 @@
     from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+  @keyframes skGlitch {
+    0%, 88%, 100% { opacity: 0.25; transform: none; filter: none; }
+    90%  { opacity: 0.55; transform: skewX(-2deg); filter: brightness(1.4); }
+    92%  { opacity: 0.15; transform: skewX(1deg) translateX(2px); }
+    94%  { opacity: 0.45; transform: none; filter: brightness(1.2); }
+    96%  { opacity: 0.20; transform: skewX(-1deg); }
+  }
+  .animate-sk-glitch      { animation: skGlitch 3s ease-in-out infinite; }
+  .animate-sk-glitch.d1   { animation-delay: 0.0s; animation-duration: 2.9s; }
+  .animate-sk-glitch.d2   { animation-delay: 0.4s; animation-duration: 3.3s; }
+  .animate-sk-glitch.d3   { animation-delay: 0.8s; animation-duration: 2.7s; }
+  .animate-sk-glitch.d4   { animation-delay: 1.2s; animation-duration: 3.1s; }
+  .animate-sk-glitch.d5   { animation-delay: 1.6s; animation-duration: 2.5s; }
 
   .animate-fade-up    { animation: fadeInUp    0.5s cubic-bezier(0.22,1,0.36,1) both; }
   .animate-fade-left  { animation: fadeInLeft  0.5s cubic-bezier(0.22,1,0.36,1) both; }
