@@ -18,6 +18,7 @@ const AdminLayout = () => {
   const toggle = () => {
     setOpen(prev => {
       const next = !prev;
+      // eslint-disable-next-line no-empty
       try { localStorage.setItem(SIDEBAR_KEY, String(next)); } catch {}
       return next;
     });
