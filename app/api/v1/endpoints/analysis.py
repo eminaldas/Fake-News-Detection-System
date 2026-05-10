@@ -565,6 +565,7 @@ async def get_analysis_status(
             AnalysisResult.source_bias_summary,
             AnalysisResult.temporal_analysis,
             Article.id.label("article_id"),
+            Article.metadata_info.op("->>")(  "source_url").label("source_url"),
             Article.content.label("article_content"),
         )
         .join(Article, AnalysisResult.article_id == Article.id)
@@ -587,6 +588,7 @@ async def get_analysis_status(
                 "ai_comment": match.ai_comment if isinstance(match.ai_comment, dict) else (json.loads(match.ai_comment) if match.ai_comment else None),
                 "source_bias_summary": match.source_bias_summary if isinstance(match.source_bias_summary, dict) else None,
                 "temporal_analysis": match.temporal_analysis if isinstance(match.temporal_analysis, dict) else None,
+                "source_url": match.source_url or None,
                 "processed_text_length": len(match.article_content or ""),
             },
         )
@@ -612,6 +614,7 @@ async def get_analysis_status(
                             AnalysisResult.source_bias_summary,
                             AnalysisResult.temporal_analysis,
                             Article.id.label("article_id"),
+                            Article.metadata_info.op("->>")(  "source_url").label("source_url"),
                             Article.content.label("article_content"),
                         )
                         .join(Article, AnalysisResult.article_id == Article.id)
@@ -626,6 +629,7 @@ async def get_analysis_status(
                             "ai_comment": db_match.ai_comment if isinstance(db_match.ai_comment, dict) else (json.loads(db_match.ai_comment) if db_match.ai_comment else None),
                             "source_bias_summary": db_match.source_bias_summary if isinstance(db_match.source_bias_summary, dict) else None,
                             "temporal_analysis": db_match.temporal_analysis if isinstance(db_match.temporal_analysis, dict) else None,
+                            "source_url": db_match.source_url or None,
                         }
                         return response
                 except Exception:
