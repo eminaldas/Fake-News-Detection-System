@@ -15,7 +15,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    mem_limit: 1g
+    memswap_limit: 1g
 
   worker:
     build: .
@@ -27,7 +29,9 @@ services:
     depends_on:
       - redis
       - db
-    command: celery -A workers.tasks worker --include=workers.link_analysis_task --loglevel=info -Q celery,deep_report
+    command: celery -A workers.tasks worker --concurrency=1 --include=workers.link_analysis_task --loglevel=info -Q celery,deep_report
+    mem_limit: 1200m
+    memswap_limit: 1200m
 
   ai-comment-worker:
     build: .
@@ -39,7 +43,9 @@ services:
     depends_on:
       - redis
       - db
-    command: celery -A workers.ai_comment_task worker --loglevel=info --concurrency=2 -Q ai_comment
+    command: celery -A workers.ai_comment_task worker --loglevel=info --concurrency=1 -Q ai_comment
+    mem_limit: 400m
+    memswap_limit: 400m
 
   news-agent:
     image: fake-news-detection-system-app
@@ -55,6 +61,8 @@ services:
         condition: service_started
     command: python -m scrapers.rss_monitor
     restart: unless-stopped
+    mem_limit: 900m
+    memswap_limit: 900m
 
   rss-worker:
     image: fake-news-detection-system-app
@@ -70,6 +78,8 @@ services:
         condition: service_started
     command: celery -A workers.rss_ingester worker --loglevel=info --concurrency=1 -Q rss
     restart: unless-stopped
+    mem_limit: 900m
+    memswap_limit: 900m
 
   rss-beat:
     image: fake-news-detection-system-app
@@ -83,6 +93,8 @@ services:
       - rss-worker
     command: celery -A workers.rss_ingester beat --loglevel=info --schedule=/beat/celerybeat-schedule
     restart: unless-stopped
+    mem_limit: 300m
+    memswap_limit: 300m
 
   audit-beat:
     image: fake-news-detection-system-app
@@ -90,7 +102,6 @@ services:
       - .env
     volumes:
       - .:/workspace
-      - hf_cache:/root/.cache/huggingface
     depends_on:
       db:
         condition: service_healthy
@@ -100,17 +111,20 @@ services:
         condition: service_started
     command: celery -A workers.tasks beat --loglevel=info
     restart: unless-stopped
+    mem_limit: 300m
+    memswap_limit: 300m
 
   frontend:
     build:
       context: ./frontend
+      args:
+        VITE_API_URL: /api/v1
     ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - "80:80"
     depends_on:
       - app
+    mem_limit: 100m
+    memswap_limit: 100m
 
   db:
     image: ankane/pgvector:latest
@@ -129,6 +143,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    mem_limit: 512m
+    memswap_limit: 512m
 
   redis:
     image: redis:7-alpine
@@ -136,6 +152,9 @@ services:
       - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    mem_limit: 300m
+    memswap_limit: 300m
 
 volumes:
   postgres_data:
