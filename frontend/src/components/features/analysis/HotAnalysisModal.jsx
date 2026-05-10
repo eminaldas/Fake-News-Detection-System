@@ -100,6 +100,16 @@ export default function HotAnalysisModal({ item, onClose }) {
                         <p className="text-[13px] font-semibold leading-snug text-tx-primary line-clamp-3">
                             {item.title}
                         </p>
+                        {result?.ai_comment?.ml_status &&
+                         result.ai_comment.gemini_verdict &&
+                         result.ai_comment.gemini_verdict !== result.ai_comment.ml_status && (
+                            <span className="text-[9px] text-tx-secondary/50 italic block mt-0.5">
+                                NLP: {result.ai_comment.ml_status}
+                                {result.ai_comment.ml_confidence != null
+                                    ? ` %${Math.round(result.ai_comment.ml_confidence * 100)}`
+                                    : ''} → Gemini revize etti
+                            </span>
+                        )}
                         <div className="flex items-center gap-1.5 text-[10px] text-tx-secondary">
                             <BarChart2 className="w-3 h-3" />
                             {item.request_count}× analiz edildi
@@ -184,9 +194,24 @@ export default function HotAnalysisModal({ item, onClose }) {
                             {/* Gemini AI özeti */}
                             {aiComment?.gemini_verdict && (
                                 <div className="rounded-xl p-3.5" style={{ background: 'var(--color-bg-surface-solid)' }}>
-                                    <div className="text-[10px] font-bold uppercase tracking-widest text-tx-secondary mb-1.5">
-                                        Gemini Değerlendirmesi
+                                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-tx-secondary">
+                                            Gemini Değerlendirmesi
+                                        </span>
+                                        {aiComment.reason_type && (
+                                            <span
+                                                className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full"
+                                                style={{ background: `${theme.hex}1a`, color: theme.hex, border: `1px solid ${theme.hex}33` }}
+                                            >
+                                                {aiComment.reason_type}
+                                            </span>
+                                        )}
                                     </div>
+                                    {aiComment.news_summary && (
+                                        <p className="text-[10px] text-tx-secondary/70 leading-snug mb-2">
+                                            {aiComment.news_summary}
+                                        </p>
+                                    )}
                                     <p className="text-[11px] text-tx-secondary leading-relaxed line-clamp-3 italic">
                                         {aiComment.summary || aiComment.gemini_verdict}
                                     </p>
