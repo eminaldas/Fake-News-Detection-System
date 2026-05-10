@@ -8,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import SignalPanel from './SignalPanel';
 import HighlightedText from './HighlightedText';
 import AICommentCard from './AICommentCard';
+import FalseClaimsCard from './FalseClaimsCard';
 import FeedbackBar from './FeedbackBar';
 import ForumSuggestion from '../forum/ForumSuggestion';
 import ShareDropdown from '../../components/ui/ShareDropdown';
@@ -315,6 +316,9 @@ const AnalysisResultCard = ({ result }) => {
                         sourceBiasSummary={result.source_bias_summary ?? null}
                         temporalAnalysis={result.temporal_analysis ?? null}
                     />
+                )}
+                {!result.isDirectMatch && (
+                    <FalseClaimsCard falseClaims={aiComment?.false_claims} />
                 )}
             </div>
 
