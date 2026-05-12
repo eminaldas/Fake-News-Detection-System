@@ -25,10 +25,11 @@ from app.models.models import Article, AnalysisResult
 from ml_engine.processing.stylometric import TurkishStylometrics
 from scrapers.web_scraper import ScraperError, scrape_article
 
-# Aynı worker sürecinde zaten yüklenmiş singletonları yeniden kullan;
-# BERT modelini ikinci kez belleğe yüklemekten kaçınılır.
 from ml_engine.processing.cleaner import signals_to_vector
-from workers.tasks import celery_app, classifier_model, cleaner, vectorizer
+# Singleton'lara modül üzerinden erişilir — from import, worker_process_init
+# öncesinde None olan değeri snapshot alır; modül referansı her zaman güncel değeri gösterir.
+import workers.tasks as _tasks
+from workers.tasks import celery_app
 from workers.ai_comment_task import generate_ai_comment
 
 logger = logging.getLogger(__name__)
@@ -140,12 +141,12 @@ async def _async_pipeline(task_id: str, url: str) -> dict:
                 "error": "URL'den okunabilir içerik çekilemedi.", "url": url}
 
     # 2. Temizle
-    processed = cleaner.process(raw_iddia=full_text)
+    processed = _tasks.cleaner.process(raw_iddia=full_text)
     cleaned_text: str = processed["cleaned_text"]
     signals: dict = processed["signals"]
 
     # 3. BERT embedding
-    embedding = vectorizer.get_embedding(cleaned_text)
+    embedding = _tasks.vectorizer.get_embedding(cleaned_text)
 
     # Sıfır vektörü kontrolü — boş metin durumunda nötr bırak
     is_zero_vec = all(v == 0.0 for v in embedding)
@@ -184,11 +185,11 @@ async def _async_pipeline(task_id: str, url: str) -> dict:
 
     # 6. Sınıflandırıcı — 776-dim feature (768 BERT + 8 sinyal)
     clf_authentic = 0.5
-    if classifier_model is not None and cleaned_text and not is_zero_vec:
+    if _tasks.classifier_model is not None and cleaned_text and not is_zero_vec:
         try:
             signal_vec     = signals_to_vector(signals)
             feature_vector = embedding + signal_vec        # 776-dim
-            proba          = classifier_model.predict_proba([feature_vector])[0]
+            proba          = _tasks.classifier_model.predict_proba([feature_vector])[0]
             clf_authentic  = float(proba[0])               # proba[0] = Authentic sınıfı
         except Exception as exc:
             logger.warning("Sınıflandırıcı hatası: %s", exc)
