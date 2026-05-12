@@ -6,6 +6,7 @@ import { usePlatformStats } from '../../hooks/usePlatformStats';
 const FAKE_COLOR    = '#ff7351';
 const AUTH_COLOR    = '#3fff8b';
 const NEUTRAL_COLOR = 'var(--color-brand-primary)';
+const DAY_LABELS    = ['Pa', 'Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct']; // 0=Sun
 
 function heatColor(pct) {
     if (pct === 0)  return 'var(--color-terminal-border-raw)';
@@ -70,7 +71,7 @@ function HeatDay({ day, isToday }) {
                         color:       'var(--color-text-secondary)',
                     }}
                 >
-                    {label} · {day.total} analiz · %{day.fake_pct} sahte
+                    {label} · {day.total} analiz · %{Math.round(day.fake_pct)} sahte
                 </div>
             )}
         </div>
@@ -83,7 +84,6 @@ export default function PlatformStatsSection() {
     if (loading || !stats) return null;
 
     const todayStr = new Date().toISOString().slice(0, 10);
-    const DAY_LABELS = ['Pa', 'Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct']; // 0=Sun
 
     const last7 = Array.from({ length: 7 }, (_, i) => {
         const d = new Date();
@@ -121,7 +121,7 @@ export default function PlatformStatsSection() {
                 <p className="font-mono text-[10px] text-tx-secondary/80 uppercase tracking-widest mb-3">
                     // Son 7 Günün Sahtelik Oranı
                 </p>
-                <div className="flex items-end gap-2">
+                <div className="flex items-end gap-2" style={{ overflow: 'visible' }}>
                     {last7.map(({ dateStr, dayLabel, data }) => (
                         <div key={dateStr} className="flex flex-col items-center gap-1">
                             <HeatDay day={data} isToday={dateStr === todayStr} />
