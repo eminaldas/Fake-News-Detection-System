@@ -11,8 +11,11 @@ import AnalysisResultSkeleton from "../features/analysis/AnalysisResultSkeleton"
 import RecentHeadlines from "../components/features/analysis/RecentHeadlines";
 import AnalysisDisclaimer from "../features/analysis/AnalysisDisclaimer";
 import HotAnalysesCard from "../components/features/analysis/HotAnalysesCard";
-import PopularNewsSection from "../features/analysis/PopularNewsSection";
 import SimilarNewsSection from "../features/analysis/SimilarNewsSection";
+import PopularNewsSection from "../features/analysis/PopularNewsSection";
+import PlatformStatsSection from "../features/analysis/PlatformStatsSection";
+import ForumTrendBand from "../components/features/gundem/ForumTrendBand";
+import { useForumTrends } from "../hooks/useForumTrends";
 
 /* ── Glitch Hero ── */
 function GlitchNe() {
@@ -68,6 +71,7 @@ const Home = () => {
   const { isAuthenticated } = useAuth();
   const [rateLimitExceeded, setRateLimitExceeded] = useState(false);
   const [remaining] = useState(null);
+  const { threads: trendThreads, loading: trendLoading } = useForumTrends();
 
   useEffect(() => {
       const handler = () => {
@@ -248,8 +252,15 @@ const Home = () => {
           <SimilarNewsSection taskId={result.task_id ?? result.content_id} />
       )}
 
+      {/* ── Platform İstatistikleri + Sahtelik Haritası ── */}
+      <PlatformStatsSection />
+
       {/* ── En Popüler Haberler ── */}
       <PopularNewsSection />
+
+      {/* ── Forum Trendleri ── */}
+      <ForumTrendBand threads={trendThreads} loading={trendLoading} />
+
     </div>
   );
 };
