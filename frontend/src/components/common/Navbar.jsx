@@ -46,6 +46,7 @@ const GUNDEM_CATEGORIES = [
 const NAV_LINKS = [
     { name: 'Analiz',   path: '/'       },
     { name: 'Haberler', path: '/gundem' },
+    { name: 'Borsa',    path: '/borsa'  },
     { name: 'Forum',    path: '/forum'  },
     { name: 'Bildir',   path: '/report' },
 ];
@@ -377,6 +378,7 @@ const Navbar = () => {
                                             src={user.avatar_url}
                                             alt={user.username}
                                             className="w-full h-full object-cover"
+                                            referrerPolicy="no-referrer"
                                             onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }}
                                         />
                                     ) : null}

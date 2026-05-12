@@ -31,6 +31,7 @@ import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 import About from './pages/About';
 import Gundem from './pages/Gundem';
+import Borsa from './pages/Borsa';
 import ForumLayout        from './features/forum/ForumLayout';
 import ForumFeed          from './features/forum/ForumFeed';
 import ForumThread        from './features/forum/ForumThread';
@@ -81,6 +82,7 @@ function App() {
                             <Route path="archive"    element={<Archive />} />
                             <Route path="hakkimizda" element={<About />} />
                             <Route path="gundem"     element={<Gundem />} />
+                            <Route path="borsa"      element={<Borsa />} />
                             <Route path="login"      element={<Login />} />
                             <Route path="register"          element={<Register />} />
                             <Route path="email-verification" element={<EmailVerification />} />
