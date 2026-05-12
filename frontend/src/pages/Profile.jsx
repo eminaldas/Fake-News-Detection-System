@@ -23,6 +23,7 @@ function UserAvatar({ username, avatarUrl, size = 'lg' }) {
             <div className={`${sizeClass} rounded-full overflow-hidden shrink-0`}
                  style={{ border: `2px solid ${textColors[idx]}` }}>
                 <img src={avatarUrl} alt={username} className="w-full h-full object-cover"
+                     referrerPolicy="no-referrer"
                      onError={e => { e.currentTarget.parentElement.innerHTML = `<div class="${sizeClass} rounded-full flex items-center justify-center font-black" style="background:${colors[idx]};color:${textColors[idx]}">${(username??'?')[0].toUpperCase()}</div>`; }} />
             </div>
         );
