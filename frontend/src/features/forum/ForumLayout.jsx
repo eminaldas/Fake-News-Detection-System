@@ -1,10 +1,10 @@
 import React from 'react';
 import { NavLink, Outlet, useSearchParams, useLocation } from 'react-router-dom';
 import {
-    TrendingUp, MessageSquare, Search,
+    MessageSquare,
     AlertTriangle, CheckCircle, Flame,
-    Clock, Zap, Activity, BookOpen,
-    Globe, Star, ChevronRight,
+    Clock, Zap,
+    ChevronRight,
 } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 
@@ -16,12 +16,6 @@ const SORT_OPTIONS = [
     { key: 'hot',           label: 'Popüler',    Icon: Flame   },
     { key: 'new',           label: 'Yeni',       Icon: Clock   },
     { key: 'controversial', label: 'Tartışmalı', Icon: Zap     },
-];
-
-const DISCOVER_OPTIONS = [
-    { key: 'featured', label: 'Öne Çıkanlar',    Icon: Star     },
-    { key: 'global',   label: 'Size Özel',        Icon: Globe    },
-    { key: 'followed', label: 'Takip Ettiklerim', Icon: BookOpen },
 ];
 
 const SYSTEM_TAGS = [
@@ -46,10 +40,6 @@ const Block = ({ title, children }) => (
 );
 
 const SIDEBAR_STYLE = { position: 'sticky', top: '6rem', alignSelf: 'start' };
-
-/* Aktif nav item stili */
-const activeStyle  = { color: 'var(--color-brand-primary)', borderLeftColor: 'var(--color-brand-primary)' };
-const idleStyle    = { color: 'var(--color-text-primary)',  borderLeftColor: 'transparent' };
 
 const ForumLayout = () => {
     const location    = useLocation();
@@ -87,99 +77,40 @@ const ForumLayout = () => {
 
     return (
         <div className="w-full">
-            <div
-                className="max-w-[1600px] mx-auto w-full px-4 md:px-6 py-6"
-                style={{ display: 'grid', gridTemplateColumns: '280px 1fr 260px', gap: '20px' }}
-            >
-
-                {/* ══════ SOL SIDEBAR ══════ */}
-                <aside className="flex flex-col gap-4" style={SIDEBAR_STYLE}>
-
-                    {/* Keşfet */}
-                    <Block title="// keşfet">
-                        <nav className="flex flex-col">
-                            <NavLink
-                                to="/forum"
-                                end
-                                className="flex items-center gap-3 px-4 py-2.5 border-l-2 font-mono text-sm font-semibold transition-colors"
-                                style={({ isActive }) => isActive ? activeStyle : idleStyle}
-                            >
-                                <Activity className="w-4 h-4 shrink-0" />
-                                Tüm Tartışmalar
-                            </NavLink>
-                            {DISCOVER_OPTIONS.map(o => (
-                                <button
-                                    key={o.key}
-                                    className="flex items-center gap-3 px-4 py-2.5 border-l-2 border-transparent font-mono text-sm w-full text-left transition-opacity"
-                                    style={{ color: 'var(--color-text-muted)', opacity: 0.45 }}
-                                    title="Yakında"
-                                    disabled
-                                >
-                                    <o.Icon className="w-4 h-4 shrink-0" />
-                                    {o.label}
-                                    <span
-                                        className="ml-auto font-mono text-[9px] px-1.5 py-0.5 font-bold"
-                                        style={{ background: 'rgba(245,158,11,0.12)', color: 'var(--color-accent-amber)' }}
-                                    >
-                                        YAKINDA
-                                    </span>
-                                </button>
-                            ))}
-                        </nav>
-                    </Block>
-
-                    {/* Sırala */}
-                    <Block title="// sırala">
-                        <nav className="flex flex-col">
-                            {SORT_OPTIONS.map(opt => (
-                                <button
-                                    key={opt.key}
-                                    onClick={() => setSort(opt.key)}
-                                    className="flex items-center gap-3 px-4 py-2.5 border-l-2 font-mono text-sm font-semibold w-full text-left transition-colors"
-                                    style={currentSort === opt.key ? activeStyle : idleStyle}
-                                >
-                                    <opt.Icon className="w-4 h-4 shrink-0" />
-                                    {opt.label}
-                                </button>
-                            ))}
-                        </nav>
-                    </Block>
-
-                    {/* Marka kartı */}
-                    <div className="relative border overflow-hidden" style={TS}>
-                        <div className="absolute top-0 left-0 w-3 h-[2px] bg-brand pointer-events-none" />
-                        <div className="absolute top-0 left-0 h-3 w-[2px] bg-brand pointer-events-none" />
-                        <div className="absolute bottom-0 right-0 w-3 h-[2px] bg-brand pointer-events-none" />
-                        <div className="absolute bottom-0 right-0 h-3 w-[2px] bg-brand pointer-events-none" />
-                        <div className="px-4 py-4">
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="font-mono text-sm font-black tracking-widest"
-                                      style={{ color: 'var(--color-brand-primary)' }}>NE_HABER</span>
-                                <span className="font-mono text-[9px] px-1 py-0.5 border"
-                                      style={{ color: 'var(--color-brand-primary)', borderColor: 'rgba(16,185,129,0.30)' }}>v2.4</span>
-                            </div>
-                            <p className="font-mono text-[10px] leading-relaxed"
-                               style={{ color: 'var(--color-text-muted)' }}>
-                                BERT tabanlı Türkçe<br />haber doğrulama platformu.
-                            </p>
-                            <div className="flex items-center gap-1.5 mt-3">
-                                <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
-                                <span className="font-mono text-[9px]"
-                                      style={{ color: 'var(--color-brand-primary)' }}>SİSTEM AKTİF</span>
-                            </div>
-                        </div>
-                    </div>
-
-                </aside>
+            <div className="max-w-[1400px] mx-auto w-full px-4 md:px-6 py-6 flex flex-col lg:grid lg:gap-5"
+                 style={{ gridTemplateColumns: '1fr 260px' }}>
 
                 {/* ══════ ORTA İÇERİK ══════ */}
                 <main className="min-w-0">
+                    {/* Sıralama çubuğu */}
+                    {!isSearchPage && (
+                        <div className="flex items-center gap-2 mb-4 flex-wrap">
+                            {SORT_OPTIONS.map(opt => {
+                                const active = currentSort === opt.key;
+                                return (
+                                    <button
+                                        key={opt.key}
+                                        onClick={() => setSort(opt.key)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 font-mono text-xs font-bold border transition-all"
+                                        style={{
+                                            background:  active ? 'var(--color-brand-primary)' : 'var(--color-terminal-surface)',
+                                            borderColor: active ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)',
+                                            color:       active ? '#070f12' : 'var(--color-text-primary)',
+                                        }}
+                                    >
+                                        <opt.Icon className="w-3.5 h-3.5" />
+                                        {opt.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
                     <Outlet />
                 </main>
 
                 {/* ══════ SAĞ SIDEBAR ══════ */}
                 <aside
-                    className="flex flex-col gap-4"
+                    className="hidden lg:flex flex-col gap-4"
                     style={isSearchPage ? { visibility: 'hidden' } : SIDEBAR_STYLE}
                 >
 
