@@ -461,6 +461,36 @@ class ForumCommentVote(Base):
     )
 
 
+class ReportType(str, enum.Enum):
+    fake_news = "fake_news"
+    bug       = "bug"
+    complaint = "complaint"
+    other     = "other"
+
+
+class ReportStatus(str, enum.Enum):
+    open      = "open"
+    in_review = "in_review"
+    resolved  = "resolved"
+
+
+class UserReport(Base):
+    __tablename__ = "user_reports"
+
+    id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    reporter_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    type        = Column(Enum(ReportType),   nullable=False)
+    subject     = Column(String(200),        nullable=False)
+    description = Column(Text,               nullable=False)
+    url_or_ref  = Column(String(500),        nullable=True)
+    status      = Column(Enum(ReportStatus), nullable=False, default=ReportStatus.open)
+    admin_reply = Column(Text,               nullable=True)
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+    replied_at  = Column(DateTime(timezone=True), nullable=True)
+
+    reporter = relationship("User", foreign_keys=[reporter_id])
+
+
 _REPORT_REASONS = "('spam','hate_speech','misinformation','manipulation','harassment','inappropriate','off_topic','other')"
 
 
