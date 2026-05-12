@@ -29,7 +29,7 @@ function TrendCard({ thread }) {
     const catColor = CAT_COLORS[thread.category?.toLowerCase()] || 'var(--color-brand-primary)';
     return (
         <Link
-            to={`/forum/thread/${thread.id}`}
+            to={`/forum/${thread.id}`}
             className="flex-shrink-0 relative flex flex-col gap-2.5 p-4 transition-all hover:shadow-[0_0_12px_rgba(63,255,139,0.12)]"
             style={{
                 width:       CARD_W,
@@ -122,37 +122,42 @@ export default function ForumTrendBand({ threads, loading }) {
 
     if (loading || threads.length === 0) return null;
 
-    const doubled = [...threads, ...threads];
+    const doubled = threads.length >= 4 ? [...threads, ...threads] : threads;
 
     return (
-        <section className="mt-14">
-            {/* Başlık */}
-            <div className="flex items-center justify-between mb-5">
-                <div>
-                    <p className="font-mono text-[11px] text-tx-secondary/70 mb-1">// FORUM_TRENDLERİ</p>
-                    <h2 className="text-xl font-extrabold text-tx-primary">Forum Trendleri</h2>
-                    <p className="font-mono text-[11px] text-tx-secondary/60 mt-0.5">
-                        Son 6 saatin en aktif tartışmaları
-                    </p>
+        <section className="w-full max-w-[1400px] mx-auto px-4 md:px-6 pb-12 mt-4">
+            {/* Başlık — PopularNewsSection ile aynı stil */}
+            <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                    <Flame className="w-4 h-4 text-brand dark:text-es-primary" />
+                    <h2 className="text-sm font-black uppercase tracking-widest text-tx-primary">
+                        Forum Trendleri
+                    </h2>
                 </div>
                 <div className="flex gap-2">
                     {[-1, 1].map(dir => (
                         <button
                             key={dir}
                             onClick={() => handleArrow(dir)}
-                            className="w-8 h-8 border flex items-center justify-center text-sm text-tx-secondary hover:text-tx-primary hover:border-brand transition-colors"
-                            style={{ borderColor: 'var(--color-terminal-border-raw)' }}
+                            className="w-8 h-8 flex items-center justify-center font-bold text-sm transition-all hover:opacity-90 active:scale-95"
+                            style={{
+                                background:  'var(--color-brand-primary)',
+                                color:       'var(--color-bg-base)',
+                            }}
                         >
                             {dir === -1 ? '←' : '→'}
                         </button>
                     ))}
                 </div>
             </div>
+            <p className="font-mono text-[10px] text-tx-secondary/80 uppercase tracking-widest mb-4">
+                // Son 6 Saatin En Aktif Tartışmaları
+            </p>
 
             <div className="relative">
-                <div className="absolute left-0 top-0 bottom-0 w-12 pointer-events-none z-10"
+                <div className="absolute left-0 top-0 bottom-0 w-10 pointer-events-none z-10"
                      style={{ background: 'linear-gradient(to right, var(--color-bg-base), transparent)' }} />
-                <div className="absolute right-0 top-0 bottom-0 w-12 pointer-events-none z-10"
+                <div className="absolute right-0 top-0 bottom-0 w-10 pointer-events-none z-10"
                      style={{ background: 'linear-gradient(to left, var(--color-bg-base), transparent)' }} />
 
                 <div

@@ -2,9 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { usePopularNews } from '../hooks/usePopularNews';
-import { useForumTrends } from '../hooks/useForumTrends';
 import PopularNewsGrid from '../components/features/gundem/PopularNewsGrid';
-import ForumTrendBand from '../components/features/gundem/ForumTrendBand';
 
 export default function Gundem() {
     const [searchParams]  = useSearchParams();
@@ -16,8 +14,6 @@ export default function Gundem() {
 
     const { featured, articles, loading, loadingMore, error, newCount, hasMore, refresh, loadMore } =
         usePopularNews(category, dateFrom, dateTo);
-
-    const { threads: trendThreads, loading: trendLoading } = useForumTrends();
 
     useEffect(() => {
         const unsub = subscribe('recommendations_updated', refresh);
@@ -89,9 +85,6 @@ export default function Gundem() {
                 hasMore={hasMore}
                 loadMore={loadMore}
             />
-
-            {/* Forum trend bandı */}
-            <ForumTrendBand threads={trendThreads} loading={trendLoading} />
 
         </div>
     );
