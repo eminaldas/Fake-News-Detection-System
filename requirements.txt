@@ -46,3 +46,6 @@ google-genai
 # Image analysis
 Pillow
 imagehash
+
+# Market data
+yfinance>=0.2.40
