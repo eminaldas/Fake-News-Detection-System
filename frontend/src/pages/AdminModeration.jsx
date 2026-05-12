@@ -12,16 +12,26 @@ export default function AdminModeration() {
     const [flaggedThreads,  setFlaggedThreads]  = React.useState([]);
     const [loading, setLoading] = React.useState(true);
 
+    const [reports,      setReports]      = React.useState([]);
+    const [reportsTotal, setReportsTotal] = React.useState(0);
+    const [replyModal,   setReplyModal]   = React.useState(null);
+    const [replyText,    setReplyText]    = React.useState('');
+    const [replyStatus,  setReplyStatus]  = React.useState('resolved');
+    const [replySaving,  setReplySaving]  = React.useState(false);
+
     React.useEffect(() => {
         if (!user) return;
         if (user.role !== 'admin') { navigate('/forum'); return; }
         Promise.all([
             axiosInstance.get('/forum/admin/flagged-comments'),
             axiosInstance.get('/forum/admin/flagged-threads'),
+            axiosInstance.get('/reports/admin?size=50'),
         ])
-        .then(([c, t]) => {
+        .then(([c, t, r]) => {
             setFlaggedComments(c.data);
             setFlaggedThreads(t.data);
+            setReports(r.data.items || []);
+            setReportsTotal(r.data.total || 0);
         })
         .catch(() => {})
         .finally(() => setLoading(false));
@@ -47,6 +57,28 @@ export default function AdminModeration() {
         setFlaggedThreads(prev => prev.filter(t => t.id !== id));
     };
 
+    const submitReply = async () => {
+        if (!replyModal) return;
+        setReplySaving(true);
+        try {
+            await axiosInstance.post(`/reports/admin/${replyModal.id}/reply`, {
+                reply:  replyText.trim(),
+                status: replyStatus,
+            });
+            setReports(prev => prev.map(r =>
+                r.id === replyModal.id
+                    ? { ...r, status: replyStatus, admin_reply: replyText.trim() || r.admin_reply }
+                    : r
+            ));
+            setReplyModal(null);
+            setReplyText('');
+        } catch {
+            // sessizce başarısız
+        } finally {
+            setReplySaving(false);
+        }
+    };
+
     if (loading) return (
         <div className="flex justify-center items-center h-64">
             <div className="w-8 h-8 rounded-full animate-spin border-2 border-t-transparent"
@@ -63,6 +95,7 @@ export default function AdminModeration() {
                 {[
                     { key: 'comments', label: `Flagged Yorumlar (${flaggedComments.length})` },
                     { key: 'threads',  label: `İnceleme Altı Tartışmalar (${flaggedThreads.length})` },
+                    { key: 'reports',  label: `Raporlar (${reportsTotal})` },
                 ].map(t => (
                     <button
                         key={t.key}
@@ -138,6 +171,108 @@ export default function AdminModeration() {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {tab === 'reports' && (
+                <div className="flex flex-col gap-3">
+                    {reports.length === 0 ? (
+                        <p className="text-sm text-center py-12 font-mono" style={{ color: 'var(--color-text-muted)' }}>
+                            Rapor yok.
+                        </p>
+                    ) : reports.map(r => {
+                        const statusColor = r.status === 'open' ? '#f59e0b' : r.status === 'in_review' ? '#3b82f6' : '#10b981';
+                        const typeLabels = { fake_news: 'Sahte Haber', bug: 'Hata', complaint: 'Şikayet', other: 'Diğer' };
+                        return (
+                            <div key={r.id} className="border p-4 flex flex-col gap-2"
+                                 style={{ background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' }}>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-mono text-[10px] px-2 py-0.5 font-black uppercase"
+                                          style={{ background: `${statusColor}20`, color: statusColor, border: `1px solid ${statusColor}40` }}>
+                                        {r.status}
+                                    </span>
+                                    <span className="font-mono text-[10px] px-2 py-0.5"
+                                          style={{ background: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)' }}>
+                                        {typeLabels[r.type] || r.type}
+                                    </span>
+                                    <span className="font-mono text-[10px] ml-auto" style={{ color: 'var(--color-text-muted)' }}>
+                                        @{r.reporter_username} · {new Date(r.created_at).toLocaleDateString('tr-TR')}
+                                    </span>
+                                </div>
+                                <p className="font-mono text-sm font-bold text-tx-primary">{r.subject}</p>
+                                <p className="font-mono text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                                    {r.description.slice(0, 200)}{r.description.length > 200 ? '...' : ''}
+                                </p>
+                                {r.url_or_ref && (
+                                    <a href={r.url_or_ref} target="_blank" rel="noopener noreferrer"
+                                       className="font-mono text-[10px] truncate hover:opacity-70" style={{ color: 'var(--color-brand-primary)' }}>
+                                        {r.url_or_ref}
+                                    </a>
+                                )}
+                                {r.admin_reply && (
+                                    <p className="font-mono text-xs px-3 py-2 border-l-2"
+                                       style={{ borderColor: 'var(--color-brand-primary)', color: 'var(--color-text-secondary)', background: 'rgba(16,185,129,0.04)' }}>
+                                        <span style={{ color: 'var(--color-brand-primary)' }}>Admin: </span>{r.admin_reply}
+                                    </p>
+                                )}
+                                <button
+                                    onClick={() => { setReplyModal(r); setReplyText(r.admin_reply || ''); setReplyStatus(r.status); }}
+                                    className="self-start font-mono text-[10px] px-4 py-1.5 border transition-opacity hover:opacity-70"
+                                    style={{ borderColor: 'var(--color-brand-primary)', color: 'var(--color-brand-primary)' }}>
+                                    İncele / Yanıtla
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {replyModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                     style={{ background: 'rgba(0,0,0,0.7)' }}
+                     onClick={e => { if (e.target === e.currentTarget) setReplyModal(null); }}>
+                    <div className="w-full max-w-lg border flex flex-col gap-4 p-6"
+                         style={{ background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' }}>
+                        <div>
+                            <p className="font-mono text-[10px] uppercase tracking-widest mb-1" style={{ color: 'var(--color-brand-primary)' }}>
+                                // RAPOR_YANITI
+                            </p>
+                            <p className="font-mono text-base font-black text-tx-primary">{replyModal.subject}</p>
+                            <p className="font-mono text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                                @{replyModal.reporter_username} · {replyModal.reporter_email}
+                            </p>
+                        </div>
+                        <div>
+                            <label className="font-mono text-[10px] uppercase tracking-widest block mb-2" style={{ color: 'var(--color-text-muted)' }}>Durum</label>
+                            <select value={replyStatus} onChange={e => setReplyStatus(e.target.value)}
+                                    className="w-full border px-3 py-2 font-mono text-sm"
+                                    style={{ background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}>
+                                <option value="open">Açık</option>
+                                <option value="in_review">İnceleniyor</option>
+                                <option value="resolved">Çözüldü</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="font-mono text-[10px] uppercase tracking-widest block mb-2" style={{ color: 'var(--color-text-muted)' }}>
+                                Yanıt <span style={{ opacity: 0.5 }}>(opsiyonel — boşsa mail gönderilmez)</span>
+                            </label>
+                            <textarea value={replyText} onChange={e => setReplyText(e.target.value)}
+                                      rows={4} placeholder="Kullanıcıya gönderilecek yanıt..."
+                                      className="w-full border px-3 py-2 font-mono text-sm resize-y"
+                                      style={{ background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }} />
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                            <button onClick={() => setReplyModal(null)} className="font-mono text-xs px-4 py-2 border"
+                                    style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)' }}>
+                                İptal
+                            </button>
+                            <button disabled={replySaving} onClick={submitReply}
+                                    className="font-mono text-xs px-5 py-2 font-black disabled:opacity-50"
+                                    style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
+                                {replySaving ? 'Kaydediliyor...' : 'Kaydet'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
