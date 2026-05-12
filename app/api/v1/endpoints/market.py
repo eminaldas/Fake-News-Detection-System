@@ -43,7 +43,19 @@ STOCK_NAMES = {
     "PGSUS.IS": "Pegasus",
 }
 
-KNOWN_TICKERS = set(KEY_MAP.values()) | set(STOCK_SYMBOLS)
+CRYPTO_SYMBOLS = ["BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD", "XRP-USD"]
+
+CRYPTO_NAMES = {
+    "BTC-USD": "Bitcoin",
+    "ETH-USD": "Ethereum",
+    "BNB-USD": "BNB",
+    "SOL-USD": "Solana",
+    "XRP-USD": "XRP",
+}
+
+ALL_FETCH_SYMBOLS = STOCK_SYMBOLS + CRYPTO_SYMBOLS
+
+KNOWN_TICKERS = set(KEY_MAP.values()) | set(STOCK_SYMBOLS) | set(CRYPTO_SYMBOLS)
 
 _STOCKS_CACHE: dict = {}
 _STOCKS_TTL   = 60
@@ -66,7 +78,7 @@ def _fetch_stocks_sync():
     result = []
     try:
         raw = yf.download(
-            " ".join(STOCK_SYMBOLS),
+            " ".join(ALL_FETCH_SYMBOLS),
             period="2d",
             auto_adjust=True,
             group_by="ticker",
@@ -76,9 +88,12 @@ def _fetch_stocks_sync():
     except Exception as exc:
         raise RuntimeError(f"yfinance download failed: {exc}")
 
-    for symbol in STOCK_SYMBOLS:
+    for symbol in ALL_FETCH_SYMBOLS:
+        is_crypto = symbol in CRYPTO_SYMBOLS
+        name      = CRYPTO_NAMES.get(symbol) or STOCK_NAMES.get(symbol, symbol)
+        currency  = "USD" if is_crypto else "TRY"
         try:
-            closes = raw[symbol]["Close"] if len(STOCK_SYMBOLS) > 1 else raw["Close"]
+            closes = raw[symbol]["Close"] if len(ALL_FETCH_SYMBOLS) > 1 else raw["Close"]
             closes = closes.dropna()
             if len(closes) >= 2:
                 prev, last = float(closes.iloc[-2]), float(closes.iloc[-1])
@@ -95,10 +110,11 @@ def _fetch_stocks_sync():
             chg  = 0.0
         result.append({
             "symbol":     symbol,
-            "name":       STOCK_NAMES.get(symbol, symbol),
+            "name":       name,
             "price":      round(last, 2) if last is not None else None,
             "change_pct": chg,
-            "currency":   "TRY",
+            "currency":   currency,
+            "category":   "crypto" if is_crypto else "bist",
         })
     return result
 

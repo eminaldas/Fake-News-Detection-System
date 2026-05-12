@@ -85,6 +85,58 @@ function SkeletonRow() {
     );
 }
 
+function StockRow({ stock, isActive, toggle, atMax, isAuthenticated }) {
+    const active   = isActive(stock.symbol);
+    const isUp     = stock.change_pct > 0;
+    const isDown   = stock.change_pct < 0;
+    const chgColor = isUp ? '#3fff8b' : isDown ? '#ff7351' : 'var(--color-text-muted)';
+    const label    = stock.symbol.replace('.IS', '').replace('-USD', '');
+    const unit     = stock.currency === 'USD' ? '$' : '₺';
+
+    return (
+        <div className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-white/[0.02]"
+             style={{ borderColor: BORDER }}>
+            <span className="font-mono text-xs font-black w-16 shrink-0 text-tx-primary">{label}</span>
+            <span className="font-mono text-xs flex-1 min-w-0 truncate"
+                  style={{ color: 'var(--color-text-secondary)' }}>
+                {stock.name}
+            </span>
+            <span className="font-mono text-sm font-black text-tx-primary shrink-0">
+                {stock.price != null
+                    ? `${unit}${Number(stock.price).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : '—'}
+            </span>
+            <span className="flex items-center gap-0.5 font-mono text-xs font-bold w-16 shrink-0 justify-end"
+                  style={{ color: chgColor }}>
+                {isUp   ? <TrendingUp   className="w-3 h-3" /> :
+                 isDown ? <TrendingDown className="w-3 h-3" /> : null}
+                {stock.change_pct > 0 ? '+' : ''}{stock.change_pct.toFixed(2)}%
+            </span>
+            <StarBtn symbol={stock.symbol} isActive={active} onToggle={toggle}
+                     atMax={atMax} requiresAuth={!isAuthenticated} />
+        </div>
+    );
+}
+
+function StockSection({ title, items, loading, error, isActive, toggle, atMax, isAuthenticated }) {
+    return (
+        <Section title={title}>
+            <div className="divide-y" style={{ borderColor: BORDER }}>
+                {loading && Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)}
+                {error && !loading && (
+                    <div className="px-5 py-4 font-mono text-sm" style={{ color: '#ff7351' }}>
+                        <span className="font-black">[ ERR ]</span> {error}
+                    </div>
+                )}
+                {!loading && !error && items.map(stock => (
+                    <StockRow key={stock.symbol} stock={stock} isActive={isActive}
+                              toggle={toggle} atMax={atMax} isAuthenticated={isAuthenticated} />
+                ))}
+            </div>
+        </Section>
+    );
+}
+
 export default function Borsa() {
     const [rates,        setRates]        = useState({});
     const [stocks,       setStocks]       = useState([]);
@@ -175,60 +227,28 @@ export default function Borsa() {
             </Section>
 
             {/* BIST Hisseleri */}
-            <Section title="// BIST_HİSSELERİ">
-                <div className="divide-y" style={{ borderColor: BORDER }}>
-                    {stockLoading && Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)}
+            <StockSection
+                title="// BIST_HİSSELERİ"
+                items={stocks.filter(s => s.category === 'bist')}
+                loading={stockLoading}
+                error={stockError}
+                isActive={isActive}
+                toggle={toggle}
+                atMax={atMax}
+                isAuthenticated={isAuthenticated}
+            />
 
-                    {stockError && !stockLoading && (
-                        <div className="px-5 py-4 font-mono text-sm" style={{ color: '#ff7351' }}>
-                            <span className="font-black">[ ERR ]</span> {stockError}
-                        </div>
-                    )}
-
-                    {!stockLoading && !stockError && stocks.map(stock => {
-                        const active = isActive(stock.symbol);
-                        const isUp   = stock.change_pct > 0;
-                        const isDown = stock.change_pct < 0;
-                        const chgColor = isUp ? '#3fff8b' : isDown ? '#ff7351' : 'var(--color-text-muted)';
-
-                        return (
-                            <div key={stock.symbol}
-                                 className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-white/[0.02]"
-                                 style={{ borderColor: BORDER }}>
-                                <span className="font-mono text-xs font-black w-16 shrink-0 text-tx-primary">
-                                    {stock.symbol.replace('.IS', '')}
-                                </span>
-                                <span className="font-mono text-xs flex-1 min-w-0 truncate"
-                                      style={{ color: 'var(--color-text-secondary)' }}>
-                                    {stock.name}
-                                </span>
-                                <span className="font-mono text-sm font-black text-tx-primary shrink-0">
-                                    {stock.price != null
-                                        ? `₺${Number(stock.price).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                        : '—'}
-                                </span>
-                                <span className="flex items-center gap-0.5 font-mono text-xs font-bold w-16 shrink-0 justify-end"
-                                      style={{ color: chgColor }}>
-                                    {isUp   ? <TrendingUp   className="w-3 h-3" /> :
-                                     isDown ? <TrendingDown className="w-3 h-3" /> : null}
-                                    {stock.change_pct > 0 ? '+' : ''}{stock.change_pct.toFixed(2)}%
-                                </span>
-                                <StarBtn
-                                    symbol={stock.symbol}
-                                    isActive={active}
-                                    onToggle={toggle}
-                                    atMax={atMax}
-                                    requiresAuth={!isAuthenticated}
-                                />
-                            </div>
-                        );
-                    })}
-                </div>
-                <p className="px-5 pt-2 font-mono text-[9px] uppercase tracking-widest"
-                   style={{ color: 'var(--color-text-muted)', opacity: 0.4 }}>
-                    Kaynak: Yahoo Finance · Son kapanış verisi
-                </p>
-            </Section>
+            {/* Kripto */}
+            <StockSection
+                title="// KRİPTO"
+                items={stocks.filter(s => s.category === 'crypto')}
+                loading={stockLoading}
+                error={stockError}
+                isActive={isActive}
+                toggle={toggle}
+                atMax={atMax}
+                isAuthenticated={isAuthenticated}
+            />
         </div>
     );
 }
