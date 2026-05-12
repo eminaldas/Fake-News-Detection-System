@@ -70,10 +70,11 @@ class UserResponse(BaseModel):
     role:                 UserRole
     is_active:            bool
     created_at:           datetime
-    last_login_at:        Optional[datetime] = None
-    avatar_url:           Optional[str]      = None
-    is_email_verified:    bool               = False
-    onboarding_completed: bool               = False
+    last_login_at:        Optional[datetime]  = None
+    avatar_url:           Optional[str]       = None
+    is_email_verified:    bool                = False
+    onboarding_completed: bool                = False
+    preferences:          Optional[dict]      = None
 
     class Config:
         from_attributes = True
@@ -639,7 +640,7 @@ ForumCommentItem.model_rebuild()
 
 class ForumThreadCreate(BaseModel):
     title:      str            = Field(..., min_length=3, max_length=300)
-    body:       str            = Field(..., min_length=10, max_length=10000)
+    body:       str            = Field('', min_length=0, max_length=10000)
     category:   Optional[str]  = None
     article_id: Optional[UUID] = None
     tag_names:  List[str]      = Field(default_factory=list, max_length=10)
