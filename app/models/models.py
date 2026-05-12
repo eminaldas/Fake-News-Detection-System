@@ -490,6 +490,11 @@ class UserReport(Base):
 
     reporter = relationship("User", foreign_keys=[reporter_id])
 
+    __table_args__ = (
+        Index("ix_user_reports_reporter_id", "reporter_id"),
+        Index("ix_user_reports_status",      "status"),
+    )
+
 
 _REPORT_REASONS = "('spam','hate_speech','misinformation','manipulation','harassment','inappropriate','off_topic','other')"
 
