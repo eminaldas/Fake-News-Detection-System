@@ -1,24 +1,45 @@
-import React, { useEffect, useState } from 'react';
-import { Sun, Cloud, CloudRain, CloudSnow, CloudDrizzle, CloudLightning, Wind } from 'lucide-react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import {
+    Sun, Cloud, CloudRain, CloudSnow, CloudDrizzle,
+    CloudLightning, Wind, ChevronDown,
+} from 'lucide-react';
 
-const ISTANBUL = { lat: 41.0082, lon: 28.9784, city: 'İstanbul' };
+const CITIES = [
+    { id: 'ankara',   name: 'Ankara',   lat: 39.9334, lon: 32.8597 },
+    { id: 'izmir',    name: 'İzmir',    lat: 38.4189, lon: 27.1287 },
+    { id: 'antalya',  name: 'Antalya',  lat: 36.8969, lon: 30.7133 },
+    { id: 'bursa',    name: 'Bursa',    lat: 40.1885, lon: 29.0610 },
+    { id: 'trabzon',  name: 'Trabzon',  lat: 41.0015, lon: 39.7178 },
+    { id: 'konya',    name: 'Konya',    lat: 37.8714, lon: 32.4846 },
+];
 
 function wmoIcon(code) {
-    if (code === 0)                          return Sun;
-    if (code <= 2)                           return Cloud;
-    if (code === 3)                          return Cloud;
-    if (code <= 48)                          return Wind;
-    if (code <= 55)                          return CloudDrizzle;
-    if (code <= 65)                          return CloudRain;
-    if (code <= 75)                          return CloudSnow;
-    if (code <= 82)                          return CloudRain;
-    if (code <= 86)                          return CloudSnow;
+    if (code === 0)  return Sun;
+    if (code <= 3)   return Cloud;
+    if (code <= 48)  return Wind;
+    if (code <= 55)  return CloudDrizzle;
+    if (code <= 65)  return CloudRain;
+    if (code <= 75)  return CloudSnow;
+    if (code <= 82)  return CloudRain;
+    if (code <= 86)  return CloudSnow;
     return CloudLightning;
+}
+
+function wmoLabel(code) {
+    if (code === 0)  return 'Açık';
+    if (code <= 3)   return 'Parçalı bulutlu';
+    if (code <= 48)  return 'Sisli';
+    if (code <= 55)  return 'Çisenti';
+    if (code <= 65)  return 'Yağmurlu';
+    if (code <= 75)  return 'Karlı';
+    if (code <= 82)  return 'Sağanaklı';
+    if (code <= 86)  return 'Kar sağanağı';
+    return 'Fırtınalı';
 }
 
 async function fetchWeather(lat, lon) {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&timezone=auto`;
-    const res = await fetch(url);
+    const res  = await fetch(url);
     const data = await res.json();
     return {
         temp: Math.round(data.current.temperature_2m),
@@ -28,32 +49,63 @@ async function fetchWeather(lat, lon) {
 
 async function reverseGeocode(lat, lon) {
     try {
-        const res = await fetch(
+        const res  = await fetch(
             `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=tr`,
             { headers: { 'User-Agent': 'BiHaber/1.0' } }
         );
         const data = await res.json();
         return (
-            data.address?.city ||
-            data.address?.town ||
+            data.address?.city  ||
+            data.address?.town  ||
             data.address?.county ||
-            ISTANBUL.city
+            'İstanbul'
         );
     } catch {
-        return ISTANBUL.city;
+        return 'İstanbul';
     }
 }
 
-const WeatherWidget = () => {
-    const [weather, setWeather] = useState(null);
+function CityRow({ city, weather }) {
+    const Icon = weather ? wmoIcon(weather.code) : null;
+    return (
+        <div className="flex items-center justify-between px-4 py-2.5 hover:bg-white/[0.04] transition-colors">
+            <span className="font-mono text-xs font-bold" style={{ color: 'var(--color-market-label)' }}>
+                {city.name}
+            </span>
+            {weather ? (
+                <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px]" style={{ color: 'var(--color-market-sys)', opacity: 0.6 }}>
+                        {wmoLabel(weather.code)}
+                    </span>
+                    <div className="flex items-center gap-1">
+                        <Icon className="w-3 h-3" style={{ color: 'var(--color-market-value)', opacity: 0.7 }} />
+                        <span className="font-mono text-sm font-black" style={{ color: 'var(--color-market-value)' }}>
+                            {weather.temp}°
+                        </span>
+                    </div>
+                </div>
+            ) : (
+                <span className="font-mono text-xs" style={{ color: 'var(--color-market-sys)', opacity: 0.3 }}>—</span>
+            )}
+        </div>
+    );
+}
 
+const WeatherWidget = () => {
+    const [primary,  setPrimary]  = useState(null);   // { temp, code, city, lat, lon }
+    const [open,     setOpen]     = useState(false);
+    const [cityData, setCityData] = useState({});      // id → { temp, code }
+    const [fetched,  setFetched]  = useState(false);
+    const ref = useRef(null);
+
+    // Konum al + birincil hava durumu yükle
     useEffect(() => {
         const load = async (lat, lon, city) => {
             try {
                 const w = await fetchWeather(lat, lon);
-                setWeather({ ...w, city });
+                setPrimary({ ...w, city, lat, lon });
             } catch {
-                setWeather(null);
+                setPrimary(null);
             }
         };
 
@@ -64,24 +116,118 @@ const WeatherWidget = () => {
                     const city = await reverseGeocode(latitude, longitude);
                     load(latitude, longitude, city);
                 },
-                () => load(ISTANBUL.lat, ISTANBUL.lon, ISTANBUL.city),
+                () => load(41.0082, 28.9784, 'İstanbul'),
                 { timeout: 5000 }
             );
         } else {
-            load(ISTANBUL.lat, ISTANBUL.lon, ISTANBUL.city);
+            load(41.0082, 28.9784, 'İstanbul');
         }
     }, []);
 
-    if (!weather) return null;
+    // Dropdown açılınca diğer şehirleri yükle (bir kez)
+    const loadCities = useCallback(async () => {
+        if (fetched) return;
+        setFetched(true);
+        const results = await Promise.allSettled(
+            CITIES.map(c => fetchWeather(c.lat, c.lon).then(w => ({ id: c.id, ...w })))
+        );
+        const map = {};
+        results.forEach(r => {
+            if (r.status === 'fulfilled') map[r.value.id] = { temp: r.value.temp, code: r.value.code };
+        });
+        setCityData(map);
+    }, [fetched]);
 
-    const Icon = wmoIcon(weather.code);
+    const toggleOpen = () => {
+        if (!open) loadCities();
+        setOpen(v => !v);
+    };
+
+    // Dışarı tıklanınca kapat
+    useEffect(() => {
+        if (!open) return;
+        const handler = (e) => {
+            if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [open]);
+
+    if (!primary) return null;
+
+    const Icon = wmoIcon(primary.code);
 
     return (
-        <span className="hidden md:flex items-center gap-1.5 text-[13px] font-bold tracking-tight select-none whitespace-nowrap text-white">
-            <Icon className="w-3.5 h-3.5 shrink-0 text-white/60" />
-            <span>{weather.temp}°C</span>
-            <span className="font-medium text-white/50">· {weather.city}</span>
-        </span>
+        <div ref={ref} className="relative hidden md:block">
+            {/* Trigger */}
+            <button
+                onClick={toggleOpen}
+                className="flex items-center gap-1.5 font-mono text-[13px] font-bold tracking-tight select-none whitespace-nowrap transition-opacity hover:opacity-80"
+                style={{ color: 'var(--color-market-value)' }}
+            >
+                <Icon className="w-3.5 h-3.5 shrink-0" style={{ opacity: 0.6 }} />
+                <span>{primary.temp}°C</span>
+                <span className="font-medium" style={{ color: 'var(--color-market-sys)', opacity: 0.5 }}>
+                    · {primary.city}
+                </span>
+                <ChevronDown
+                    className="w-3 h-3 shrink-0 transition-transform"
+                    style={{
+                        color:     'var(--color-market-sys)',
+                        opacity:   0.5,
+                        transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                    }}
+                />
+            </button>
+
+            {/* Dropdown */}
+            {open && (
+                <div
+                    className="absolute right-0 top-full mt-2 min-w-[220px] z-50 border overflow-hidden"
+                    style={{
+                        background:   'var(--color-market-band-bg)',
+                        borderColor:  'var(--color-terminal-border-raw)',
+                        boxShadow:    '0 8px 24px rgba(0,0,0,0.4)',
+                    }}
+                >
+                    {/* Kullanıcı konumu — başta */}
+                    <div className="px-4 pt-3 pb-1">
+                        <p className="font-mono text-[9px] uppercase tracking-widest mb-2"
+                           style={{ color: 'var(--color-market-sys)', opacity: 0.4 }}>
+                            Konumun
+                        </p>
+                        <div className="flex items-center justify-between pb-2 border-b"
+                             style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
+                            <span className="font-mono text-xs font-bold" style={{ color: 'var(--color-market-label)' }}>
+                                {primary.city}
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <span className="font-mono text-[10px]" style={{ color: 'var(--color-market-sys)', opacity: 0.6 }}>
+                                    {wmoLabel(primary.code)}
+                                </span>
+                                <div className="flex items-center gap-1">
+                                    <Icon className="w-3 h-3" style={{ color: 'var(--color-market-value)', opacity: 0.7 }} />
+                                    <span className="font-mono text-sm font-black" style={{ color: 'var(--color-market-value)' }}>
+                                        {primary.temp}°
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Diğer şehirler */}
+                    <div className="pb-1">
+                        <p className="font-mono text-[9px] uppercase tracking-widest px-4 pt-2 pb-1"
+                           style={{ color: 'var(--color-market-sys)', opacity: 0.4 }}>
+                            Diğer Şehirler
+                        </p>
+                        {CITIES.map(city => (
+                            <CityRow key={city.id} city={city} weather={cityData[city.id] ?? null} />
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 
