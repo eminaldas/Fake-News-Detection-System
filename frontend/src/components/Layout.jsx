@@ -156,7 +156,7 @@ const Layout = () => {
             {/* ── Mini mesajlaşma (LinkedIn stili, sağ alt) ── */}
             {!isAuth && !isMessages && <MiniMessenger />}
 
-            {!isAuth && !isForum && (
+            {!isAuth && !isForum && !isMessages && (
                 <footer style={{
                     background: 'var(--color-terminal-surface)',
                     borderTop: '1px solid var(--color-terminal-border-raw)',

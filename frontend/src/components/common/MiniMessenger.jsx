@@ -104,7 +104,7 @@ export default function MiniMessenger() {
     };
 
     return (
-        <div ref={ref} className="hidden md:block fixed bottom-0 right-6 z-50" style={{ width: 300 }}>
+        <div ref={ref} className="hidden md:block fixed bottom-10 right-6 z-50" style={{ width: 300 }}>
 
             {/* Konuşma paneli */}
             {open && (
