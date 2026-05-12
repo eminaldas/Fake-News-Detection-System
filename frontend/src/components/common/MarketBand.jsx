@@ -2,110 +2,155 @@ import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import MarketService from '../../services/market.service';
 import WeatherWidget from './WeatherWidget';
+import { useMarketPrefs } from '../../hooks/useMarketPrefs';
 
-const ITEMS = [
-  { key: 'BIST 100', label: 'BIST',    unit: '',  decimals: 0 },
-  { key: 'USD',      label: 'USD/TRY', unit: '₺', decimals: 2 },
-  { key: 'EUR',      label: 'EUR/TRY', unit: '₺', decimals: 2 },
-];
+// Truncgil key → display meta
+const RATE_META = {
+    'USD':        { label: 'USD/TRY', unit: '₺', decimals: 2 },
+    'EUR':        { label: 'EUR/TRY', unit: '₺', decimals: 2 },
+    'gram-altin': { label: 'ALTIN',   unit: '₺', decimals: 0 },
+    'BIST 100':   { label: 'BIST',    unit: '',  decimals: 0 },
+};
 
 function parseChange(raw) {
-  if (raw == null || raw === '') return null;
-  const val = parseFloat(String(raw).replace('%', '').replace(',', '.'));
-  return isNaN(val) ? null : val;
+    if (raw == null || raw === '') return null;
+    const val = parseFloat(String(raw).replace('%', '').replace(',', '.'));
+    return isNaN(val) ? null : val;
 }
 
-function MarketItem({ label, unit, value, change, decimals }) {
-  const chg    = parseChange(change);
-  const isUp   = chg !== null && chg > 0;
-  const isDown = chg !== null && chg < 0;
-  const changeColor = isUp ? '#3fff8b' : isDown ? '#ff7351' : 'rgba(255,255,255,0.45)';
+function MarketItem({ label, unit, decimals, value, changePct }) {
+    const chg      = changePct !== null && changePct !== undefined ? changePct : null;
+    const isUp     = chg !== null && chg > 0;
+    const isDown   = chg !== null && chg < 0;
+    const chgColor = isUp ? '#3fff8b' : isDown ? '#ff7351' : 'rgba(255,255,255,0.45)';
 
-  return (
-    <span className="flex items-center gap-1.5 font-mono">
-      <span className="text-[11px] font-bold uppercase tracking-widest"
-            style={{ color: 'var(--color-market-label)' }}>
-        {label}
-      </span>
-      <span className="text-[13px] font-bold"
-            style={{ color: 'var(--color-market-value)' }}>
-        {value != null
-          ? `${unit}${Number(value).toLocaleString('tr-TR', {
-              minimumFractionDigits: decimals,
-              maximumFractionDigits: decimals,
-            })}`
-          : '—'}
-      </span>
-      {chg !== null && (
-        <span className="flex items-center gap-0.5 text-[11px] font-bold" style={{ color: changeColor }}>
-          {isUp   ? <TrendingUp   className="w-3 h-3" /> :
-           isDown ? <TrendingDown className="w-3 h-3" /> : null}
-          {Math.abs(chg).toFixed(2)}%
+    return (
+        <span className="flex items-center gap-1.5 font-mono shrink-0">
+            <span className="text-[11px] font-bold uppercase tracking-widest"
+                  style={{ color: 'var(--color-market-label)' }}>
+                {label}
+            </span>
+            <span className="text-[13px] font-bold"
+                  style={{ color: 'var(--color-market-value)' }}>
+                {value != null
+                    ? `${unit}${Number(value).toLocaleString('tr-TR', {
+                        minimumFractionDigits: decimals,
+                        maximumFractionDigits: decimals,
+                      })}`
+                    : '—'}
+            </span>
+            {chg !== null && (
+                <span className="flex items-center gap-0.5 text-[11px] font-bold" style={{ color: chgColor }}>
+                    {isUp   ? <TrendingUp   className="w-3 h-3" /> :
+                     isDown ? <TrendingDown className="w-3 h-3" /> : null}
+                    {Math.abs(chg).toFixed(2)}%
+                </span>
+            )}
         </span>
-      )}
-    </span>
-  );
+    );
 }
 
 const MarketBand = () => {
-  const [data, setData] = React.useState({});
+    const [rates,  setRates]  = React.useState({});
+    const [stocks, setStocks] = React.useState([]);
+    const { tickers } = useMarketPrefs();
 
-  React.useEffect(() => {
-    MarketService.getRates().then(d => setData(d)).catch(() => {});
-    const id = setInterval(() => {
-      MarketService.getRates().then(d => setData(d)).catch(() => {});
-    }, 60_000);
-    return () => clearInterval(id);
-  }, []);
+    React.useEffect(() => {
+        const load = () => {
+            MarketService.getRates().then(setRates).catch(() => {});
+            MarketService.getStocks().then(setStocks).catch(() => {});
+        };
+        load();
+        const id = setInterval(load, 60_000);
+        return () => clearInterval(id);
+    }, []);
 
-  return (
-    <div
-      className="fixed top-0 left-0 right-0 z-50 h-10 flex items-center px-6"
-      style={{
-        background:   'var(--color-market-band-bg)',
-        borderBottom: '1px solid var(--color-terminal-border-raw)',
-      }}
-    >
-      <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
+    // Build unified symbol → display-data map
+    const dataMap = React.useMemo(() => {
+        const m = {};
+        for (const [key, meta] of Object.entries(RATE_META)) {
+            const entry = rates[key];
+            if (entry) {
+                m[key] = {
+                    label:     meta.label,
+                    unit:      meta.unit,
+                    decimals:  meta.decimals,
+                    value:     entry.sell,
+                    changePct: parseChange(entry.change),
+                };
+            }
+        }
+        for (const s of stocks) {
+            m[s.symbol] = {
+                label:     s.symbol.replace('.IS', ''),
+                unit:      '₺',
+                decimals:  2,
+                value:     s.price,
+                changePct: s.change_pct,
+            };
+        }
+        return m;
+    }, [rates, stocks]);
 
-        {/* Sol: SYS badge + market items */}
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1.5 font-mono">
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0"
-                  style={{ background: 'var(--color-market-sys)' }} />
-            <span className="text-[10px] font-bold tracking-widest hidden sm:block"
-                  style={{ color: 'var(--color-market-sys)' }}>
-              SYS.ONLINE
-            </span>
-          </span>
+    const items      = tickers.map(sym => dataMap[sym]).filter(Boolean);
+    const useMarquee = items.length > 4;
+    const duration   = `${Math.max(items.length * 3, 12)}s`;
 
-          <span className="h-3 w-px" style={{ background: 'var(--color-terminal-border-raw)' }} />
+    return (
+        <div
+            className="fixed top-0 left-0 right-0 z-50 h-10 flex items-center px-6"
+            style={{
+                background:   'var(--color-market-band-bg)',
+                borderBottom: '1px solid var(--color-terminal-border-raw)',
+            }}
+        >
+            <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-4">
 
-          <div className="flex items-center gap-5">
-            {ITEMS.map(item => (
-              <MarketItem
-                key={item.key}
-                label={item.label}
-                unit={item.unit}
-                decimals={item.decimals}
-                value={data[item.key]?.sell}
-                change={data[item.key]?.change}
-              />
-            ))}
-          </div>
+                {/* Left: SYS badge + market items */}
+                <div className="flex items-center gap-4 flex-1 min-w-0 overflow-hidden">
+                    <span className="flex items-center gap-1.5 font-mono shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0"
+                              style={{ background: 'var(--color-market-sys)' }} />
+                        <span className="text-[10px] font-bold tracking-widest hidden sm:block"
+                              style={{ color: 'var(--color-market-sys)' }}>
+                            SYS.ONLINE
+                        </span>
+                    </span>
+
+                    <span className="h-3 w-px shrink-0"
+                          style={{ background: 'var(--color-terminal-border-raw)' }} />
+
+                    {useMarquee ? (
+                        <div className="flex-1 overflow-hidden">
+                            <div
+                                className="flex animate-marquee"
+                                style={{ gap: '2rem', animationDuration: duration }}
+                            >
+                                {[...items, ...items].map((item, i) => (
+                                    <MarketItem key={i} {...item} />
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex items-center" style={{ gap: '1.25rem' }}>
+                            {items.map((item, i) => (
+                                <MarketItem key={i} {...item} />
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Right: Weather + version */}
+                <div className="flex items-center gap-3 shrink-0">
+                    <WeatherWidget />
+                    <span className="hidden lg:block font-mono text-[10px] tracking-widest"
+                          style={{ color: 'var(--color-market-sys)' }}>
+                        VERITAS v2.4
+                    </span>
+                </div>
+            </div>
         </div>
-
-        {/* Sağ: Hava durumu + versiyon */}
-        <div className="flex items-center gap-3">
-          <WeatherWidget />
-          <span className="hidden lg:block font-mono text-[10px] tracking-widest"
-                style={{ color: 'var(--color-market-sys)' }}>
-            VERITAS v2.4
-          </span>
-        </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default MarketBand;
