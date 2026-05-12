@@ -16,7 +16,7 @@ from sqlalchemy.orm import selectinload
 from app.api.deps import get_current_user
 from app.core.config import settings
 from app.db.session import get_db
-from app.models.models import ReportStatus, ReportType, User, UserReport
+from app.models.models import ReportStatus, ReportType, User, UserReport, UserRole
 
 router = APIRouter()
 
@@ -230,7 +230,7 @@ async def list_reports(
     db:           AsyncSession  = Depends(get_db),
 ):
     """Tüm raporları listele (admin only)."""
-    if current_user.role.value != "admin":
+    if current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Yalnızca yöneticiler erişebilir.")
 
     q = select(UserReport).options(selectinload(UserReport.reporter)).order_by(UserReport.created_at.desc())
@@ -272,7 +272,7 @@ async def reply_report(
     db:           AsyncSession = Depends(get_db),
 ):
     """Admin yanıtı gönder + durum güncelle (admin only)."""
-    if current_user.role.value != "admin":
+    if current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Yalnızca yöneticiler erişebilir.")
 
     result = await db.execute(select(UserReport).where(UserReport.id == UUID(report_id)))
