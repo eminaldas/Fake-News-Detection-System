@@ -5,11 +5,13 @@ from datetime import datetime, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_user
 from app.core.config import settings
@@ -221,7 +223,7 @@ async def create_report(
 @router.get("/admin")
 async def list_reports(
     status:       Optional[str] = None,
-    type:         Optional[str] = None,
+    report_type:  Optional[str] = None,
     page:         int           = 1,
     size:         int           = 20,
     current_user: User          = Depends(get_current_user),
@@ -231,11 +233,11 @@ async def list_reports(
     if current_user.role.value != "admin":
         raise HTTPException(status_code=403, detail="Yalnızca yöneticiler erişebilir.")
 
-    q = select(UserReport).order_by(UserReport.created_at.desc())
+    q = select(UserReport).options(selectinload(UserReport.reporter)).order_by(UserReport.created_at.desc())
     if status:
         q = q.where(UserReport.status == status)
-    if type:
-        q = q.where(UserReport.type == type)
+    if report_type:
+        q = q.where(UserReport.type == report_type)
 
     total_q = select(func.count()).select_from(q.subquery())
     total   = (await db.execute(total_q)).scalar_one()
@@ -245,7 +247,6 @@ async def list_reports(
 
     items = []
     for r in rows:
-        await db.refresh(r, ["reporter"])
         items.append({
             "id":                str(r.id),
             "type":              r.type.value,
@@ -274,8 +275,7 @@ async def reply_report(
     if current_user.role.value != "admin":
         raise HTTPException(status_code=403, detail="Yalnızca yöneticiler erişebilir.")
 
-    from uuid import UUID as _UUID
-    result = await db.execute(select(UserReport).where(UserReport.id == _UUID(report_id)))
+    result = await db.execute(select(UserReport).where(UserReport.id == UUID(report_id)))
     report = result.scalar_one_or_none()
     if not report:
         raise HTTPException(status_code=404, detail="Rapor bulunamadı.")
