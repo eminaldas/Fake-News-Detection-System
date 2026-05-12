@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import MarketService from '../../services/market.service';
 import WeatherWidget from './WeatherWidget';
@@ -98,7 +99,7 @@ const MarketBand = () => {
 
     return (
         <div
-            className="fixed top-0 left-0 right-0 z-50 h-10 flex items-center px-6"
+            className="fixed top-0 left-0 right-0 z-[60] h-10 flex items-center px-6"
             style={{
                 background:   'var(--color-market-band-bg)',
                 borderBottom: '1px solid var(--color-terminal-border-raw)',
@@ -108,14 +109,14 @@ const MarketBand = () => {
 
                 {/* Left: SYS badge + market items */}
                 <div className="flex items-center gap-4 flex-1 min-w-0 overflow-hidden">
-                    <span className="flex items-center gap-1.5 font-mono shrink-0">
+                    <Link to="/borsa" className="flex items-center gap-1.5 font-mono shrink-0 hover:opacity-70 transition-opacity">
                         <span className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0"
                               style={{ background: 'var(--color-market-sys)' }} />
                         <span className="text-[10px] font-bold tracking-widest hidden sm:block"
                               style={{ color: 'var(--color-market-sys)' }}>
                             SYS.ONLINE
                         </span>
-                    </span>
+                    </Link>
 
                     <span className="h-3 w-px shrink-0"
                           style={{ background: 'var(--color-terminal-border-raw)' }} />
@@ -140,13 +141,9 @@ const MarketBand = () => {
                     )}
                 </div>
 
-                {/* Right: Weather + version */}
-                <div className="flex items-center gap-3 shrink-0">
+                {/* Sağ: Hava durumu */}
+                <div className="shrink-0">
                     <WeatherWidget />
-                    <span className="hidden lg:block font-mono text-[10px] tracking-widest"
-                          style={{ color: 'var(--color-market-sys)' }}>
-                        VERITAS v2.4
-                    </span>
                 </div>
             </div>
         </div>
