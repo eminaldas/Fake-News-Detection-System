@@ -1,5 +1,6 @@
 import asyncio
 import httpx
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from typing import List
@@ -42,11 +43,7 @@ STOCK_NAMES = {
     "PGSUS.IS": "Pegasus",
 }
 
-KNOWN_TICKERS = {
-    "USD", "EUR", "gram-altin", "BIST 100",
-    "THYAO.IS", "AKBNK.IS", "GARAN.IS", "SISE.IS", "KCHOL.IS",
-    "EREGL.IS", "SAHOL.IS", "BIMAS.IS", "ASELS.IS", "PGSUS.IS",
-}
+KNOWN_TICKERS = set(KEY_MAP.values()) | set(STOCK_SYMBOLS)
 
 _STOCKS_CACHE: dict = {}
 _STOCKS_TTL   = 60
@@ -92,7 +89,8 @@ def _fetch_stocks_sync():
             else:
                 last = None
                 chg  = 0.0
-        except Exception:
+        except Exception as sym_exc:
+            logging.warning("yfinance parse error for %s: %s", symbol, sym_exc)
             last = None
             chg  = 0.0
         result.append({
@@ -156,7 +154,7 @@ async def get_market_stocks():
         return cached
 
     try:
-        loop   = asyncio.get_event_loop()
+        loop   = asyncio.get_running_loop()
         result = await loop.run_in_executor(_executor, _fetch_stocks_sync)
         _stocks_cache_set(result)
         return result
