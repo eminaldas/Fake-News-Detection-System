@@ -12,6 +12,7 @@ import ForumCommentTree from './ForumCommentTree';
 import MentionTextarea from './MentionTextarea';
 import LoginNudgeModal, { useLoginNudge } from '../../components/ui/LoginNudgeModal';
 import ShareDropdown from '../../components/ui/ShareDropdown';
+import SendToFriendModal from './SendToFriendModal';
 import NewsVoteBar    from './NewsVoteBar';
 import GeneralVoteBar from './GeneralVoteBar';
 
@@ -95,6 +96,7 @@ const ForumThread = () => {
     const [replyTo,           setReplyTo]           = React.useState(null);
     const [submitting,        setSubmitting]        = React.useState(false);
     const [moderationWarning, setModerationWarning] = React.useState(false);
+    const [sendModal,         setSendModal]         = React.useState(false);
 
     const load = React.useCallback(async () => {
         try {
@@ -258,7 +260,11 @@ const ForumThread = () => {
                                     {thread.title}
                                 </h2>
                                 <div className="flex items-center gap-1.5 shrink-0">
-                                    <ShareDropdown url={`${window.location.origin}/forum/${thread.id}`} text={`Forum: ${thread.title}`} />
+                                    <ShareDropdown
+                                        url={`${window.location.origin}/forum/${thread.id}`}
+                                        text={`Forum: ${thread.title}`}
+                                        onSendToFriend={() => setSendModal(true)}
+                                    />
                                     {isAuthor && (
                                         <>
                                             <button
@@ -489,6 +495,13 @@ const ForumThread = () => {
             </Block>
         </div>
         {showNudge && <LoginNudgeModal onClose={closeNudge} />}
+        {sendModal && (
+            <SendToFriendModal
+                threadTitle={thread.title}
+                threadUrl={`${window.location.origin}/forum/${thread.id}`}
+                onClose={() => setSendModal(false)}
+            />
+        )}
         </>
     );
 };

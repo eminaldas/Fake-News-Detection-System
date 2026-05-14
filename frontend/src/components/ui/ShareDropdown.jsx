@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Copy, Twitter, MessageCircle, Share2, Check } from 'lucide-react';
+import { Copy, Twitter, MessageCircle, Share2, Check, UserPlus } from 'lucide-react';
 
 const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 
-export default function ShareDropdown({ url, text }) {
+export default function ShareDropdown({ url, text, onSendToFriend }) {
     const [isOpen, setIsOpen] = useState(false);
     const [copied, setCopied] = useState(false);
     const ref = useRef(null);
@@ -32,6 +32,11 @@ export default function ShareDropdown({ url, text }) {
         setIsOpen(false);
     }
 
+    function handleSendToFriend() {
+        setIsOpen(false);
+        onSendToFriend?.();
+    }
+
     return (
         <div ref={ref} className="relative">
             <button
@@ -49,7 +54,7 @@ export default function ShareDropdown({ url, text }) {
 
             {isOpen && (
                 <div
-                    className="absolute right-0 bottom-full mb-1 w-44 border z-50 overflow-hidden"
+                    className="absolute right-0 top-full mt-1 w-48 border z-50 overflow-hidden"
                     style={TS}
                 >
                     <button
@@ -76,6 +81,16 @@ export default function ShareDropdown({ url, text }) {
                         <MessageCircle size={14} />
                         WhatsApp'ta Paylaş
                     </button>
+                    {onSendToFriend && (
+                        <button
+                            onClick={handleSendToFriend}
+                            className="flex items-center gap-2.5 w-full px-3 py-2 font-mono text-xs transition-colors hover:bg-white/5"
+                            style={{ color: 'var(--color-text-primary)' }}
+                        >
+                            <UserPlus size={14} />
+                            Arkadaşa Yolla
+                        </button>
+                    )}
                 </div>
             )}
         </div>
