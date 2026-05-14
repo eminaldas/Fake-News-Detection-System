@@ -184,11 +184,11 @@ const ForumThread = () => {
 
             {/* Geri */}
             <button
-                onClick={() => navigate(-1)}
-                className="flex items-center gap-1.5 font-mono text-sm font-semibold transition-opacity hover:opacity-70 self-start"
-                style={{ color: 'var(--color-text-primary)' }}
+                onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/forum')}
+                className="flex items-center gap-2 px-3 py-1.5 font-mono text-xs font-bold border transition-all hover:opacity-80 self-start"
+                style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)', background: 'var(--color-terminal-surface)' }}
             >
-                <ArrowLeft className="w-4 h-4" /> geri
+                <ArrowLeft className="w-3.5 h-3.5" /> Forum'a Dön
             </button>
 
             {/* ── Ana kart: başlık + açıklama + meta ── */}
