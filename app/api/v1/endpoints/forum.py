@@ -196,6 +196,10 @@ async def list_threads(
             tags=[TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count) for tg in t.tags],
             article_id=t.article_id,
             image_urls=t.image_urls or [],
+            verdict=t.verdict,
+            verdict_reason=t.verdict_reason,
+            verdict_by=t.verdict_by,
+            verdict_at=t.verdict_at,
         )
         for t in threads
     ]
@@ -372,6 +376,10 @@ async def discover_threads(
             image_urls=t.image_urls or [],
             is_bookmarked=t.id in bookmarked_ids,
             current_user_vote=user_votes.get(str(t.id)),
+            verdict=t.verdict,
+            verdict_reason=t.verdict_reason,
+            verdict_by=t.verdict_by,
+            verdict_at=t.verdict_at,
         )
         for t in threads
     ]
@@ -456,6 +464,10 @@ async def get_thread(
         article=article_summary,
         comments=comment_tree,
         current_user_vote=user_vote,
+        verdict=thread.verdict,
+        verdict_reason=thread.verdict_reason,
+        verdict_by=thread.verdict_by,
+        verdict_at=thread.verdict_at,
     )
 
 
