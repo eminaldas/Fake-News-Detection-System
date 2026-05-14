@@ -70,7 +70,8 @@ const ForumLayout = () => {
     const applyTagSearch = (e) => {
         e.preventDefault();
         const next = new URLSearchParams(searchParams);
-        if (tagSearch.trim()) next.set('tag', tagSearch.trim());
+        const cleaned = tagSearch.trim().replace(/^#/, '');
+        if (cleaned) next.set('tag', cleaned);
         else next.delete('tag');
         setSearchParams(next);
     };
@@ -141,22 +142,15 @@ const ForumLayout = () => {
                                         ✕
                                     </button>
                                 )}
-                                <button
-                                    type="submit"
-                                    className="font-mono text-xs font-bold px-2.5 py-1 transition-opacity hover:opacity-70 shrink-0"
-                                    style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}
-                                >
-                                    ARA
-                                </button>
                             </div>
                             <div className="flex flex-wrap gap-1.5">
                                 {SYSTEM_TAGS.map(t => {
-                                    const isActive = searchParams.get('tag') === t;
+                                    const isActive = searchParams.get('tag') === t.replace(/^#/, '');
                                     return (
                                         <button
                                             key={t}
                                             type="button"
-                                            onClick={() => { setTagSearch(t); const n = new URLSearchParams(searchParams); n.set('tag', t); setSearchParams(n); }}
+                                            onClick={() => { setTagSearch(t); const n = new URLSearchParams(searchParams); n.set('tag', t.replace(/^#/, '')); setSearchParams(n); }}
                                             className="font-mono text-[10px] font-semibold px-2 py-0.5 border transition-opacity hover:opacity-80"
                                             style={{
                                                 color:       'var(--color-brand-primary)',

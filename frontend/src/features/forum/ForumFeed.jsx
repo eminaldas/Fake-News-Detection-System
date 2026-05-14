@@ -34,11 +34,13 @@ const STATUS_BADGE = {
 
 function timeAgo(dateStr) {
     const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
-    if (diff < 60)    return `${Math.floor(diff)}S`;
-    if (diff < 3600)  return `${Math.floor(diff / 60)}DK`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}SA`;
-    if (diff < 604800) return `${Math.floor(diff / 86400)}G`;
-    return new Date(dateStr).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+    if (diff < 60)     return 'az önce';
+    if (diff < 3600)   return `${Math.floor(diff / 60)} dk önce`;
+    if (diff < 86400)  return `${Math.floor(diff / 3600)} sa önce`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)} gün önce`;
+    const weeks = Math.floor(diff / 604800);
+    if (weeks < 8)     return `${weeks} hafta önce`;
+    return `${Math.floor(diff / 2592000)} ay önce`;
 }
 
 /* Oy dağılım barı — segmented */
@@ -195,8 +197,8 @@ function ThreadCard({ thread, index }) {
                                 {local.author.display_label}
                             </span>
                         )}
-                        <span className="font-mono text-xs ml-auto shrink-0 tracking-widest" style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
-                            {timeAgo(local.created_at)} ÖNCE
+                        <span className="font-mono text-xs ml-auto shrink-0" style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
+                            {timeAgo(local.created_at)}
                         </span>
                     </div>
                 </div>

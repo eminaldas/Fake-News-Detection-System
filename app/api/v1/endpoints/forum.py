@@ -172,7 +172,7 @@ async def list_threads(
             + ForumThread.vote_investigate
             + ForumThread.comment_count * 0.5
         )
-        hot_score = (total_votes + 1) / func.pow(age_hours + 2, 1.5)
+        hot_score = (total_votes + 1) / func.pow(age_hours + 2, 2.5)
         q = q.order_by(desc(hot_score))
 
     total_result = await db.execute(select(func.count()).select_from(q.subquery()))
@@ -253,8 +253,8 @@ async def create_thread(
             ai_verdict=ar.status if ar else None,
             confidence=ar.confidence if ar else None,
             image_url=meta.get('image_url'),
-            source_url=meta.get('source_url'),
-            source_name=meta.get('source_name'),
+            source_url=article.source_url or meta.get('source_url'),
+            source_name=article.source_name or meta.get('source_name'),
         )
 
     return ForumThreadDetail(
@@ -311,7 +311,7 @@ async def discover_threads(
             + ForumThread.vote_investigate
             + ForumThread.comment_count * 0.5
         )
-        hot_score = (total_votes + 1) / func.pow(age_hours + 2, 1.5)
+        hot_score = (total_votes + 1) / func.pow(age_hours + 2, 2.5)
         q = q.order_by(desc(hot_score))
 
     total   = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
@@ -425,8 +425,8 @@ async def get_thread(
                 ai_verdict=ar.status if ar else None,
                 confidence=ar.confidence if ar else None,
                 image_url=meta.get('image_url'),
-                source_url=meta.get('source_url'),
-                source_name=meta.get('source_name'),
+                source_url=article.source_url or meta.get('source_url'),
+                source_name=article.source_name or meta.get('source_name'),
             )
 
     user_vote = None
