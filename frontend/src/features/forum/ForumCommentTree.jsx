@@ -12,10 +12,11 @@ const REPLIES_INITIAL = 3;
 
 function timeAgo(dateStr) {
     const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
-    if (diff < 60)     return `${Math.floor(diff)}S`;
-    if (diff < 3600)   return `${Math.floor(diff / 60)}DK`;
-    if (diff < 86400)  return `${Math.floor(diff / 3600)}SA`;
-    return `${Math.floor(diff / 86400)}G`;
+    if (diff < 60)     return 'az önce';
+    if (diff < 3600)   return `${Math.floor(diff / 60)} dk önce`;
+    if (diff < 86400)  return `${Math.floor(diff / 3600)} sa önce`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)} gün önce`;
+    return `${Math.floor(diff / 604800)} hafta önce`;
 }
 
 const PAL_BG   = ['rgba(16,185,129,0.15)','rgba(59,130,246,0.15)','rgba(245,158,11,0.15)','rgba(168,85,247,0.15)','rgba(239,68,68,0.15)'];
@@ -286,7 +287,7 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
 
     if (!comments?.length) {
         return (
-            <p className="font-mono text-sm text-center py-8" style={{ color: 'var(--color-text-muted)' }}>
+            <p className="font-mono text-sm text-center py-8" style={{ color: 'rgba(255,255,255,0.40)' }}>
                 // henüz yorum yok — ilk yorumu sen yap
             </p>
         );

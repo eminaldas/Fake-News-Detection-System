@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
     AlertTriangle, Send, X,
     ShieldCheck, ShieldAlert, ChevronDown, ChevronUp,
-    ArrowLeft, MessageSquare, ExternalLink,
+    ArrowLeft, ExternalLink,
 } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import { useWebSocket } from '../../contexts/WebSocketContext';
@@ -257,23 +257,23 @@ const ForumThread = () => {
                                 <h2 className="flex-1 font-mono text-xl font-bold leading-snug" style={{ color: 'var(--color-text-primary)' }}>
                                     {thread.title}
                                 </h2>
-                                <div className="flex items-center gap-2 shrink-0">
+                                <div className="flex items-center gap-1.5 shrink-0">
                                     <ShareDropdown url={`${window.location.origin}/forum/${thread.id}`} text={`Forum: ${thread.title}`} />
                                     {isAuthor && (
                                         <>
                                             <button
                                                 onClick={() => { setEditTitle(thread.title); setEditBody(thread.body ?? ''); setEditMode(true); }}
-                                                className="font-mono text-xs px-2 py-1 border transition-opacity hover:opacity-70"
-                                                style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)' }}
+                                                className="font-mono text-[10px] font-bold px-2.5 py-1.5 border transition-all hover:opacity-80 tracking-wider uppercase"
+                                                style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'rgba(255,255,255,0.55)', background: 'transparent' }}
                                             >
-                                                düzenle
+                                                Düzenle
                                             </button>
                                             <button
                                                 onClick={handleDelete}
-                                                className="font-mono text-xs px-2 py-1 border transition-opacity hover:opacity-70"
-                                                style={{ borderColor: 'rgba(239,68,68,0.35)', color: '#ef4444' }}
+                                                className="font-mono text-[10px] font-bold px-2.5 py-1.5 border transition-all hover:opacity-80 tracking-wider uppercase"
+                                                style={{ borderColor: 'rgba(239,68,68,0.40)', color: '#ef4444', background: 'rgba(239,68,68,0.06)' }}
                                             >
-                                                sil
+                                                Sil
                                             </button>
                                         </>
                                     )}
@@ -334,7 +334,7 @@ const ForumThread = () => {
                     )}
 
                     {/* Yazar + tarih */}
-                    <p className="font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                    <p className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.75)' }}>
                         {thread.author?.username} · {new Date(thread.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
 
@@ -367,75 +367,54 @@ const ForumThread = () => {
                         </div>
                     )}
 
-                    {/* ── Alt satır: oylar + istatistikler + bağlı haber ── */}
-                    <div className="flex flex-wrap items-center gap-3 pt-3 border-t" style={BD}>
-                        {/* Oy butonları */}
+                    {/* ── Bağlı haber kartı ── */}
+                    {thread.article && (
+                        <div
+                            className="flex items-start gap-3 px-3 py-3 border"
+                            style={{ background: 'rgba(168,85,247,0.06)', borderColor: 'rgba(168,85,247,0.25)' }}
+                        >
+                            {thread.article.image_url && (
+                                <img
+                                    src={thread.article.image_url}
+                                    alt=""
+                                    className="w-12 h-9 object-cover shrink-0"
+                                    onError={e => { e.currentTarget.style.display = 'none'; }}
+                                />
+                            )}
+                            <div className="flex-1 min-w-0">
+                                <span className="font-mono text-[9px] uppercase tracking-widest font-bold block mb-1" style={{ color: '#a855f7' }}>
+                                    // kaynak haber
+                                </span>
+                                <p className="font-mono text-sm font-semibold leading-snug" style={{ color: 'rgba(255,255,255,0.90)' }}>
+                                    {thread.article.title}
+                                </p>
+                                {thread.article.source_name && (
+                                    <span className="font-mono text-[10px] mt-1 block" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                                        {thread.article.source_name}
+                                    </span>
+                                )}
+                            </div>
+                            {thread.article.source_url && (
+                                <a
+                                    href={thread.article.source_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1.5 px-3 py-2 font-mono text-xs font-bold shrink-0 transition-opacity hover:opacity-80"
+                                    style={{ background: 'rgba(168,85,247,0.18)', color: '#c084fc', border: '1px solid rgba(168,85,247,0.35)' }}
+                                    onClick={e => e.stopPropagation()}
+                                >
+                                    <ExternalLink className="w-3.5 h-3.5" /> Habere Git
+                                </a>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ── Alt satır: oy butonları ── */}
+                    <div className="flex items-center gap-3 pt-3 border-t" style={BD}>
                         {isNews
                             ? <NewsVoteBar    thread={thread} onVote={handleVote} disabled={voting} />
                             : <GeneralVoteBar thread={thread} onVote={handleVote} disabled={voting} />
                         }
-
-                        {/* Ayırıcı */}
-                        <div className="w-px h-4 shrink-0" style={{ background: 'var(--color-terminal-border-raw)' }} />
-
-                        {/* Oy sayıları + dağılım */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                            {totalVotes > 0 && (
-                                <VoteSegBar
-                                    suspicious={thread.vote_suspicious}
-                                    authentic={thread.vote_authentic}
-                                    investigate={thread.vote_investigate}
-                                />
-                            )}
-                            <span className="font-mono text-[9px]" style={{ color: 'var(--color-fake-fill)' }}>! {thread.vote_suspicious}</span>
-                            <span className="font-mono text-[9px]" style={{ color: 'var(--color-brand-primary)' }}>✓ {thread.vote_authentic}</span>
-                            <span className="font-mono text-[9px]" style={{ color: 'var(--color-accent-amber)' }}>? {thread.vote_investigate}</span>
-                        </div>
-
-                        {/* Yorum sayısı */}
-                        <div className="flex items-center gap-1.5">
-                            <MessageSquare className="w-3 h-3" style={{ color: 'var(--color-text-muted)' }} />
-                            <span className="font-mono text-[9px]" style={{ color: 'var(--color-text-muted)' }}>{thread.comment_count}</span>
-                        </div>
-
-                        {/* Bağlı haber */}
-                        {thread.article && (
-                            <>
-                                <div className="w-px h-4 shrink-0" style={{ background: 'var(--color-terminal-border-raw)' }} />
-                                <div className="flex items-center gap-2 min-w-0 flex-1">
-                                    {thread.article.image_url && (
-                                        <img
-                                            src={thread.article.image_url}
-                                            alt=""
-                                            className="w-8 h-6 object-cover shrink-0"
-                                            onError={e => { e.currentTarget.style.display = 'none'; }}
-                                        />
-                                    )}
-                                    <div className="min-w-0 flex-1">
-                                        <span className="font-mono text-[9px] uppercase tracking-widest mr-1.5" style={{ color: '#a855f7', opacity: 0.7 }}>
-                                            HABER:
-                                        </span>
-                                        <span className="font-mono text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                                            {thread.article.title?.length > 60
-                                                ? thread.article.title.slice(0, 60) + '…'
-                                                : thread.article.title}
-                                        </span>
-                                    </div>
-                                    {thread.article.source_url && (
-                                        <a
-                                            href={thread.article.source_url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center gap-1 font-mono text-[9px] shrink-0 transition-opacity hover:opacity-70"
-                                            style={{ color: 'var(--color-accent-blue)' }}
-                                            onClick={e => e.stopPropagation()}
-                                        >
-                                            <ExternalLink className="w-3 h-3" /> kaynak
-                                        </a>
-                                    )}
-                                </div>
-                            </>
-                        )}
                     </div>
                 </div>
             </Block>
@@ -444,7 +423,7 @@ const ForumThread = () => {
             <Block
                 title={`// tartışma · ${thread.comment_count} yorum`}
                 footer={
-                    <span className="font-mono text-[10px] opacity-30" style={{ color: 'var(--color-text-muted)' }}>
+                    <span className="font-mono text-[10px]" style={{ color: 'rgba(255,255,255,0.30)' }}>
                         // COMMENT_STREAM
                     </span>
                 }
@@ -481,8 +460,8 @@ const ForumThread = () => {
                         onChange={(val) => { setBody(val); setModerationWarning(false); }}
                         rows={3}
                         placeholder="Kanıt veya yorumunu ekle..."
-                        className="w-full bg-transparent resize-none font-mono text-sm outline-none px-3 py-2.5 border transition-colors"
-                        style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'var(--color-bg-base)', color: 'var(--color-text-primary)' }}
+                        className="w-full resize-none font-mono text-sm outline-none px-3 py-2.5 border transition-colors"
+                        style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'var(--color-terminal-surface)', color: 'rgba(255,255,255,0.88)', caretColor: 'var(--color-brand-primary)' }}
                     />
 
                     <div className="flex justify-end">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, Outlet, useSearchParams, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import {
     MessageSquare,
     AlertTriangle, CheckCircle, Flame,
@@ -43,7 +43,9 @@ const SIDEBAR_STYLE = { position: 'sticky', top: '6rem', alignSelf: 'start' };
 
 const ForumLayout = () => {
     const location    = useLocation();
+    const navigate    = useNavigate();
     const isSearchPage = location.pathname === '/forum/search';
+    const isThreadPage = /^\/forum\/[^/]+$/.test(location.pathname) && !isSearchPage;
     const [searchParams, setSearchParams] = useSearchParams();
     const currentSort = searchParams.get('sort') ?? 'hot';
 
@@ -62,6 +64,7 @@ const ForumLayout = () => {
     } : null;
 
     const setSort = (s) => {
+        if (isThreadPage) { navigate(`/forum?sort=${s}`); return; }
         const next = new URLSearchParams(searchParams);
         next.set('sort', s);
         setSearchParams(next);
