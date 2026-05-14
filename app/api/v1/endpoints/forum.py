@@ -20,7 +20,7 @@ from typing import List, Optional
 
 import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import func, select, desc, update, case
+from sqlalchemy import func, select, desc, update, case, extract
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -164,12 +164,16 @@ async def list_threads(
         q = q.order_by(desc(ForumThread.created_at))
     elif sort == "controversial":
         q = q.order_by(desc(ForumThread.vote_investigate), desc(ForumThread.created_at))
-    else:  # hot
-        q = q.order_by(
-            desc(ForumThread.vote_suspicious + ForumThread.vote_authentic + ForumThread.vote_investigate),
-            desc(ForumThread.comment_count),
-            desc(ForumThread.created_at),
+    else:  # hot — zaman çürümeli skor
+        age_hours = extract('epoch', func.now() - ForumThread.created_at) / 3600
+        total_votes = (
+            ForumThread.vote_suspicious
+            + ForumThread.vote_authentic
+            + ForumThread.vote_investigate
+            + ForumThread.comment_count * 0.5
         )
+        hot_score = (total_votes + 1) / func.pow(age_hours + 2, 1.5)
+        q = q.order_by(desc(hot_score))
 
     total_result = await db.execute(select(func.count()).select_from(q.subquery()))
     total = total_result.scalar_one()
@@ -306,8 +310,16 @@ async def discover_threads(
         q = q.order_by(desc(ForumThread.created_at))
     elif sort == "controversial":
         q = q.order_by(desc(ForumThread.vote_investigate), desc(ForumThread.created_at))
-    else:
-        q = q.order_by(desc(popularity), desc(ForumThread.created_at))
+    else:  # hot — zaman çürümeli skor
+        age_hours = extract('epoch', func.now() - ForumThread.created_at) / 3600
+        total_votes = (
+            ForumThread.vote_suspicious
+            + ForumThread.vote_authentic
+            + ForumThread.vote_investigate
+            + ForumThread.comment_count * 0.5
+        )
+        hot_score = (total_votes + 1) / func.pow(age_hours + 2, 1.5)
+        q = q.order_by(desc(hot_score))
 
     total   = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
     threads = (await db.execute(q.offset((page - 1) * size).limit(size))).scalars().all()
