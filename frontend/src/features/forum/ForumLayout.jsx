@@ -176,7 +176,7 @@ const ForumLayout = () => {
                                 {trendingTags.slice(0, 8).map((t, idx) => (
                                     <NavLink
                                         key={t.id}
-                                        to={`/forum?tag=${encodeURIComponent(t.name)}`}
+                                        to={`/forum?tag=${encodeURIComponent(t.name.replace(/^#/, ''))}`}
                                         className="flex items-center justify-between px-4 py-2.5 border-l-2 border-transparent font-mono text-sm transition-colors group"
                                         style={{ color: 'var(--color-text-primary)' }}
                                         onMouseEnter={e => e.currentTarget.style.borderLeftColor = 'var(--color-brand-primary)'}

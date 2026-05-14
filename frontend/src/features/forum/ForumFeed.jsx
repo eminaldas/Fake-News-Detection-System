@@ -536,20 +536,26 @@ const ForumFeed = () => {
     const sort     = searchParams.get('sort')     ?? 'hot';
     const navigate = useNavigate();
 
-    const [activeTab, setActiveTab] = React.useState('discover');
-    const [threads,   setThreads]   = React.useState([]);
-    const [total,     setTotal]     = React.useState(0);
-    const [page,      setPage]      = React.useState(1);
-    const [loading,   setLoading]   = React.useState(false);
-    const [showModal, setShowModal] = React.useState(false);
-    const [showNudge, closeNudge]   = useLoginNudge();
+    const [activeTab,   setActiveTab]   = React.useState('discover');
+    const [threads,     setThreads]     = React.useState([]);
+    const [total,       setTotal]       = React.useState(0);
+    const [page,        setPage]        = React.useState(1);
+    const [loading,     setLoading]     = React.useState(false);
+    const [loadError,   setLoadError]   = React.useState(false);
+    const [showModal,   setShowModal]   = React.useState(false);
+    const [showNudge,   closeNudge]     = useLoginNudge();
+    const [newCount,    setNewCount]    = React.useState(0);
     const SIZE = 20;
-    const sentinelRef  = React.useRef(null);
+    const sentinelRef   = React.useRef(null);
+    const isLoadingRef  = React.useRef(false);
+    const newestAtRef   = React.useRef(null);
     const [hasMore,     setHasMore]     = React.useState(true);
     const [loadingMore, setLoadingMore] = React.useState(false);
 
     const load = React.useCallback(async (pg = 1, append = false) => {
-        if (pg === 1) setLoading(true);
+        if (isLoadingRef.current) return;
+        isLoadingRef.current = true;
+        if (pg === 1) { setLoading(true); setLoadError(false); setHasMore(true); }
         else setLoadingMore(true);
         try {
             let data;
@@ -563,37 +569,80 @@ const ForumFeed = () => {
                 const res = await axiosInstance.get('/forum/threads/discover', { params });
                 data = res.data;
             }
+            const items = data.items ?? [];
             if (append) {
-                setThreads(prev => [...prev, ...data.items]);
+                setThreads(prev => [...prev, ...items]);
             } else {
-                setThreads(data.items);
+                setThreads(items);
+                if (items.length > 0) {
+                    newestAtRef.current = items[0].created_at;
+                    setNewCount(0);
+                }
             }
-            setTotal(data.total);
-            setPage(data.page);
-            setHasMore(data.page < Math.ceil(data.total / SIZE));
-        } catch {}
-        finally { setLoading(false); setLoadingMore(false); }
+            setTotal(data.total ?? 0);
+            setPage(data.page ?? pg);
+            setHasMore((data.page ?? pg) < Math.ceil((data.total ?? 0) / SIZE));
+        } catch {
+            setHasMore(false);
+            setLoadError(true);
+        } finally {
+            setLoading(false);
+            setLoadingMore(false);
+            isLoadingRef.current = false;
+        }
     }, [sort, category, tag, activeTab]);
 
     React.useEffect(() => { load(1); }, [load]);
     React.useEffect(() => { setPage(1); }, [activeTab]);
+
+    /* Observer — 300px önceden tetikle, ref ile çift istek engelle */
     React.useEffect(() => {
         if (!sentinelRef.current) return;
         const obs = new IntersectionObserver(
             (entries) => {
-                if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+                if (entries[0].isIntersecting && hasMore && !isLoadingRef.current) {
                     load(page + 1, true);
                 }
             },
-            { threshold: 0.1 }
+            { rootMargin: '0px 0px 300px 0px', threshold: 0 }
         );
         obs.observe(sentinelRef.current);
         return () => obs.disconnect();
-    }, [hasMore, loading, loadingMore, page, load]);
+    }, [hasMore, page, load]);
+
+    /* Twitter-style yeni gönderi kontrolü — 60 sn'de bir */
+    React.useEffect(() => {
+        if (activeTab === 'following') return;
+        const id = setInterval(async () => {
+            if (!newestAtRef.current || document.hidden) return;
+            try {
+                const { data } = await axiosInstance.get('/forum/threads/discover', {
+                    params: { sort: 'new', page: 1, size: 1 },
+                });
+                const latest = data.items?.[0];
+                if (latest && latest.created_at > newestAtRef.current) {
+                    setNewCount(n => n + 1);
+                }
+            } catch { /* sessiz */ }
+        }, 60_000);
+        return () => clearInterval(id);
+    }, [activeTab]);
 
     return (
         <>
         <div className="flex flex-col gap-4">
+
+            {/* ── Yeni gönderi banner ── */}
+            {newCount > 0 && (
+                <button
+                    onClick={() => load(1)}
+                    className="flex items-center justify-center gap-2 py-2.5 font-mono text-xs font-bold border transition-all hover:opacity-80 animate-fade-up"
+                    style={{ background: 'rgba(16,185,129,0.10)', borderColor: 'rgba(16,185,129,0.35)', color: 'var(--color-brand-primary)' }}
+                >
+                    <Loader2 className="w-3.5 h-3.5" />
+                    Yeni gönderiler var — yenile
+                </button>
+            )}
 
             {/* ── Yeni tartışma çubuğu ── */}
             <div
@@ -722,16 +771,26 @@ const ForumFeed = () => {
             )}
 
             {/* ── Infinite scroll sentinel ── */}
-            <div ref={sentinelRef} className="py-4 flex justify-center">
+            <div ref={sentinelRef} className="py-4 flex flex-col items-center gap-2">
                 {loadingMore && (
-                    <Loader2
-                        className="w-5 h-5 animate-spin"
-                        style={{ color: 'var(--color-text-muted)' }}
-                    />
+                    <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-text-muted)' }} />
                 )}
-                {!hasMore && threads.length > 0 && (
-                    <span className="font-mono text-xs"
-                          style={{ color: 'var(--color-text-muted)', opacity: 0.4 }}>
+                {loadError && (
+                    <div className="flex flex-col items-center gap-2">
+                        <span className="font-mono text-xs" style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
+                            // yüklenemedi
+                        </span>
+                        <button
+                            onClick={() => { setLoadError(false); setHasMore(true); load(page + 1, true); }}
+                            className="font-mono text-xs px-3 py-1.5 border transition-opacity hover:opacity-70"
+                            style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)' }}
+                        >
+                            tekrar dene
+                        </button>
+                    </div>
+                )}
+                {!hasMore && !loadError && threads.length > 0 && (
+                    <span className="font-mono text-xs" style={{ color: 'var(--color-text-muted)', opacity: 0.4 }}>
                         // son kayıt
                     </span>
                 )}
