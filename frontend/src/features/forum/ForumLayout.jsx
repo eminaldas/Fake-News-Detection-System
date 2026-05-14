@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet, useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import {
-    MessageSquare,
+    MessageSquare, Search,
     AlertTriangle, CheckCircle, Flame,
     Clock, Zap,
     ChevronRight,
@@ -23,7 +23,6 @@ const SYSTEM_TAGS = [
     '#yanıltıcı-başlık', '#bağlam-eksik', '#eski-haber', '#sahte-alıntı',
 ];
 
-/* Section card — köşe aksan + border-b başlık */
 const Block = ({ title, children }) => (
     <div className="relative border overflow-hidden" style={TS}>
         <div className="absolute top-0 left-0 w-3 h-[2px] bg-brand pointer-events-none" />
@@ -42,15 +41,15 @@ const Block = ({ title, children }) => (
 const SIDEBAR_STYLE = { position: 'sticky', top: '6rem', alignSelf: 'start' };
 
 const ForumLayout = () => {
-    const location    = useLocation();
-    const navigate    = useNavigate();
+    const location     = useLocation();
+    const navigate     = useNavigate();
     const isSearchPage = location.pathname === '/forum/search';
     const isThreadPage = /^\/forum\/[^/]+$/.test(location.pathname) && !isSearchPage;
     const [searchParams, setSearchParams] = useSearchParams();
-    const currentSort = searchParams.get('sort') ?? 'hot';
+    const currentSort  = searchParams.get('sort') ?? 'hot';
 
-    const [trending,  setTrending]  = React.useState(null);
-    const [tagSearch, setTagSearch] = React.useState(searchParams.get('tag') ?? '');
+    const [trending,     setTrending]     = React.useState(null);
+    const [searchQuery,  setSearchQuery]  = React.useState('');
 
     React.useEffect(() => {
         axiosInstance.get('/forum/trending').then(r => setTrending(r.data)).catch(() => {});
@@ -70,12 +69,21 @@ const ForumLayout = () => {
         setSearchParams(next);
     };
 
-    const applyTagSearch = (e) => {
+    const handleSearch = (e) => {
         e.preventDefault();
+        const q = searchQuery.trim();
+        if (!q) { navigate('/forum/search'); return; }
+        navigate(`/forum/search?q=${encodeURIComponent(q)}&tab=posts`);
+        setSearchQuery('');
+    };
+
+    const applyTag = (tagName) => {
+        if (isThreadPage) {
+            navigate(`/forum?tag=${encodeURIComponent(tagName)}`);
+            return;
+        }
         const next = new URLSearchParams(searchParams);
-        const cleaned = tagSearch.trim().replace(/^#/, '');
-        if (cleaned) next.set('tag', cleaned);
-        else next.delete('tag');
+        next.set('tag', tagName);
         setSearchParams(next);
     };
 
@@ -86,7 +94,6 @@ const ForumLayout = () => {
 
                 {/* ══════ ORTA İÇERİK ══════ */}
                 <main className="min-w-0">
-                    {/* Sıralama çubuğu */}
                     {!isSearchPage && (
                         <div className="flex items-center gap-2 mb-4 flex-wrap">
                             {SORT_OPTIONS.map(opt => {
@@ -118,62 +125,72 @@ const ForumLayout = () => {
                     style={isSearchPage ? { visibility: 'hidden' } : SIDEBAR_STYLE}
                 >
 
-                    {/* Etiket Ara */}
-                    <Block title="// etiket_ara">
-                        <form onSubmit={applyTagSearch} className="px-4 pb-3">
+                    {/* Genel Arama */}
+                    <Block title="// ara">
+                        <form onSubmit={handleSearch} className="px-4 py-3">
                             <div
-                                className="flex items-center gap-2 border px-3 py-2.5 mb-3 transition-colors"
+                                className="flex items-center gap-2 border px-3 py-2.5 transition-colors"
                                 style={BD}
-                                onFocus={e => e.currentTarget.style.borderColor = 'var(--color-brand-primary)'}
-                                onBlur={e  => e.currentTarget.style.borderColor = 'var(--color-terminal-border-raw)'}
+                                onFocus={e  => e.currentTarget.style.borderColor = 'var(--color-brand-primary)'}
+                                onBlur={e   => e.currentTarget.style.borderColor = 'var(--color-terminal-border-raw)'}
                             >
-                                <span className="font-mono text-sm shrink-0" style={{ color: 'var(--color-brand-primary)' }}>{'>'}</span>
+                                <Search className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
                                 <input
-                                    value={tagSearch}
-                                    onChange={e => setTagSearch(e.target.value)}
-                                    placeholder="ara..."
+                                    value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                    placeholder="gönderi, kişi, etiket..."
                                     className="bg-transparent outline-none flex-1 font-mono text-sm"
                                     style={{ color: 'var(--color-text-primary)', caretColor: 'var(--color-brand-primary)' }}
                                 />
-                                {tagSearch && (
-                                    <button
-                                        type="button"
-                                        onClick={() => { setTagSearch(''); const n = new URLSearchParams(searchParams); n.delete('tag'); setSearchParams(n); }}
-                                        className="font-mono text-xs transition-opacity hover:opacity-60"
-                                        style={{ color: 'var(--color-text-muted)' }}
-                                    >
-                                        ✕
-                                    </button>
-                                )}
                             </div>
-                            <div className="flex flex-wrap gap-1.5">
-                                {SYSTEM_TAGS.map(t => {
-                                    const isActive = searchParams.get('tag') === t.replace(/^#/, '');
-                                    return (
-                                        <button
-                                            key={t}
-                                            type="button"
-                                            onClick={() => { setTagSearch(t); const n = new URLSearchParams(searchParams); n.set('tag', t.replace(/^#/, '')); setSearchParams(n); }}
-                                            className="font-mono text-[10px] font-semibold px-2 py-0.5 border transition-opacity hover:opacity-80"
-                                            style={{
-                                                color:       'var(--color-brand-primary)',
-                                                borderColor: isActive ? 'var(--color-brand-primary)' : 'rgba(16,185,129,0.25)',
-                                                background:  isActive ? 'rgba(16,185,129,0.12)' : 'transparent',
-                                            }}
-                                        >
-                                            {t}
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                            <p className="font-mono text-[10px] mt-2 opacity-50" style={{ color: 'var(--color-text-muted)' }}>
+                                Enter ile ara
+                            </p>
                         </form>
+                    </Block>
+
+                    {/* Hızlı Etiket Filtreleri */}
+                    <Block title="// hızlı_etiketler">
+                        <div className="px-4 pb-3 pt-2 flex flex-wrap gap-1.5">
+                            {SYSTEM_TAGS.map(t => {
+                                const tagVal  = t.replace(/^#/, '');
+                                const isActive = searchParams.get('tag') === tagVal;
+                                return (
+                                    <button
+                                        key={t}
+                                        onClick={() => applyTag(tagVal)}
+                                        className="font-mono text-[10px] font-semibold px-2 py-0.5 border transition-opacity hover:opacity-80"
+                                        style={{
+                                            color:       'var(--color-brand-primary)',
+                                            borderColor: isActive ? 'var(--color-brand-primary)' : 'rgba(16,185,129,0.25)',
+                                            background:  isActive ? 'rgba(16,185,129,0.12)' : 'transparent',
+                                        }}
+                                    >
+                                        {t}
+                                    </button>
+                                );
+                            })}
+                            {searchParams.get('tag') && (
+                                <button
+                                    onClick={() => {
+                                        const n = new URLSearchParams(searchParams);
+                                        n.delete('tag');
+                                        setSearchParams(n);
+                                    }}
+                                    className="font-mono text-[10px] px-2 py-0.5 border transition-opacity hover:opacity-60"
+                                    style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-terminal-border-raw)' }}
+                                >
+                                    ✕ filtreyi kaldır
+                                </button>
+                            )}
+                        </div>
                     </Block>
 
                     {/* Trend Etiketler */}
                     {trendingTags.length > 0 && (
                         <Block title="// trend_etiketler">
                             <div className="flex flex-col">
-                                {trendingTags.slice(0, 8).map((t, idx) => (
+                                {trendingTags.slice(0, 8).map((t) => (
                                     <NavLink
                                         key={t.id}
                                         to={`/forum?tag=${encodeURIComponent(t.name.replace(/^#/, ''))}`}
@@ -183,7 +200,7 @@ const ForumLayout = () => {
                                         onMouseLeave={e => e.currentTarget.style.borderLeftColor = 'transparent'}
                                     >
                                         <span className="truncate group-hover:text-brand transition-colors">
-                                            #{t.name}
+                                            #{t.name.replace(/^#/, '')}
                                         </span>
                                         <span
                                             className="font-mono text-xs font-bold shrink-0 ml-2 px-1.5 py-0.5 border"
@@ -237,9 +254,9 @@ const ForumLayout = () => {
                     <Block title="// forum_stats">
                         <div className="px-4 pb-2 flex flex-col gap-0">
                             {[
-                                { label: 'AKTİF TARTIŞMA',  value: trendingStats?.active,      icon: MessageSquare,  color: 'var(--color-brand-primary)' },
-                                { label: 'İNCELEME ALTINDA', value: trendingStats?.underReview, icon: AlertTriangle,  color: 'var(--color-accent-amber)'  },
-                                { label: 'ÇÖZÜME ULAŞAN',    value: trendingStats?.resolved,    icon: CheckCircle,    color: 'var(--color-brand-primary)' },
+                                { label: 'AKTİF TARTIŞMA',   value: trendingStats?.active,      icon: MessageSquare, color: 'var(--color-brand-primary)' },
+                                { label: 'İNCELEME ALTINDA', value: trendingStats?.underReview, icon: AlertTriangle, color: 'var(--color-accent-amber)'  },
+                                { label: 'ÇÖZÜME ULAŞAN',    value: trendingStats?.resolved,    icon: CheckCircle,   color: 'var(--color-brand-primary)' },
                             ].map(({ label, value, icon: Icon, color }, idx, arr) => (
                                 <div key={label}>
                                     <div className="flex items-center justify-between py-2.5">
