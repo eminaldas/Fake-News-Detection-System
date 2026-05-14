@@ -32,6 +32,13 @@ const STATUS_BADGE = {
     resolved:     { label: 'ÇÖZÜLDÜ',  color: 'var(--color-accent-blue)',   border: 'rgba(59,130,246,0.30)'  },
 };
 
+/* Karar sonucu → etiket */
+const VERDICT_BADGE = {
+    DOGRU:     { label: '✓ DOĞRU',     color: 'var(--color-brand-primary)', border: 'rgba(16,185,129,0.30)' },
+    YANLIS:    { label: '✗ YANLIŞ',    color: 'var(--color-fake-fill)',      border: 'rgba(239,68,68,0.30)'  },
+    YANILTICI: { label: '⚠ YANILTICI', color: 'var(--color-accent-amber)',   border: 'rgba(245,158,11,0.30)' },
+};
+
 function timeAgo(dateStr) {
     const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
     if (diff < 60)     return 'az önce';
@@ -215,6 +222,17 @@ function ThreadCard({ thread, index }) {
                           style={{ color: badge.color, borderColor: badge.border }}>
                         {badge.label}
                     </span>
+                    {local.verdict && VERDICT_BADGE[local.verdict] && (
+                        <span
+                            className="font-mono text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border"
+                            style={{
+                                color:       VERDICT_BADGE[local.verdict].color,
+                                borderColor: VERDICT_BADGE[local.verdict].border,
+                            }}
+                        >
+                            {VERDICT_BADGE[local.verdict].label}
+                        </span>
+                    )}
                     {local.article_id && (
                         <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 border"
                               style={{ color: '#a855f7', borderColor: 'rgba(168,85,247,0.25)' }}>
@@ -288,6 +306,11 @@ function ThreadCard({ thread, index }) {
                 <div className="flex items-center gap-2 pt-3 flex-wrap" style={{ borderTop: '1px solid var(--color-terminal-border-raw)' }} onClick={stopNav}>
                     {/* Oy butonları */}
                     {(() => {
+                        if (local.verdict) return (
+                            <span className="font-mono text-[10px] opacity-40" style={{ color: 'var(--color-text-muted)' }}>
+                                // sonuçlandı
+                            </span>
+                        );
                         const isNews = local.article_id || local.category === 'haberler';
                         return isNews
                             ? <NewsVoteBar    thread={local} onVote={handleVote} disabled={voting} />
