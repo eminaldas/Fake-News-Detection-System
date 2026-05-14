@@ -691,6 +691,10 @@ class ForumThreadSummary(BaseModel):
     image_urls:       List[str]      = Field(default_factory=list)
     article_id:       Optional[UUID] = None
     is_bookmarked:    bool           = False
+    verdict:           Optional[str]      = None
+    verdict_reason:    Optional[str]      = None
+    verdict_by:        Optional[str]      = None
+    verdict_at:        Optional[datetime] = None
     current_user_vote: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -701,6 +705,11 @@ class ForumThreadDetail(ForumThreadSummary):
     article:           Optional[ForumArticleSummary] = None
     comments:          List[ForumCommentItem]        = Field(default_factory=list)
     current_user_vote: Optional[str]                 = None
+
+
+class VerdictResolveRequest(BaseModel):
+    verdict: str = Field(..., pattern="^(DOGRU|YANLIS|YANILTICI)$")
+    reason:  str = Field(..., min_length=10, max_length=2000)
 
 
 class ForumThreadUpdate(BaseModel):

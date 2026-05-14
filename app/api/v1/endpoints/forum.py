@@ -42,7 +42,7 @@ from app.schemas.schemas import (
     ForumReportCreate, ForumSearchResponse, ForumTagSearchResponse, ForumThreadCreate,
     ForumThreadDetail, ForumThreadListResponse, ForumThreadReportCreate, ForumThreadSummary,
     ForumThreadUpdate, ForumTrendingResponse, ForumTrendingThread, ForumVoteCreate,
-    ForumVoteResult, TagItem,
+    ForumVoteResult, TagItem, VerdictResolveRequest,
     FORUM_CATEGORIES,
 )
 
