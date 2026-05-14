@@ -162,9 +162,10 @@ function ThreadCard({ thread, index }) {
         setReportOpen(true);
     };
 
-    const badge      = STATUS_BADGE[local.status] ?? STATUS_BADGE.active;
-    const leftColor  = STATUS_COLOR[local.status]  ?? 'var(--color-terminal-border-raw)';
-    const totalVotes = local.vote_suspicious + local.vote_authentic + local.vote_investigate;
+    const badge       = STATUS_BADGE[local.status] ?? STATUS_BADGE.active;
+    const verdictCfg  = local.verdict ? VERDICT_BADGE[local.verdict] : null;
+    const leftColor   = verdictCfg?.color ?? STATUS_COLOR[local.status] ?? 'var(--color-terminal-border-raw)';
+    const totalVotes  = local.vote_suspicious + local.vote_authentic + local.vote_investigate;
     const stars      = local.author?.stars ?? 0;
     const starStr    = stars > 0 ? '▓'.repeat(Math.min(stars, 5)) + '░'.repeat(Math.max(0, 5 - stars)) : null;
 
@@ -222,15 +223,12 @@ function ThreadCard({ thread, index }) {
                           style={{ color: badge.color, borderColor: badge.border }}>
                         {badge.label}
                     </span>
-                    {local.verdict && VERDICT_BADGE[local.verdict] && (
+                    {local.verdict && verdictCfg && (
                         <span
-                            className="font-mono text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border"
-                            style={{
-                                color:       VERDICT_BADGE[local.verdict].color,
-                                borderColor: VERDICT_BADGE[local.verdict].border,
-                            }}
+                            className="font-mono text-[10px] font-black uppercase tracking-widest px-2 py-0.5"
+                            style={{ color: verdictCfg.color, background: verdictCfg.border.replace('0.30', '0.12') }}
                         >
-                            {VERDICT_BADGE[local.verdict].label}
+                            {verdictCfg.label}
                         </span>
                     )}
                     {local.article_id && (
@@ -302,13 +300,38 @@ function ThreadCard({ thread, index }) {
                     </div>
                 )}
 
+                {/* ── Verdict strip ── */}
+                {verdictCfg && (
+                    <div
+                        className="flex items-center gap-2 px-3 py-2.5 border-l-4"
+                        style={{
+                            background:   verdictCfg.color === 'var(--color-brand-primary)'
+                                ? 'rgba(16,185,129,0.08)'
+                                : verdictCfg.color === 'var(--color-fake-fill)'
+                                    ? 'rgba(239,68,68,0.08)'
+                                    : 'rgba(245,158,11,0.08)',
+                            borderLeftColor: verdictCfg.color,
+                        }}
+                    >
+                        <span className="font-mono text-xs font-black shrink-0" style={{ color: verdictCfg.color }}>
+                            {verdictCfg.label}
+                        </span>
+                        <span className="font-mono text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+                            {local.verdict_by === 'auto'
+                                ? `Topluluk bu içeriği ${verdictCfg.label.replace(/^[✓✗⚠]\s/, '')} olarak sonuçlandırdı`
+                                : `Yazar bu içeriği ${verdictCfg.label.replace(/^[✓✗⚠]\s/, '')} olarak sonuçlandırdı`
+                            }
+                        </span>
+                    </div>
+                )}
+
                 {/* ── Alt bar ── */}
                 <div className="flex items-center gap-2 pt-3 flex-wrap" style={{ borderTop: '1px solid var(--color-terminal-border-raw)' }} onClick={stopNav}>
                     {/* Oy butonları */}
                     {(() => {
                         if (local.verdict) return (
-                            <span className="font-mono text-[10px] opacity-40" style={{ color: 'var(--color-text-muted)' }}>
-                                // sonuçlandı
+                            <span className="font-mono text-[10px] font-bold" style={{ color: verdictCfg?.color ?? 'var(--color-text-muted)', opacity: 0.7 }}>
+                                // oylar donduruldu
                             </span>
                         );
                         const isNews = local.article_id || local.category === 'haberler';
