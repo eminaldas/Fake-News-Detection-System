@@ -214,6 +214,22 @@ const ForumThread = () => {
                                 {thread.category}
                             </span>
                         )}
+                        {thread.article?.source_url && (
+                            <a
+                                href={thread.article.source_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 font-mono text-xs transition-opacity hover:opacity-80"
+                                style={{ color: 'var(--color-accent-blue)' }}
+                                onClick={e => e.stopPropagation()}
+                            >
+                                <ExternalLink className="w-3 h-3" />
+                                {thread.article.source_name
+                                    ? `Kaynak: ${thread.article.source_name}`
+                                    : 'Orijinal Habere Git'
+                                } →
+                            </a>
+                        )}
                         <span
                             className="font-mono text-xs font-bold uppercase tracking-wider px-2 py-0.5 border ml-auto"
                             style={{ color: statusColor, borderColor: statusColor + '50' }}
