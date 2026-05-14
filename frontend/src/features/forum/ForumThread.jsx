@@ -15,6 +15,8 @@ import ShareDropdown from '../../components/ui/ShareDropdown';
 import SendToFriendModal from './SendToFriendModal';
 import NewsVoteBar    from './NewsVoteBar';
 import GeneralVoteBar from './GeneralVoteBar';
+import VerdictModal   from './VerdictModal';
+import VerdictBox     from './VerdictBox';
 
 /* ── Tasarım sabitleri ── */
 const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
@@ -97,6 +99,7 @@ const ForumThread = () => {
     const [submitting,        setSubmitting]        = React.useState(false);
     const [moderationWarning, setModerationWarning] = React.useState(false);
     const [sendModal,         setSendModal]         = React.useState(false);
+    const [verdictModal,      setVerdictModal]      = React.useState(false);
 
     const load = React.useCallback(async () => {
         try {
@@ -283,6 +286,15 @@ const ForumThread = () => {
                                             </button>
                                         </>
                                     )}
+                                    {isAuthor && !thread.verdict && (
+                                        <button
+                                            onClick={() => setVerdictModal(true)}
+                                            className="font-mono text-[10px] font-bold px-2.5 py-1.5 border transition-all hover:opacity-80 tracking-wider uppercase"
+                                            style={{ borderColor: 'rgba(16,185,129,0.40)', color: 'var(--color-brand-primary)', background: 'rgba(16,185,129,0.06)' }}
+                                        >
+                                            Sonuçlandır
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -415,12 +427,20 @@ const ForumThread = () => {
                         </div>
                     )}
 
+                    {/* ── Verdict kutusu ── */}
+                    {thread.verdict && <VerdictBox thread={thread} />}
+
                     {/* ── Alt satır: oy butonları ── */}
                     <div className="flex items-center gap-3 pt-3 border-t" style={BD}>
-                        {isNews
-                            ? <NewsVoteBar    thread={thread} onVote={handleVote} disabled={voting} />
-                            : <GeneralVoteBar thread={thread} onVote={handleVote} disabled={voting} />
-                        }
+                        {thread.verdict ? (
+                            <span className="font-mono text-[10px] opacity-40" style={{ color: 'var(--color-text-muted)' }}>
+                                // oylar donduruldu
+                            </span>
+                        ) : (
+                            isNews
+                                ? <NewsVoteBar    thread={thread} onVote={handleVote} disabled={voting} />
+                                : <GeneralVoteBar thread={thread} onVote={handleVote} disabled={voting} />
+                        )}
                     </div>
                 </div>
             </Block>
@@ -500,6 +520,15 @@ const ForumThread = () => {
                 threadTitle={thread.title}
                 threadUrl={`${window.location.origin}/forum/${thread.id}`}
                 onClose={() => setSendModal(false)}
+            />
+        )}
+        {verdictModal && (
+            <VerdictModal
+                threadId={threadId}
+                onClose={() => setVerdictModal(false)}
+                onResolved={(data) => {
+                    setThread(prev => ({ ...prev, ...data }));
+                }}
             />
         )}
         </>
