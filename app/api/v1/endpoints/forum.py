@@ -1436,7 +1436,7 @@ async def list_flagged_threads(
 
 
 @router.put("/admin/threads/{thread_id}/resolve", status_code=status.HTTP_204_NO_CONTENT)
-async def resolve_thread(
+async def admin_resolve_thread(
     thread_id:    _uuid.UUID,
     current_user: User       = Depends(get_admin_user),
     db: AsyncSession         = Depends(get_db),
