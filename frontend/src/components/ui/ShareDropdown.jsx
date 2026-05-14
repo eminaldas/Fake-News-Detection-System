@@ -1,12 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Copy, Twitter, MessageCircle, Share2, Check } from 'lucide-react';
 
-/**
- * Yeniden kullanılabilir paylaşım dropdown'u.
- * Props:
- *   url  — paylaşılacak tam URL (string)
- *   text — sosyal medya için metin (string)
- */
+const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
+
 export default function ShareDropdown({ url, text }) {
     const [isOpen, setIsOpen] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -27,14 +23,12 @@ export default function ShareDropdown({ url, text }) {
     }
 
     function openTwitter() {
-        const encoded = encodeURIComponent(`${text}\n${url}`);
-        window.open(`https://twitter.com/intent/tweet?text=${encoded}`, '_blank');
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${text}\n${url}`)}`, '_blank');
         setIsOpen(false);
     }
 
     function openWhatsApp() {
-        const encoded = encodeURIComponent(`${text} ${url}`);
-        window.open(`https://wa.me/?text=${encoded}`, '_blank');
+        window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, '_blank');
         setIsOpen(false);
     }
 
@@ -42,31 +36,42 @@ export default function ShareDropdown({ url, text }) {
         <div ref={ref} className="relative">
             <button
                 onClick={() => setIsOpen(v => !v)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border text-muted hover:text-foreground hover:border-foreground/30 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 font-mono text-xs font-bold border transition-opacity hover:opacity-70"
+                style={{
+                    borderColor: isOpen ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)',
+                    color: isOpen ? 'var(--color-brand-primary)' : 'var(--color-text-primary)',
+                    background: 'var(--color-terminal-surface)',
+                }}
             >
                 <Share2 size={13} />
                 Paylaş
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-1 w-44 rounded-xl border border-border bg-surface shadow-lg z-50 overflow-hidden">
+                <div
+                    className="absolute right-0 bottom-full mb-1 w-44 border z-50 overflow-hidden"
+                    style={TS}
+                >
                     <button
                         onClick={copyLink}
-                        className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-white/5 transition-colors"
+                        className="flex items-center gap-2.5 w-full px-3 py-2 font-mono text-xs transition-colors hover:bg-white/5"
+                        style={{ color: 'var(--color-text-primary)' }}
                     >
                         {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
                         {copied ? 'Kopyalandı!' : 'Link Kopyala'}
                     </button>
                     <button
                         onClick={openTwitter}
-                        className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-white/5 transition-colors"
+                        className="flex items-center gap-2.5 w-full px-3 py-2 font-mono text-xs transition-colors hover:bg-white/5"
+                        style={{ color: 'var(--color-text-primary)' }}
                     >
                         <Twitter size={14} />
                         Twitter'da Paylaş
                     </button>
                     <button
                         onClick={openWhatsApp}
-                        className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-white/5 transition-colors"
+                        className="flex items-center gap-2.5 w-full px-3 py-2 font-mono text-xs transition-colors hover:bg-white/5"
+                        style={{ color: 'var(--color-text-primary)' }}
                     >
                         <MessageCircle size={14} />
                         WhatsApp'ta Paylaş

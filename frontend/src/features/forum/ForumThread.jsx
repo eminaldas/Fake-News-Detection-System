@@ -264,7 +264,7 @@ const ForumThread = () => {
                                             <button
                                                 onClick={() => { setEditTitle(thread.title); setEditBody(thread.body ?? ''); setEditMode(true); }}
                                                 className="font-mono text-[10px] font-bold px-2.5 py-1.5 border transition-all hover:opacity-80 tracking-wider uppercase"
-                                                style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'rgba(255,255,255,0.55)', background: 'transparent' }}
+                                                style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)', background: 'transparent' }}
                                             >
                                                 Düzenle
                                             </button>
@@ -334,7 +334,7 @@ const ForumThread = () => {
                     )}
 
                     {/* Yazar + tarih */}
-                    <p className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                    <p className="font-mono text-xs" style={{ color: 'var(--color-text-secondary)' }}>
                         {thread.author?.username} · {new Date(thread.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
 
@@ -385,11 +385,11 @@ const ForumThread = () => {
                                 <span className="font-mono text-[9px] uppercase tracking-widest font-bold block mb-1" style={{ color: '#a855f7' }}>
                                     // kaynak haber
                                 </span>
-                                <p className="font-mono text-sm font-semibold leading-snug" style={{ color: 'rgba(255,255,255,0.90)' }}>
+                                <p className="font-mono text-sm font-semibold leading-snug" style={{ color: 'var(--color-text-primary)' }}>
                                     {thread.article.title}
                                 </p>
                                 {thread.article.source_name && (
-                                    <span className="font-mono text-[10px] mt-1 block" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                                    <span className="font-mono text-[10px] mt-1 block" style={{ color: 'var(--color-text-muted)' }}>
                                         {thread.article.source_name}
                                     </span>
                                 )}
@@ -423,7 +423,7 @@ const ForumThread = () => {
             <Block
                 title={`// tartışma · ${thread.comment_count} yorum`}
                 footer={
-                    <span className="font-mono text-[10px]" style={{ color: 'rgba(255,255,255,0.30)' }}>
+                    <span className="font-mono text-[10px] opacity-40" style={{ color: 'var(--color-text-muted)' }}>
                         // COMMENT_STREAM
                     </span>
                 }
@@ -461,7 +461,7 @@ const ForumThread = () => {
                         rows={3}
                         placeholder="Kanıt veya yorumunu ekle..."
                         className="w-full resize-none font-mono text-sm outline-none px-3 py-2.5 border transition-colors"
-                        style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'var(--color-terminal-surface)', color: 'rgba(255,255,255,0.88)', caretColor: 'var(--color-brand-primary)' }}
+                        style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'var(--color-terminal-surface)', color: 'var(--color-text-primary)', caretColor: 'var(--color-brand-primary)' }}
                     />
 
                     <div className="flex justify-end">

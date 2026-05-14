@@ -287,7 +287,7 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
 
     if (!comments?.length) {
         return (
-            <p className="font-mono text-sm text-center py-8" style={{ color: 'rgba(255,255,255,0.40)' }}>
+            <p className="font-mono text-sm text-center py-8 opacity-50" style={{ color: 'var(--color-text-muted)' }}>
                 // henüz yorum yok — ilk yorumu sen yap
             </p>
         );
