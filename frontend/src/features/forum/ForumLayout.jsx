@@ -141,6 +141,13 @@ const ForumLayout = () => {
                                         ✕
                                     </button>
                                 )}
+                                <button
+                                    type="submit"
+                                    className="font-mono text-xs font-bold px-2.5 py-1 transition-opacity hover:opacity-70 shrink-0"
+                                    style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}
+                                >
+                                    ARA
+                                </button>
                             </div>
                             <div className="flex flex-wrap gap-1.5">
                                 {SYSTEM_TAGS.map(t => {
