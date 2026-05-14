@@ -383,6 +383,11 @@ class ForumThread(Base):
     fact_check_triggered = Column(Boolean, server_default="false", nullable=False)
     group_id             = Column(UUID(as_uuid=True), nullable=True)
     image_urls           = Column(JSONB, nullable=False, server_default="[]")
+    # Verdict alanları
+    verdict         = Column(String(20),    nullable=True)   # 'DOGRU'|'YANLIS'|'YANILTICI'
+    verdict_reason  = Column(Text,          nullable=True)
+    verdict_by      = Column(String(20),    nullable=True)   # 'author'|'auto'
+    verdict_at      = Column(DateTime(timezone=True), nullable=True)
     created_at      = Column(DateTime(timezone=True), server_default=func.now())
     updated_at      = Column(DateTime(timezone=True), onupdate=func.now())
 
