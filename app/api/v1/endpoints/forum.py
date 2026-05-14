@@ -563,6 +563,33 @@ def _decrement_vote(thread: ForumThread, vote_type: str):
     elif vote_type == "down":        thread.vote_down        = max(0, thread.vote_down        - 1)
 
 
+VERDICT_VOTE_THRESHOLD  = 20    # minimum toplam oy
+VERDICT_RATIO_THRESHOLD = 0.75  # baskın tarafın minimum oranı
+
+def _check_auto_verdict(thread: ForumThread) -> None:
+    """Oy eşiği aşılırsa thread'i otomatik sonuçlandırır."""
+    if thread.verdict is not None:
+        return
+    total = thread.vote_suspicious + thread.vote_authentic + thread.vote_investigate
+    if total < VERDICT_VOTE_THRESHOLD:
+        return
+    ratios = {
+        'DOGRU':     thread.vote_authentic   / total,
+        'YANLIS':    thread.vote_suspicious  / total,
+        'YANILTICI': thread.vote_investigate / total,
+    }
+    winner = max(ratios, key=ratios.get)
+    if ratios[winner] >= VERDICT_RATIO_THRESHOLD:
+        thread.verdict        = winner
+        thread.verdict_reason = (
+            f"Otomatik sonuçlandı: {int(ratios[winner] * 100)}% topluluk oyu "
+            f"({total} oy üzerinden)."
+        )
+        thread.verdict_by  = 'auto'
+        thread.verdict_at  = datetime.now(timezone.utc)
+        thread.status      = 'resolved'
+
+
 @router.post("/threads/{thread_id}/vote", response_model=ForumVoteResult)
 async def vote_thread(
     thread_id:    _uuid.UUID,
@@ -575,6 +602,13 @@ async def vote_thread(
     )).scalar_one_or_none()
     if not thread:
         raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
+
+    # Verdict kontrolü — oy dondurma
+    if thread.verdict is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Bu tartışma sonuçlandırılmıştır, oy verilemez."
+        )
 
     existing = (await db.execute(
         select(ForumVote).where(
@@ -612,6 +646,9 @@ async def vote_thread(
             select(Article).where(Article.id == thread.article_id)
         )).scalar_one_or_none()
     await _check_under_review(thread, article, db)
+
+    # Otomatik verdict kontrolü
+    _check_auto_verdict(thread)
 
     if thread.status == "under_review" and thread.user_id != current_user.id:
         await send_notification(
@@ -665,6 +702,39 @@ async def vote_thread(
         status=thread.status,
         current_user_vote=current_vote,
     )
+
+
+@router.post("/threads/{thread_id}/resolve", status_code=200)
+async def resolve_thread(
+    thread_id:    _uuid.UUID,
+    body:         VerdictResolveRequest,
+    current_user: User         = Depends(get_current_user),
+    db: AsyncSession           = Depends(get_db),
+):
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == thread_id)
+    )).scalar_one_or_none()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
+    if thread.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Sadece tartışma sahibi sonuçlandırabilir")
+    if thread.verdict is not None:
+        raise HTTPException(status_code=409, detail="Bu tartışma zaten sonuçlandırılmıştır")
+
+    thread.verdict        = body.verdict
+    thread.verdict_reason = body.reason
+    thread.verdict_by     = 'author'
+    thread.verdict_at     = datetime.now(timezone.utc)
+    thread.status         = 'resolved'
+
+    await db.commit()
+    return {
+        "verdict":        thread.verdict,
+        "verdict_reason": thread.verdict_reason,
+        "verdict_by":     thread.verdict_by,
+        "verdict_at":     thread.verdict_at.isoformat(),
+        "status":         thread.status,
+    }
 
 
 @router.post("/threads/{thread_id}/comments", response_model=ForumCommentItem, status_code=status.HTTP_201_CREATED)
