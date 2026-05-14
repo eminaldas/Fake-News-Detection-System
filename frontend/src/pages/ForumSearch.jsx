@@ -260,13 +260,13 @@ export default function ForumSearch() {
         <div className="max-w-2xl mx-auto py-6 flex flex-col gap-5">
 
             {/* Geri */}
-            <button
-                onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/forum')}
+            <Link
+                to="/forum"
                 className="flex items-center gap-2 px-3 py-1.5 font-mono text-xs font-bold border transition-all hover:opacity-80 self-start"
                 style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)', background: 'var(--color-terminal-surface)' }}
             >
                 <ArrowLeft className="w-3.5 h-3.5" /> Forum'a Dön
-            </button>
+            </Link>
 
             {/* Arama kutusu */}
             <div className="relative border overflow-hidden" style={S}>
