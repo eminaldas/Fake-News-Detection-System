@@ -253,8 +253,8 @@ async def create_thread(
             ai_verdict=ar.status if ar else None,
             confidence=ar.confidence if ar else None,
             image_url=meta.get('image_url'),
-            source_url=article.source_url or meta.get('source_url'),
-            source_name=article.source_name or meta.get('source_name'),
+            source_url=meta.get('source_url') or meta.get('original_url') or meta.get('url'),
+            source_name=meta.get('source_name'),
         )
 
     return ForumThreadDetail(
@@ -425,8 +425,8 @@ async def get_thread(
                 ai_verdict=ar.status if ar else None,
                 confidence=ar.confidence if ar else None,
                 image_url=meta.get('image_url'),
-                source_url=article.source_url or meta.get('source_url'),
-                source_name=article.source_name or meta.get('source_name'),
+                source_url=meta.get('source_url') or meta.get('original_url') or meta.get('url'),
+                source_name=meta.get('source_name'),
             )
 
     user_vote = None
