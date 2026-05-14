@@ -4,7 +4,7 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
     MessageSquare, Share2, Bookmark, Plus,
     Link as LinkIcon, Flag, AlertCircle, Users, Compass,
-    Copy, Check, Twitter, MessageCircle, Loader2,
+    Copy, Check, Twitter, MessageCircle, Loader2, UserPlus,
 } from 'lucide-react';
 import NewsVoteBar    from './NewsVoteBar';
 import GeneralVoteBar from './GeneralVoteBar';
@@ -12,6 +12,7 @@ import axiosInstance from '../../api/axios';
 import LoginNudgeModal, { useLoginNudge } from '../../components/ui/LoginNudgeModal';
 import { useAuth } from '../../contexts/AuthContext';
 import CreateThreadModal from './CreateThreadModal';
+import SendToFriendModal from './SendToFriendModal';
 
 /* ── Tasarım sabitleri ── */
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
@@ -94,6 +95,7 @@ function ThreadCard({ thread, index }) {
     const [reportSubmitting, setReportSubmitting] = React.useState(false);
     const [shareOpen,  setShareOpen]  = React.useState(false);
     const [copied,     setCopied]     = React.useState(false);
+    const [sendModal,  setSendModal]  = React.useState(false);
     const shareRef = React.useRef(null);
 
     React.useEffect(() => {
@@ -360,6 +362,14 @@ function ThreadCard({ thread, index }) {
                                         <MessageCircle className="w-3.5 h-3.5" />
                                         WhatsApp'ta Paylaş
                                     </button>
+                                    <button
+                                        onClick={e => { e.stopPropagation(); setShareOpen(false); setSendModal(true); }}
+                                        className="flex items-center gap-2.5 w-full px-3 py-2 font-mono text-xs transition-colors hover:bg-white/5"
+                                        style={{ color: 'var(--color-text-primary)' }}
+                                    >
+                                        <UserPlus className="w-3.5 h-3.5" />
+                                        Arkadaşa Yolla
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -502,6 +512,14 @@ function ThreadCard({ thread, index }) {
                     </div>
                 </div>,
                 document.body
+            )}
+
+            {sendModal && (
+                <SendToFriendModal
+                    threadTitle={local.title}
+                    threadUrl={shareUrl}
+                    onClose={() => setSendModal(false)}
+                />
             )}
         </article>
     );
