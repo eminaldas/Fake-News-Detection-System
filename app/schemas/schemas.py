@@ -547,10 +547,13 @@ class TagItem(BaseModel):
 
 
 class ForumArticleSummary(BaseModel):
-    id:         UUID
-    title:      str
-    ai_verdict: Optional[str] = None
-    confidence: Optional[float] = None
+    id:          UUID
+    title:       str
+    ai_verdict:  Optional[str]   = None
+    confidence:  Optional[float] = None
+    image_url:   Optional[str]   = None
+    source_url:  Optional[str]   = None
+    source_name: Optional[str]   = None
 
     model_config = ConfigDict(from_attributes=True)
 
