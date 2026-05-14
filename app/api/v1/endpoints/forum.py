@@ -287,13 +287,6 @@ async def discover_threads(
     db: AsyncSession = Depends(get_db),
 ):
     """Popülerlik skoru + kategori ağırlığına göre kişiselleştirilmiş thread listesi."""
-    popularity = (
-        ForumThread.vote_suspicious
-        + ForumThread.vote_authentic
-        + ForumThread.vote_investigate
-        + ForumThread.comment_count * 2
-    )
-
     q = (
         select(ForumThread)
         .options(selectinload(ForumThread.user), selectinload(ForumThread.tags))

@@ -589,8 +589,6 @@ const ForumFeed = () => {
         return () => obs.disconnect();
     }, [hasMore, loading, loadingMore, page, load]);
 
-    const totalPages = Math.ceil(total / SIZE);
-
     return (
         <>
         <div className="flex flex-col gap-4">

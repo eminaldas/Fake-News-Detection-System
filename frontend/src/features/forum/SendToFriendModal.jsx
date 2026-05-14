@@ -15,7 +15,7 @@ function Avatar({ username }) {
             className="w-8 h-8 flex items-center justify-center font-mono font-black text-sm shrink-0"
             style={{ background: pals[idx], color: cols[idx], border: `1px solid ${cols[idx]}30`, minWidth: 32, minHeight: 32 }}
         >
-            {(username ?? '?')[0].toUpperCase()}
+            {(username?.[0] ?? '?').toUpperCase()}
         </div>
     );
 }
@@ -64,14 +64,14 @@ const SendToFriendModal = ({ threadTitle, threadUrl, onClose }) => {
     }, [query, search]);
 
     const handleSend = async (userId) => {
-        if (sent[userId]) return;
+        if (sent[userId] === 'sending' || sent[userId] === 'done') return;
         setSent(prev => ({ ...prev, [userId]: 'sending' }));
         const content = `📌 ${threadTitle}\n${threadUrl}`;
         try {
             await axiosInstance.post(`/messages/${userId}`, { content, msg_type: 'text' });
             setSent(prev => ({ ...prev, [userId]: 'done' }));
         } catch {
-            setSent(prev => ({ ...prev, [userId]: null }));
+            setSent(prev => ({ ...prev, [userId]: 'error' }));
         }
     };
 
@@ -167,17 +167,23 @@ const SendToFriendModal = ({ threadTitle, threadUrl, onClose }) => {
                                 </span>
                                 <button
                                     onClick={() => handleSend(u.id)}
-                                    disabled={!!sent[u.id]}
+                                    disabled={sent[u.id] === 'sending' || sent[u.id] === 'done'}
                                     className="flex items-center gap-1.5 px-3 py-1.5 font-mono text-xs font-bold transition-opacity hover:opacity-80 disabled:opacity-60 shrink-0"
-                                    style={sent[u.id] === 'done'
-                                        ? { background: 'rgba(16,185,129,0.15)', color: 'var(--color-brand-primary)', border: '1px solid rgba(16,185,129,0.30)' }
+                                    style={
+                                        sent[u.id] === 'done'
+                                            ? { background: 'rgba(16,185,129,0.15)', color: 'var(--color-brand-primary)', border: '1px solid rgba(16,185,129,0.30)' }
+                                        : sent[u.id] === 'error'
+                                            ? { background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.30)' }
                                         : { background: 'var(--color-brand-primary)', color: '#070f12' }
                                     }
                                 >
                                     {sent[u.id] === 'sending' && <Loader2 className="w-3 h-3 animate-spin" />}
                                     {sent[u.id] === 'done'    && <Check   className="w-3 h-3" />}
+                                    {sent[u.id] === 'error'   && <Send    className="w-3 h-3" />}
                                     {!sent[u.id]              && <Send    className="w-3 h-3" />}
-                                    {sent[u.id] === 'done' ? 'Gönderildi' : 'Gönder'}
+                                    {sent[u.id] === 'done'  ? 'Gönderildi'
+                                     : sent[u.id] === 'error' ? 'Tekrar Dene'
+                                     : 'Gönder'}
                                 </button>
                             </div>
                         ))}
