@@ -542,9 +542,13 @@ const ForumFeed = () => {
     const [showModal, setShowModal] = React.useState(false);
     const [showNudge, closeNudge]   = useLoginNudge();
     const SIZE = 20;
+    const sentinelRef  = React.useRef(null);
+    const [hasMore,     setHasMore]     = React.useState(true);
+    const [loadingMore, setLoadingMore] = React.useState(false);
 
-    const load = React.useCallback(async (pg = 1) => {
-        setLoading(true);
+    const load = React.useCallback(async (pg = 1, append = false) => {
+        if (pg === 1) setLoading(true);
+        else setLoadingMore(true);
         try {
             let data;
             if (activeTab === 'following') {
@@ -557,15 +561,33 @@ const ForumFeed = () => {
                 const res = await axiosInstance.get('/forum/threads/discover', { params });
                 data = res.data;
             }
-            setThreads(data.items);
+            if (append) {
+                setThreads(prev => [...prev, ...data.items]);
+            } else {
+                setThreads(data.items);
+            }
             setTotal(data.total);
             setPage(data.page);
+            setHasMore(data.page < Math.ceil(data.total / SIZE));
         } catch {}
-        finally { setLoading(false); }
+        finally { setLoading(false); setLoadingMore(false); }
     }, [sort, category, tag, activeTab]);
 
     React.useEffect(() => { load(1); }, [load]);
     React.useEffect(() => { setPage(1); }, [activeTab]);
+    React.useEffect(() => {
+        if (!sentinelRef.current) return;
+        const obs = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+                    load(page + 1, true);
+                }
+            },
+            { threshold: 0.1 }
+        );
+        obs.observe(sentinelRef.current);
+        return () => obs.disconnect();
+    }, [hasMore, loading, loadingMore, page, load]);
 
     const totalPages = Math.ceil(total / SIZE);
 
@@ -699,30 +721,21 @@ const ForumFeed = () => {
                 </div>
             )}
 
-            {/* ── Sayfalama ── */}
-            {totalPages > 1 && (
-                <div className="flex items-center justify-between border" style={BD}>
-                    <button
-                        disabled={page <= 1}
-                        onClick={() => load(page - 1)}
-                        className="px-5 py-2.5 font-mono text-xs font-bold tracking-wider border-r disabled:opacity-20 transition-opacity hover:opacity-70"
-                        style={{ ...BD, color: 'var(--color-text-primary)' }}
-                    >
-                        ← ÖNCEKİ
-                    </button>
-                    <span className="font-mono text-xs px-4" style={{ color: 'var(--color-text-muted)' }}>
-                        {page} / {totalPages}
+            {/* ── Infinite scroll sentinel ── */}
+            <div ref={sentinelRef} className="py-4 flex justify-center">
+                {loadingMore && (
+                    <Loader2
+                        className="w-5 h-5 animate-spin"
+                        style={{ color: 'var(--color-text-muted)' }}
+                    />
+                )}
+                {!hasMore && threads.length > 0 && (
+                    <span className="font-mono text-xs"
+                          style={{ color: 'var(--color-text-muted)', opacity: 0.4 }}>
+                        // son kayıt
                     </span>
-                    <button
-                        disabled={page >= totalPages}
-                        onClick={() => load(page + 1)}
-                        className="px-5 py-2.5 font-mono text-xs font-bold tracking-wider border-l disabled:opacity-20 transition-opacity hover:opacity-70"
-                        style={{ ...BD, color: 'var(--color-text-primary)' }}
-                    >
-                        SONRAKİ →
-                    </button>
-                </div>
-            )}
+                )}
+            </div>
         </div>
 
         {showModal && <CreateThreadModal onClose={() => setShowModal(false)} />}
