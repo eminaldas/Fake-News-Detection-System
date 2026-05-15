@@ -287,13 +287,31 @@ const ForumThread = () => {
                                         </>
                                     )}
                                     {isAuthor && !thread.verdict && (
-                                        <button
-                                            onClick={() => setVerdictModal(true)}
-                                            className="font-mono text-[10px] font-bold px-2.5 py-1.5 border transition-all hover:opacity-80 tracking-wider uppercase"
-                                            style={{ borderColor: 'rgba(16,185,129,0.40)', color: 'var(--color-brand-primary)', background: 'rgba(16,185,129,0.06)' }}
-                                        >
-                                            Sonuçlandır
-                                        </button>
+                                        thread.featured_comment_id ? (
+                                            <div
+                                                className="flex items-center gap-2 px-3 py-2 border font-mono text-[10px]"
+                                                style={{
+                                                    borderColor: 'rgba(245,158,11,0.4)',
+                                                    color: 'var(--color-accent-amber)',
+                                                    background: 'rgba(245,158,11,0.05)',
+                                                }}
+                                            >
+                                                <ShieldCheck className="w-3 h-3 shrink-0" />
+                                                Yüksek güvenilirlikte kanıt var — topluluk oyuna bırakılıyor
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => setVerdictModal(true)}
+                                                className="flex items-center gap-1.5 px-3 py-2 font-mono text-xs font-bold border transition-opacity hover:opacity-80"
+                                                style={{
+                                                    borderColor: 'var(--color-brand-primary)',
+                                                    color: 'var(--color-brand-primary)',
+                                                    background: 'rgba(16,185,129,0.05)',
+                                                }}
+                                            >
+                                                [ SONUÇLANDIR ]
+                                            </button>
+                                        )
                                     )}
                                 </div>
                             </div>
@@ -525,6 +543,7 @@ const ForumThread = () => {
         {verdictModal && (
             <VerdictModal
                 threadId={threadId}
+                postType={thread.post_type || 'iddia'}
                 onClose={() => setVerdictModal(false)}
                 onResolved={(data) => {
                     setThread(prev => ({ ...prev, ...data }));
