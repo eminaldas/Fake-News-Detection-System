@@ -36,6 +36,7 @@ const CreateThreadModal = ({ onClose, articleId = null }) => {
     const [title,      setTitle]      = React.useState('');
     const [body,       setBody]       = React.useState('');
     const [category,   setCategory]   = React.useState('');
+    const [postType,   setPostType]   = React.useState('iddia');
     const [submitting, setSubmitting] = React.useState(false);
     const [error,      setError]      = React.useState('');
     const [visible,    setVisible]    = React.useState(false);
@@ -74,6 +75,7 @@ const CreateThreadModal = ({ onClose, articleId = null }) => {
                 title:      title.trim(),
                 body:       body.trim() || '',
                 category:   category || null,
+                post_type:  postType,
                 tag_names:  [],
                 article_id: articleId || null,
                 image_urls: [],
@@ -202,6 +204,37 @@ const CreateThreadModal = ({ onClose, articleId = null }) => {
                                     className="flex-1 bg-transparent resize-none outline-none font-mono text-sm leading-relaxed"
                                     style={{ color: 'var(--color-text-primary)', caretColor: 'var(--color-brand-primary)' }}
                                 />
+                            </div>
+                        </div>
+
+                        {/* Gönderi Türü */}
+                        <div className="px-4 pt-3 pb-3 border-b" style={BD}>
+                            <div className="flex flex-col gap-1.5">
+                                <span className="font-mono text-[10px] uppercase tracking-widest font-bold"
+                                      style={{ color: 'var(--color-text-muted)' }}>
+                                    Gönderi Türü
+                                </span>
+                                <div className="flex gap-2">
+                                    {[
+                                        { value: 'iddia',    label: 'İddia / Haber' },
+                                        { value: 'soru',     label: 'Soru' },
+                                        { value: 'tartisma', label: 'Tartışma' },
+                                    ].map(opt => (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            onClick={() => setPostType(opt.value)}
+                                            className="flex-1 py-2 font-mono text-xs border transition-all"
+                                            style={{
+                                                borderColor: postType === opt.value ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)',
+                                                color:       postType === opt.value ? 'var(--color-brand-primary)' : 'var(--color-text-muted)',
+                                                background:  postType === opt.value ? 'rgba(16,185,129,0.06)' : 'transparent',
+                                            }}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
