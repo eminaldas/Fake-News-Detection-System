@@ -35,6 +35,7 @@ from app.models.gamification import XPActionType
 from app.services.xp_service import award_xp
 from app.models.models import (
     Article, AnalysisResult, Bookmark, ForumComment, ForumCommentVote,
+    ForumCommentVerification,
     ForumReport, ForumThread, ForumThreadReport, ForumVote, Tag, ThreadTag, User,
 )
 from app.schemas.schemas import (
@@ -559,47 +560,122 @@ async def search_tags(
     )
 
 
-def _increment_vote(thread: ForumThread, vote_type: str):
-    if vote_type == "suspicious":    thread.vote_suspicious  += 1
-    elif vote_type == "authentic":   thread.vote_authentic   += 1
-    elif vote_type == "investigate": thread.vote_investigate += 1
-    elif vote_type == "up":          thread.vote_up          += 1
-    elif vote_type == "down":        thread.vote_down        += 1
+def _increment_vote(thread: ForumThread, vote_type: str, weight: float = 1.0):
+    if vote_type == "suspicious":
+        thread.vote_suspicious  += 1
+        thread.vote_suspicious_weighted  += weight
+    elif vote_type == "authentic":
+        thread.vote_authentic   += 1
+        thread.vote_authentic_weighted   += weight
+    elif vote_type == "investigate":
+        thread.vote_investigate += 1
+        thread.vote_investigate_weighted += weight
+    elif vote_type == "up":
+        thread.vote_up   += 1
+    elif vote_type == "down":
+        thread.vote_down += 1
 
 
-def _decrement_vote(thread: ForumThread, vote_type: str):
-    if vote_type == "suspicious":    thread.vote_suspicious  = max(0, thread.vote_suspicious  - 1)
-    elif vote_type == "authentic":   thread.vote_authentic   = max(0, thread.vote_authentic   - 1)
-    elif vote_type == "investigate": thread.vote_investigate = max(0, thread.vote_investigate - 1)
-    elif vote_type == "up":          thread.vote_up          = max(0, thread.vote_up          - 1)
-    elif vote_type == "down":        thread.vote_down        = max(0, thread.vote_down        - 1)
+def _decrement_vote(thread: ForumThread, vote_type: str, weight: float = 1.0):
+    if vote_type == "suspicious":
+        thread.vote_suspicious  = max(0, thread.vote_suspicious  - 1)
+        thread.vote_suspicious_weighted  = max(0.0, thread.vote_suspicious_weighted  - weight)
+    elif vote_type == "authentic":
+        thread.vote_authentic   = max(0, thread.vote_authentic   - 1)
+        thread.vote_authentic_weighted   = max(0.0, thread.vote_authentic_weighted   - weight)
+    elif vote_type == "investigate":
+        thread.vote_investigate = max(0, thread.vote_investigate - 1)
+        thread.vote_investigate_weighted = max(0.0, thread.vote_investigate_weighted - weight)
+    elif vote_type == "up":
+        thread.vote_up   = max(0, thread.vote_up   - 1)
+    elif vote_type == "down":
+        thread.vote_down = max(0, thread.vote_down - 1)
 
 
 VERDICT_VOTE_THRESHOLD  = 20    # minimum toplam oy
 VERDICT_RATIO_THRESHOLD = 0.75  # baskın tarafın minimum oranı
 
+TIER_WEIGHT = {
+    'yeni_uye':    0.3,
+    'dogrulayici': 1.0,
+    'analist':     1.5,
+    'dedektif':    2.0,
+}
+FEATURED_EVIDENCE_THRESHOLD    = 10
+AI_TRIGGER_MIN_COMMENTS        = 10
+AI_TRIGGER_MIN_HOURS           = 24
+AI_TRIGGER_MIN_SUSPICIOUS_VOTES = 10
+
+
+def _trust_weight(user) -> float:
+    return TIER_WEIGHT.get(user.forum_trust_tier, 1.0)
+
+
 def _check_auto_verdict(thread: ForumThread) -> None:
-    """Oy eşiği aşılırsa thread'i otomatik sonuçlandırır."""
+    """Ağırlıklı oy eşiği aşılırsa thread'i otomatik sonuçlandırır."""
     if thread.verdict is not None:
         return
-    total = thread.vote_suspicious + thread.vote_authentic + thread.vote_investigate
-    if total < VERDICT_VOTE_THRESHOLD:
+    if thread.post_type != 'iddia':
         return
+
+    if thread.featured_comment_id:
+        min_votes       = 10
+        ratio_threshold = 0.60
+    else:
+        min_votes       = VERDICT_VOTE_THRESHOLD
+        ratio_threshold = VERDICT_RATIO_THRESHOLD
+
+    total_w = (
+        thread.vote_suspicious_weighted
+        + thread.vote_authentic_weighted
+        + thread.vote_investigate_weighted
+    )
+    if total_w < min_votes:
+        return
+
     ratios = {
-        'DOGRU':     thread.vote_authentic   / total,
-        'YANLIS':    thread.vote_suspicious  / total,
-        'YANILTICI': thread.vote_investigate / total,
+        'DOGRU':     thread.vote_authentic_weighted   / total_w,
+        'YANLIS':    thread.vote_suspicious_weighted  / total_w,
+        'YANILTICI': thread.vote_investigate_weighted / total_w,
     }
     winner = max(ratios, key=ratios.get)
-    if ratios[winner] >= VERDICT_RATIO_THRESHOLD:
+    if ratios[winner] >= ratio_threshold:
         thread.verdict        = winner
         thread.verdict_reason = (
             f"Otomatik sonuçlandı: {int(ratios[winner] * 100)}% topluluk oyu "
-            f"({total} oy üzerinden)."
+            f"({int(total_w)} ağırlıklı oy üzerinden)."
         )
         thread.verdict_by  = 'auto'
         thread.verdict_at  = datetime.now(timezone.utc)
         thread.status      = 'resolved'
+
+
+async def _is_suspicious_vote(
+    db: AsyncSession,
+    thread_id,
+    vote_type: str,
+    user,
+) -> bool:
+    """Kullanıcı <30 gün ve son 30 dk'da aynı yönde 5+ genç hesap oyu varsa True."""
+    account_age_days = (
+        datetime.now(timezone.utc) - user.created_at.replace(tzinfo=timezone.utc)
+    ).days
+    if account_age_days >= 30:
+        return False
+
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=30)
+    count = (await db.execute(
+        select(func.count(ForumVote.id))
+        .join(User, User.id == ForumVote.user_id)
+        .where(
+            ForumVote.thread_id == thread_id,
+            ForumVote.vote_type == vote_type,
+            ForumVote.created_at >= cutoff,
+            ForumVote.is_suspicious == False,
+            func.extract('day', func.now() - User.created_at) < 30,
+        )
+    )).scalar_one()
+    return count >= 5
 
 
 @router.post("/threads/{thread_id}/vote", response_model=ForumVoteResult)
@@ -629,26 +705,35 @@ async def vote_thread(
         )
     )).scalar_one_or_none()
 
+    weight = _trust_weight(current_user)
+
     if existing:
+        old_weight = existing.vote_weight
         if existing.vote_type == body.vote_type:
-            # Same vote again — toggle off
-            _decrement_vote(thread, existing.vote_type)
+            _decrement_vote(thread, existing.vote_type, old_weight)
             await db.delete(existing)
             current_vote = None
         else:
-            # Different vote — switch
-            _decrement_vote(thread, existing.vote_type)
-            _increment_vote(thread, body.vote_type)
-            existing.vote_type = body.vote_type
+            _decrement_vote(thread, existing.vote_type, old_weight)
+            suspicious = await _is_suspicious_vote(db, thread_id, body.vote_type, current_user)
+            actual_weight = weight * 0.1 if suspicious else weight
+            _increment_vote(thread, body.vote_type, actual_weight)
+            existing.vote_type     = body.vote_type
+            existing.vote_weight   = actual_weight
+            existing.is_suspicious = suspicious
             current_vote = body.vote_type
     else:
+        suspicious = await _is_suspicious_vote(db, thread_id, body.vote_type, current_user)
+        actual_weight = weight * 0.1 if suspicious else weight
         vote = ForumVote(
             thread_id=thread_id,
             user_id=current_user.id,
             vote_type=body.vote_type,
+            vote_weight=actual_weight,
+            is_suspicious=suspicious,
         )
         db.add(vote)
-        _increment_vote(thread, body.vote_type)
+        _increment_vote(thread, body.vote_type, actual_weight)
         current_vote = body.vote_type
 
     # under_review automation
