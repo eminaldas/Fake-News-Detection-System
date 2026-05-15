@@ -402,7 +402,7 @@ class ForumThread(Base):
 
     user     = relationship("User")
     article  = relationship("Article")
-    comments = relationship("ForumComment", back_populates="thread", cascade="all, delete-orphan")
+    comments = relationship("ForumComment", back_populates="thread", cascade="all, delete-orphan", foreign_keys="ForumComment.thread_id")
     votes    = relationship("ForumVote", back_populates="thread", cascade="all, delete-orphan")
     tags     = relationship("Tag", secondary="thread_tags", back_populates="threads")
 
