@@ -678,6 +678,54 @@ async def _is_suspicious_vote(
     return count >= 5
 
 
+async def _update_featured_evidence(db: AsyncSession, thread: ForumThread, changed_comment: ForumComment):
+    """Thread'in Öne Çıkan Kanıt yorumunu yeniden hesaplar."""
+    result = await db.execute(
+        select(ForumComment)
+        .where(
+            ForumComment.thread_id == thread.id,
+            ForumComment.moderation_status != 'removed',
+            ForumComment.verified_count >= FEATURED_EVIDENCE_THRESHOLD,
+        )
+        .order_by(desc(ForumComment.verified_count))
+        .limit(1)
+    )
+    best = result.scalar_one_or_none()
+
+    if best:
+        best.is_featured_evidence = True
+        thread.featured_comment_id = best.id
+        if not thread.ai_evidence_triggered:
+            age_hours = (
+                datetime.now(timezone.utc) - thread.created_at.replace(tzinfo=timezone.utc)
+            ).total_seconds() / 3600
+            normal_trigger = (
+                age_hours >= AI_TRIGGER_MIN_HOURS
+                and thread.comment_count >= AI_TRIGGER_MIN_COMMENTS
+                and best.verified_count >= FEATURED_EVIDENCE_THRESHOLD
+            )
+            suspicious_trigger = (
+                age_hours >= AI_TRIGGER_MIN_HOURS
+                and thread.vote_suspicious >= AI_TRIGGER_MIN_SUSPICIOUS_VOTES
+            )
+            if normal_trigger or suspicious_trigger:
+                thread.ai_evidence_triggered = True
+                try:
+                    from workers.evidence_verdict_task import analyze_evidence_comment
+                    analyze_evidence_comment.delay(
+                        str(thread.id),
+                        best.body,
+                        best.evidence_urls or [],
+                        thread.title,
+                    )
+                except Exception:
+                    pass
+    else:
+        if thread.featured_comment_id == changed_comment.id:
+            thread.featured_comment_id = None
+        changed_comment.is_featured_evidence = False
+
+
 @router.post("/threads/{thread_id}/vote", response_model=ForumVoteResult)
 async def vote_thread(
     thread_id:    _uuid.UUID,
@@ -1027,6 +1075,49 @@ async def helpful_vote(
         _redis = await get_redis()
         await award_xp(db, _redis, comment.user_id, XPActionType.helpful_received, str(comment.id))
         await db.commit()
+
+
+@router.post("/comments/{comment_id}/verify", status_code=200)
+async def verify_comment_source(
+    comment_id:   _uuid.UUID,
+    current_user: User         = Depends(get_current_user),
+    db: AsyncSession           = Depends(get_db),
+):
+    """Kaynaklı yorumun kaynağını doğrula (toggle)."""
+    comment = (await db.execute(
+        select(ForumComment).where(ForumComment.id == comment_id)
+    )).scalar_one_or_none()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Yorum bulunamadı")
+    if not (comment.evidence_urls or []):
+        raise HTTPException(status_code=400, detail="Bu yorumun kaynak URL'si yok")
+    if comment.user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Kendi yorumunuzu doğrulayamazsınız")
+
+    existing = (await db.execute(
+        select(ForumCommentVerification).where(
+            ForumCommentVerification.comment_id == comment_id,
+            ForumCommentVerification.user_id    == current_user.id,
+        )
+    )).scalar_one_or_none()
+
+    if existing:
+        await db.delete(existing)
+        comment.verified_count = max(0, comment.verified_count - 1)
+        is_verified = False
+    else:
+        db.add(ForumCommentVerification(comment_id=comment_id, user_id=current_user.id))
+        comment.verified_count += 1
+        is_verified = True
+
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == comment.thread_id)
+    )).scalar_one_or_none()
+    if thread:
+        await _update_featured_evidence(db, thread, comment)
+
+    await db.commit()
+    return {"verified": is_verified, "verified_count": comment.verified_count}
 
 
 @router.put("/comments/{comment_id}", response_model=ForumCommentItem)
