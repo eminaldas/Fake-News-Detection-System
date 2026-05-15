@@ -388,6 +388,15 @@ class ForumThread(Base):
     verdict_reason  = Column(Text,          nullable=True)
     verdict_by      = Column(String(20),    nullable=True)   # 'author'|'auto'
     verdict_at      = Column(DateTime(timezone=True), nullable=True)
+    # Verdict Reform 2.0
+    vote_suspicious_weighted  = Column(Float,   nullable=False, server_default="0")
+    vote_authentic_weighted   = Column(Float,   nullable=False, server_default="0")
+    vote_investigate_weighted = Column(Float,   nullable=False, server_default="0")
+    featured_comment_id  = Column(UUID(as_uuid=True), ForeignKey("forum_comments.id", ondelete="SET NULL"), nullable=True)
+    ai_evidence_analysis = Column(Text,       nullable=True)
+    ai_evidence_verdict  = Column(String(20), nullable=True)
+    ai_evidence_triggered= Column(Boolean,    nullable=False, server_default="false")
+    post_type            = Column(String(20), nullable=False, server_default="iddia")
     created_at      = Column(DateTime(timezone=True), server_default=func.now())
     updated_at      = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -399,6 +408,7 @@ class ForumThread(Base):
 
     __table_args__ = (
         CheckConstraint("status IN ('active','under_review','resolved')", name="ck_forum_thread_status"),
+        CheckConstraint("post_type IN ('iddia','soru','tartisma')", name="ck_forum_thread_post_type"),
         Index("idx_forum_thread_category_created", "category", "created_at"),
     )
 
@@ -417,6 +427,8 @@ class ForumComment(Base):
     is_highlighted    = Column(Boolean, nullable=False, server_default="false")
     moderation_status = Column(String(20), nullable=False, server_default="clean")
     moderation_note   = Column(Text, nullable=True)
+    verified_count       = Column(Integer, nullable=False, server_default="0")
+    is_featured_evidence = Column(Boolean, nullable=False, server_default="false")
     is_edited  = Column(Boolean, default=False, nullable=False)
     edited_at  = Column(DateTime(timezone=True), nullable=True)
     created_at    = Column(DateTime(timezone=True), server_default=func.now())
@@ -444,6 +456,8 @@ class ForumVote(Base):
     user_id   = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     vote_type = Column(String(20), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    vote_weight   = Column(Float,   nullable=False, server_default="1.0")
+    is_suspicious = Column(Boolean, nullable=False, server_default="false")
 
     thread = relationship("ForumThread", back_populates="votes")
 
@@ -463,6 +477,19 @@ class ForumCommentVote(Base):
 
     __table_args__ = (
         UniqueConstraint("comment_id", "user_id", name="uq_forum_comment_vote_user"),
+    )
+
+
+class ForumCommentVerification(Base):
+    __tablename__ = "forum_comment_verifications"
+
+    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    comment_id = Column(UUID(as_uuid=True), ForeignKey("forum_comments.id", ondelete="CASCADE"), nullable=False)
+    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id",          ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("comment_id", "user_id", name="uq_forum_comment_verif_user"),
     )
 
 
