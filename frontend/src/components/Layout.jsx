@@ -8,6 +8,82 @@ import { useTheme } from '../contexts/ThemeContext';
 import XPToast from './common/XPToast';
 import MiniMessenger from './common/MiniMessenger';
 
+const ParticleNetwork = React.memo(function ParticleNetwork({ isDark }) {
+    const canvasRef = React.useRef(null);
+
+    React.useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let raf;
+
+        const resize = () => {
+            canvas.width  = window.innerWidth;
+            canvas.height = window.innerHeight;
+        };
+        resize();
+        window.addEventListener('resize', resize);
+
+        const COUNT = 22;
+        const dots = Array.from({ length: COUNT }, () => ({
+            x:  Math.random() * canvas.width,
+            y:  Math.random() * canvas.height,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: (Math.random() - 0.5) * 0.3,
+        }));
+
+        const draw = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const dotColor  = isDark ? 'rgba(16,185,129,0.55)' : 'rgba(26,158,79,0.18)';
+            const lineAlpha = isDark ? 0.18 : 0.07;
+
+            dots.forEach((d, i) => {
+                d.x += d.vx;
+                d.y += d.vy;
+                if (d.x < 0 || d.x > canvas.width)  d.vx *= -1;
+                if (d.y < 0 || d.y > canvas.height)  d.vy *= -1;
+
+                ctx.beginPath();
+                ctx.arc(d.x, d.y, 1.5, 0, Math.PI * 2);
+                ctx.fillStyle = dotColor;
+                ctx.fill();
+
+                for (let j = i + 1; j < dots.length; j++) {
+                    const b    = dots[j];
+                    const dist = Math.hypot(d.x - b.x, d.y - b.y);
+                    if (dist < 120) {
+                        ctx.beginPath();
+                        ctx.moveTo(d.x, d.y);
+                        ctx.lineTo(b.x, b.y);
+                        ctx.strokeStyle = `rgba(16,185,129,${lineAlpha * (1 - dist / 120)})`;
+                        ctx.lineWidth   = 0.6;
+                        ctx.stroke();
+                    }
+                }
+            });
+            raf = requestAnimationFrame(draw);
+        };
+        draw();
+
+        return () => {
+            cancelAnimationFrame(raf);
+            window.removeEventListener('resize', resize);
+        };
+    }, [isDark]);
+
+    return (
+        <canvas
+            ref={canvasRef}
+            style={{
+                position: 'fixed', inset: 0,
+                width: '100%', height: '100%',
+                zIndex: -8, pointerEvents: 'none',
+                opacity: isDark ? 1 : 0.5,
+            }}
+        />
+    );
+});
+
 const AUTH_PATHS  = ['/login', '/register'];
 const FORUM_PATHS = ['/forum'];
 
@@ -37,9 +113,9 @@ const PARTICLES = [
 ];
 
 const ORBS = [
-    { left: '-8%',  top: '8%',   size: 600, dur: '35s', delay: '0s',  color: 'rgba(26,158,79,0.12)' },
-    { left: '65%',  top: '-8%',  size: 500, dur: '45s', delay: '10s', color: 'rgba(26,158,79,0.10)' },
-    { left: '35%',  top: '55%',  size: 450, dur: '40s', delay: '5s',  color: 'rgba(26,158,79,0.09)' },
+    { left: '-8%',  top: '8%',   size: 620, dur: '35s', delay: '0s',  color: 'rgba(26,158,79,0.22)'    },
+    { left: '65%',  top: '-8%',  size: 520, dur: '45s', delay: '10s', color: 'rgba(59,130,246,0.14)'   },
+    { left: '35%',  top: '55%',  size: 460, dur: '40s', delay: '5s',  color: 'rgba(139,92,246,0.11)'   },
 ];
 
 const Layout = () => {
@@ -85,12 +161,14 @@ const Layout = () => {
                 style={{
                     zIndex: -10,
                     backgroundImage: isDarkMode
-                        ? 'linear-gradient(rgba(63,255,139,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(63,255,139,0.05) 1px,transparent 1px)'
+                        ? 'linear-gradient(rgba(63,255,139,0.09) 1px,transparent 1px),linear-gradient(90deg,rgba(63,255,139,0.09) 1px,transparent 1px)'
                         : 'linear-gradient(var(--color-border) 1px,transparent 1px),linear-gradient(90deg,var(--color-border) 1px,transparent 1px)',
                     backgroundSize: '40px 40px',
                     opacity: isDarkMode ? 1 : 0.18,
                 }}
             />
+
+            <ParticleNetwork isDark={isDarkMode} />
 
             {/* ── Animasyonlu arka plan (her iki mod) ──────────── */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: -9 }}>
@@ -103,7 +181,7 @@ const Layout = () => {
                              left: o.left, top: o.top,
                              width: o.size, height: o.size,
                              background: o.color,
-                             filter: 'blur(100px)',
+                             filter: 'blur(80px)',
                              animationDuration: o.dur,
                              animationDelay: o.delay,
                          }} />
