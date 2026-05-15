@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { SlidersHorizontal, ShieldCheck, Bell, ThumbsUp } from 'lucide-react';
+import { Monitor, SlidersHorizontal, ShieldCheck, Bell, ThumbsUp } from 'lucide-react';
 import ProfileAiLab         from '../features/profile/ProfileAiLab';
 import ProfileSecurity      from '../features/profile/ProfileSecurity';
 import ProfileNotifications from '../features/profile/ProfileNotifications';
 import ProfileFeedback      from '../features/profile/ProfileFeedback';
+import ProfileAppearance    from '../features/profile/ProfileAppearance';
 
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 
 const TABS = [
+    { id: 'appearance',    label: 'Görünüm',             icon: Monitor,           Component: ProfileAppearance },
     { id: 'ai-lab',        label: 'AI Lab',             icon: SlidersHorizontal, Component: ProfileAiLab },
     { id: 'security',      label: 'Güvenlik',           icon: ShieldCheck,       Component: ProfileSecurity },
     { id: 'notifications', label: 'Bildirimler',        icon: Bell,              Component: ProfileNotifications },
@@ -15,7 +17,7 @@ const TABS = [
 ];
 
 export default function ProfileSettings() {
-    const [active, setActive] = useState('ai-lab');
+    const [active, setActive] = useState('appearance');
     const current = TABS.find(t => t.id === active);
 
     return (

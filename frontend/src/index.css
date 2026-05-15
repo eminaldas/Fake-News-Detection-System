@@ -178,6 +178,12 @@
     --color-info-accent:      #93c5fd;
   }
 
+  /* ── Font Scale ── */
+  :root,
+  [data-font-scale="md"] { font-size: 16px; }
+  [data-font-scale="sm"] { font-size: 14px; }
+  [data-font-scale="lg"] { font-size: 18px; }
+
   html {
     font-family: 'Public Sans', system-ui, sans-serif;
   }
