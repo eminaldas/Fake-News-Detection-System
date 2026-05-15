@@ -633,6 +633,9 @@ class ForumCommentItem(BaseModel):
     display_label:  Optional[str]  = None
     stars:             Optional[int]  = None
     moderation_status: str            = "clean"
+    verified_count:        int            = 0
+    is_featured_evidence:  bool           = False
+    current_user_verified: Optional[bool] = None
     replies:           List["ForumCommentItem"] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
@@ -648,6 +651,7 @@ class ForumThreadCreate(BaseModel):
     article_id: Optional[UUID] = None
     tag_names:  List[str]      = Field(default_factory=list, max_length=10)
     image_urls: List[str]       = Field(default_factory=list, max_length=4)
+    post_type: str = Field('iddia', pattern="^(iddia|soru|tartisma)$")
 
     @field_validator("category")
     @classmethod
@@ -695,6 +699,8 @@ class ForumThreadSummary(BaseModel):
     verdict_reason:    Optional[str]      = None
     verdict_by:        Optional[str]      = None
     verdict_at:        Optional[datetime] = None
+    post_type:           str            = 'iddia'
+    featured_comment_id: Optional[UUID] = None
     current_user_vote: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -705,10 +711,15 @@ class ForumThreadDetail(ForumThreadSummary):
     article:           Optional[ForumArticleSummary] = None
     comments:          List[ForumCommentItem]        = Field(default_factory=list)
     current_user_vote: Optional[str]                 = None
+    post_type:            str                        = 'iddia'
+    featured_comment_id:  Optional[UUID]             = None
+    featured_evidence:    Optional[ForumCommentItem] = None
+    ai_evidence_analysis: Optional[str]              = None
+    ai_evidence_verdict:  Optional[str]              = None
 
 
 class VerdictResolveRequest(BaseModel):
-    verdict: str = Field(..., pattern="^(DOGRU|YANLIS|YANILTICI)$")
+    verdict: str = Field(..., pattern="^(DOGRU|YANLIS|YANILTICI|YANITLANDI|YANITLANMADI)$")
     reason:  str = Field(..., min_length=10, max_length=2000)
 
 
