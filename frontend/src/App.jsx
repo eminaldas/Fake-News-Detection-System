@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -10,46 +10,50 @@ import RequireAuth from './components/RequireAuth';
 import RequireAdmin from './components/RequireAdmin';
 import AdminLayout  from './layouts/AdminLayout';
 import Layout from './components/Layout';
-import Home from './pages/Home';
-import Archive from './pages/Archive';
-import Login from './pages/Login';
+
+// Critical path — eager
+import Home     from './pages/Home';
+import Login    from './pages/Login';
 import Register from './pages/Register';
-import ProfileLayout        from './features/profile/ProfileLayout';
-import ProfileOverview      from './features/profile/ProfileOverview';
-import ProfileAiLab         from './features/profile/ProfileAiLab';
-import ProfileSecurity      from './features/profile/ProfileSecurity';
-import ProfileNotifications from './features/profile/ProfileNotifications';
-import ProfileFeedback      from './features/profile/ProfileFeedback';
-import ProfileBookmarks    from './features/profile/ProfileBookmarks';
-import ProfileThreads     from './features/profile/ProfileThreads';
-import AdminUsers from './pages/AdminUsers';
-import AdminSecurity from './pages/AdminSecurity';
-import AdminAnalytics from './pages/AdminAnalytics';
-import AdminForum from './pages/AdminForum';
-import AdminABTest from './pages/AdminABTest';
-import Dashboard from './pages/Dashboard';
-import NotFound from './pages/NotFound';
-import About from './pages/About';
-import Gundem from './pages/Gundem';
-import Borsa from './pages/Borsa';
-import Report from './pages/Report';
-import ForumLayout        from './features/forum/ForumLayout';
-import ForumFeed          from './features/forum/ForumFeed';
-import ForumThread        from './features/forum/ForumThread';
-import ForumCreateThread  from './features/forum/ForumCreateThread';
-import SharedAnalysis    from './pages/SharedAnalysis';
-import Profile          from './pages/Profile';
-import UserProfile      from './pages/UserProfile';
-import ProfileSettings  from './pages/ProfileSettings';
-import Bookmarks        from './pages/Bookmarks';
-import EmailVerification from './pages/EmailVerification';
-import Onboarding       from './pages/Onboarding';
-import Messages         from './pages/Messages';
-import ForumSearch      from './pages/ForumSearch';
-import AdminModeration  from './pages/AdminModeration';
-import AdminDataset from './pages/AdminDataset';
-import AnalysisReport from './pages/AnalysisReport';
-import Badges from './pages/Badges';
+
+// Lazy loaded
+const Archive            = lazy(() => import('./pages/Archive'));
+const ProfileLayout      = lazy(() => import('./features/profile/ProfileLayout'));
+const ProfileOverview    = lazy(() => import('./features/profile/ProfileOverview'));
+const ProfileAiLab       = lazy(() => import('./features/profile/ProfileAiLab'));
+const ProfileSecurity    = lazy(() => import('./features/profile/ProfileSecurity'));
+const ProfileNotifications = lazy(() => import('./features/profile/ProfileNotifications'));
+const ProfileFeedback    = lazy(() => import('./features/profile/ProfileFeedback'));
+const ProfileBookmarks   = lazy(() => import('./features/profile/ProfileBookmarks'));
+const ProfileThreads     = lazy(() => import('./features/profile/ProfileThreads'));
+const AdminUsers         = lazy(() => import('./pages/AdminUsers'));
+const AdminSecurity      = lazy(() => import('./pages/AdminSecurity'));
+const AdminAnalytics     = lazy(() => import('./pages/AdminAnalytics'));
+const AdminForum         = lazy(() => import('./pages/AdminForum'));
+const AdminABTest        = lazy(() => import('./pages/AdminABTest'));
+const AdminModeration    = lazy(() => import('./pages/AdminModeration'));
+const AdminDataset       = lazy(() => import('./pages/AdminDataset'));
+const Dashboard          = lazy(() => import('./pages/Dashboard'));
+const NotFound           = lazy(() => import('./pages/NotFound'));
+const About              = lazy(() => import('./pages/About'));
+const Gundem             = lazy(() => import('./pages/Gundem'));
+const Borsa              = lazy(() => import('./pages/Borsa'));
+const Report             = lazy(() => import('./pages/Report'));
+const ForumLayout        = lazy(() => import('./features/forum/ForumLayout'));
+const ForumFeed          = lazy(() => import('./features/forum/ForumFeed'));
+const ForumThread        = lazy(() => import('./features/forum/ForumThread'));
+const ForumCreateThread  = lazy(() => import('./features/forum/ForumCreateThread'));
+const SharedAnalysis     = lazy(() => import('./pages/SharedAnalysis'));
+const Profile            = lazy(() => import('./pages/Profile'));
+const UserProfile        = lazy(() => import('./pages/UserProfile'));
+const ProfileSettings    = lazy(() => import('./pages/ProfileSettings'));
+const Bookmarks          = lazy(() => import('./pages/Bookmarks'));
+const EmailVerification  = lazy(() => import('./pages/EmailVerification'));
+const Onboarding         = lazy(() => import('./pages/Onboarding'));
+const Messages           = lazy(() => import('./pages/Messages'));
+const ForumSearch        = lazy(() => import('./pages/ForumSearch'));
+const AnalysisReport     = lazy(() => import('./pages/AnalysisReport'));
+const Badges             = lazy(() => import('./pages/Badges'));
 
 function ProfileRedirect() {
     const { user } = useAuth();
@@ -77,7 +81,23 @@ function App() {
                 <WebSocketProvider>
                 <WsLifecycle />
                 <BrowserRouter>
-                    <Routes>
+                    <Suspense fallback={
+                        <div style={{
+                            minHeight: '100vh',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'var(--color-bg-base)',
+                        }}>
+                            <div style={{
+                                width: 32, height: 32, borderRadius: '50%',
+                                border: '2px solid rgba(16,185,129,0.2)',
+                                borderTopColor: 'var(--color-brand-primary)',
+                                animation: 'spin 0.7s linear infinite',
+                            }} />
+                        </div>
+                    }>
+                        <Routes>
                         <Route path="/" element={<Layout />}>
                             <Route index element={<Home />} />
                             <Route path="archive"    element={<Archive />} />
@@ -147,6 +167,7 @@ function App() {
                         </Route>
                         <Route path="*" element={<NotFound />} />
                     </Routes>
+                    </Suspense>
                 </BrowserRouter>
                 </WebSocketProvider>
             </AuthProvider>
