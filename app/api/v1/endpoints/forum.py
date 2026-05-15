@@ -228,6 +228,7 @@ async def create_thread(
         body=body.body,
         category=body.category,
         image_urls=body.image_urls or [],
+        post_type=body.post_type,
         status="active",
     )
     db.add(thread)
@@ -601,6 +602,11 @@ TIER_WEIGHT = {
     'analist':     1.5,
     'dedektif':    2.0,
 }
+POST_TYPE_VERDICTS = {
+    'iddia':    ['DOGRU', 'YANLIS', 'YANILTICI'],
+    'soru':     ['YANITLANDI', 'YANITLANMADI'],
+    'tartisma': [],
+}
 FEATURED_EVIDENCE_THRESHOLD    = 10
 AI_TRIGGER_MIN_COMMENTS        = 10
 AI_TRIGGER_MIN_HOURS           = 24
@@ -865,6 +871,24 @@ async def resolve_thread(
         raise HTTPException(status_code=403, detail="Sadece tartışma sahibi sonuçlandırabilir")
     if thread.verdict is not None:
         raise HTTPException(status_code=409, detail="Bu tartışma zaten sonuçlandırılmıştır")
+
+    # Contradiction lock — Öne Çıkan Kanıt varsa yazar tek başına kapatamaz
+    if thread.featured_comment_id is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Bu tartışmada yüksek güvenilirlikte kaynaklı kanıt var. "
+                   "Karar topluluk oyuna bırakılıyor.",
+        )
+
+    # post_type'a göre izin verilen verdict'ler
+    allowed = POST_TYPE_VERDICTS.get(thread.post_type or 'iddia', [])
+    if not allowed:
+        raise HTTPException(status_code=400, detail="Bu tür tartışmalar manuel olarak sonuçlandırılamaz.")
+    if body.verdict not in allowed:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Geçersiz karar. İzin verilenler: {', '.join(allowed)}",
+        )
 
     thread.verdict        = body.verdict
     thread.verdict_reason = body.reason
