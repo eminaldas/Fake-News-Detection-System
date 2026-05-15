@@ -1,5 +1,11 @@
 import React from 'react';
-import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, ShieldCheck, Brain } from 'lucide-react';
+
+const AI_VERDICT_CONFIG = {
+    DESTEKLIYOR: { label: 'AI: Kararı Destekliyor', color: 'var(--color-brand-primary)', bg: 'rgba(16,185,129,0.06)', border: 'rgba(16,185,129,0.25)' },
+    'ÇÜRÜTÜYOR': { label: 'AI: Kararı Çürütüyor',  color: 'var(--color-fake-fill)',     bg: 'rgba(239,68,68,0.06)',  border: 'rgba(239,68,68,0.25)'  },
+    BELIRSIZ:    { label: 'AI: Belirsiz',            color: 'var(--color-accent-amber)',  bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.25)' },
+};
 
 const VERDICT_CONFIG = {
     DOGRU:     { label: 'DOĞRU',     Icon: CheckCircle,   color: 'var(--color-brand-primary)', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.30)' },
@@ -77,6 +83,45 @@ const VerdictBox = ({ thread }) => {
                     <span>·</span>
                     <span>Topluluk: <strong>{cfg.label}</strong></span>
                     <span className="ml-auto">{match ? '✅ Uyuşuyor' : '⚠️ Uyuşmuyor'}</span>
+                </div>
+            )}
+
+            {thread.featured_evidence && (
+                <div className="flex flex-col gap-1.5 border-t pt-3" style={{ borderColor: cfg.border }}>
+                    <div className="flex items-center gap-1.5 font-mono text-[9px] font-bold uppercase tracking-widest"
+                         style={{ color: 'var(--color-brand-primary)' }}>
+                        <ShieldCheck className="w-3 h-3" />
+                        Öne Çıkan Kanıt · {thread.featured_evidence.username}
+                        <span className="ml-auto opacity-50">{thread.featured_evidence.verified_count} doğrulama</span>
+                    </div>
+                    <p className="font-mono text-[11px] leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                        {thread.featured_evidence.body.slice(0, 200)}{thread.featured_evidence.body.length > 200 ? '…' : ''}
+                    </p>
+                    {thread.featured_evidence.evidence_urls?.slice(0, 1).map(url => (
+                        <a key={url} href={url} target="_blank" rel="noopener noreferrer"
+                           className="font-mono text-[10px] underline truncate"
+                           style={{ color: 'var(--color-accent-blue)' }}>
+                            {url}
+                        </a>
+                    ))}
+                </div>
+            )}
+
+            {thread.ai_evidence_analysis && (
+                <div
+                    className="flex flex-col gap-1 px-3 py-2 border font-mono text-[10px]"
+                    style={{
+                        borderColor: AI_VERDICT_CONFIG[thread.ai_evidence_verdict]?.border ?? 'var(--color-terminal-border-raw)',
+                        background:  AI_VERDICT_CONFIG[thread.ai_evidence_verdict]?.bg    ?? 'transparent',
+                        color: 'var(--color-text-muted)',
+                    }}
+                >
+                    <div className="flex items-center gap-1.5"
+                         style={{ color: AI_VERDICT_CONFIG[thread.ai_evidence_verdict]?.color ?? 'var(--color-text-muted)' }}>
+                        <Brain className="w-3 h-3" />
+                        <span className="font-bold">{AI_VERDICT_CONFIG[thread.ai_evidence_verdict]?.label ?? 'AI Analizi'}</span>
+                    </div>
+                    <p>{thread.ai_evidence_analysis}</p>
                 </div>
             )}
         </div>
