@@ -170,21 +170,23 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                             </div>
                         </div>
                     ) : (
-                        {comment.is_featured_evidence && (
-                            <div className="flex items-center gap-1 mb-1.5 font-mono text-[9px] font-bold tracking-widest uppercase"
-                                 style={{ color: 'var(--color-brand-primary)' }}>
-                                <ShieldCheck className="w-3 h-3" />
-                                Öne Çıkan Kanıt
-                            </div>
-                        )}
-                        <p className="font-mono text-sm leading-relaxed" style={{ color: 'var(--color-text-primary)' }}>
-                            {comment.body}
-                            {comment.is_edited && (
-                                <span className="ml-2 font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
-                                    (düzenlendi)
-                                </span>
+                        <>
+                            {comment.is_featured_evidence && (
+                                <div className="flex items-center gap-1 mb-1.5 font-mono text-[9px] font-bold tracking-widest uppercase"
+                                     style={{ color: 'var(--color-brand-primary)' }}>
+                                    <ShieldCheck className="w-3 h-3" />
+                                    Öne Çıkan Kanıt
+                                </div>
                             )}
-                        </p>
+                            <p className="font-mono text-sm leading-relaxed" style={{ color: 'var(--color-text-primary)' }}>
+                                {comment.body}
+                                {comment.is_edited && (
+                                    <span className="ml-2 font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                                        (düzenlendi)
+                                    </span>
+                                )}
+                            </p>
+                        </>
                     )}
                 </div>
 
