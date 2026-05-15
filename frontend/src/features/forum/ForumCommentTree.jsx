@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { ThumbsUp, MessageSquare, Flag, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { ThumbsUp, MessageSquare, Flag, X, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -34,12 +34,14 @@ function depthBorderColor(depth, highlighted) {
     return 'rgba(16,185,129,0.08)';
 }
 
-function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewComment, currentUserId, depth = 0 }) {
+function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewComment, onVerify, currentUserId, depth = 0 }) {
     /* Alt yanıtlar varsayılan kapalı */
     const [showReplies,  setShowReplies]  = React.useState(false);
     const [visibleCount, setVisibleCount] = React.useState(REPLIES_INITIAL);
     const [editMode,     setEditMode]     = React.useState(false);
     const [editBody,     setEditBody]     = React.useState('');
+    const [verifiedCount, setVerifiedCount] = React.useState(comment.verified_count ?? 0);
+    const [userVerified,  setUserVerified]  = React.useState(comment.current_user_verified ?? false);
     const isAuthor = comment.user_id === currentUserId;
     const idx      = avatarIdx(comment.username);
     const borderL  = depthBorderColor(depth, comment.is_highlighted);
@@ -60,6 +62,16 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
     const handleDelete = async () => {
         if (!window.confirm('Bu yorumu silmek istediğinizden emin misiniz?')) return;
         try { await axiosInstance.delete(`/forum/comments/${comment.id}`); onNewComment?.(); } catch {}
+    };
+
+    const handleVerify = async () => {
+        if (!comment.evidence_urls?.length) return;
+        try {
+            const { data } = await axiosInstance.post(`/forum/comments/${comment.id}/verify`);
+            setVerifiedCount(data.verified_count);
+            setUserVerified(data.verified);
+            onVerify?.();
+        } catch {}
     };
 
     return (
@@ -158,6 +170,13 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                             </div>
                         </div>
                     ) : (
+                        {comment.is_featured_evidence && (
+                            <div className="flex items-center gap-1 mb-1.5 font-mono text-[9px] font-bold tracking-widest uppercase"
+                                 style={{ color: 'var(--color-brand-primary)' }}>
+                                <ShieldCheck className="w-3 h-3" />
+                                Öne Çıkan Kanıt
+                            </div>
+                        )}
                         <p className="font-mono text-sm leading-relaxed" style={{ color: 'var(--color-text-primary)' }}>
                             {comment.body}
                             {comment.is_edited && (
@@ -179,6 +198,18 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                         <ThumbsUp className="w-3.5 h-3.5" />
                         {comment.helpful_count > 0 ? comment.helpful_count : 'Faydalı'}
                     </button>
+
+                    {(comment.evidence_urls?.length > 0) && (
+                        <button
+                            onClick={handleVerify}
+                            className="flex items-center gap-1 font-mono text-[10px] transition-opacity hover:opacity-80"
+                            style={{ color: userVerified ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}
+                            title="Kaynağı inceledim ve doğruladım"
+                        >
+                            <ShieldCheck className="w-3 h-3" />
+                            {userVerified ? 'Doğrulandı' : 'Doğrula'} {verifiedCount > 0 && `(${verifiedCount})`}
+                        </button>
+                    )}
 
                     {depth <= MAX_DEPTH ? (
                         <button
