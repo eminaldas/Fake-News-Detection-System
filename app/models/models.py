@@ -433,7 +433,7 @@ class ForumComment(Base):
     edited_at  = Column(DateTime(timezone=True), nullable=True)
     created_at    = Column(DateTime(timezone=True), server_default=func.now())
 
-    thread  = relationship("ForumThread", back_populates="comments")
+    thread  = relationship("ForumThread", back_populates="comments", foreign_keys="ForumComment.thread_id")
     user    = relationship("User")
     replies = relationship("ForumComment", back_populates="parent")
     parent  = relationship("ForumComment", back_populates="replies", remote_side="ForumComment.id")
