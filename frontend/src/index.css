@@ -512,6 +512,7 @@
     background: linear-gradient(180deg, rgba(63,255,139,0.50), rgba(16,185,129,0.28));
     border-radius: 2px;
   }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover       { background: linear-gradient(180deg, rgba(63,255,139,0.70), rgba(16,185,129,0.40)); }
   .dark .custom-scrollbar::-webkit-scrollbar-thumb       { background: linear-gradient(180deg, rgba(63,255,139,0.40), rgba(16,185,129,0.22)); }
   .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, rgba(63,255,139,0.65), rgba(16,185,129,0.42)); }
 
