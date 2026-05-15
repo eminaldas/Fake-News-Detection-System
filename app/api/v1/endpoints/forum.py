@@ -57,7 +57,7 @@ _INVESTIGATE_THRESHOLD = 10
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
-def _build_comment_tree(flat: list) -> list:
+def _build_comment_tree(flat: list, verified_ids: set = None) -> list:
     """Flat sorgu sonucunu parent_id üzerinden ağaca dönüştürür."""
     by_id: dict = {}
     roots: list = []
@@ -73,6 +73,9 @@ def _build_comment_tree(flat: list) -> list:
             body=c.body,
             evidence_urls=c.evidence_urls or [],
             helpful_count=c.helpful_count,
+            verified_count=c.verified_count,
+            is_featured_evidence=c.is_featured_evidence,
+            current_user_verified=(c.id in verified_ids) if verified_ids is not None else None,
             depth=c.depth,
             is_highlighted=c.is_highlighted,
             created_at=c.created_at,
@@ -201,6 +204,8 @@ async def list_threads(
             verdict_reason=t.verdict_reason,
             verdict_by=t.verdict_by,
             verdict_at=t.verdict_at,
+            post_type=t.post_type or 'iddia',
+            featured_comment_id=t.featured_comment_id,
         )
         for t in threads
     ]
@@ -382,6 +387,8 @@ async def discover_threads(
             verdict_reason=t.verdict_reason,
             verdict_by=t.verdict_by,
             verdict_at=t.verdict_at,
+            post_type=t.post_type or 'iddia',
+            featured_comment_id=t.featured_comment_id,
         )
         for t in threads
     ]
@@ -417,7 +424,6 @@ async def get_thread(
         .order_by(ForumComment.created_at.asc())
     )
     flat_comments = comments_result.scalars().all()
-    comment_tree = _build_comment_tree(flat_comments)
 
     article_summary = None
     if thread.article_id:
@@ -448,6 +454,42 @@ async def get_thread(
             )
         )).scalar_one_or_none()
 
+    verified_comment_ids: set = set()
+    if current_user is not None and flat_comments:
+        rows = await db.execute(
+            select(ForumCommentVerification.comment_id)
+            .where(
+                ForumCommentVerification.user_id    == current_user.id,
+                ForumCommentVerification.comment_id.in_([c.id for c in flat_comments]),
+            )
+        )
+        verified_comment_ids = {r[0] for r in rows.all()}
+
+    comment_tree = _build_comment_tree(flat_comments, verified_comment_ids)
+
+    featured_evidence = None
+    if thread.featured_comment_id:
+        fc = next((c for c in flat_comments if c.id == thread.featured_comment_id), None)
+        if fc:
+            featured_evidence = ForumCommentItem(
+                id=fc.id,
+                thread_id=fc.thread_id,
+                parent_id=fc.parent_id,
+                user_id=fc.user_id,
+                username=fc.user.username if fc.user else "?",
+                avatar_url=fc.user.avatar_url if fc.user else None,
+                body=fc.body,
+                evidence_urls=fc.evidence_urls or [],
+                helpful_count=fc.helpful_count,
+                verified_count=fc.verified_count,
+                is_featured_evidence=True,
+                depth=fc.depth,
+                is_highlighted=fc.is_highlighted,
+                created_at=fc.created_at,
+                moderation_status=fc.moderation_status,
+                current_user_verified=(fc.id in verified_comment_ids),
+            )
+
     return ForumThreadDetail(
         id=thread.id,
         title=thread.title,
@@ -470,6 +512,11 @@ async def get_thread(
         verdict_reason=thread.verdict_reason,
         verdict_by=thread.verdict_by,
         verdict_at=thread.verdict_at,
+        post_type=thread.post_type or 'iddia',
+        featured_comment_id=thread.featured_comment_id,
+        featured_evidence=featured_evidence,
+        ai_evidence_analysis=thread.ai_evidence_analysis,
+        ai_evidence_verdict=thread.ai_evidence_verdict,
     )
 
 
