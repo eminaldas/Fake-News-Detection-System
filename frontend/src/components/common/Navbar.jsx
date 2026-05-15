@@ -318,7 +318,7 @@ const Navbar = () => {
                         style={{ color: 'var(--color-text-primary)' }}
                         aria-label="Toggle Theme"
                     >
-                        {isDarkMode ? <Sun size={15} /> : <Moon size={15} />}
+                        {isDarkMode ? <Sun size={17} /> : <Moon size={17} />}
                     </button>
 
                     {/* Bildirimler */}
@@ -332,7 +332,7 @@ const Navbar = () => {
                             style={{ color: 'var(--color-text-primary)' }}
                             title="Mesajlar"
                         >
-                            <MessageSquare className="w-5 h-5" />
+                            <MessageSquare size={17} />
                             <UnreadBadge />
                         </Link>
                     )}
@@ -365,11 +365,11 @@ const Navbar = () => {
                                 className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
                             >
                                 <div
-                                    className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center font-mono font-black text-xs shrink-0"
+                                    className="w-[26px] h-[26px] rounded-full overflow-hidden flex items-center justify-center font-mono font-black text-xs shrink-0"
                                     style={{
                                         background: 'var(--color-brand-primary)',
                                         color:      'var(--color-bg-base)',
-                                        border:     '2px solid var(--color-brand-primary)',
+                                        border:     '1.5px solid var(--color-brand-primary)',
                                         boxShadow:  '0 0 0 1px var(--color-bg-base)',
                                     }}
                                 >

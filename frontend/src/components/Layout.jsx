@@ -164,7 +164,7 @@ const Layout = () => {
                         ? 'linear-gradient(rgba(63,255,139,0.09) 1px,transparent 1px),linear-gradient(90deg,rgba(63,255,139,0.09) 1px,transparent 1px)'
                         : 'linear-gradient(var(--color-border) 1px,transparent 1px),linear-gradient(90deg,var(--color-border) 1px,transparent 1px)',
                     backgroundSize: '40px 40px',
-                    opacity: isDarkMode ? 1 : 0.18,
+                    opacity: isDarkMode ? 1 : 0.35,
                 }}
             />
 
@@ -187,13 +187,15 @@ const Layout = () => {
                          }} />
                 ))}
 
-                {/* Light mod blob'lar */}
+                {/* Light mod blob'lar — dark modla aynı mantık, açık tonda */}
                 {!isDarkMode && (
                     <>
-                        <div className="absolute -top-40 -left-40 w-150 h-150 rounded-full animate-blob-1"
-                             style={{ background: 'rgba(26,158,79,0.12)', filter: 'blur(120px)' }} />
-                        <div className="absolute -bottom-32 right-1/4 w-100 h-100 rounded-full animate-blob-2"
-                             style={{ background: 'rgba(26,158,79,0.12)', filter: 'blur(100px)' }} />
+                        <div className="absolute -top-40 -left-40 w-[620px] h-[620px] rounded-full animate-blob-1"
+                             style={{ background: 'rgba(22,163,74,0.13)', filter: 'blur(90px)' }} />
+                        <div className="absolute top-[-8%] right-[30%] w-[500px] h-[500px] rounded-full animate-blob-2"
+                             style={{ background: 'rgba(59,130,246,0.09)', filter: 'blur(90px)' }} />
+                        <div className="absolute top-[50%] left-[10%] w-[440px] h-[440px] rounded-full animate-blob-3"
+                             style={{ background: 'rgba(139,92,246,0.07)', filter: 'blur(80px)' }} />
                     </>
                 )}
 
