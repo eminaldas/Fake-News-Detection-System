@@ -95,7 +95,11 @@ const MarketBand = () => {
 
     const items      = tickers.map(sym => dataMap[sym]).filter(Boolean);
     const useMarquee = items.length > 4;
-    const duration   = `${Math.max(items.length * 3, 12)}s`;
+    // duration ilk veri yüklenince sabitlenir; sonraki refresh'lerde değişmez.
+    const itemCountRef = React.useRef(0);
+    if (items.length > 0 && itemCountRef.current === 0) itemCountRef.current = items.length;
+    const stableCount = itemCountRef.current || items.length;
+    const duration    = `${Math.max(stableCount * 3, 12)}s`;
 
     return (
         <div
@@ -125,7 +129,7 @@ const MarketBand = () => {
                         <div className="flex-1 overflow-hidden">
                             <div
                                 className="flex animate-marquee"
-                                style={{ gap: '2rem', animationDuration: duration }}
+                                style={{ gap: '2rem', animationDuration: duration, willChange: 'transform' }}
                             >
                                 {[...items, ...items].map((item, i) => (
                                     <MarketItem key={i} {...item} />
