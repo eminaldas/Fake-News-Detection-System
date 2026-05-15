@@ -468,6 +468,11 @@
     100% { transform: translateY(-50%); }
   }
 
+  @keyframes sunGlow {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50%       { opacity: 1;   transform: scale(1.18); }
+  }
+
   /* Delay yardımcıları */
   .delay-75  { animation-delay:  75ms; }
   .delay-150 { animation-delay: 150ms; }

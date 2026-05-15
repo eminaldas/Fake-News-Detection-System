@@ -159,17 +159,52 @@ const WeatherWidget = () => {
 
     return (
         <div ref={ref} className="relative hidden md:block">
-            {/* Trigger */}
+            {/* Trigger — Glassy Pill */}
             <button
                 onClick={toggleOpen}
-                className="flex items-center gap-1.5 font-mono text-[13px] font-bold tracking-tight select-none whitespace-nowrap transition-opacity hover:opacity-80"
-                style={{ color: 'var(--color-market-value)' }}
+                className="select-none whitespace-nowrap transition-opacity hover:opacity-80 flex items-center"
+                style={{
+                    background:           'rgba(7,15,18,0.72)',
+                    backdropFilter:       'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                    border:               '1px solid rgba(16,185,129,0.25)',
+                    borderRadius:         '999px',
+                    padding:              '5px 12px 5px 8px',
+                    gap:                  '8px',
+                    display:              'flex',
+                    alignItems:           'center',
+                }}
             >
-                <Icon className="w-3.5 h-3.5 shrink-0" style={{ opacity: 0.6 }} />
-                <span>{primary.temp}°C</span>
-                <span className="font-medium" style={{ color: 'var(--color-market-sys)', opacity: 0.5 }}>
-                    · {primary.city}
-                </span>
+                {/* Animated icon */}
+                <div style={{ position: 'relative', width: 22, height: 22, flexShrink: 0 }}>
+                    <div style={{
+                        position:   'absolute', inset: 0, borderRadius: '50%',
+                        background: 'radial-gradient(circle, rgba(251,191,36,0.35) 0%, transparent 70%)',
+                        animation:  'sunGlow 3s ease-in-out infinite',
+                    }} />
+                    <Icon
+                        className="w-full h-full"
+                        style={{ position: 'relative', opacity: 0.85, color: 'var(--color-market-value)' }}
+                    />
+                </div>
+
+                {/* Sıcaklık */}
+                <div>
+                    <div style={{
+                        fontFamily: 'monospace', fontSize: 15, fontWeight: 900,
+                        color: 'var(--color-market-value)', lineHeight: 1,
+                    }}>
+                        {primary.temp}°C
+                    </div>
+                    <div style={{
+                        fontFamily:    'monospace', fontSize: 8,
+                        color:         'var(--color-market-sys)', opacity: 0.55,
+                        letterSpacing: '0.08em',
+                    }}>
+                        {primary.city.toUpperCase()}
+                    </div>
+                </div>
+
                 <ChevronDown
                     className="w-3 h-3 shrink-0 transition-transform"
                     style={{
