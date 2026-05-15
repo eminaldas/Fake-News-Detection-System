@@ -149,7 +149,7 @@ function FeaturedCard({ article }) {
 
     return (
         <a href={article.source_url} target="_blank" rel="noopener noreferrer"
-           className="col-span-2 row-span-2 group relative flex flex-col overflow-hidden border
+           className="animate-glitch-reveal col-span-2 row-span-2 group relative flex flex-col overflow-hidden border
                       transition-all duration-300 hover:shadow-[0_0_20px_rgba(63,255,139,0.18)]"
            style={borderStyle}
            onClick={() => trackInteraction({
@@ -213,7 +213,7 @@ function SmallCard({ article }) {
 
     return (
         <a href={article.source_url} target="_blank" rel="noopener noreferrer"
-           className="flex flex-col overflow-hidden border group
+           className="h-full flex flex-col overflow-hidden border group
                       transition-all duration-300 hover:shadow-[0_0_14px_rgba(63,255,139,0.15)]"
            style={cardStyle}
            onClick={() => trackInteraction({
@@ -318,12 +318,20 @@ export default function PopularNewsGrid({ featured, articles, loading, loadingMo
         <div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-[220px] mb-4">
                 <FeaturedCard article={featured} />
-                {rest.slice(0, 4).map(a => <SmallCard key={a.id} article={a} />)}
+                {rest.slice(0, 4).map((a, idx) => (
+                    <div key={a.id} className="animate-glitch-reveal h-full" style={{ animationDelay: `${(idx + 1) * 110}ms` }}>
+                        <SmallCard article={a} />
+                    </div>
+                ))}
             </div>
 
             {rest.length > 4 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {rest.slice(4).map(a => <SmallCard key={a.id} article={a} />)}
+                    {rest.slice(4).map((a, idx) => (
+                        <div key={a.id} className="animate-glitch-reveal" style={{ animationDelay: `${idx * 110}ms` }}>
+                            <SmallCard article={a} />
+                        </div>
+                    ))}
                 </div>
             )}
 

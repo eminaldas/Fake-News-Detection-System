@@ -62,12 +62,13 @@ const RecentHeadlines = () => {
                             href={item.source_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`group flex flex-col gap-1.5 px-4 py-3.5 transition-colors border-l-2
+                            className={`animate-glitch-reveal group flex flex-col gap-1.5 px-4 py-3.5 transition-colors border-l-2
                                        hover:bg-black/[0.02] dark:hover:bg-white/[0.02]
                                        ${idx < headlines.length - 1 ? 'border-b' : ''}`}
                             style={{
                                 borderColor:     'var(--color-terminal-border-raw)',
                                 borderLeftColor: 'var(--color-brand-primary)' + '28',
+                                animationDelay:  `${idx * 110}ms`,
                             }}
                             onMouseEnter={e => (e.currentTarget.style.borderLeftColor = 'var(--color-brand-primary)')}
                             onMouseLeave={e => (e.currentTarget.style.borderLeftColor = 'var(--color-brand-primary)' + '28')}

@@ -102,10 +102,11 @@ export default function HotAnalysesCard() {
                         return (
                             <div
                                 key={item.task_id}
-                                className={`flex flex-col gap-2 px-4 py-3.5 cursor-pointer transition-colors border-l-2 ${idx < items.length - 1 ? 'border-b' : ''}`}
+                                className={`animate-glitch-reveal flex flex-col gap-2 px-4 py-3.5 cursor-pointer transition-colors border-l-2 ${idx < items.length - 1 ? 'border-b' : ''}`}
                                 style={{
                                     borderColor:     'var(--color-terminal-border-raw)',
                                     borderLeftColor: colors.border + '60',
+                                    animationDelay:  `${idx * 110}ms`,
                                 }}
                                 onMouseEnter={e => (e.currentTarget.style.borderLeftColor = colors.border)}
                                 onMouseLeave={e => (e.currentTarget.style.borderLeftColor = colors.border + '60')}
