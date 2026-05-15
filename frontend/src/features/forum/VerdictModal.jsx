@@ -6,13 +6,19 @@ import axiosInstance from '../../api/axios';
 const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 
-const OPTIONS = [
-    { value: 'DOGRU',     label: 'DOĞRU',     icon: CheckCircle,  color: 'var(--color-brand-primary)',   bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.35)'  },
-    { value: 'YANLIS',    label: 'YANLIŞ',    icon: XCircle,      color: 'var(--color-fake-fill)',        bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.35)'   },
-    { value: 'YANILTICI', label: 'YANILTICI', icon: AlertTriangle, color: 'var(--color-accent-amber)',   bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.35)'  },
+const OPTIONS_IDDIA = [
+    { value: 'DOGRU',     label: 'DOĞRU',     icon: CheckCircle,   color: 'var(--color-brand-primary)', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.35)' },
+    { value: 'YANLIS',    label: 'YANLIŞ',    icon: XCircle,       color: 'var(--color-fake-fill)',      bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.35)'  },
+    { value: 'YANILTICI', label: 'YANILTICI', icon: AlertTriangle,  color: 'var(--color-accent-amber)',  bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.35)' },
 ];
 
-const VerdictModal = ({ threadId, onClose, onResolved }) => {
+const OPTIONS_SORU = [
+    { value: 'YANITLANDI',   label: 'YANITLANDI',   icon: CheckCircle, color: 'var(--color-brand-primary)', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.35)' },
+    { value: 'YANITLANMADI', label: 'YANITLANMADI', icon: XCircle,     color: 'var(--color-fake-fill)',     bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.35)'  },
+];
+
+const VerdictModal = ({ threadId, postType = 'iddia', onClose, onResolved }) => {
+    const OPTIONS = postType === 'soru' ? OPTIONS_SORU : OPTIONS_IDDIA;
     const [selected,    setSelected]    = useState('');
     const [reason,      setReason]      = useState('');
     const [submitting,  setSubmitting]  = useState(false);
