@@ -34,8 +34,8 @@ const ParticleNetwork = React.memo(function ParticleNetwork({ isDark }) {
 
         const draw = () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const dotColor  = isDark ? 'rgba(16,185,129,0.55)' : 'rgba(26,158,79,0.18)';
-            const lineAlpha = isDark ? 0.18 : 0.07;
+            const dotColor  = isDark ? 'rgba(16,185,129,0.55)' : 'rgba(22,163,74,0.45)';
+            const lineAlpha = isDark ? 0.18 : 0.22;
 
             dots.forEach((d, i) => {
                 d.x += d.vx;
@@ -78,7 +78,7 @@ const ParticleNetwork = React.memo(function ParticleNetwork({ isDark }) {
                 position: 'fixed', inset: 0,
                 width: '100%', height: '100%',
                 zIndex: -8, pointerEvents: 'none',
-                opacity: isDark ? 1 : 0.5,
+                opacity: 1,
             }}
         />
     );
