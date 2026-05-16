@@ -37,6 +37,8 @@ export function CookieProvider({ children }) {
     }, [persist]);
 
     const resetConsent = useCallback(() => {
+        // Intentionally removes the key rather than writing DEFAULT_STATE,
+        // so the banner re-appears on next load as if the user never decided.
         localStorage.removeItem(STORAGE_KEY);
         setConsent(DEFAULT_STATE);
     }, []);

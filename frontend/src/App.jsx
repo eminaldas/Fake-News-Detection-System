@@ -75,7 +75,7 @@ function App() {
     return (
         <ThemeProvider>
             <CookieProvider>
-            <AuthProvider>
+                <AuthProvider>
                 <WebSocketProvider>
                 <WsLifecycle />
                 <BrowserRouter>
@@ -168,7 +168,7 @@ function App() {
                     </Suspense>
                 </BrowserRouter>
                 </WebSocketProvider>
-            </AuthProvider>
+                </AuthProvider>
             </CookieProvider>
         </ThemeProvider>
     );
