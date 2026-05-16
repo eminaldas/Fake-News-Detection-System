@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useCookie } from '../../contexts/CookieContext';
 
 const S = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
@@ -70,12 +70,16 @@ export default function ProfilePrivacy() {
     const [analytics, setAnalytics] = useState(consent.analytics);
     const [personalization, setPersonalization] = useState(consent.personalization);
     const [saved, setSaved] = useState(false);
+    const timerRef = useRef(null);
 
     const handleSave = () => {
         saveConsent({ analytics, personalization });
         setSaved(true);
-        setTimeout(() => setSaved(false), 2500);
+        clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setSaved(false), 2500);
     };
+
+    useEffect(() => () => clearTimeout(timerRef.current), []);
 
     return (
         <div className="space-y-6">
