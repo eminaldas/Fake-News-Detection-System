@@ -7,6 +7,7 @@ import NewsTicker from './common/NewsTicker';
 import { useTheme } from '../contexts/ThemeContext';
 import XPToast from './common/XPToast';
 import MiniMessenger from './common/MiniMessenger';
+import CookieConsentBanner from './common/CookieConsentBanner';
 
 const ParticleNetwork = React.memo(function ParticleNetwork({ isDark }) {
     const canvasRef = React.useRef(null);
@@ -320,6 +321,7 @@ const Layout = () => {
                 </footer>
             )}
 
+            <CookieConsentBanner />
             <XPToast />
         </div>
     );
