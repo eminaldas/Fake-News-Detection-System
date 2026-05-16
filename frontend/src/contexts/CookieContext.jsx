@@ -50,6 +50,7 @@ export function CookieProvider({ children }) {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useCookie() {
     const ctx = useContext(CookieContext);
     if (!ctx) throw new Error('useCookie must be used inside CookieProvider');

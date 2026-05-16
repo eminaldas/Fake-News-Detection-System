@@ -36,7 +36,8 @@ export default function ProfileSettings() {
 
             {/* Tab bar */}
             <div className="flex flex-wrap gap-1">
-                {TABS.map(({ id, label, icon: Icon }) => (
+                {/* eslint-disable-next-line no-unused-vars */}
+                {TABS.map(({ id, label, icon: TabIcon }) => (
                     <button
                         key={id}
                         onClick={() => setActive(id)}
@@ -47,7 +48,7 @@ export default function ProfileSettings() {
                             color:        active === id ? 'var(--color-brand-primary)' : 'var(--color-text-muted)',
                         }}
                     >
-                        <Icon className="w-3.5 h-3.5" />
+                        <TabIcon className="w-3.5 h-3.5" />
                         {label}
                     </button>
                 ))}
