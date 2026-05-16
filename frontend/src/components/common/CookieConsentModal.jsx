@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useCookie } from '../../contexts/CookieContext';
 
@@ -9,6 +9,7 @@ function Toggle({ value, onChange }) {
         <button
             type="button"
             onClick={() => onChange(!value)}
+            className="focus-visible:outline focus-visible:outline-2"
             style={{
                 position: 'relative',
                 width: 36, height: 18,
@@ -34,7 +35,7 @@ function Toggle({ value, onChange }) {
     );
 }
 
-const Row = ({ title, desc, locked, value, onChange }) => (
+const Row = ({ title, desc, locked = false, value = false, onChange = () => {} }) => (
     <div
         className="border"
         style={{
@@ -65,6 +66,14 @@ export default function CookieConsentModal({ isOpen, onClose }) {
     const [analytics, setAnalytics] = useState(consent.analytics);
     const [personalization, setPersonalization] = useState(consent.personalization);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    useEffect(() => {
+        if (isOpen) {
+            setAnalytics(consent.analytics);
+            setPersonalization(consent.personalization);
+        }
+    }, [isOpen, consent.analytics, consent.personalization]);
+
     if (!isOpen) return null;
 
     const handleSave = () => {
@@ -78,14 +87,14 @@ export default function CookieConsentModal({ isOpen, onClose }) {
     };
 
     return (
-        <div style={{
+        <div onClick={onClose} style={{
             position: 'fixed', inset: 0,
             background: 'rgba(0,0,0,0.70)',
             zIndex: 9999,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: '1rem',
         }}>
-            <div className="border w-full max-w-md" style={{
+            <div onClick={e => e.stopPropagation()} className="border w-full max-w-md" style={{
                 background: 'var(--color-terminal-surface)',
                 borderColor: 'var(--color-brand-primary)',
             }}>
