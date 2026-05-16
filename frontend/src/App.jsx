@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { WebSocketProvider } from './contexts/WebSocketContext';
+import { CookieProvider } from './contexts/CookieContext';
 import { useAuth } from './contexts/AuthContext';
 import AuthService from './services/auth.service';
 import wsService from './services/websocket';
@@ -73,6 +74,7 @@ function WsLifecycle() {
 function App() {
     return (
         <ThemeProvider>
+            <CookieProvider>
             <AuthProvider>
                 <WebSocketProvider>
                 <WsLifecycle />
@@ -167,6 +169,7 @@ function App() {
                 </BrowserRouter>
                 </WebSocketProvider>
             </AuthProvider>
+            </CookieProvider>
         </ThemeProvider>
     );
 }
