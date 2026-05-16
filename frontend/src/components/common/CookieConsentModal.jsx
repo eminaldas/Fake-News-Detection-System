@@ -66,13 +66,14 @@ export default function CookieConsentModal({ isOpen, onClose }) {
     const [analytics, setAnalytics] = useState(consent.analytics);
     const [personalization, setPersonalization] = useState(consent.personalization);
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    /* eslint-disable react-hooks/set-state-in-effect */
     useEffect(() => {
         if (isOpen) {
             setAnalytics(consent.analytics);
             setPersonalization(consent.personalization);
         }
     }, [isOpen, consent.analytics, consent.personalization]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     if (!isOpen) return null;
 
