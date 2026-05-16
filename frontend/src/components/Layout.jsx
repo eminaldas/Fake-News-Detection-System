@@ -90,7 +90,7 @@ const FORUM_PATHS = ['/forum'];
 
 const FOOTER_LINKS = [
     { label: 'Hakkımızda',      to: '/hakkimizda' },
-    { label: 'Gizlilik',        to: '#'           },
+    { label: 'Gizlilik',        to: '/profile/settings' },
     { label: 'İletişim',        to: '/hakkimizda' },
     { label: 'Kullanım Koşulları', to: '#'        },
 ];

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Monitor, SlidersHorizontal, ShieldCheck, Bell, ThumbsUp } from 'lucide-react';
+import { Monitor, SlidersHorizontal, ShieldCheck, Bell, ThumbsUp, Shield } from 'lucide-react';
 import ProfileAiLab         from '../features/profile/ProfileAiLab';
 import ProfileSecurity      from '../features/profile/ProfileSecurity';
 import ProfileNotifications from '../features/profile/ProfileNotifications';
 import ProfileFeedback      from '../features/profile/ProfileFeedback';
 import ProfileAppearance    from '../features/profile/ProfileAppearance';
+import ProfilePrivacy       from '../features/profile/ProfilePrivacy';
 
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 
@@ -14,6 +15,7 @@ const TABS = [
     { id: 'security',      label: 'Güvenlik',           icon: ShieldCheck,       Component: ProfileSecurity },
     { id: 'notifications', label: 'Bildirimler',        icon: Bell,              Component: ProfileNotifications },
     { id: 'feedback',      label: 'Geri Bildirimlerim', icon: ThumbsUp,          Component: ProfileFeedback },
+    { id: 'privacy',       label: 'Gizlilik',           icon: Shield,            Component: ProfilePrivacy },
 ];
 
 export default function ProfileSettings() {
