@@ -17,6 +17,218 @@ import PlatformStatsSection from "../features/analysis/PlatformStatsSection";
 import ForumTrendBand from "../components/features/gundem/ForumTrendBand";
 import { useForumTrends } from "../hooks/useForumTrends";
 
+/* ── Kelime HUD çerçevesi ── */
+function WordHUD({ color, exiting }) {
+  const sides = [
+    'top-0 left-0 h-[2px] w-[11px]', 'top-0 left-0 w-[2px] h-[11px]',
+    'top-0 right-0 h-[2px] w-[11px]', 'top-0 right-0 w-[2px] h-[11px]',
+    'bottom-0 left-0 h-[2px] w-[11px]', 'bottom-0 left-0 w-[2px] h-[11px]',
+    'bottom-0 right-0 h-[2px] w-[11px]', 'bottom-0 right-0 w-[2px] h-[11px]',
+  ];
+  return (
+    <span
+      className="absolute pointer-events-none"
+      style={{
+        inset: '-5px -10px',
+        animation: exiting
+          ? 'wordHudExit 0.32s cubic-bezier(0.6,0,0.8,1) forwards'
+          : 'wordHudEnter 0.30s cubic-bezier(0.1,0.9,0.2,1) both',
+      }}
+    >
+      {sides.map((cls, i) => (
+        <span key={i} className={`absolute block ${cls}`} style={{ background: color }} />
+      ))}
+    </span>
+  );
+}
+
+/* ── Hero Subtitle ── */
+function HeroSubtitle() {
+  const [phase, setPhase] = React.useState('idle');
+  const [dDyn,  setDDyn]  = React.useState({});
+  const [yDyn,  setYDyn]  = React.useState({});
+  const [aDyn,  setADyn]  = React.useState({ opacity: 0 });
+
+  /* "Ne?" ile aynı stil: skewX + chromatic aberration + opacity titremesi */
+  const glitchIn = React.useCallback((setDyn, finalStyle, dur = 420) => {
+    let start = null;
+    const step = (ts) => {
+      if (!start) start = ts;
+      const p   = Math.min((ts - start) / dur, 1);
+      const env = Math.sin(p * Math.PI);
+      const rx  = (Math.random() - 0.5) * 18 * env;
+      const sk  = (Math.random() - 0.5) * 6  * env;
+      setDyn({
+        transform:  `skewX(${sk}deg) translateX(${rx * 0.3}px)`,
+        textShadow: `${rx}px 0 0 rgba(255,50,50,0.78), ${-rx}px 0 0 rgba(0,220,255,0.72)`,
+        opacity:    0.60 + Math.random() * 0.40,
+        color:      finalStyle.color,
+      });
+      if (p < 1) requestAnimationFrame(step);
+      else setDyn(finalStyle);
+    };
+    requestAnimationFrame(step);
+  }, []);
+
+  /* Glitch + eş zamanlı opacity sıfıra inen çıkış */
+  const glitchOut = React.useCallback((setDyn, dur = 850, onDone) => {
+    let start = null;
+    const step = (ts) => {
+      if (!start) start = ts;
+      const p   = Math.min((ts - start) / dur, 1);
+      const env = Math.sin(p * Math.PI * 0.85);
+      const rx  = (Math.random() - 0.5) * 18 * env;
+      const sk  = (Math.random() - 0.5) * 6  * env;
+      setDyn({
+        transform:  `skewX(${sk}deg) translateX(${rx * 0.3}px)`,
+        textShadow: `${rx}px 0 0 rgba(255,50,50,0.78), ${-rx}px 0 0 rgba(0,220,255,0.72)`,
+        opacity:    Math.max(0, (1 - p) * (0.65 + Math.random() * 0.35)),
+      });
+      if (p < 1) requestAnimationFrame(step);
+      else { setDyn({ opacity: 0 }); onDone?.(); }
+    };
+    requestAnimationFrame(step);
+  }, []);
+
+  React.useEffect(() => {
+    let dead = false;
+    const T = [];
+
+    const cycle = () => {
+      if (dead) return;
+
+      // 1. doğru hedefle + glitch → yeşil
+      T.push(setTimeout(() => {
+        if (dead) return;
+        setPhase('dogru');
+        T.push(setTimeout(() => {
+          if (!dead) glitchIn(setDDyn, { color: '#10b981', opacity: 1 });
+        }, 360));
+      }, 500));
+      T.push(setTimeout(() => { if (!dead) setPhase('dogru-out'); }, 1380));
+      T.push(setTimeout(() => { if (!dead) setPhase('mid'); },       1720));
+
+      // 2. yanlış hedefle + glitch → kırmızı
+      T.push(setTimeout(() => {
+        if (dead) return;
+        setPhase('yanlis');
+        T.push(setTimeout(() => {
+          if (!dead) glitchIn(setYDyn, { color: '#ef4444', opacity: 1 });
+        }, 360));
+      }, 2250));
+      T.push(setTimeout(() => { if (!dead) setPhase('yanlis-out'); }, 3200));
+      T.push(setTimeout(() => { if (!dead) setPhase('mid2'); },       3550));
+
+      // 3. "hemen analiz et" hedefle → glitch ile belir
+      T.push(setTimeout(() => {
+        if (dead) return;
+        setPhase('analize');
+        T.push(setTimeout(() => {
+          if (!dead) glitchIn(setADyn, { opacity: 1, color: 'var(--color-text-primary)' });
+        }, 340));
+      }, 4050));
+      // 4. 5-6 saniye bekle, ardından glitch ile yok ol → SONRA hedef küçülüp gider
+      T.push(setTimeout(() => {
+        if (!dead) glitchOut(setADyn, 850, () => {
+          if (!dead) {
+            setPhase('analize-out');
+            T.push(setTimeout(() => {
+              if (!dead) {
+                setPhase('idle');
+                setDDyn({}); setYDyn({}); setADyn({ opacity: 0 });
+                T.push(setTimeout(cycle, 700));
+              }
+            }, 380));
+          }
+        });
+      }, 11200));
+    };
+
+    cycle();
+    return () => { dead = true; T.forEach(clearTimeout); };
+  }, [glitchIn, glitchOut]);
+
+  const W    = { fontFamily: "'Public Sans', system-ui, sans-serif", fontStyle: 'italic', fontWeight: 800 };
+  const showD = phase === 'dogru'   || phase === 'dogru-out';
+  const showY = phase === 'yanlis'  || phase === 'yanlis-out';
+  const showA = phase === 'analize' || phase === 'analize-out';
+
+  return (
+    <div className="flex flex-col items-center gap-2 animate-fade-up" style={{ animationDelay: '150ms', marginTop: '16px' }}>
+      <p style={{ fontFamily: "'Public Sans', system-ui, sans-serif", color: 'var(--color-text-primary)', fontSize: '1.1rem', lineHeight: 1.8 }}>
+        {'ne '}
+        <span className="relative inline-block">
+          {showD && <WordHUD color="rgba(16,185,129,0.82)" exiting={phase === 'dogru-out'} />}
+          <span style={{ ...W, ...dDyn }}>{' doğru '}</span>
+        </span>
+        {' ne '}
+        <span className="relative inline-block">
+          {showY && <WordHUD color="rgba(239,68,68,0.82)" exiting={phase === 'yanlis-out'} />}
+          <span style={{ ...W, ...yDyn }}>{' yanlış '}</span>
+        </span>
+        {' bilmiyor musun?'}
+      </p>
+      <p style={{ fontFamily: "'Public Sans', system-ui, sans-serif", fontSize: '1.1rem' }}>
+        <span className="relative inline-block">
+          {showA && <WordHUD color="rgba(16,185,129,0.82)" exiting={phase === 'analize-out'} />}
+          <span style={{ fontWeight: 700, ...aDyn }}>hemen analiz et.</span>
+        </span>
+      </p>
+    </div>
+  );
+}
+
+/* ── HUD Target Frame ── */
+const NC = 'rgba(16,185,129,0.88)';
+const HUD_VARIANTS = [
+  { anim: 'hudVar1 2.4s linear both', origin: 'top center',    dur: 2400 },
+  { anim: 'hudVar2 2.4s linear both', origin: 'center center', dur: 2400 },
+  { anim: 'hudVar3 2.4s linear both', origin: 'center center', dur: 2400 },
+  { anim: 'hudVar4 2.4s linear both', origin: 'center center', dur: 2400 },
+  { anim: 'hudVar5 2.8s linear both', origin: 'center center', dur: 2800 },
+];
+
+function HeroFrame() {
+  const [fs, setFs] = React.useState({ key: 0, idx: -1 });
+  const timerRef   = React.useRef(null);
+
+  React.useEffect(() => {
+    const schedule = (delay) => {
+      timerRef.current = setTimeout(() => {
+        const idx = Math.floor(Math.random() * HUD_VARIANTS.length);
+        setFs(s => ({ key: s.key + 1, idx }));
+        schedule(HUD_VARIANTS[idx].dur + 900 + Math.random() * 1400);
+      }, delay);
+    };
+    schedule(1600);
+    return () => clearTimeout(timerRef.current);
+  }, []);
+
+  const entrance = fs.idx === -1;
+  const v        = entrance ? null : HUD_VARIANTS[fs.idx];
+
+  return (
+    <div
+      key={fs.key}
+      className="absolute inset-0 pointer-events-none"
+      style={{
+        background:      'rgba(16,185,129,0.07)',
+        animation:       entrance ? 'heroFrameEnter 1.1s cubic-bezier(0.22,1,0.36,1) both' : v.anim,
+        transformOrigin: entrance ? 'center center' : v.origin,
+      }}
+    >
+      <div className="absolute top-0 left-0  h-[3px] w-[22px]" style={{ background: NC }} />
+      <div className="absolute top-0 left-0  w-[3px] h-[22px]" style={{ background: NC }} />
+      <div className="absolute top-0 right-0 h-[3px] w-[22px]" style={{ background: NC }} />
+      <div className="absolute top-0 right-0 w-[3px] h-[22px]" style={{ background: NC }} />
+      <div className="absolute bottom-0 left-0  h-[3px] w-[22px]" style={{ background: NC }} />
+      <div className="absolute bottom-0 left-0  w-[3px] h-[22px]" style={{ background: NC }} />
+      <div className="absolute bottom-0 right-0 h-[3px] w-[22px]" style={{ background: NC }} />
+      <div className="absolute bottom-0 right-0 w-[3px] h-[22px]" style={{ background: NC }} />
+    </div>
+  );
+}
+
 /* ── Glitch Hero ── */
 function GlitchNe() {
   const [dynStyle, setDynStyle] = React.useState({});
@@ -139,32 +351,20 @@ const Home = () => {
       )}
 
       {/* ── Hero ── */}
-      <div className="text-center mb-8 md:mb-12 mt-1 md:mt-2 flex flex-col items-center gap-3 md:gap-4">
-
-        {/* Badge pill */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 rounded-full
-                        bg-surface dark:bg-es-surface
-                        border border-brutal-border dark:border-es-primary/20
-                        shadow-sm animate-fade-up">
-          <span className="w-1.5 h-1.5 rounded-full bg-es-primary animate-pulse-soft shrink-0" />
-          <span className="text-[9px] md:text-[10px] font-manrope font-black uppercase tracking-widest text-tx-secondary dark:text-es-primary">
-            Yapay Zeka Destekli Doğrulama
-          </span>
-        </div>
+      <div className="text-center mb-4 md:mb-6 mt-1 md:mt-2 flex flex-col items-center gap-3 md:gap-4">
 
         {/* Ana başlık */}
-        <h1 style={{ animationDelay: '75ms' }}
-            className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-manrope font-extrabold text-tx-primary tracking-tighter leading-tight animate-fade-up">
-          <GlitchNe />
+        <h1 style={{ animationDelay: '75ms' }} className="animate-fade-up leading-tight">
+          <div className="relative inline-block" style={{ padding: '28px 52px' }}>
+            <HeroFrame />
+            <span className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-manrope font-extrabold text-tx-primary tracking-tighter leading-tight block">
+              <GlitchNe />
+            </span>
+          </div>
         </h1>
 
-        {/* Subtitle */}
-        <p style={{ animationDelay: '150ms', color: 'var(--color-text-primary)', opacity: 0.75 }}
-           className="text-sm md:text-base max-w-sm md:max-w-xl mx-auto leading-relaxed font-mono px-2 md:px-0 animate-fade-up">
-          Bilgi kirliliğinin ötesine geçin. Şüpheli haberi, iddiayı ya da metni
-          aşağıya yapıştırın — sistem dilbilimsel sinyalleri değerlendirip
-          bilgi tabanıyla karşılaştırarak gerçeklik analizi yapar.
-        </p>
+        {/* Glitch subtitle */}
+        <HeroSubtitle />
       </div>
 
       {/* ── 3 Kolon Layout ── */}

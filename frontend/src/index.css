@@ -514,6 +514,109 @@
     animation: glitchReveal 0.55s cubic-bezier(0.22,1,0.36,1) both;
   }
 
+  @keyframes feedItemIn {
+    from { opacity: 0; transform: translateY(-28px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-feed-in {
+    animation: feedItemIn 0.42s cubic-bezier(0.22,1,0.36,1) both;
+  }
+
+  /* ── Kelime HUD girişi / çıkışı ── */
+  @keyframes wordHudEnter {
+    0%   { opacity: 0; transform: scaleX(1.55) scaleY(0.45); }
+    55%  { opacity: 1; transform: scaleX(0.94) scaleY(1.06); }
+    100% { opacity: 1; transform: scaleX(1)    scaleY(1);    }
+  }
+  @keyframes wordHudExit {
+    0%   { opacity: 1; transform: scaleX(1)    scaleY(1);    }
+    40%  { opacity: 0.7; transform: scaleX(0.55) scaleY(0.55); }
+    100% { opacity: 0; transform: scaleX(0.08) scaleY(0.08); }
+  }
+
+  /* ── HUD Frame giriş ── */
+  @keyframes heroFrameEnter {
+    0%   { opacity: 0; transform: scaleX(1.28) scaleY(0.65); }
+    65%  { opacity: 1; transform: scaleX(0.96) scaleY(1.04); }
+    100% { opacity: 1; transform: scaleX(1)    scaleY(1);    }
+  }
+
+  /* ── Varyasyon 1: scaleY kısalır (top-origin) → sağa kayar ── */
+  @keyframes hudVar1 {
+    0%   { transform: translate(0,0) scaleY(1);
+           animation-timing-function: cubic-bezier(0.1,0.9,0.2,1); }
+    16%  { transform: translate(0,0) scaleY(0.70);
+           animation-timing-function: cubic-bezier(0.1,0.9,0.2,1); }
+    36%  { transform: translate(16px,0) scaleY(0.70);
+           animation-timing-function: linear; }
+    78%  { transform: translate(16px,0) scaleY(0.70);
+           animation-timing-function: cubic-bezier(0.4,0,0.2,1); }
+    100% { transform: translate(0,0) scaleY(1); }
+  }
+
+  /* ── Varyasyon 2: scaleX daralır → aşağı kayar ── */
+  @keyframes hudVar2 {
+    0%   { transform: translate(0,0) scaleX(1);
+           animation-timing-function: cubic-bezier(0.1,0.9,0.2,1); }
+    16%  { transform: translate(0,0) scaleX(0.68);
+           animation-timing-function: cubic-bezier(0.1,0.9,0.2,1); }
+    36%  { transform: translate(0,14px) scaleX(0.68);
+           animation-timing-function: linear; }
+    78%  { transform: translate(0,14px) scaleX(0.68);
+           animation-timing-function: cubic-bezier(0.4,0,0.2,1); }
+    100% { transform: translate(0,0) scaleX(1); }
+  }
+
+  /* ── Varyasyon 3: büyür → yukarı fırlar ── */
+  @keyframes hudVar3 {
+    0%   { transform: translate(0,0) scale(1);
+           animation-timing-function: cubic-bezier(0.1,0.9,0.2,1); }
+    16%  { transform: translate(0,0) scale(1.20);
+           animation-timing-function: cubic-bezier(0.1,0.9,0.2,1); }
+    36%  { transform: translate(0,-15px) scale(1.20);
+           animation-timing-function: linear; }
+    78%  { transform: translate(0,-15px) scale(1.20);
+           animation-timing-function: cubic-bezier(0.4,0,0.2,1); }
+    100% { transform: translate(0,0) scale(1); }
+  }
+
+  /* ── Varyasyon 4: scaleX büzüşür → sola flash ── */
+  @keyframes hudVar4 {
+    0%   { transform: translate(0,0) scaleX(1);
+           animation-timing-function: cubic-bezier(0.1,0.9,0.2,1); }
+    16%  { transform: translate(0,0) scaleX(0.65);
+           animation-timing-function: cubic-bezier(0.1,0.9,0.2,1); }
+    36%  { transform: translate(-16px,0) scaleX(0.65);
+           animation-timing-function: linear; }
+    78%  { transform: translate(-16px,0) scaleX(0.65);
+           animation-timing-function: cubic-bezier(0.4,0,0.2,1); }
+    100% { transform: translate(0,0) scaleX(1); }
+  }
+
+  /* ── Varyasyon 5: sağa kayar → DUR → aşağı kayar ── */
+  @keyframes hudVar5 {
+    0%   { transform: translate(0,0);
+           animation-timing-function: cubic-bezier(0.1,0.9,0.2,1); }
+    18%  { transform: translate(14px,0);
+           animation-timing-function: linear; }
+    34%  { transform: translate(14px,0);
+           animation-timing-function: cubic-bezier(0.1,0.9,0.2,1); }
+    52%  { transform: translate(14px,14px);
+           animation-timing-function: linear; }
+    80%  { transform: translate(14px,14px);
+           animation-timing-function: cubic-bezier(0.4,0,0.2,1); }
+    100% { transform: translate(0,0); }
+  }
+
+  @keyframes feedItemOut {
+    from { opacity: 1; transform: translateY(0); max-height: 120px; }
+    to   { opacity: 0; transform: translateY(16px); max-height: 0; }
+  }
+  .animate-feed-out {
+    animation: feedItemOut 0.36s ease-in forwards;
+    overflow: hidden;
+  }
+
   /* Delay yardımcıları */
   .delay-75  { animation-delay:  75ms; }
   .delay-150 { animation-delay: 150ms; }

@@ -38,7 +38,7 @@ function wmoLabel(code) {
 }
 
 function wmoAccent(code) {
-    if (code === 0)  return { bg: 'rgba(251,191,36,0.18)',  border: 'rgba(251,191,36,0.45)'  }; // güneş
+    if (code === 0)  return { bg: 'rgba(253,224,71,0.18)',  border: 'rgba(253,224,71,0.45)'  }; // güneş
     if (code <= 3)   return { bg: 'rgba(148,163,184,0.18)', border: 'rgba(148,163,184,0.40)' }; // bulutlu
     if (code <= 48)  return { bg: 'rgba(100,116,139,0.18)', border: 'rgba(100,116,139,0.40)' }; // sisli
     if (code <= 65)  return { bg: 'rgba(59,130,246,0.18)',  border: 'rgba(59,130,246,0.45)'  }; // yağmur
@@ -180,7 +180,7 @@ const WeatherWidget = () => {
                     backdropFilter:       'blur(16px)',
                     WebkitBackdropFilter: 'blur(16px)',
                     border:               `1px solid ${accent.border}`,
-                    borderRadius:         '4px',
+                    borderRadius:         '0px',
                     padding:              '5px 10px 5px 8px',
                     gap:                  '7px',
                     display:              'flex',

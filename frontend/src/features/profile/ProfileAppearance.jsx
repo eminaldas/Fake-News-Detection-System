@@ -29,8 +29,9 @@ export default function ProfileAppearance() {
                     <button
                         key={id}
                         onClick={() => setFontScale(id)}
-                        className="flex flex-col items-center gap-1 px-6 py-4 border font-mono transition-colors"
+                        className="flex flex-col items-center gap-1 border font-mono transition-colors"
                         style={{
+                            padding:     '1rem 1.5rem',
                             borderColor: fontScale === id
                                 ? 'var(--color-brand-primary)'
                                 : 'var(--color-terminal-border-raw)',
@@ -42,26 +43,26 @@ export default function ProfileAppearance() {
                                 : 'var(--color-text-muted)',
                         }}
                     >
-                        <Monitor className="w-4 h-4" />
-                        <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
-                        <span className="text-[10px] opacity-60">{desc}</span>
+                        <Monitor style={{ width: '1rem', height: '1rem' }} />
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
+                        <span style={{ fontSize: '0.625rem', opacity: 0.6 }}>{desc}</span>
                     </button>
                 ))}
             </div>
 
-            <div className="p-4 border" style={{
+            <div className="p-4 border overflow-hidden" style={{
                 borderColor: 'var(--color-terminal-border-raw)',
                 background:  'var(--color-terminal-surface)',
             }}>
-                <p className="font-mono text-[10px] uppercase tracking-widest mb-2"
-                   style={{ color: 'var(--color-market-sys)', opacity: 0.6 }}>// ÖNİZLEME</p>
-                <p style={{ color: 'var(--color-text-primary)', fontWeight: 700 }}>
+                <p className="font-mono uppercase tracking-widest mb-2"
+                   style={{ fontSize: '0.625rem', color: 'var(--color-market-sys)', opacity: 0.6 }}>// ÖNİZLEME</p>
+                <p style={{ color: 'var(--color-text-primary)', fontWeight: 700, fontSize: '1rem' }}>
                     Başlık örneği
                 </p>
-                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875em' }}>
+                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
                     İkincil metin — analiz sonucu açıklaması burada görünür.
                 </p>
-                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75em' }}>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>
                     Meta bilgi · kaynak · zaman damgası
                 </p>
             </div>
