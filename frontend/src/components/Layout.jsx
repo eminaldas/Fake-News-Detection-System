@@ -6,6 +6,7 @@ import MarketBand from './common/MarketBand';
 import NewsTicker from './common/NewsTicker';
 import { useTheme } from '../contexts/ThemeContext';
 import ToastContainer from './ui/ToastContainer';
+import Popup from './ui/Popup';
 import MiniMessenger from './common/MiniMessenger';
 import CookieConsentBanner from './common/CookieConsentBanner';
 
@@ -323,6 +324,7 @@ const Layout = () => {
 
             <CookieConsentBanner />
             <ToastContainer />
+            <Popup />
         </div>
     );
 };
