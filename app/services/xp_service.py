@@ -227,8 +227,11 @@ async def award_xp(
     # XP event kaydet
     db.add(UserXPEvent(user_id=user_id, action_type=action_type, xp_amount=xp_amount, ref_id=ref_id))
 
-    # total_xp güncelle (level nightly'de hesaplanır)
-    user_row.total_xp = (user_row.total_xp or 0) + xp_amount
+    # total_xp ve level gerçek zamanlı güncelle
+    old_level    = user_row.level or 1
+    new_total_xp = (user_row.total_xp or 0) + xp_amount
+    user_row.total_xp = new_total_xp
+    user_row.level = level_from_xp(new_total_xp)
 
     await db.flush()
 
@@ -237,4 +240,19 @@ async def award_xp(
         {"key": k, "name": BADGE_BY_KEY[k].name, "description": BADGE_BY_KEY[k].description}
         for k in new_keys if k in BADGE_BY_KEY
     ]
+
+    # Milestone varsa WebSocket üzerinden kullanıcıya bildir
+    level_up = user_row.level if user_row.level > old_level else None
+    if new_keys or level_up:
+        from app.core.pubsub import publish_async
+        await publish_async(
+            f"user:{user_id}:events",
+            "xp_milestone",
+            {
+                "badges":   new_badges,
+                "level_up": level_up,
+                "xp_gained": xp_amount,
+            },
+        )
+
     return {"xp_gained": xp_amount, "new_badges": new_badges}
