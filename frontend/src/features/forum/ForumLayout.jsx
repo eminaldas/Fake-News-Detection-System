@@ -18,10 +18,6 @@ const SORT_OPTIONS = [
     { key: 'controversial', label: 'Tartışmalı', Icon: Zap     },
 ];
 
-const SYSTEM_TAGS = [
-    '#doğrulandı', '#kaynak-yok', '#çelişki',
-    '#yanıltıcı-başlık', '#bağlam-eksik', '#eski-haber', '#sahte-alıntı',
-];
 
 const Block = ({ title, children }) => (
     <div className="relative border overflow-hidden" style={TS}>
@@ -48,8 +44,9 @@ const ForumLayout = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const currentSort  = searchParams.get('sort') ?? 'hot';
 
-    const [trending,     setTrending]     = React.useState(null);
-    const [searchQuery,  setSearchQuery]  = React.useState('');
+    const [trending,      setTrending]     = React.useState(null);
+    const [searchQuery,   setSearchQuery]  = React.useState('');
+    const [searchFocused, setSearchFocused] = React.useState(false);
 
     React.useEffect(() => {
         axiosInstance.get('/forum/trending').then(r => setTrending(r.data)).catch(() => {});
@@ -77,15 +74,6 @@ const ForumLayout = () => {
         setSearchQuery('');
     };
 
-    const applyTag = (tagName) => {
-        if (isThreadPage) {
-            navigate(`/forum?tag=${encodeURIComponent(tagName)}`);
-            return;
-        }
-        const next = new URLSearchParams(searchParams);
-        next.set('tag', tagName);
-        setSearchParams(next);
-    };
 
     return (
         <div className="w-full">
@@ -130,9 +118,9 @@ const ForumLayout = () => {
                         <form onSubmit={handleSearch} className="px-4 py-3">
                             <div
                                 className="flex items-center gap-2 border px-3 py-2.5 transition-colors"
-                                style={BD}
-                                onFocus={e  => e.currentTarget.style.borderColor = 'var(--color-brand-primary)'}
-                                onBlur={e   => e.currentTarget.style.borderColor = 'var(--color-terminal-border-raw)'}
+                                style={{ borderColor: searchFocused ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)' }}
+                                onFocus={() => setSearchFocused(true)}
+                                onBlur={() => setSearchFocused(false)}
                             >
                                 <Search className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
                                 <input
@@ -147,43 +135,6 @@ const ForumLayout = () => {
                                 Enter ile ara
                             </p>
                         </form>
-                    </Block>
-
-                    {/* Hızlı Etiket Filtreleri */}
-                    <Block title="// hızlı_etiketler">
-                        <div className="px-4 pb-3 pt-2 flex flex-wrap gap-1.5">
-                            {SYSTEM_TAGS.map(t => {
-                                const tagVal  = t.replace(/^#/, '');
-                                const isActive = searchParams.get('tag') === tagVal;
-                                return (
-                                    <button
-                                        key={t}
-                                        onClick={() => applyTag(tagVal)}
-                                        className="font-mono text-[10px] font-semibold px-2 py-0.5 border transition-opacity hover:opacity-80"
-                                        style={{
-                                            color:       'var(--color-brand-primary)',
-                                            borderColor: isActive ? 'var(--color-brand-primary)' : 'rgba(16,185,129,0.25)',
-                                            background:  isActive ? 'rgba(16,185,129,0.12)' : 'transparent',
-                                        }}
-                                    >
-                                        {t}
-                                    </button>
-                                );
-                            })}
-                            {searchParams.get('tag') && (
-                                <button
-                                    onClick={() => {
-                                        const n = new URLSearchParams(searchParams);
-                                        n.delete('tag');
-                                        setSearchParams(n);
-                                    }}
-                                    className="font-mono text-[10px] px-2 py-0.5 border transition-opacity hover:opacity-60"
-                                    style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-terminal-border-raw)' }}
-                                >
-                                    ✕ filtreyi kaldır
-                                </button>
-                            )}
-                        </div>
                     </Block>
 
                     {/* Trend Etiketler */}
