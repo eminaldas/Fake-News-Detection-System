@@ -2,7 +2,12 @@
 let _emit = null;
 
 function _show(type, title, options = {}) {
-  if (!_emit) return;
+  if (!_emit) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`[toast] No listener registered. Call toast._register() first.`);
+    }
+    return;
+  }
   _emit({
     type,
     title,
@@ -26,6 +31,7 @@ const toast = {
   },
 
   badge: (opts = {}) => {
+    if (!opts.name) return;
     _show('badge', `Yeni Rozet — ${opts.name}`, {
       sub:      opts.description ?? null,
       duration: 5000,
