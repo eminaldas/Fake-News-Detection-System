@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import axiosInstance from '../../api/axios';
 import NotificationBell from '../../features/notifications/NotificationBell';
 import { useWebSocket } from '../../contexts/WebSocketContext';
+import Tooltip from '../ui/Tooltip';
 
 function UnreadBadge() {
     const [count, setCount] = React.useState(0);
@@ -245,12 +246,16 @@ const Navbar = () => {
         axiosInstance.get('/users/me/trust').then(r => setTrust(r.data)).catch(() => {});
     }, [user]);
 
-    const [userLevel, setUserLevel] = React.useState(null);
+    const [userLevel,     setUserLevel]     = React.useState(null);
+    const [xpStats,       setXpStats]       = React.useState(null);
 
     React.useEffect(() => {
-        if (!isAuthenticated) { setUserLevel(null); return; }
+        if (!isAuthenticated) { setUserLevel(null); setXpStats(null); return; }
         axiosInstance.get('/gamification/me/stats')
-            .then(r => setUserLevel(r.data.level))
+            .then(r => {
+                setUserLevel(r.data.level);
+                setXpStats({ total_xp: r.data.total_xp, xp_to_next_level: r.data.xp_to_next_level });
+            })
             .catch(() => {});
     }, [isAuthenticated]);
 
@@ -411,16 +416,21 @@ const Navbar = () => {
                                                 {user.username}
                                             </p>
                                             {userLevel && (
-                                                <span
-                                                    className="font-mono text-[9px] px-2 py-0.5 border shrink-0"
-                                                    style={{
-                                                        borderColor: 'var(--color-brand-primary)',
-                                                        color:       'var(--color-brand-primary)',
-                                                        background:  'rgba(16,185,129,0.08)',
-                                                    }}
+                                                <Tooltip
+                                                    content={xpStats ? `${xpStats.total_xp} XP toplam · Sonraki seviye için ${xpStats.xp_to_next_level} XP gerekli` : `Seviye ${userLevel}`}
+                                                    side="bottom"
                                                 >
-                                                    SEVİYE {userLevel}
-                                                </span>
+                                                    <span
+                                                        className="font-mono text-[9px] px-2 py-0.5 border shrink-0"
+                                                        style={{
+                                                            borderColor: 'var(--color-brand-primary)',
+                                                            color:       'var(--color-brand-primary)',
+                                                            background:  'rgba(16,185,129,0.08)',
+                                                        }}
+                                                    >
+                                                        SEVİYE {userLevel}
+                                                    </span>
+                                                </Tooltip>
                                             )}
                                         </div>
                                         <p className="font-mono text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
