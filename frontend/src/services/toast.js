@@ -3,7 +3,7 @@ let _emit = null;
 
 function _show(type, title, options = {}) {
   if (!_emit) {
-    if (process.env.NODE_ENV !== 'production') {
+    if (import.meta.env.MODE !== 'production') {
       console.warn(`[toast] No listener registered. Call toast._register() first.`);
     }
     return;

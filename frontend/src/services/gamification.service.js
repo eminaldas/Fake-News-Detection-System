@@ -14,8 +14,7 @@ async function checkAndShowXPGain(label = '') {
     if (gained > 0) {
       toast.xp(gained, {
         label,
-        level: stats.level,
-        xpBar: [newXP - stats.xp_to_next_level, newXP + stats.xp_to_next_level],
+        sub: `Seviye ${stats.level ?? 1} · ${stats.xp_to_next_level ?? 0} XP kaldı`,
       });
     }
   } catch { /* sessizce geç */ }
