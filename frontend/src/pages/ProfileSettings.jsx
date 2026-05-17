@@ -1,21 +1,23 @@
 import React, { useState } from 'react';
-import { Monitor, SlidersHorizontal, ShieldCheck, Bell, ThumbsUp, Shield } from 'lucide-react';
+import { Monitor, SlidersHorizontal, ShieldCheck, Bell, ThumbsUp, Shield, TrendingUp } from 'lucide-react';
 import ProfileAiLab         from '../features/profile/ProfileAiLab';
 import ProfileSecurity      from '../features/profile/ProfileSecurity';
 import ProfileNotifications from '../features/profile/ProfileNotifications';
 import ProfileFeedback      from '../features/profile/ProfileFeedback';
 import ProfileAppearance    from '../features/profile/ProfileAppearance';
 import ProfilePrivacy       from '../features/profile/ProfilePrivacy';
+import ProfileMarket        from '../features/profile/ProfileMarket';
 
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 
 const TABS = [
     { id: 'appearance',    label: 'Görünüm',             icon: Monitor,           Component: ProfileAppearance },
-    { id: 'ai-lab',        label: 'AI Lab',             icon: SlidersHorizontal, Component: ProfileAiLab },
-    { id: 'security',      label: 'Güvenlik',           icon: ShieldCheck,       Component: ProfileSecurity },
-    { id: 'notifications', label: 'Bildirimler',        icon: Bell,              Component: ProfileNotifications },
-    { id: 'feedback',      label: 'Geri Bildirimlerim', icon: ThumbsUp,          Component: ProfileFeedback },
-    { id: 'privacy',       label: 'Gizlilik',           icon: Shield,            Component: ProfilePrivacy },
+    { id: 'ai-lab',        label: 'AI Lab',              icon: SlidersHorizontal, Component: ProfileAiLab },
+    { id: 'market',        label: 'Piyasalar',           icon: TrendingUp,        Component: ProfileMarket },
+    { id: 'security',      label: 'Güvenlik',            icon: ShieldCheck,       Component: ProfileSecurity },
+    { id: 'notifications', label: 'Bildirimler',         icon: Bell,              Component: ProfileNotifications },
+    { id: 'feedback',      label: 'Geri Bildirimlerim',  icon: ThumbsUp,          Component: ProfileFeedback },
+    { id: 'privacy',       label: 'Gizlilik',            icon: Shield,            Component: ProfilePrivacy },
 ];
 
 export default function ProfileSettings() {

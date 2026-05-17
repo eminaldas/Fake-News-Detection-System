@@ -47,7 +47,6 @@ const GUNDEM_CATEGORIES = [
 const NAV_LINKS = [
     { name: 'Analiz',   path: '/'       },
     { name: 'Haberler', path: '/gundem' },
-    { name: 'Borsa',    path: '/borsa'  },
     { name: 'Forum',    path: '/forum'  },
     { name: 'Bildir',   path: '/report' },
 ];
