@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import AnalysisService from '../services/analysis.service';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import GamificationService from '../services/gamification.service';
+import toast from '../services/toast';
 
 export const useAnalysis = () => {
     const [loading, setLoading]             = useState(false);
@@ -63,18 +64,22 @@ export const useAnalysis = () => {
                     clearInterval(interval);
                     GamificationService.checkAndShowXPGain('Analiz Tamamlandı');
                 } else if (isFailed) {
-                    setError(response.result?.error || 'Analiz başarısız.');
+                    const errorMsg = response.result?.error || 'Analiz başarısız.';
+                    setError(errorMsg);
                     setLoading(false);
                     setPollingTaskId(null);
                     setAnalysisStage(null);
                     clearInterval(interval);
+                    toast.error('Analiz tamamlanamadı', { sub: errorMsg });
                 }
             } catch (err) {
-                setError(err.message || 'Durum kontrol edilemedi.');
+                const errorMsg = err.message || 'Durum kontrol edilemedi.';
+                setError(errorMsg);
                 setLoading(false);
                 setPollingTaskId(null);
                 setAnalysisStage(null);
                 clearInterval(interval);
+                toast.error('Analiz tamamlanamadı', { sub: errorMsg });
             }
         }, 10_000);
 
@@ -93,7 +98,10 @@ export const useAnalysis = () => {
             if (data.task_id) { pendingTextRef.current = null; setPollingTaskId(data.task_id); }
             else { setError('Sunucudan beklenmeyen yanıt.'); setLoading(false); }
         } catch (err) {
-            setError(err.message || 'URL analizi başlatılamadı.'); setLoading(false);
+            const errorMsg = err.message || 'URL analizi başlatılamadı.';
+            setError(errorMsg);
+            setLoading(false);
+            toast.error('Analiz tamamlanamadı', { sub: errorMsg });
         }
     };
 
@@ -120,7 +128,10 @@ export const useAnalysis = () => {
                 setError('Sunucudan beklenmeyen yanıt.'); setLoading(false);
             }
         } catch (err) {
-            setError(err.message || 'Sunucuya bağlanılamadı.'); setLoading(false);
+            const errorMsg = err.message || 'Sunucuya bağlanılamadı.';
+            setError(errorMsg);
+            setLoading(false);
+            toast.error('Analiz tamamlanamadı', { sub: errorMsg });
         }
     };
 
