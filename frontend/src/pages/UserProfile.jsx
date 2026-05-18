@@ -1,6 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import BadgeShowcase from '../features/profile/BadgeShowcase';
+import XPRing from '../features/profile/XPRing';
+import PopularThreadsWidget from '../features/profile/PopularThreadsWidget';
+import RecommendedUsersWidget from '../features/profile/RecommendedUsersWidget';
 import {
     MessageSquare, Calendar, Users, UserCheck, UserPlus, UserMinus,
     Settings, Star, Shield, Search, Cpu, Zap, Award, Lock,
@@ -333,9 +337,17 @@ export default function UserProfile() {
     const PRED_L = { FAKE: 'Yanıltıcı', AUTHENTIC: 'Güvenilir', UNCERTAIN: 'Belirsiz' };
 
     return (
-        <div className="max-w-4xl mx-auto px-4 pt-6 pb-16 space-y-5">
+        <div className="max-w-7xl mx-auto px-4 pt-6 pb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
+            {/* ── Sol / Merkez ── */}
+            <div className="space-y-5 min-w-0">
 
             {/* ── Profil başlığı ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
             <div className="relative border overflow-hidden" style={S}>
                 <Corner />
                 <div className="p-6 md:p-8 flex flex-col sm:flex-row gap-6 items-start">
@@ -438,37 +450,34 @@ export default function UserProfile() {
 
                 {/* XP Bar */}
                 {xpStats && (
-                    <div className="px-5 pb-3">
-                        <div className="flex items-center justify-between mb-1">
-                            <span className="font-mono text-[10px]" style={{ color: 'var(--color-brand-primary)' }}>
-                                SEVİYE {xpStats.level}
-                            </span>
-                            <span className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
-                                {xpStats.total_xp} XP
-                            </span>
-                        </div>
-                        <div className="w-full h-1 rounded-full overflow-hidden"
-                             style={{ background: 'var(--color-terminal-border-raw)' }}>
-                            <div style={{ width: `${xpStats.xp_progress_pct}%`, background: 'var(--color-brand-primary)' }}
-                                 className="h-full rounded-full" />
-                        </div>
+                  <div className="px-5 pb-4">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="font-mono text-[10px]" style={{ color: 'var(--color-brand-primary)' }}>
+                        SEVİYE {xpStats.level}
+                      </span>
+                      <span className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                        {xpStats.total_xp} XP
+                      </span>
                     </div>
+                    <div className="w-full h-2 rounded-full overflow-hidden"
+                         style={{ background: 'var(--color-terminal-border-raw)' }}>
+                      <motion.div
+                        className="h-full rounded-full"
+                        style={{ background: 'linear-gradient(90deg, var(--color-brand-primary), #34d399)' }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${xpStats.xp_progress_pct}%` }}
+                        transition={{ type: 'spring', damping: 22, stiffness: 60, delay: 0.35 }}
+                      />
+                    </div>
+                  </div>
                 )}
 
                 {/* Rozet Vitrini */}
-                {showcase.length > 0 && (
-                    <div className="flex items-center gap-2 px-5 pb-4 flex-wrap">
-                        {showcase.map(b => (
-                            <div key={b.key}
-                                 className="flex items-center gap-1.5 px-2.5 py-1 border"
-                                 style={{ borderColor: b.color, color: b.color }}>
-                                <span className="font-mono text-[10px] font-black">{b.name[0]}</span>
-                                <span className="font-mono text-[10px]">{b.name}</span>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                <div className="px-5 pb-4">
+                  <BadgeShowcase showcase={showcase} />
+                </div>
             </div>
+            </motion.div>
 
             {/* ── Sekmeler ── */}
             <div className="flex border-b" style={BD}>
@@ -498,7 +507,12 @@ export default function UserProfile() {
 
             {/* ── Genel Bakış ── */}
             {activeTab === 'overview' && (
-                <div className="space-y-5">
+              <motion.div
+                className="space-y-5"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, delay: 0.05 }}
+              >
 
                     {/* Kendi: haftalık özet */}
                     {isOwnProfile && stats && (
@@ -526,6 +540,12 @@ export default function UserProfile() {
                         </div>
                     )}
 
+                    {isOwnProfile && stats && stats.hygiene_score != null && (
+                      <div className="flex justify-center py-2">
+                        <XPRing score={stats.hygiene_score} />
+                      </div>
+                    )}
+
                     {/* Son tartışmalar */}
                     {threads.length > 0 && (
                         <div className="relative border overflow-hidden" style={S}>
@@ -542,11 +562,16 @@ export default function UserProfile() {
                             {threads.slice(0, 5).map(t => <ThreadMini key={t.id} thread={t} />)}
                         </div>
                     )}
-                </div>
+              </motion.div>
             )}
 
             {/* ── Tartışmalar ── */}
             {activeTab === 'threads' && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, delay: 0.05 }}
+              >
                 <div className="relative border overflow-hidden" style={S}>
                     <Corner />
                     <div className="px-4 py-3 border-b flex items-center justify-between" style={BD}>
@@ -587,10 +612,16 @@ export default function UserProfile() {
                         </>
                     )}
                 </div>
+              </motion.div>
             )}
 
             {/* ── Analizlerim (sadece kendi) ── */}
             {activeTab === 'analyses' && isOwnProfile && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, delay: 0.05 }}
+              >
                 <div className="relative border overflow-hidden" style={S}>
                     <Corner />
                     <div className="px-4 py-3 border-b flex items-center justify-between" style={BD}>
@@ -657,24 +688,44 @@ export default function UserProfile() {
                         </>
                     )}
                 </div>
+              </motion.div>
             )}
 
             {/* ── Kaydedilenler (sadece kendi) ── */}
             {activeTab === 'bookmarks' && isOwnProfile && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, delay: 0.05 }}
+              >
                 <BookmarksTab />
+              </motion.div>
             )}
 
-            {/* Modals */}
-            {followModal && (
-                <FollowModal userId={userId} mode={followModal} onClose={() => setFollowModal(null)} />
-            )}
-            {selectedItem && (
-                <HistoryModal
-                    item={selectedItem}
-                    hasFullReport={fullReports.has(selectedItem.task_id)}
-                    onClose={() => setSelectedItem(null)}
-                />
-            )}
+            </div>{/* /Sol-Merkez */}
+
+            {/* ── Sağ Sidebar ── */}
+            <div className="space-y-5 order-last lg:order-none lg:sticky lg:top-24">
+              <PopularThreadsWidget />
+              <RecommendedUsersWidget
+                profileUserId={userId}
+                currentUserId={currentUser?.id}
+              />
+            </div>
+
+          </div>{/* /grid */}
+
+          {/* Modals */}
+          {followModal && (
+            <FollowModal userId={userId} mode={followModal} onClose={() => setFollowModal(null)} />
+          )}
+          {selectedItem && (
+            <HistoryModal
+              item={selectedItem}
+              hasFullReport={fullReports.has(selectedItem.task_id)}
+              onClose={() => setSelectedItem(null)}
+            />
+          )}
         </div>
     );
 }
