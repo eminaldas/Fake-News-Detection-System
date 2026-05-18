@@ -119,7 +119,7 @@ const MarketBand = () => {
                               style={{ background: 'var(--color-market-sys)' }} />
                         <span className="text-[10px] font-bold tracking-widest hidden sm:block"
                               style={{ color: 'var(--color-market-sys)' }}>
-                            SYS.ONLINE
+                            PİYASA
                         </span>
                     </Link>
 
