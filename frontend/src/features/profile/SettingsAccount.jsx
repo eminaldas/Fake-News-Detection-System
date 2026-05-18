@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Check, X, Globe, Twitter, Linkedin, AlertTriangle, Loader2, ExternalLink, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useBlocker } from 'react-router-dom';
 import axiosInstance from '../../api/axios';
 import SettingsPanelShell from './SettingsPanelShell';
 
@@ -201,6 +200,8 @@ export default function SettingsAccount() {
   const [saveError, setSaveError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
+  const [showLeaveWarning, setShowLeaveWarning] = useState(false);
+
   const usernameTimer = useRef(null);
   const avatarInputRef = useRef(null);
 
@@ -227,12 +228,13 @@ export default function SettingsAccount() {
     JSON.stringify(social) !== JSON.stringify(profile.social_links || { twitter: '', linkedin: '', website: '' })
   );
 
-  /* Sayfa dışına çıkış uyarısı */
-  const blocker = useBlocker(
-    useCallback(({ currentLocation, nextLocation }) =>
-      isDirty && currentLocation.pathname !== nextLocation.pathname,
-    [isDirty])
-  );
+  /* Sekme kapatma / sayfa yenileme uyarısı */
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
 
   const handleUsernameChange = (val) => {
     setUsername(val);
@@ -557,11 +559,11 @@ export default function SettingsAccount() {
         )}
       </AnimatePresence>
 
-      {/* Sayfa dışı çıkış uyarısı */}
-      {blocker.state === 'blocked' && (
+      {/* Uygulama içi navigasyon uyarısı */}
+      {showLeaveWarning && (
         <ConfirmModal
-          onConfirm={() => blocker.proceed()}
-          onCancel={() => blocker.reset()}
+          onConfirm={() => { handleCancel(); setShowLeaveWarning(false); }}
+          onCancel={() => setShowLeaveWarning(false)}
         />
       )}
     </>
