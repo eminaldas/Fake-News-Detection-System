@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Award, Trophy, BarChart2, Star, Shield, Search, Cpu, Zap,
-    MessageSquare, TrendingUp, Users, Calendar, Lock, Crown,
+    MessageSquare, TrendingUp, Users, Calendar, Lock, Crown, Pin, PinOff, Check,
 } from 'lucide-react';
 import GamificationService from '../services/gamification.service';
 import { useAuth } from '../contexts/AuthContext';
@@ -38,7 +38,7 @@ function getIcon(iconName) {
 const LEVEL_BADGE_KEYS = ['level_1', 'level_10', 'level_20', 'level_30', 'level_40', 'level_50'];
 
 /* ── Rozet Kartı ───────────────────────────────────────────────── */
-function BadgeCard({ badge, earned }) {
+function BadgeCard({ badge, earned, showcased, onToggleShowcase, showcaseFull }) {
     const Icon = getIcon(badge.icon);
     const progress  = !earned ? (badge.progress  ?? 0) : null;
     const threshold = !earned ? (badge.threshold ?? 1) : null;
@@ -48,15 +48,15 @@ function BadgeCard({ badge, earned }) {
         <div className="relative border overflow-hidden transition-all"
              style={{
                  background:   'var(--color-terminal-surface)',
-                 borderColor:  earned ? badge.color : 'var(--color-terminal-border-raw)',
-                 borderWidth:  earned ? '1.5px' : '1px',
+                 borderColor:  showcased ? badge.color : earned ? badge.color + '80' : 'var(--color-terminal-border-raw)',
+                 borderWidth:  showcased ? '2px' : earned ? '1.5px' : '1px',
                  opacity:      earned ? 1 : 0.75,
              }}>
             {earned && <Corner />}
 
             {/* Üst renk şerit */}
             {earned && (
-                <div className="h-1 w-full" style={{ background: badge.color, opacity: 0.7 }} />
+                <div className="h-1 w-full" style={{ background: badge.color, opacity: showcased ? 1 : 0.5 }} />
             )}
 
             <div className="p-5">
@@ -77,15 +77,17 @@ function BadgeCard({ badge, earned }) {
                                style={{ color: earned ? badge.color : 'var(--color-text-primary)' }}>
                                 {badge.name}
                             </p>
-                            {earned && (
-                                <span className="font-mono text-[9px] font-bold px-2 py-0.5 shrink-0"
-                                      style={{ background: `${badge.color}25`, color: badge.color, border: `1px solid ${badge.color}50` }}>
-                                    ✓ KAZANILDI
-                                </span>
-                            )}
-                            {!earned && (
-                                <Lock className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-text-muted)' }} />
-                            )}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                {earned && (
+                                    <span className="font-mono text-[9px] font-bold px-2 py-0.5"
+                                          style={{ background: `${badge.color}25`, color: badge.color, border: `1px solid ${badge.color}50` }}>
+                                        ✓ KAZANILDI
+                                    </span>
+                                )}
+                                {!earned && (
+                                    <Lock className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} />
+                                )}
+                            </div>
                         </div>
                         <p className="font-mono text-xs"
                            style={{ color: 'var(--color-text-primary)', opacity: earned ? 0.8 : 0.55 }}>
@@ -116,6 +118,29 @@ function BadgeCard({ badge, earned }) {
                                  }} />
                         </div>
                     </div>
+                )}
+
+                {/* Vitrine ekle / çıkar butonu */}
+                {earned && onToggleShowcase && (
+                    <button
+                        onClick={() => onToggleShowcase(badge.key)}
+                        disabled={!showcased && showcaseFull}
+                        className="mt-4 w-full flex items-center justify-center gap-2 py-1.5 font-mono text-xs font-bold border transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                        style={showcased ? {
+                            borderColor: badge.color,
+                            color: badge.color,
+                            background: `${badge.color}12`,
+                        } : {
+                            borderColor: 'var(--color-terminal-border-raw)',
+                            color: 'var(--color-text-muted)',
+                        }}
+                    >
+                        {showcased ? (
+                            <><PinOff className="w-3 h-3" /> Vitrinден Çıkar</>
+                        ) : (
+                            <><Pin className="w-3 h-3" /> Vitrine Ekle {showcaseFull ? '(dolu)' : ''}</>
+                        )}
+                    </button>
                 )}
             </div>
         </div>
@@ -301,10 +326,13 @@ function LeaderboardTab() {
 
 /* ── Ana Sayfa ─────────────────────────────────────────────────── */
 export default function Badges() {
-    const [tab,     setTab]     = useState('levels');
-    const [badges,  setBadges]  = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [stats,   setStats]   = useState(null);
+    const [tab,          setTab]          = useState('levels');
+    const [badges,       setBadges]       = useState(null);
+    const [loading,      setLoading]      = useState(true);
+    const [stats,        setStats]        = useState(null);
+    const [showcase,     setShowcase]     = useState([]);   // seçili badge key'leri (max 3)
+    const [saving,       setSaving]       = useState(false);
+    const [saved,        setSaved]        = useState(false);
     const { isAuthenticated } = useAuth();
 
     useEffect(() => {
@@ -313,14 +341,43 @@ export default function Badges() {
             GamificationService.getMyBadges(),
             GamificationService.getMyStats(),
         ])
-            .then(([b, s]) => { setBadges(b); setStats(s); })
+            .then(([b, s]) => {
+                setBadges(b);
+                setStats(s);
+                const initial = (b.earned || [])
+                    .filter(x => x.is_showcased)
+                    .sort((a, b) => (a.showcase_order ?? 99) - (b.showcase_order ?? 99))
+                    .map(x => x.key);
+                setShowcase(initial);
+            })
             .catch(() => {})
             .finally(() => setLoading(false));
     }, [isAuthenticated]);
 
-    const earnedKeys = new Set((badges?.earned || []).map(b => b.key));
-    const allBadges  = [...(badges?.earned || []), ...(badges?.locked || [])];
-    const byKey      = Object.fromEntries(allBadges.map(b => [b.key, b]));
+    const handleToggleShowcase = useCallback((key) => {
+        setShowcase(prev => {
+            if (prev.includes(key)) return prev.filter(k => k !== key);
+            if (prev.length >= 3)   return prev;
+            return [...prev, key];
+        });
+        setSaved(false);
+    }, []);
+
+    const handleSaveShowcase = async () => {
+        setSaving(true);
+        try {
+            await GamificationService.updateShowcase(showcase);
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2500);
+        } catch {}
+        finally { setSaving(false); }
+    };
+
+    const earnedKeys   = new Set((badges?.earned || []).map(b => b.key));
+    const showcaseSet  = new Set(showcase);
+    const showcaseFull = showcase.length >= 3;
+    const allBadges    = [...(badges?.earned || []), ...(badges?.locked || [])];
+    const byKey        = Object.fromEntries(allBadges.map(b => [b.key, b]));
 
     const levelBadges    = LEVEL_BADGE_KEYS.map(k => byKey[k]).filter(Boolean);
     const activityEarned = (badges?.earned  || []).filter(b => !LEVEL_BADGE_KEYS.includes(b.key) && b.category !== 'category');
@@ -407,6 +464,55 @@ export default function Badges() {
                 )}
             </div>
 
+            {/* Vitrin Önizleme + Kaydet */}
+            {isAuthenticated && !loading && (
+                <div className="relative border mb-5 overflow-hidden" style={TS}>
+                    <Corner />
+                    <div className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+                        <div>
+                            <p className="font-mono text-xs font-bold uppercase tracking-widest mb-2"
+                               style={{ color: 'var(--color-brand-primary)' }}>
+                                // VİTRİN — {showcase.length}/3 rozet seçili
+                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                {Array.from({ length: 3 }).map((_, i) => {
+                                    const key = showcase[i];
+                                    const b   = key ? byKey[key] : null;
+                                    return b ? (
+                                        <div key={key}
+                                             className="flex items-center gap-1.5 px-2.5 py-1 border text-[11px] font-mono font-bold"
+                                             style={{ borderColor: b.color, color: b.color, background: `${b.color}12` }}>
+                                            {b.name}
+                                        </div>
+                                    ) : (
+                                        <div key={`slot-${i}`}
+                                             className="flex items-center px-2.5 py-1 border border-dashed text-[11px] font-mono"
+                                             style={{ borderColor: 'var(--color-brand-primary)', color: 'var(--color-brand-primary)', opacity: 0.4 }}>
+                                            boş slot
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleSaveShowcase}
+                            disabled={saving}
+                            className="flex items-center gap-2 px-5 py-2 font-mono text-xs font-bold border-2 transition-all disabled:opacity-50"
+                            style={saved ? {
+                                borderColor: 'var(--color-brand-primary)',
+                                background:  'var(--color-brand-primary)',
+                                color:       '#070f12',
+                            } : {
+                                borderColor: 'var(--color-brand-primary)',
+                                color:       'var(--color-brand-primary)',
+                            }}
+                        >
+                            {saved ? <><Check className="w-3.5 h-3.5" /> Kaydedildi</> : saving ? 'Kaydediliyor...' : 'Vitrine Kaydet'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Sekmeler */}
             <div className="flex border-b mb-6" style={BD}>
                 {TABS.map(({ key, label, Icon }) => (
@@ -458,7 +564,10 @@ export default function Badges() {
             {!loading && tab === 'levels' && isAuthenticated && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {levelBadges.map(b => (
-                        <BadgeCard key={b.key} badge={b} earned={earnedKeys.has(b.key)} />
+                        <BadgeCard key={b.key} badge={b} earned={earnedKeys.has(b.key)}
+                            showcased={showcaseSet.has(b.key)}
+                            showcaseFull={showcaseFull}
+                            onToggleShowcase={earnedKeys.has(b.key) ? handleToggleShowcase : null} />
                     ))}
                 </div>
             )}
@@ -478,7 +587,10 @@ export default function Badges() {
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {[...activityEarned, ...activityLocked].map(b => (
-                                    <BadgeCard key={b.key} badge={b} earned={earnedKeys.has(b.key)} />
+                                    <BadgeCard key={b.key} badge={b} earned={earnedKeys.has(b.key)}
+                                        showcased={showcaseSet.has(b.key)}
+                                        showcaseFull={showcaseFull}
+                                        onToggleShowcase={earnedKeys.has(b.key) ? handleToggleShowcase : null} />
                                 ))}
                             </div>
                         </section>
@@ -495,7 +607,10 @@ export default function Badges() {
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {[...catEarned, ...catLocked].map(b => (
-                                    <BadgeCard key={b.key} badge={b} earned={earnedKeys.has(b.key)} />
+                                    <BadgeCard key={b.key} badge={b} earned={earnedKeys.has(b.key)}
+                                        showcased={showcaseSet.has(b.key)}
+                                        showcaseFull={showcaseFull}
+                                        onToggleShowcase={earnedKeys.has(b.key) ? handleToggleShowcase : null} />
                                 ))}
                             </div>
                         </section>

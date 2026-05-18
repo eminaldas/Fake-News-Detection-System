@@ -50,14 +50,14 @@ export default function BadgeShowcase({ showcase = [], isOwnProfile = false }) {
           <Link
             key={`empty-${i}`}
             to="/badges"
-            className="flex items-center px-2.5 py-1 border border-dashed transition-opacity hover:opacity-70"
+            className="flex items-center px-2.5 py-1 border border-dashed transition-all hover:border-solid"
             style={{
-              borderColor: 'var(--color-terminal-border-raw)',
-              color: 'var(--color-text-muted)',
-              opacity: 0.45,
+              borderColor: 'var(--color-brand-primary)',
+              color: 'var(--color-brand-primary)',
+              opacity: 0.6,
             }}
           >
-            <span className="font-mono text-[11px]">+ Rozet</span>
+            <span className="font-mono text-[11px] font-bold">+ Rozet</span>
           </Link>
         ) : null
       )}
