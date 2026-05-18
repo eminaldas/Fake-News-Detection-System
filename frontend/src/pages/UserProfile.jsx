@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
     MessageSquare, Calendar, Users, UserCheck, UserPlus, UserMinus,
     Settings, Star, Shield, Search, Cpu, Zap, Award, Lock,
@@ -471,17 +472,28 @@ export default function UserProfile() {
 
             {/* ── Sekmeler ── */}
             <div className="flex border-b" style={BD}>
-                {TABS.map(tab => (
-                    <button key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className="px-5 py-3 font-mono text-xs font-bold uppercase tracking-wider transition-colors border-b-2 -mb-px"
-                            style={{
-                                borderColor: activeTab === tab.id ? 'var(--color-brand-primary)' : 'transparent',
-                                color: activeTab === tab.id ? 'var(--color-brand-primary)' : 'var(--color-text-muted)',
-                            }}>
-                        {tab.label}
-                    </button>
-                ))}
+              {TABS.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className="relative px-5 py-3 font-mono text-xs font-bold uppercase tracking-wider transition-colors"
+                  style={{
+                    color: activeTab === tab.id
+                      ? 'var(--color-brand-primary)'
+                      : 'var(--color-text-muted)',
+                  }}
+                >
+                  {tab.label}
+                  {activeTab === tab.id && (
+                    <motion.div
+                      layoutId="tab-pill"
+                      className="absolute bottom-0 left-0 right-0 h-0.5"
+                      style={{ background: 'var(--color-brand-primary)' }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                </button>
+              ))}
             </div>
 
             {/* ── Genel Bakış ── */}
