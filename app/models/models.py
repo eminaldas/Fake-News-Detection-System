@@ -42,6 +42,7 @@ class User(Base):
 
     bio             = Column(Text, nullable=True)
     avatar_url      = Column(String(500), nullable=True)
+    social_links    = Column(JSONB, nullable=True)  # {"twitter":"...","linkedin":"...","website":"..."}
     follower_count  = Column(Integer, default=0, nullable=False)
     following_count = Column(Integer, default=0, nullable=False)
 

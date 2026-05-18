@@ -113,9 +113,12 @@ class EmailVerifyRequest(BaseModel):
 
 
 class UpdateProfileRequest(BaseModel):
-    username:         Optional[str] = Field(None, min_length=3, max_length=50)
-    current_password: Optional[str] = None
-    new_password:     Optional[str] = Field(None, min_length=8)
+    username:         Optional[str]   = Field(None, min_length=3, max_length=50)
+    bio:              Optional[str]   = Field(None, max_length=500)
+    avatar_url:       Optional[str]   = Field(None, max_length=500)
+    social_links:     Optional[dict]  = None
+    current_password: Optional[str]   = None
+    new_password:     Optional[str]   = Field(None, min_length=8)
 
     @field_validator("username")
     @classmethod

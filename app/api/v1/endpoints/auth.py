@@ -648,6 +648,13 @@ async def update_me(
             raise HTTPException(status_code=422, detail="Bu kullanıcı adı kullanımda")
         current_user.username = body.username
 
+    if body.bio is not None:
+        current_user.bio = body.bio
+    if body.avatar_url is not None:
+        current_user.avatar_url = body.avatar_url
+    if body.social_links is not None:
+        current_user.social_links = body.social_links
+
     await db.commit()
     await db.refresh(current_user)
     return current_user
