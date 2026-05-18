@@ -3,7 +3,7 @@ import { DISPLAY_THRESHOLD } from './signalConfig';
 
 export const RING_CIRC = 264;
 
-export const SIGNAL_WEIGHT_ORDER = [
+const SIGNAL_WEIGHT_ORDER = [
     'clickbait_score', 'exclamation_ratio', 'uppercase_ratio',
     'hedge_ratio', 'question_density', 'avg_word_length', 'number_density',
 ];
