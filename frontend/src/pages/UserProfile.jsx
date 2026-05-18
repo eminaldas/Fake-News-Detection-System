@@ -24,6 +24,14 @@ const TIER_COLOR = {
     dedektif:    'var(--color-brand-primary)',
 };
 
+const CAT_COLOR = {
+  Siyaset:   'var(--color-accent-blue)',
+  Ekonomi:   'var(--color-accent-amber)',
+  Bilim:     '#a855f7',
+  Spor:      '#ec4899',
+  Teknoloji: '#06b6d4',
+};
+
 const Corner = () => (
     <>
         <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand pointer-events-none" />
@@ -45,6 +53,7 @@ function Avatar({ user, size = 80 }) {
                       color: TEXTS[idx], fontSize: size * 0.35 }}>
             {user?.avatar_url
                 ? <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover"
+                       referrerPolicy="no-referrer"
                        onError={e => { e.currentTarget.style.display = 'none'; }} />
                 : (user?.username?.[0] ?? 'U').toUpperCase()
             }
@@ -117,7 +126,8 @@ function FollowModal({ userId, mode, onClose }) {
                                  style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid var(--color-brand-primary)',
                                           color: 'var(--color-brand-primary)', fontWeight: 900, fontSize: 14 }}>
                                 {u.avatar_url
-                                    ? <img src={u.avatar_url} alt={u.username} className="w-full h-full object-cover" />
+                                    ? <img src={u.avatar_url} alt={u.username} className="w-full h-full object-cover"
+                                           referrerPolicy="no-referrer" />
                                     : u.username[0].toUpperCase()}
                             </div>
                             <div className="min-w-0">
@@ -138,33 +148,57 @@ function FollowModal({ userId, mode, onClose }) {
 
 /* ── Thead özet kartı ────────────────────────────────────── */
 function ThreadMini({ thread }) {
-    function timeAgo(d) {
-        const s = (Date.now() - new Date(d).getTime()) / 1000;
-        if (s < 3600)  return `${Math.floor(s/60)}dk`;
-        if (s < 86400) return `${Math.floor(s/3600)}sa`;
-        return `${Math.floor(s/86400)}g`;
-    }
-    const STATUS_C = { active:'var(--color-brand-primary)', under_review:'var(--color-accent-amber)', resolved:'var(--color-accent-blue)' };
-    return (
-        <div className="flex items-center gap-3 px-4 py-3 border-b transition-colors hover:bg-white/3"
-             style={BD}>
-            <div className="w-1 h-8 shrink-0"
-                 style={{ background: STATUS_C[thread.status] ?? 'var(--color-brand-primary)' }} />
-            <div className="flex-1 min-w-0">
-                <Link to={`/forum/${thread.id}`}
-                      className="font-mono text-sm font-bold truncate block transition-opacity hover:opacity-70"
-                      style={{ color: 'var(--color-text-primary)' }}>
-                    {thread.title}
-                </Link>
-                <div className="flex items-center gap-2 font-mono text-[10px]"
-                     style={{ color: 'var(--color-text-muted)' }}>
-                    {thread.category && <span style={{ color: 'var(--color-accent-blue)' }}>{thread.category}</span>}
-                    <span className="flex items-center gap-0.5"><MessageSquare className="w-2.5 h-2.5" />{thread.comment_count}</span>
-                    <span>{timeAgo(thread.created_at)}</span>
-                </div>
-            </div>
+  function timeAgo(d) {
+    const s = (Date.now() - new Date(d).getTime()) / 1000;
+    if (s < 3600)  return `${Math.floor(s / 60)}dk`;
+    if (s < 86400) return `${Math.floor(s / 3600)}sa`;
+    return `${Math.floor(s / 86400)}g`;
+  }
+  const STATUS_C = {
+    active:       'var(--color-brand-primary)',
+    under_review: 'var(--color-accent-amber)',
+    resolved:     'var(--color-accent-blue)',
+  };
+  const catColor = CAT_COLOR[thread.category] ?? 'var(--color-brand-primary)';
+
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-3 border-b transition-all duration-150 hover:bg-white/5 hover:scale-[1.005]"
+      style={BD}
+    >
+      <div className="w-1 h-8 shrink-0"
+           style={{ background: STATUS_C[thread.status] ?? 'var(--color-brand-primary)' }} />
+
+      <div className="flex-1 min-w-0">
+        <Link
+          to={`/forum/${thread.id}`}
+          className="font-mono text-sm font-bold truncate block transition-opacity hover:opacity-70"
+          style={{ color: 'var(--color-text-primary)' }}
+        >
+          {thread.title}
+        </Link>
+        <div className="flex items-center gap-2 font-mono text-[10px] mt-0.5"
+             style={{ color: 'var(--color-text-muted)' }}>
+          {thread.category && (
+            <span
+              className="px-1.5 py-0.5 text-[9px] font-bold border"
+              style={{ color: catColor, borderColor: catColor + '40' }}
+            >
+              {thread.category}
+            </span>
+          )}
+          <span className="flex items-center gap-0.5">
+            <MessageSquare className="w-2.5 h-2.5" />
+            {thread.comment_count}
+          </span>
+          <span>{thread.created_at ? timeAgo(thread.created_at) : ''}</span>
         </div>
-    );
+      </div>
+
+      <ChevronRight className="w-3.5 h-3.5 shrink-0"
+                    style={{ color: 'var(--color-text-muted)' }} />
+    </div>
+  );
 }
 
 /* ── Ana sayfa ───────────────────────────────────────────── */
