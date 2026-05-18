@@ -41,7 +41,7 @@ export default function PopularThreadsWidget() {
   useEffect(() => {
     axiosInstance
       .get('/forum/threads', { params: { sort: 'hot', page: 1, size: 5 } })
-      .then(({ data }) => setThreads(data.items ?? []))
+      .then(({ data }) => setThreads(data?.items ?? []))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
@@ -75,7 +75,7 @@ export default function PopularThreadsWidget() {
               <Link
                 to={`/forum/${t.id}`}
                 key={t.id}
-                className="flex flex-col gap-1 px-3 py-2.5 border-b transition-all duration-150 hover:bg-white/5 hover:scale-[1.005] block"
+                className="flex flex-col gap-1 px-3 py-2.5 border-b transition-all duration-150 hover:bg-white/5 hover:scale-[1.005]"
                 style={BD}
               >
                 <div className="flex items-start gap-1.5">
@@ -102,7 +102,7 @@ export default function PopularThreadsWidget() {
                   </span>
                   <span className="font-mono text-[10px]"
                         style={{ color: 'var(--color-text-muted)' }}>
-                    · {timeAgo(t.created_at)}
+                    {t.created_at ? `· ${timeAgo(t.created_at)}` : ''}
                   </span>
                 </div>
               </Link>
