@@ -136,7 +136,7 @@ function BadgeCard({ badge, earned, showcased, onToggleShowcase, showcaseFull })
                         }}
                     >
                         {showcased ? (
-                            <><PinOff className="w-3 h-3" /> Vitrinден Çıkar</>
+                            <><PinOff className="w-3 h-3" /> Vitrinden Çıkar</>
                         ) : (
                             <><Pin className="w-3 h-3" /> Vitrine Ekle {showcaseFull ? '(dolu)' : ''}</>
                         )}
