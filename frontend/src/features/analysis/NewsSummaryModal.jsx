@@ -128,14 +128,14 @@ export default function NewsSummaryModal({ result, article, onClose, onAnalyze }
                 </div>
 
                 {/* Meta */}
-                {(article.source_name || article.pub_date) && (
+                {article && (article.source_name || article.pub_date) && (
                     <div className="px-5 pt-3 flex items-center gap-2 font-mono text-[10px]"
                          style={{ color: 'var(--color-text-muted)' }}>
-                        {article.source_name && (
+                        {article?.source_name && (
                             <span className="font-semibold">{article.source_name}</span>
                         )}
-                        {article.source_name && article.pub_date && <span>·</span>}
-                        {article.pub_date && <span>{relTime(article.pub_date)}</span>}
+                        {article?.source_name && article?.pub_date && <span>·</span>}
+                        {article?.pub_date && <span>{relTime(article.pub_date)}</span>}
                     </div>
                 )}
 
@@ -162,7 +162,7 @@ export default function NewsSummaryModal({ result, article, onClose, onAnalyze }
                 {/* Footer */}
                 <div className="px-5 pb-5">
                     <button
-                        onClick={onAnalyze}
+                        onClick={onAnalyze ?? onClose}
                         className="w-full font-mono text-[10px] font-bold uppercase tracking-widest px-4 py-3 border transition-all hover:brightness-110"
                         style={{ borderColor: BRAND, color: BRAND, background: 'rgba(16,185,129,0.06)' }}
                     >

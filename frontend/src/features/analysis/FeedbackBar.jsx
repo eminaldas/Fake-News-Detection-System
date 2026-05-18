@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { ThumbsUp, ThumbsDown, CheckCircle2 } from 'lucide-react';
 import { trackInteraction } from '../../services/interaction.service';
 
+const BRAND = 'var(--color-brand-primary)';
+
 export default function FeedbackBar({ result }) {
     const [state,  setState]  = useState('idle'); // idle | asking_reason | sent
     const [reason, setReason] = useState('');
@@ -49,7 +51,7 @@ export default function FeedbackBar({ result }) {
                 <button
                     onClick={handleSubmit}
                     className="px-5 py-2 rounded-xl font-manrope font-bold text-[11px] uppercase tracking-wider transition-all hover:opacity-85"
-                    style={{ background: '#3fff8b22', color: '#3fff8b', border: '1px solid #3fff8b44' }}
+                    style={{ background: 'rgba(16,185,129,0.06)', color: BRAND, border: `1px solid ${BRAND}44` }}
                 >
                     Gönder
                 </button>
