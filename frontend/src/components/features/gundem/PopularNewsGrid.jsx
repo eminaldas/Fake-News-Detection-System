@@ -120,13 +120,13 @@ function AnalyzeButton({ article }) {
                     result={result}
                     article={article}
                     onClose={() => setShowSummary(false)}
-                    onAnalyze={() => setShowAnalysis(true)}
+                    onAnalyze={() => { setShowSummary(false); setShowAnalysis(true); }}
                 />
             )}
             {showAnalysis && (
                 <AnalysisModal
                     result={result}
-                    onClose={() => setShowAnalysis(false)}
+                    onClose={() => { setShowAnalysis(false); setShowSummary(true); }}
                 />
             )}
         </>
