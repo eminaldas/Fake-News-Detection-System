@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Lock, Monitor, Smartphone, AlertTriangle, Download, Eye, EyeOff } from 'lucide-react';
 import axiosInstance from '../../api/axios';
+import SettingsPanelShell from './SettingsPanelShell';
 
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
@@ -124,6 +125,17 @@ const ProfileSecurity = () => {
     };
 
     return (
+        <SettingsPanelShell contextCard={
+            <div className="settings-glass border rounded-lg p-4 space-y-3">
+                <p className="font-mono text-[10px] uppercase tracking-widest"
+                   style={{ color: 'var(--color-brand-primary)', opacity: 0.6 }}>// GÜVENLİK ÖZET</p>
+                <div className="space-y-2 font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                    <p>Aktif oturum bilgileri için aşağıdaki paneli inceleyin.</p>
+                    <p>Güçlü parola: büyük/küçük harf, rakam ve özel karakter içermeli.</p>
+                    <p>Şüpheli giriş görürseniz tüm oturumları sonlandırın.</p>
+                </div>
+            </div>
+        }>
         <div className="space-y-6">
 
             {/* ── Şifre Değiştir ── */}
@@ -291,6 +303,7 @@ const ProfileSecurity = () => {
                 </button>
             </Block>
         </div>
+        </SettingsPanelShell>
     );
 };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Search, ChevronRight } from 'lucide-react';
 import axiosInstance from '../../api/axios';
+import SettingsPanelShell from './SettingsPanelShell';
 
 const CATEGORIES = ['gündem', 'ekonomi', 'spor', 'sağlık', 'teknoloji', 'kültür', 'yaşam'];
 
@@ -88,6 +89,31 @@ const ProfileAiLab = () => {
     const SEGS            = 12;
 
     return (
+        <SettingsPanelShell contextCard={
+            <div className="settings-glass border rounded-lg p-4 space-y-3">
+                <p className="font-mono text-[10px] uppercase tracking-widest"
+                   style={{ color: 'var(--color-brand-primary)', opacity: 0.6 }}>// AI PROFİL</p>
+                <p className="font-mono text-xs leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+                    Feed tercihleriniz doğrultusunda içerikler kişiselleştirilir. Engellenen kaynaklar analizlerde görünmez.
+                </p>
+                {profile && Object.keys(profile.category_weights || {}).length > 0 && (
+                    <div className="space-y-1.5">
+                        {Object.entries(profile.category_weights)
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 3)
+                            .map(([cat, w]) => (
+                                <div key={cat} className="flex items-center gap-2">
+                                    <span className="font-mono text-[10px] w-20 truncate" style={{ color: 'var(--color-text-muted)' }}>{cat}</span>
+                                    <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--color-terminal-border-raw)' }}>
+                                        <div className="h-full rounded-full" style={{ width: `${Math.min(w * 100, 100)}%`, background: 'var(--color-brand-primary)' }} />
+                                    </div>
+                                </div>
+                            ))
+                        }
+                    </div>
+                )}
+            </div>
+        }>
         <div className="space-y-6">
 
             {/* ── Kategori Ağırlık Matrisi ── */}
@@ -288,6 +314,7 @@ const ProfileAiLab = () => {
             </Block>
 
         </div>
+        </SettingsPanelShell>
     );
 };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight } from 'lucide-react';
 import axiosInstance from '../../api/axios';
+import SettingsPanelShell from './SettingsPanelShell';
 
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
@@ -112,6 +113,15 @@ const ProfileFeedback = () => {
         : 0;
 
     return (
+        <SettingsPanelShell contextCard={
+            <div className="settings-glass border rounded-lg p-4 space-y-3">
+                <p className="font-mono text-[10px] uppercase tracking-widest"
+                   style={{ color: 'var(--color-brand-primary)', opacity: 0.6 }}>// GERİ BİLDİRİM</p>
+                <p className="font-mono text-xs leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+                    Gönderdiğiniz geri bildirimler platformun geliştirilmesinde doğrudan katkı sağlar. Teşekkürler!
+                </p>
+            </div>
+        }>
         <div className="space-y-6">
 
             {/* ── Özet ── */}
@@ -231,6 +241,7 @@ const ProfileFeedback = () => {
                 </div>
             </Block>
         </div>
+        </SettingsPanelShell>
     );
 };
 

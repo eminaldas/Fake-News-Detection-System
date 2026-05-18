@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useCookie } from '../../contexts/CookieContext';
+import SettingsPanelShell from './SettingsPanelShell';
 
 const S = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
@@ -89,6 +90,15 @@ export default function ProfilePrivacy() {
     useEffect(() => () => clearTimeout(timerRef.current), []);
 
     return (
+        <SettingsPanelShell contextCard={
+            <div className="settings-glass border rounded-lg p-4 space-y-3">
+                <p className="font-mono text-[10px] uppercase tracking-widest"
+                   style={{ color: 'var(--color-brand-primary)', opacity: 0.6 }}>// GİZLİLİK</p>
+                <p className="font-mono text-xs leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+                    Gizlilik ayarlarınız yalnızca sizin için geçerlidir. Çerez tercihlerini sıfırlamak için tarayıcı önbelleğini temizleyin.
+                </p>
+            </div>
+        }>
         <div className="space-y-6">
             <div>
                 <p className="font-mono text-[10px] uppercase tracking-widest mb-1"
@@ -138,5 +148,6 @@ export default function ProfilePrivacy() {
                 </div>
             </Block>
         </div>
+        </SettingsPanelShell>
     );
 }

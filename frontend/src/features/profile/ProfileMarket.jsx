@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, Star } from 'lucide-react';
 import MarketService from '../../services/market.service';
 import { useMarketPrefs } from '../../hooks/useMarketPrefs';
 import { useAuth } from '../../contexts/AuthContext';
+import SettingsPanelShell from './SettingsPanelShell';
 
 const BRAND   = 'var(--color-brand-primary)';
 const SURFACE = 'var(--color-terminal-surface)';
@@ -159,6 +160,15 @@ export default function ProfileMarket() {
     }, []);
 
     return (
+        <SettingsPanelShell contextCard={
+            <div className="settings-glass border rounded-lg p-4 space-y-3">
+                <p className="font-mono text-[10px] uppercase tracking-widest"
+                   style={{ color: 'var(--color-brand-primary)', opacity: 0.6 }}>// PİYASA BİLGİ</p>
+                <p className="font-mono text-xs leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+                    Piyasa verileri 15 dakika gecikmeli güncellenir. Takip listesi ana sayfada widget olarak görünür.
+                </p>
+            </div>
+        }>
         <div className="flex flex-col gap-6">
 
             {/* Açıklama */}
@@ -238,5 +248,6 @@ export default function ProfileMarket() {
                 isAuthenticated={isAuthenticated}
             />
         </div>
+        </SettingsPanelShell>
     );
 }

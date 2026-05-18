@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Zap, Mail } from 'lucide-react';
 import axiosInstance from '../../api/axios';
+import SettingsPanelShell from './SettingsPanelShell';
 
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
@@ -107,6 +108,21 @@ const ProfileNotifications = () => {
     const activeCount = ITEMS.filter(item => !!prefs[item.key]).length;
 
     return (
+        <SettingsPanelShell contextCard={
+            <div className="settings-glass border rounded-lg p-4 space-y-3">
+                <p className="font-mono text-[10px] uppercase tracking-widest"
+                   style={{ color: 'var(--color-brand-primary)', opacity: 0.6 }}>// ÖRNEK BİLDİRİM</p>
+                <div className="border rounded p-3 space-y-1"
+                     style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'var(--color-terminal-surface)' }}>
+                    <p className="font-mono text-[10px] font-bold" style={{ color: 'var(--color-brand-primary)' }}>🔔 Yeni takipçi</p>
+                    <p className="font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>user_42 sizi takip etmeye başladı.</p>
+                    <p className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}>2dk önce</p>
+                </div>
+                <p className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                    Toggleları kapatırsanız bu tür bildirimler gelmez.
+                </p>
+            </div>
+        }>
         <div className="space-y-6">
             <Block
                 title="// notification_config"
@@ -176,6 +192,7 @@ const ProfileNotifications = () => {
                 </div>
             </Block>
         </div>
+        </SettingsPanelShell>
     );
 };
 
