@@ -53,11 +53,24 @@ export default function RecommendedUsersWidget({ profileUserId, currentUserId })
 
   useEffect(() => {
     GamificationService.getLeaderboard('alltime', 'xp')
-      .then(({ entries }) => {
+      .then(async ({ entries }) => {
         const filtered = (entries ?? [])
           .filter(e => e.user_id !== profileUserId && e.user_id !== currentUserId)
           .slice(0, 3);
         setUsers(filtered);
+
+        if (currentUserId && filtered.length > 0) {
+          const results = await Promise.allSettled(
+            filtered.map(u => axiosInstance.get(`/users/${u.user_id}/profile`))
+          );
+          const preFollowed = new Set();
+          results.forEach((r, i) => {
+            if (r.status === 'fulfilled' && r.value.data?.is_following) {
+              preFollowed.add(filtered[i].user_id);
+            }
+          });
+          setFollowed(preFollowed);
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));

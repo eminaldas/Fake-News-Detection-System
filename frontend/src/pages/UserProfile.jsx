@@ -76,7 +76,7 @@ function StatPill({ label, value, onClick }) {
             <span className="font-mono text-2xl font-black" style={{ color: 'var(--color-text-primary)' }}>
                 {value ?? 0}
             </span>
-            <span className="font-mono text-[10px] uppercase tracking-widest mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+            <span className="font-mono text-[11px] uppercase tracking-widest mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                 {label}
             </span>
         </button>
@@ -168,7 +168,7 @@ function ThreadMini({ thread }) {
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 border-b transition-all duration-150 hover:bg-white/5 hover:scale-[1.005]"
+      className="flex items-center gap-3 px-4 py-3 border-b transition-colors duration-150 hover:bg-white/10"
       style={BD}
     >
       <div className="w-1 h-8 shrink-0"
@@ -182,7 +182,7 @@ function ThreadMini({ thread }) {
         >
           {thread.title}
         </Link>
-        <div className="flex items-center gap-2 font-mono text-[10px] mt-0.5"
+        <div className="flex items-center gap-2 font-mono text-[11px] mt-0.5"
              style={{ color: 'var(--color-text-muted)' }}>
           {thread.category && (
             <span
@@ -344,9 +344,9 @@ export default function UserProfile() {
 
             {/* ── Profil başlığı ── */}
             <motion.div
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 28 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 100 }}
             >
               <div className="relative border overflow-hidden" style={S}>
                 <Corner />
@@ -366,8 +366,8 @@ export default function UserProfile() {
                                     <span className="font-mono text-sm font-bold" style={{ color: tierColor }}>
                                         {'★'.repeat(stars)}{'☆'.repeat(Math.max(0, 5 - stars))}
                                     </span>
-                                    <span className="font-mono text-xs px-2 py-0.5 border"
-                                          style={{ color: tierColor, borderColor: tierColor + '50' }}>
+                                    <span className="font-mono text-xs px-2.5 py-1 border font-bold"
+                                          style={{ color: tierColor, borderColor: tierColor + '60' }}>
                                         {profile.trust_label}
                                     </span>
                                 </div>
@@ -428,9 +428,9 @@ export default function UserProfile() {
                         )}
 
                         {/* Meta */}
-                        <p className="flex items-center gap-1.5 font-mono text-xs mt-3"
+                        <p className="flex items-center gap-1.5 font-mono text-xs mt-3 leading-relaxed"
                            style={{ color: 'var(--color-text-muted)' }}>
-                            <Calendar className="w-3.5 h-3.5" /> {joined} tarihinden beri üye
+                            <Calendar className="w-3.5 h-3.5 shrink-0" /> {joined} tarihinden beri üye
                         </p>
                     </div>
                 </div>
@@ -451,11 +451,11 @@ export default function UserProfile() {
                 {/* XP Bar */}
                 {xpStats && (
                   <div className="px-5 pb-4">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="font-mono text-[10px]" style={{ color: 'var(--color-brand-primary)' }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-mono text-xs font-bold" style={{ color: 'var(--color-brand-primary)' }}>
                         SEVİYE {xpStats.level}
                       </span>
-                      <span className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                      <span className="font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
                         {xpStats.total_xp} XP
                       </span>
                     </div>
@@ -474,7 +474,7 @@ export default function UserProfile() {
 
                 {/* Rozet Vitrini */}
                 <div className="px-5 pb-4">
-                  <BadgeShowcase showcase={showcase} />
+                  <BadgeShowcase showcase={showcase} isOwnProfile={isOwnProfile} />
                 </div>
               </div>
             </motion.div>
@@ -511,7 +511,7 @@ export default function UserProfile() {
                 className="space-y-5"
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: 0.05 }}
+                transition={{ duration: 0.28, delay: 0.12 }}
               >
 
                     {/* Kendi: haftalık özet */}
@@ -569,7 +569,7 @@ export default function UserProfile() {
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: 0.05 }}
+                transition={{ duration: 0.28, delay: 0.12 }}
               >
                 <div className="relative border overflow-hidden" style={S}>
                     <Corner />
@@ -619,7 +619,7 @@ export default function UserProfile() {
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: 0.05 }}
+                transition={{ duration: 0.28, delay: 0.12 }}
               >
                 <div className="relative border overflow-hidden" style={S}>
                     <Corner />
@@ -695,7 +695,7 @@ export default function UserProfile() {
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: 0.05 }}
+                transition={{ duration: 0.28, delay: 0.12 }}
               >
                 <BookmarksTab />
               </motion.div>

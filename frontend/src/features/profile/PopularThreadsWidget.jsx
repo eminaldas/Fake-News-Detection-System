@@ -75,7 +75,7 @@ export default function PopularThreadsWidget() {
               <Link
                 to={`/forum/${t.id}`}
                 key={t.id}
-                className="flex flex-col gap-1 px-3 py-2.5 border-b transition-all duration-150 hover:bg-white/5 hover:scale-[1.005]"
+                className="flex flex-col gap-1 px-3 py-2.5 border-b transition-colors duration-150 hover:bg-white/10"
                 style={BD}
               >
                 <div className="flex items-start gap-1.5">
@@ -83,24 +83,24 @@ export default function PopularThreadsWidget() {
                     <Flame className="w-3 h-3 shrink-0 mt-0.5"
                            style={{ color: 'var(--color-accent-amber)' }} />
                   )}
-                  <span className="font-mono text-xs leading-snug line-clamp-2 flex-1"
+                  <span className="font-mono text-xs leading-snug line-clamp-1 flex-1"
                         style={{ color: 'var(--color-text-primary)' }}>
                     {t.title}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   {t.category && (
-                    <span className="font-mono text-[9px] font-bold px-1.5 py-0.5 border shrink-0"
+                    <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 border shrink-0"
                           style={{ color: catColor, borderColor: catColor + '40' }}>
                       {t.category}
                     </span>
                   )}
-                  <span className="flex items-center gap-0.5 font-mono text-[10px]"
+                  <span className="flex items-center gap-0.5 font-mono text-[11px]"
                         style={{ color: 'var(--color-text-muted)' }}>
                     <MessageSquare className="w-2.5 h-2.5" />
                     {t.comment_count}
                   </span>
-                  <span className="font-mono text-[10px]"
+                  <span className="font-mono text-[11px]"
                         style={{ color: 'var(--color-text-muted)' }}>
                     {t.created_at ? `· ${timeAgo(t.created_at)}` : ''}
                   </span>
