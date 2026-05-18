@@ -348,7 +348,7 @@ export default function UserProfile() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-            <div className="relative border overflow-hidden" style={S}>
+              <div className="relative border overflow-hidden" style={S}>
                 <Corner />
                 <div className="p-6 md:p-8 flex flex-col sm:flex-row gap-6 items-start">
 
@@ -476,7 +476,7 @@ export default function UserProfile() {
                 <div className="px-5 pb-4">
                   <BadgeShowcase showcase={showcase} />
                 </div>
-            </div>
+              </div>
             </motion.div>
 
             {/* ── Sekmeler ── */}
@@ -522,11 +522,10 @@ export default function UserProfile() {
                                 <span className="font-mono text-xs tracking-widest uppercase"
                                       style={{ color: 'var(--color-brand-primary)' }}>// BU HAFTA</span>
                             </div>
-                            <div className="grid grid-cols-3 divide-x p-0" style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
+                            <div className="grid grid-cols-2 divide-x p-0" style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
                                 {[
                                     { label: 'İncelendi', value: stats.week_analyzed, color: 'var(--color-brand-primary)' },
                                     { label: 'Sahte',     value: stats.week_fake,     color: '#ff7351' },
-                                    { label: 'Hijyen',    value: stats.hygiene_score, color: '#f59e0b', suffix: '/100' },
                                 ].map(({ label, value, color, suffix }) => (
                                     <div key={label} className="p-4 text-center">
                                         <p className="font-mono text-[10px] uppercase tracking-widest mb-1"
