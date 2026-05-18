@@ -707,4 +707,23 @@
     from { opacity: 1; transform: translateX(0); }
     to   { opacity: 0; transform: translateX(110%); }
   }
+
+  /* ── Profile Cockpit animations ──────────────────────────── */
+
+  @keyframes badge-shine {
+    from { transform: translateX(-150%) skewX(-20deg); opacity: 0.6; }
+    to   { transform: translateX(250%)  skewX(-20deg); opacity: 0;   }
+  }
+
+  .badge-slot:hover .badge-shine-layer {
+    animation: badge-shine 0.55s ease-out both;
+  }
+
+  .badge-shine-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    width: 45%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
+  }
 }
