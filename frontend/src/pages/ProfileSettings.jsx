@@ -1,63 +1,90 @@
 import React, { useState } from 'react';
-import { Monitor, SlidersHorizontal, ShieldCheck, Bell, ThumbsUp, Shield, TrendingUp } from 'lucide-react';
+import { Monitor, SlidersHorizontal, ShieldCheck, Bell, ThumbsUp, Shield, TrendingUp, User } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../contexts/AuthContext';
+
+import SettingsSidebar      from '../features/profile/SettingsSidebar';
+import SettingsAccount      from '../features/profile/SettingsAccount';
+import SettingsAppearance   from '../features/profile/SettingsAppearance';
 import ProfileAiLab         from '../features/profile/ProfileAiLab';
 import ProfileSecurity      from '../features/profile/ProfileSecurity';
 import ProfileNotifications from '../features/profile/ProfileNotifications';
 import ProfileFeedback      from '../features/profile/ProfileFeedback';
-import ProfileAppearance    from '../features/profile/ProfileAppearance';
 import ProfilePrivacy       from '../features/profile/ProfilePrivacy';
 import ProfileMarket        from '../features/profile/ProfileMarket';
 
-const BD = { borderColor: 'var(--color-terminal-border-raw)' };
-
 const TABS = [
-    { id: 'appearance',    label: 'Görünüm',             icon: Monitor,           Component: ProfileAppearance },
-    { id: 'ai-lab',        label: 'AI Lab',              icon: SlidersHorizontal, Component: ProfileAiLab },
-    { id: 'market',        label: 'Piyasalar',           icon: TrendingUp,        Component: ProfileMarket },
-    { id: 'security',      label: 'Güvenlik',            icon: ShieldCheck,       Component: ProfileSecurity },
-    { id: 'notifications', label: 'Bildirimler',         icon: Bell,              Component: ProfileNotifications },
-    { id: 'feedback',      label: 'Geri Bildirimlerim',  icon: ThumbsUp,          Component: ProfileFeedback },
-    { id: 'privacy',       label: 'Gizlilik',            icon: Shield,            Component: ProfilePrivacy },
+  { id: 'account',       label: 'Hesap',             icon: User,              Component: SettingsAccount      },
+  { id: 'appearance',    label: 'Görünüm',            icon: Monitor,           Component: SettingsAppearance   },
+  { id: 'ai-lab',        label: 'AI Lab',             icon: SlidersHorizontal, Component: ProfileAiLab         },
+  { id: 'market',        label: 'Piyasalar',          icon: TrendingUp,        Component: ProfileMarket        },
+  { id: 'security',      label: 'Güvenlik',           icon: ShieldCheck,       Component: ProfileSecurity      },
+  { id: 'notifications', label: 'Bildirimler',        icon: Bell,              Component: ProfileNotifications },
+  { id: 'feedback',      label: 'Geri Bildirimlerim', icon: ThumbsUp,          Component: ProfileFeedback      },
+  { id: 'privacy',       label: 'Gizlilik',           icon: Shield,            Component: ProfilePrivacy       },
 ];
 
 export default function ProfileSettings() {
-    const [active, setActive] = useState('appearance');
-    const current = TABS.find(t => t.id === active);
+  const [activeTab, setActiveTab] = useState('account');
+  const { user }                  = useAuth();
+  const current                   = TABS.find(t => t.id === activeTab);
 
-    return (
-        <div className="max-w-4xl mx-auto px-4 pt-6 pb-16 space-y-5">
+  return (
+    <div className="max-w-6xl mx-auto px-4 pt-6 pb-16">
 
-            {/* Başlık */}
-            <div>
-                <p className="font-mono text-[10px] uppercase tracking-widest mb-1"
-                   style={{ color: 'var(--color-brand-primary)' }}>// AYARLAR</p>
-                <h1 className="font-manrope font-extrabold text-3xl" style={{ color: 'var(--color-text-primary)' }}>
-                    Hesap Ayarları
-                </h1>
-            </div>
+      {/* Başlık */}
+      <div className="mb-6">
+        <p className="font-mono text-[10px] uppercase tracking-widest mb-1"
+           style={{ color: 'var(--color-brand-primary)' }}>// AYARLAR</p>
+        <h1 className="font-manrope font-extrabold text-3xl"
+            style={{ color: 'var(--color-text-primary)' }}>
+          Hesap Ayarları
+        </h1>
+      </div>
 
-            {/* Tab bar */}
-            <div className="flex flex-wrap gap-1">
-                {/* eslint-disable-next-line no-unused-vars */}
-                {TABS.map(({ id, label, icon: TabIcon }) => (
-                    <button
-                        key={id}
-                        onClick={() => setActive(id)}
-                        className="flex items-center gap-2 px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider border transition-colors"
-                        style={{
-                            borderColor:  active === id ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)',
-                            background:   active === id ? 'rgba(16,185,129,0.08)' : 'transparent',
-                            color:        active === id ? 'var(--color-brand-primary)' : 'var(--color-text-muted)',
-                        }}
-                    >
-                        <TabIcon className="w-3.5 h-3.5" />
-                        {label}
-                    </button>
-                ))}
-            </div>
+      {/* Mobil dropdown */}
+      <div className="lg:hidden mb-5">
+        <select
+          value={activeTab}
+          onChange={e => setActiveTab(e.target.value)}
+          className="w-full bg-transparent border font-mono text-sm px-3 py-2.5 outline-none"
+          style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}
+        >
+          {TABS.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+        </select>
+      </div>
 
-            {/* İçerik */}
-            {current && <current.Component />}
+      {/* Ana grid: sidebar + panel */}
+      <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6 items-start">
+
+        {/* Sidebar — yalnızca lg+ */}
+        <div className="hidden lg:block">
+          <SettingsSidebar
+            tabs={TABS}
+            activeTab={activeTab}
+            onSelect={setActiveTab}
+            user={user}
+          />
         </div>
-    );
+
+        {/* Panel — AnimatePresence x-slide */}
+        <div className="min-w-0">
+          <AnimatePresence mode="wait">
+            {current && (
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{    opacity: 0, x: -20 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+              >
+                <current.Component />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+      </div>
+    </div>
+  );
 }
