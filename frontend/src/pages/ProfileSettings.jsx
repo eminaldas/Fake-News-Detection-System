@@ -24,10 +24,10 @@ const TABS = [
   { id: 'privacy',       label: 'Gizlilik',           icon: Shield,            Component: ProfilePrivacy       },
 ];
 
-/* Tema renkleri — navbar/marketband ile uyumlu */
-const SIDEBAR_BG  = '#070f12';           /* navbar band ile aynı */
-const CONTENT_BG  = '#0c1518';           /* terminal surface */
-const DIVIDER     = 'rgba(63,255,139,0.12)';
+/* Tema renkleri — her yer aynı, sadece çizgiler ayırıyor */
+const SIDEBAR_BG  = '#070f12';
+const CONTENT_BG  = '#070f12';           /* sidebar ile aynı */
+const DIVIDER     = 'rgba(65,73,77,0.65)'; /* --color-navbar-border */
 
 export default function ProfileSettings() {
   const [activeTab, setActiveTab] = useState('account');

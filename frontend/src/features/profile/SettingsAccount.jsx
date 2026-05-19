@@ -8,16 +8,18 @@ import { useAuth } from '../../contexts/AuthContext';
 import axiosInstance from '../../api/axios';
 import SettingsPanelShell from './SettingsPanelShell';
 
-/* ── Tasarım sabitleri ── */
-const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
-const BD = { borderColor: 'var(--color-terminal-border-raw)' };
+/* ── Renkler ── */
+const W     = '#eef2f7';                      /* tam beyaz */
+const W60   = 'rgba(238,242,247,0.60)';       /* soluk beyaz — label */
+const W30   = 'rgba(238,242,247,0.22)';       /* çok soluk — hint */
+const DIV   = 'rgba(65,73,77,0.60)';          /* --color-navbar-border */
+const DIV_S = 'rgba(65,73,77,0.30)';          /* input normal alt çizgi */
 
 const PAL_BG   = ['rgba(16,185,129,0.18)','rgba(59,130,246,0.18)','rgba(245,158,11,0.18)','rgba(239,68,68,0.18)','rgba(168,85,247,0.18)'];
-const PAL_TEXT = ['var(--color-brand-primary)','var(--color-accent-blue)','var(--color-accent-amber)','#ef4444','#a855f7'];
+const PAL_TEXT = ['#10b981','#3b82f6','#f59e0b','#ef4444','#a855f7'];
 
 const CATEGORIES = ['gündem', 'ekonomi', 'spor', 'sağlık', 'teknoloji', 'kültür', 'yaşam'];
 
-/* Sosyal platform tanımları */
 const PLATFORMS = [
   { key: 'twitter',   label: 'X (Twitter)', Icon: Twitter,   placeholder: 'https://x.com/kullanici'           },
   { key: 'instagram', label: 'Instagram',   Icon: Instagram, placeholder: 'https://instagram.com/kullanici'   },
@@ -26,80 +28,89 @@ const PLATFORMS = [
   { key: 'website',   label: 'Website',     Icon: Globe,     placeholder: 'https://siteniz.com'               },
 ];
 
-/* Analiz sayfası ReportBlock stili */
-function Block({ title, children, accent }) {
+/* Kart yok — sadece bölüm başlığı + alt çizgi ayırıcı */
+function Section({ title, children, accent, noDivider }) {
   return (
-    <div className="relative border overflow-hidden" style={S}>
-      <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand pointer-events-none" />
-      <div className="absolute top-0 left-0 h-4 w-[2px] bg-brand pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-4 h-[2px] bg-brand pointer-events-none" />
-      <div className="absolute bottom-0 right-0 h-4 w-[2px] bg-brand pointer-events-none" />
-      <div className="px-5 py-3 border-b flex items-center gap-2" style={BD}>
-        <div className="w-1.5 h-1.5 bg-brand shrink-0" />
-        <span className="font-mono font-bold text-xs uppercase tracking-widest"
-              style={{ color: 'var(--color-text-primary)' }}>
-          {title}
-        </span>
-        {accent && <span className="ml-auto font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>{accent}</span>}
+    <div style={{ paddingBottom: '2.5rem' }}>
+      <div style={{
+        display:'flex', alignItems:'center', gap:'0.5rem',
+        paddingBottom:'0.625rem', marginBottom:'1.5rem',
+        borderBottom: noDivider ? 'none' : `1px solid ${DIV}`,
+      }}>
+        <div style={{ width:3, height:14, background:'var(--color-brand-primary)', flexShrink:0 }} />
+        <span style={{ fontFamily:'monospace', fontSize:'0.65rem', fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', color: W }}>{title}</span>
+        {accent && <span style={{ marginLeft:'auto', fontFamily:'monospace', fontSize:'0.6rem', color: W30 }}>{accent}</span>}
       </div>
-      <div className="p-5 space-y-4">{children}</div>
+      <div style={{ display:'flex', flexDirection:'column', gap:'1.5rem' }}>{children}</div>
     </div>
   );
 }
 
-/* Focus'ta içe doğru shadow + yeşil border */
-function Field({ label, hint, children }) {
+/* Underline input — sadece alt border, focus'ta 2px beyaz */
+function UnderlineInput({ icon: Icon, label, hint, value, onChange, placeholder, type='text', disabled, rightEl }) {
+  const [focused, setFocused] = useState(false);
   return (
-    <div className="space-y-1.5">
+    <div>
       {label && (
-        <label className="font-mono text-xs font-bold uppercase tracking-wider"
-               style={{ color: 'var(--color-text-muted)' }}>{label}</label>
+        <span style={{ display:'block', fontFamily:'monospace', fontSize:'0.6rem', fontWeight:600, letterSpacing:'0.09em', textTransform:'uppercase', color: focused ? W60 : W30, marginBottom:6, transition:'color 0.15s' }}>
+          {label}
+        </span>
       )}
-      {children}
-      {hint && <p className="font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>{hint}</p>}
+      <div style={{
+        display:'flex', alignItems:'center', gap:'0.625rem',
+        borderBottom: focused ? `2px solid ${W}` : `1px solid ${DIV_S}`,
+        paddingBottom: focused ? 5 : 6,
+        transition:'border-color 0.18s',
+      }}>
+        {Icon && <Icon style={{ width:15, height:15, flexShrink:0, color: focused ? W60 : W30, transition:'color 0.18s' }} />}
+        <input
+          type={type} value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder} disabled={disabled}
+          style={{
+            flex:1, background:'transparent', border:'none', outline:'none',
+            fontFamily:'monospace', fontSize:'0.875rem',
+            color: disabled ? W30 : W,
+            caretColor: W,
+            opacity: disabled ? 0.5 : 1,
+          }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+        />
+        {rightEl && <div style={{ flexShrink:0 }}>{rightEl}</div>}
+      </div>
+      {hint && <span style={{ display:'block', fontFamily:'monospace', fontSize:'0.6rem', color: W30, marginTop:4 }}>{hint}</span>}
     </div>
   );
 }
 
-const inputClass = "w-full bg-transparent border font-mono text-sm px-3 py-2.5 outline-none transition-all";
-const inputStyle = { borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)', caretColor: 'var(--color-brand-primary)' };
-const inputFocusStyle = { borderColor: 'var(--color-brand-primary)', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.20)' };
-
-function StyledInput({ value, onChange, placeholder, type = 'text', disabled, rightEl, onFocus, onBlur }) {
+/* Underline textarea */
+function UnderlineTextarea({ label, hint, value, onChange, placeholder, rows=3, maxLength }) {
   const [focused, setFocused] = useState(false);
   return (
-    <div className="relative flex items-center border transition-all"
-         style={{ ...inputStyle, ...(focused ? inputFocusStyle : {}) }}>
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        disabled={disabled}
-        className="flex-1 bg-transparent font-mono text-sm px-3 py-2.5 outline-none"
-        style={{ color: disabled ? 'var(--color-text-muted)' : 'var(--color-text-primary)', caretColor: 'var(--color-brand-primary)' }}
-        onFocus={() => { setFocused(true); onFocus?.(); }}
-        onBlur={() => { setFocused(false); onBlur?.(); }}
+    <div>
+      {label && (
+        <span style={{ display:'block', fontFamily:'monospace', fontSize:'0.6rem', fontWeight:600, letterSpacing:'0.09em', textTransform:'uppercase', color: focused ? W60 : W30, marginBottom:6, transition:'color 0.15s' }}>
+          {label}
+        </span>
+      )}
+      <textarea
+        value={value} onChange={e => onChange(e.target.value)}
+        placeholder={placeholder} rows={rows} maxLength={maxLength}
+        style={{
+          width:'100%', background:'transparent', outline:'none', resize:'none',
+          fontFamily:'monospace', fontSize:'0.875rem', color: W,
+          caretColor: W,
+          border:'none',
+          borderBottom: focused ? `2px solid ${W}` : `1px solid ${DIV_S}`,
+          paddingBottom: focused ? 5 : 6,
+          transition:'border-color 0.18s',
+        }}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
       />
-      {rightEl && <div className="px-2 shrink-0">{rightEl}</div>}
+      {hint && <span style={{ display:'flex', justifyContent:'flex-end', fontFamily:'monospace', fontSize:'0.6rem', color: W30, marginTop:4 }}>{hint}</span>}
     </div>
-  );
-}
-
-function StyledTextarea({ value, onChange, placeholder, rows = 3, maxLength }) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <textarea
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={rows}
-      maxLength={maxLength}
-      className="w-full bg-transparent border font-mono text-sm px-3 py-2.5 outline-none transition-all resize-none"
-      style={{ ...inputStyle, ...(focused ? inputFocusStyle : {}) }}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-    />
   );
 }
 
@@ -107,42 +118,33 @@ function StyledTextarea({ value, onChange, placeholder, rows = 3, maxLength }) {
 function LeaveModal({ onConfirm, onCancel }) {
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center"
-         style={{ background: 'rgba(0,0,0,0.82)' }}>
+         style={{ background: 'rgba(0,0,0,0.85)' }}>
       <motion.div
         initial={{ scale: 0.93, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="relative border w-[360px] overflow-hidden"
-        style={S}
+        style={{ width:360, background:'#070f12', border:`1px solid ${DIV}`, overflow:'hidden' }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand" />
-        <div className="absolute top-0 left-0 h-4 w-[2px] bg-brand" />
-        <div className="absolute bottom-0 right-0 w-4 h-[2px] bg-brand" />
-        <div className="absolute bottom-0 right-0 h-4 w-[2px] bg-brand" />
-
-        <div className="px-5 py-3 border-b flex items-center gap-2" style={BD}>
-          <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: 'var(--color-accent-amber)' }} />
-          <span className="font-mono font-bold text-xs uppercase tracking-widest"
-                style={{ color: 'var(--color-text-primary)' }}>
-            // KAYDEDILMEMIŞ DEĞİŞİKLİKLER
+        <div style={{ padding:'1rem 1.25rem', borderBottom:`1px solid ${DIV}`, display:'flex', alignItems:'center', gap:'0.5rem' }}>
+          <AlertTriangle style={{ width:15, height:15, flexShrink:0, color:'var(--color-accent-amber)' }} />
+          <span style={{ fontFamily:'monospace', fontSize:'0.65rem', fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', color: W }}>
+            Kaydedilmemiş değişiklikler
           </span>
         </div>
-        <div className="p-5 space-y-4">
-          <p className="font-manrope font-bold text-base" style={{ color: 'var(--color-text-primary)' }}>
+        <div style={{ padding:'1.25rem', display:'flex', flexDirection:'column', gap:'1rem' }}>
+          <p style={{ fontFamily:'var(--font-manrope,sans-serif)', fontWeight:700, fontSize:'0.95rem', color: W }}>
             Değişiklikler kaydedilmeyecek.
           </p>
-          <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-            Bu sayfadan ayrılırsanız yaptığınız değişiklikler kaybolur. Devam etmek istiyor musunuz?
+          <p style={{ fontFamily:'monospace', fontSize:'0.8rem', color: W60 }}>
+            Bu sayfadan ayrılırsanız değişiklikler kaybolur.
           </p>
-          <div className="flex gap-3 pt-1">
+          <div style={{ display:'flex', gap:'0.75rem', paddingTop:'0.25rem' }}>
             <button onClick={onConfirm}
-                    className="flex-1 py-2.5 font-mono text-sm font-bold border transition-all"
-                    style={{ borderColor: 'var(--color-fake-fill)', color: 'var(--color-fake-fill)' }}>
+                    style={{ flex:1, padding:'0.625rem', fontFamily:'monospace', fontSize:'0.8rem', fontWeight:700, border:`1px solid rgba(239,68,68,0.6)`, color:'#fca5a5', background:'transparent', cursor:'pointer' }}>
               Evet, Çık
             </button>
             <button onClick={onCancel}
-                    className="flex-1 py-2.5 font-mono text-sm font-bold border-2 transition-all"
-                    style={{ background: 'var(--color-brand-primary)', borderColor: 'var(--color-brand-primary)', color: '#070f12' }}>
+                    style={{ flex:1, padding:'0.625rem', fontFamily:'monospace', fontSize:'0.8rem', fontWeight:700, background:'var(--color-brand-primary)', border:'none', color:'#070f12', cursor:'pointer' }}>
               Geri Dön
             </button>
           </div>
@@ -155,42 +157,43 @@ function LeaveModal({ onConfirm, onCancel }) {
 /* Social link satırı */
 function SocialLinkRow({ item, onUrlChange, onRemove, platforms }) {
   const platform = platforms.find(p => p.key === item.platform);
-  const { focused, setFocused } = { focused: false, setFocused: () => {} };
   const [f, setF] = useState(false);
   const Icon = platform?.Icon ?? Link2;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.18 }}
-      className="flex items-center gap-3 border px-3 py-2.5 transition-all"
-      style={{ borderColor: f ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)', boxShadow: f ? 'inset 0 2px 6px rgba(0,0,0,0.18)' : 'none' }}
+      initial={{ opacity:0, y:-8 }}
+      animate={{ opacity:1, y:0 }}
+      exit={{ opacity:0, y:-8 }}
+      transition={{ duration:0.18 }}
+      style={{
+        display:'flex', alignItems:'center', gap:'0.75rem',
+        borderBottom: f ? `2px solid ${W}` : `1px solid ${DIV_S}`,
+        paddingBottom: f ? 5 : 6,
+        transition:'border-color 0.18s',
+      }}
     >
-      <Icon className="w-4 h-4 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
-      <span className="font-mono text-xs font-bold w-24 shrink-0"
-            style={{ color: 'var(--color-text-primary)' }}>
+      <Icon style={{ width:15, height:15, flexShrink:0, color: f ? W60 : W30, transition:'color 0.18s' }} />
+      <span style={{ fontFamily:'monospace', fontSize:'0.7rem', fontWeight:600, width:80, flexShrink:0, color:W60, letterSpacing:'0.04em' }}>
         {item.platform === 'other' ? (item.label || 'Diğer') : platform?.label}
       </span>
       <input
         value={item.url}
         onChange={e => onUrlChange(item.id, e.target.value)}
         placeholder={platform?.placeholder ?? 'https://'}
-        className="flex-1 bg-transparent font-mono text-sm outline-none"
-        style={{ color: 'var(--color-text-primary)', caretColor: 'var(--color-brand-primary)' }}
+        style={{ flex:1, background:'transparent', border:'none', outline:'none', fontFamily:'monospace', fontSize:'0.875rem', color: W, caretColor: W }}
         onFocus={() => setF(true)}
         onBlur={() => setF(false)}
       />
       {item.url && (
-        <a href={item.url} target="_blank" rel="noopener noreferrer"
-           className="shrink-0 opacity-40 hover:opacity-70 transition-opacity">
-          <ExternalLink className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} />
+        <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ flexShrink:0, opacity:0.3 }}
+           onMouseEnter={e => e.currentTarget.style.opacity='0.7'} onMouseLeave={e => e.currentTarget.style.opacity='0.3'}>
+          <ExternalLink style={{ width:13, height:13, color:W }} />
         </a>
       )}
-      <button onClick={() => onRemove(item.id)}
-              className="shrink-0 opacity-40 hover:opacity-80 transition-opacity">
-        <Trash2 className="w-3.5 h-3.5" style={{ color: 'var(--color-fake-fill)' }} />
+      <button onClick={() => onRemove(item.id)} style={{ flexShrink:0, opacity:0.3, background:'none', border:'none', cursor:'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.opacity='0.7'} onMouseLeave={e => e.currentTarget.style.opacity='0.3'}>
+        <Trash2 style={{ width:13, height:13, color:'#fca5a5' }} />
       </button>
     </motion.div>
   );
@@ -365,230 +368,186 @@ export default function SettingsAccount() {
   return (
     <>
     <SettingsPanelShell>
-
-      <div className="space-y-5">
+      <div>
 
         {/* ── KULLANICI BİLGİLERİ ── */}
-        <Block title="// KULLANICI BİLGİLERİ">
+        <Section title="Kullanıcı Bilgileri">
 
-          {/* Avatar + temel alanlar yan yana */}
-          <div className="flex gap-5 items-start">
+          {/* Avatar + form yan yana */}
+          <div style={{ display:'flex', gap:'2rem', alignItems:'flex-start' }}>
 
             {/* Avatar */}
-            <div className="shrink-0">
-              <div className="relative w-20 h-20 group cursor-pointer"
+            <div style={{ flexShrink:0 }}>
+              <div className="group" style={{ position:'relative', width:72, height:72, cursor:'pointer' }}
                    onClick={() => fileRef.current?.click()}>
-                {/* Kare avatar, köşe çentikler */}
-                <div className="w-full h-full overflow-hidden flex items-center justify-center font-black text-2xl relative"
-                     style={{ border: '2px solid var(--color-brand-primary)', background: PAL_BG[avatarIdx], color: PAL_TEXT[avatarIdx] }}>
+                <div style={{ width:'100%', height:'100%', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, fontSize:24, border:`2px solid ${PAL_TEXT[avatarIdx]}40`, background:PAL_BG[avatarIdx], color:PAL_TEXT[avatarIdx], position:'relative' }}>
                   {avatarUrl
-                    ? <img src={avatarUrl} alt={username} className="w-full h-full object-cover"
-                           referrerPolicy="no-referrer" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                    ? <img src={avatarUrl} alt={username} style={{ width:'100%', height:'100%', objectFit:'cover' }} referrerPolicy="no-referrer" onError={e => { e.currentTarget.style.display='none'; }} />
                     : (username?.[0] ?? 'U').toUpperCase()
                   }
-                  {/* Hover overlay */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                       style={{ background: 'rgba(0,0,0,0.65)' }}>
-                    <Camera className="w-5 h-5 text-white" />
-                    <span className="font-mono text-[10px] font-bold text-white text-center leading-tight">Değiştir</span>
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.7)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4 }}>
+                    <Camera style={{ width:16, height:16, color:'#fff' }} />
+                    <span style={{ fontFamily:'monospace', fontSize:'0.55rem', fontWeight:700, color:'#fff' }}>Değiştir</span>
                   </div>
-                  {/* Avatar köşe çentikler */}
-                  <div className="absolute top-0 left-0 w-3 h-[1.5px] bg-brand" />
-                  <div className="absolute top-0 left-0 h-3 w-[1.5px] bg-brand" />
-                  <div className="absolute bottom-0 right-0 w-3 h-[1.5px] bg-brand" />
-                  <div className="absolute bottom-0 right-0 h-3 w-[1.5px] bg-brand" />
                 </div>
               </div>
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-
-              {/* Avatar aksiyon butonları */}
-              <div className="flex gap-1.5 mt-2">
+              <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleFileChange} />
+              <div style={{ display:'flex', gap:4, marginTop:6 }}>
                 <button onClick={() => fileRef.current?.click()}
-                        className="flex-1 py-1 font-mono text-xs font-bold border transition-all text-center"
-                        style={{ borderColor: 'var(--color-brand-primary)', color: 'var(--color-brand-primary)', background: 'rgba(16,185,129,0.06)' }}>
+                        style={{ flex:1, padding:'3px 0', fontFamily:'monospace', fontSize:'0.65rem', fontWeight:700, border:`1px solid ${DIV_S}`, color:W60, background:'transparent', cursor:'pointer' }}>
                   Değiştir
                 </button>
                 {avatarUrl && (
                   <button onClick={() => setAvatarUrl('')}
-                          className="flex-1 py-1 font-mono text-xs font-bold border transition-all text-center"
-                          style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)' }}>
+                          style={{ flex:1, padding:'3px 0', fontFamily:'monospace', fontSize:'0.65rem', fontWeight:700, border:`1px solid ${DIV_S}`, color:W30, background:'transparent', cursor:'pointer' }}>
                     Kaldır
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Kullanıcı adı + email */}
-            <div className="flex-1 space-y-3 min-w-0">
-              <Field label="Kullanıcı Adı">
-                <StyledInput
-                  value={username}
-                  onChange={handleUsernameChange}
-                  placeholder={original?.username || 'kullanici_adi'}
-                  rightEl={
-                    usernameStatus === 'checking'  ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--color-text-muted)' }} /> :
-                    usernameStatus === 'available' ? <Check className="w-4 h-4" style={{ color: 'var(--color-brand-primary)' }} /> :
-                    usernameStatus === 'taken'     ? <X className="w-4 h-4" style={{ color: 'var(--color-fake-fill)' }} /> : null
-                  }
-                />
-                <AnimatePresence mode="wait">
-                  {usernameStatus === 'taken' && (
-                    <motion.p key="t" initial={{ opacity:0,y:-4 }} animate={{ opacity:1,y:0 }} exit={{ opacity:0 }}
-                              className="font-mono text-xs mt-1" style={{ color: 'var(--color-fake-fill)' }}>
-                      Bu kullanıcı adı kullanımda.
-                    </motion.p>
-                  )}
-                  {usernameStatus === 'available' && (
-                    <motion.p key="ok" initial={{ opacity:0,y:-4 }} animate={{ opacity:1,y:0 }} exit={{ opacity:0 }}
-                              className="font-mono text-xs mt-1" style={{ color: 'var(--color-brand-primary)' }}>
-                      ✓ Kullanıcı adı müsait
-                    </motion.p>
-                  )}
-                </AnimatePresence>
-              </Field>
+            {/* Alanlar */}
+            <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:'1.25rem' }}>
+              <UnderlineInput
+                label="Kullanıcı Adı"
+                value={username}
+                onChange={handleUsernameChange}
+                placeholder="kullanici_adi"
+                rightEl={
+                  usernameStatus === 'checking'  ? <Loader2 style={{ width:14, height:14, color:W30, animation:'spin 1s linear infinite' }} /> :
+                  usernameStatus === 'available' ? <Check style={{ width:14, height:14, color:'var(--color-brand-primary)' }} /> :
+                  usernameStatus === 'taken'     ? <X style={{ width:14, height:14, color:'#fca5a5' }} /> : null
+                }
+              />
+              <AnimatePresence mode="wait">
+                {usernameStatus === 'taken' && (
+                  <motion.span key="t" initial={{ opacity:0,y:-4 }} animate={{ opacity:1,y:0 }} exit={{ opacity:0 }}
+                               style={{ fontFamily:'monospace', fontSize:'0.7rem', color:'#fca5a5' }}>
+                    Bu kullanıcı adı kullanımda.
+                  </motion.span>
+                )}
+              </AnimatePresence>
 
-              <Field label="E-posta" hint="E-posta değişikliği için Güvenlik sekmesini kullanın.">
-                <StyledInput value={authUser?.email || ''} onChange={() => {}} disabled />
-              </Field>
+              <UnderlineInput
+                label="E-posta"
+                hint="Değiştirmek için Güvenlik sekmesini kullanın."
+                value={authUser?.email || ''}
+                onChange={() => {}}
+                disabled
+              />
             </div>
           </div>
 
           {/* Biyografi */}
-          <Field label="Biyografi" hint={`${bio.length}/500`}>
-            <StyledTextarea
-              value={bio}
-              onChange={setBio}
-              placeholder="Kendinizden kısaca bahsedin..."
-              rows={3}
-              maxLength={500}
-            />
-          </Field>
-        </Block>
+          <UnderlineTextarea
+            label="Biyografi"
+            hint={`${bio.length}/500`}
+            value={bio}
+            onChange={setBio}
+            placeholder="Kendinizden kısaca bahsedin..."
+            rows={3}
+            maxLength={500}
+          />
+        </Section>
 
         {/* ── İLGİ ALANLARI ── */}
-        <Block title="// İLGİ ALANLARI" accent="feed sıralamasını etkiler">
-          <div className="flex flex-wrap gap-2">
+        <Section title="İlgi Alanları" accent="feed sıralamasını etkiler">
+          <div style={{ display:'flex', flexWrap:'wrap', gap:'0.5rem' }}>
             {CATEGORIES.map(cat => {
               const hidden = (feedPrefs.hidden_categories || []).includes(cat);
               return (
-                <motion.button
+                <button
                   key={cat}
                   type="button"
                   onClick={() => toggleCategory(cat)}
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="px-3 py-2 font-mono text-sm font-bold border transition-all"
                   style={hidden ? {
-                    borderColor: 'var(--color-terminal-border-raw)',
-                    color: 'var(--color-text-muted)',
-                    opacity: 0.4,
-                    textDecoration: 'line-through',
+                    padding:'0.4rem 0.875rem',
+                    fontFamily:'monospace', fontSize:'0.8rem', fontWeight:600,
+                    border:`1px solid ${DIV_S}`,
+                    color: W30, background:'transparent', cursor:'pointer',
+                    textDecoration:'line-through',
                   } : {
-                    borderColor: 'var(--color-brand-primary)',
-                    color: 'var(--color-brand-primary)',
-                    background: 'rgba(16,185,129,0.07)',
+                    padding:'0.4rem 0.875rem',
+                    fontFamily:'monospace', fontSize:'0.8rem', fontWeight:600,
+                    border:`1px solid ${W60}`,
+                    color: W, background:'rgba(238,242,247,0.05)', cursor:'pointer',
                   }}
                 >
                   {cat}
-                </motion.button>
+                </button>
               );
             })}
           </div>
-          <p className="font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          <span style={{ fontFamily:'monospace', fontSize:'0.7rem', color:W30 }}>
             Üzerine tıklanan kategoriler feed'den gizlenir.
-          </p>
-        </Block>
+          </span>
+        </Section>
 
         {/* ── SOSYAL BAĞLANTILAR ── */}
-        <Block title="// SOSYAL BAĞLANTILAR">
-
-          {/* Mevcut bağlantılar */}
+        <Section title="Sosyal Bağlantılar">
           <AnimatePresence>
             {links.map(item => (
-              <SocialLinkRow
-                key={item.id}
-                item={item}
-                onUrlChange={updateLinkUrl}
-                onRemove={removeLink}
-                platforms={PLATFORMS}
-              />
+              <SocialLinkRow key={item.id} item={item} onUrlChange={updateLinkUrl} onRemove={removeLink} platforms={PLATFORMS} />
             ))}
           </AnimatePresence>
 
-          {/* Bağlantı ekle butonu */}
-          <div>
-            <button
-              ref={pickerBtnRef}
-              type="button"
-              onClick={() => {
-                if (!showPicker && pickerBtnRef.current) {
-                  const r = pickerBtnRef.current.getBoundingClientRect();
-                  setPickerPos({ top: r.bottom + 6, left: r.left });
-                }
-                setShowPicker(v => !v);
-              }}
-              className="flex items-center gap-2 px-4 py-2.5 font-mono text-sm font-bold border transition-all"
-              style={{ borderColor: 'var(--color-brand-primary)', color: 'var(--color-brand-primary)', background: 'rgba(16,185,129,0.05)' }}
-            >
-              <Plus className="w-4 h-4" />
-              Bağlantı Ekle
-            </button>
-          </div>
-        </Block>
+          <button
+            ref={pickerBtnRef}
+            type="button"
+            onClick={() => {
+              if (!showPicker && pickerBtnRef.current) {
+                const r = pickerBtnRef.current.getBoundingClientRect();
+                setPickerPos({ top: r.bottom + 6, left: r.left });
+              }
+              setShowPicker(v => !v);
+            }}
+            style={{ display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.5rem 1rem', fontFamily:'monospace', fontSize:'0.8rem', fontWeight:700, border:`1px solid ${DIV_S}`, color: W60, background:'transparent', cursor:'pointer' }}
+          >
+            <Plus style={{ width:14, height:14 }} />
+            Bağlantı Ekle
+          </button>
+        </Section>
 
         {/* ── TEHLİKELİ BÖLGE ── */}
-        <div className="relative border p-5 space-y-3 overflow-hidden"
-             style={{ borderColor: 'rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.03)' }}>
-          <div className="absolute top-0 left-0 w-4 h-[2px]" style={{ background: 'var(--color-fake-fill)' }} />
-          <div className="absolute top-0 left-0 h-4 w-[2px]" style={{ background: 'var(--color-fake-fill)' }} />
-          <p className="font-mono text-xs font-bold uppercase tracking-widest flex items-center gap-2"
-             style={{ color: 'var(--color-fake-fill)' }}>
-            <AlertTriangle className="w-3.5 h-3.5" /> // TEHLİKELİ BÖLGE
-          </p>
-          <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-            Hesabı silmek geri alınamaz. Tüm veriler kalıcı olarak silinir.
-          </p>
-          <button type="button"
-                  className="px-4 py-2 font-mono text-sm font-bold border transition-all"
-                  style={{ borderColor: 'var(--color-fake-fill)', color: 'var(--color-fake-fill)' }}>
-            Hesabı Sil
-          </button>
-        </div>
+        <Section title="Tehlikeli Bölge" noDivider>
+          <div style={{ borderTop:`1px solid rgba(239,68,68,0.25)`, paddingTop:'1.5rem', display:'flex', flexDirection:'column', gap:'0.75rem' }}>
+            <p style={{ fontFamily:'monospace', fontSize:'0.8rem', color:W60 }}>
+              Hesabı silmek geri alınamaz. Tüm veriler kalıcı olarak silinir.
+            </p>
+            <button type="button"
+                    style={{ alignSelf:'flex-start', padding:'0.5rem 1rem', fontFamily:'monospace', fontSize:'0.8rem', fontWeight:700, border:'1px solid rgba(239,68,68,0.5)', color:'#fca5a5', background:'transparent', cursor:'pointer' }}>
+              Hesabı Sil
+            </button>
+          </div>
+        </Section>
 
       </div>
     </SettingsPanelShell>
 
-    {/* Platform picker — fixed, overflow-hidden'dan etkilenmez */}
+    {/* Platform picker */}
     <AnimatePresence>
       {showPicker && (
         <>
-          {/* Dış tıkla kapat */}
           <div className="fixed inset-0 z-[998]" onClick={() => setShowPicker(false)} />
           <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
-            transition={{ duration: 0.15 }}
-            className="fixed z-[999] border overflow-hidden min-w-[220px] shadow-2xl"
-            style={{ ...S, top: pickerPos.top, left: pickerPos.left }}
+            initial={{ opacity:0, y:-6, scale:0.97 }}
+            animate={{ opacity:1, y:0, scale:1 }}
+            exit={{ opacity:0, y:-6, scale:0.97 }}
+            transition={{ duration:0.15 }}
+            style={{ position:'fixed', zIndex:999, background:'#070f12', border:`1px solid ${DIV}`, minWidth:200, top:pickerPos.top, left:pickerPos.left, boxShadow:'0 8px 32px rgba(0,0,0,0.5)' }}
           >
-            <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand" />
-            <div className="absolute top-0 left-0 h-4 w-[2px] bg-brand" />
             {availablePlatforms.length === 0 ? (
-              <p className="px-4 py-3 font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                Tüm platformlar eklendi
-              </p>
+              <p style={{ padding:'0.75rem 1rem', fontFamily:'monospace', fontSize:'0.8rem', color:W30 }}>Tüm platformlar eklendi</p>
             ) : (
               availablePlatforms.map(({ key, label, Icon }) => (
                 <button
                   key={key}
                   onClick={() => addPlatform(key)}
-                  className="flex items-center gap-3 w-full px-4 py-3 font-mono text-sm font-bold border-b transition-colors text-left"
-                  style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  style={{ display:'flex', alignItems:'center', gap:'0.75rem', width:'100%', padding:'0.75rem 1rem', fontFamily:'monospace', fontSize:'0.8rem', fontWeight:600, borderBottom:`1px solid ${DIV_S}`, color:W, background:'transparent', cursor:'pointer', textAlign:'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.04)'}
+                  onMouseLeave={e => e.currentTarget.style.background='transparent'}
                 >
-                  <Icon className="w-4 h-4 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
+                  <Icon style={{ width:15, height:15, flexShrink:0, color:W60 }} />
                   {label}
                 </button>
               ))
@@ -598,45 +557,41 @@ export default function SettingsAccount() {
       )}
     </AnimatePresence>
 
-    {/* ── STICKY KAYDET / İPTAL BARI ── */}
+    {/* Sticky save bar */}
     <AnimatePresence>
       {isDirty && (
         <motion.div
-          initial={{ y: 24, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 24, opacity: 0 }}
-          transition={{ type: 'spring', damping: 22, stiffness: 220 }}
-          className="sticky bottom-0 border-t mt-5 px-5 py-4 flex items-center gap-4 z-20"
+          initial={{ y:24, opacity:0 }}
+          animate={{ y:0, opacity:1 }}
+          exit={{ y:24, opacity:0 }}
+          transition={{ type:'spring', damping:22, stiffness:220 }}
           style={{
-            background: 'var(--color-terminal-surface)',
-            borderColor: 'var(--color-brand-primary)',
-            boxShadow: '0 -4px 24px rgba(16,185,129,0.10)',
+            position:'sticky', bottom:0, marginTop:'1.5rem',
+            padding:'0.875rem 1.5rem',
+            display:'flex', alignItems:'center', gap:'1rem',
+            background:'#070f12',
+            borderTop:`1px solid ${DIV}`,
+            zIndex:20,
           }}
         >
-          {/* Sol çentik */}
-          <div className="absolute top-0 left-0 w-6 h-[2px] bg-brand" />
-          <div className="absolute top-0 left-0 h-6 w-[2px] bg-brand" />
-
           <button
             onClick={handleSave}
             disabled={saving || usernameStatus === 'taken'}
-            className="flex items-center gap-2 px-7 py-2.5 font-mono text-sm font-bold border-2 transition-all disabled:opacity-40"
-            style={{ background: 'var(--color-brand-primary)', borderColor: 'var(--color-brand-primary)', color: '#070f12' }}
+            style={{ display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.5rem 1.5rem', fontFamily:'monospace', fontSize:'0.8rem', fontWeight:700, background:'var(--color-brand-primary)', border:'none', color:'#070f12', cursor:'pointer', opacity: (saving || usernameStatus==='taken') ? 0.4 : 1 }}
           >
-            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Kaydediliyor…</> : 'Kaydet'}
+            {saving ? <><Loader2 style={{ width:14, height:14, animation:'spin 1s linear infinite' }} /> Kaydediliyor…</> : 'Kaydet'}
           </button>
 
           <button
             type="button"
             onClick={handleCancel}
-            className="px-6 py-2.5 font-mono text-sm font-bold border transition-all"
-            style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}
+            style={{ padding:'0.5rem 1.25rem', fontFamily:'monospace', fontSize:'0.8rem', fontWeight:600, border:`1px solid ${DIV}`, color:W60, background:'transparent', cursor:'pointer' }}
           >
-            İptal Et
+            İptal
           </button>
 
-          <span className="font-mono text-xs ml-1" style={{ color: 'var(--color-accent-amber)' }}>
-            ● kaydedilmemiş değişiklikler
+          <span style={{ fontFamily:'monospace', fontSize:'0.7rem', color:'rgba(245,158,11,0.8)', marginLeft:4 }}>
+            ● kaydedilmemiş
           </span>
 
           <AnimatePresence>
