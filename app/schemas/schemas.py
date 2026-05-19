@@ -72,6 +72,8 @@ class UserResponse(BaseModel):
     created_at:           datetime
     last_login_at:        Optional[datetime]  = None
     avatar_url:           Optional[str]       = None
+    bio:                  Optional[str]       = None
+    social_links:         Optional[dict]      = None
     is_email_verified:    bool                = False
     onboarding_completed: bool                = False
     preferences:          Optional[dict]      = None

@@ -30,32 +30,22 @@ export default function ProfileSettings() {
   const current                   = TABS.find(t => t.id === activeTab);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pt-6 pb-16">
+    <div className="max-w-7xl mx-auto px-4 pt-3 pb-16">
 
-      {/* Başlık */}
-      <div className="mb-6">
-        <p className="font-mono text-[10px] uppercase tracking-widest mb-1"
-           style={{ color: 'var(--color-brand-primary)' }}>// AYARLAR</p>
-        <h1 className="font-manrope font-extrabold text-3xl"
-            style={{ color: 'var(--color-text-primary)' }}>
-          Hesap Ayarları
-        </h1>
-      </div>
-
-      {/* Mobil dropdown */}
-      <div className="lg:hidden mb-5">
+      {/* Mobil dropdown — başlık yok, direkt menü */}
+      <div className="lg:hidden mb-4">
         <select
           value={activeTab}
           onChange={e => setActiveTab(e.target.value)}
-          className="w-full bg-transparent border font-mono text-sm px-3 py-2.5 outline-none"
+          className="w-full bg-transparent border font-mono text-sm px-3 py-2.5 outline-none font-bold"
           style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}
         >
           {TABS.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
         </select>
       </div>
 
-      {/* Ana grid: sidebar + panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6 items-start">
+      {/* Ana grid: geniş sidebar (280px) + panel */}
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 items-start">
 
         {/* Sidebar — yalnızca lg+ */}
         <div className="hidden lg:block">
