@@ -510,6 +510,7 @@ async def get_user_profile(
         username=user.username,
         bio=user.bio,
         avatar_url=user.avatar_url,
+        social_links=user.social_links,
         follower_count=user.follower_count,
         following_count=user.following_count,
         is_following=is_following,

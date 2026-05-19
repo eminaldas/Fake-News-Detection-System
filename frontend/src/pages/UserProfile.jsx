@@ -9,7 +9,7 @@ import {
     MessageSquare, Calendar, Users, UserCheck, UserPlus, UserMinus,
     Settings, Star, Shield, Search, Cpu, Zap, Award, Lock,
     ChevronLeft, ChevronRight, X, ExternalLink, TrendingUp,
-    Loader2, BookmarkCheck,
+    Loader2, BookmarkCheck, Twitter, Instagram, Github, Linkedin, Globe, Link2,
 } from 'lucide-react';
 import axiosInstance from '../api/axios';
 import { useAuth } from '../contexts/AuthContext';
@@ -425,6 +425,27 @@ export default function UserProfile() {
                                style={{ color: 'var(--color-text-primary)', opacity: 0.75 }}>
                                 {profile.bio}
                             </p>
+                        )}
+
+                        {/* Sosyal bağlantılar */}
+                        {profile.social_links && Object.keys(profile.social_links).length > 0 && (
+                            <div className="flex items-center gap-2 flex-wrap mt-3">
+                                {Object.entries(profile.social_links).map(([key, url]) => {
+                                    if (!url) return null;
+                                    const ICON_MAP = { twitter: Twitter, instagram: Instagram, github: Github, linkedin: Linkedin, website: Globe };
+                                    const Icon = ICON_MAP[key] ?? Link2;
+                                    const LABEL_MAP = { twitter: 'X', instagram: 'Instagram', github: 'GitHub', linkedin: 'LinkedIn', website: 'Website' };
+                                    const label = LABEL_MAP[key] ?? key;
+                                    return (
+                                        <a key={key} href={url} target="_blank" rel="noopener noreferrer"
+                                           className="flex items-center gap-1.5 px-2.5 py-1 border font-mono text-xs font-bold transition-all hover:opacity-80"
+                                           style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-brand-primary)', background: 'rgba(16,185,129,0.06)' }}>
+                                            <Icon className="w-3 h-3 shrink-0" />
+                                            {label}
+                                        </a>
+                                    );
+                                })}
+                            </div>
                         )}
 
                         {/* Meta */}

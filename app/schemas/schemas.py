@@ -858,17 +858,18 @@ class ForumNotificationListResponse(BaseModel):
 class UserProfileResponse(BaseModel):
     id:                UUID
     username:          str
-    bio:               Optional[str] = None
-    avatar_url:        Optional[str] = None
+    bio:               Optional[str]  = None
+    avatar_url:        Optional[str]  = None
+    social_links:      Optional[dict] = None
     follower_count:    int
     following_count:   int
-    is_following:      bool          = False
-    thread_count:      int           = 0
+    is_following:      bool           = False
+    thread_count:      int            = 0
     created_at:        datetime
-    trust_tier:        str           = "yeni_uye"
-    trust_score:       float         = 0.0
-    trust_stars:       int           = 0
-    trust_label:       str           = "Yeni Üye"
+    trust_tier:        str            = "yeni_uye"
+    trust_score:       float          = 0.0
+    trust_stars:       int            = 0
+    trust_label:       str            = "Yeni Üye"
     model_config = ConfigDict(from_attributes=True)
 
 
