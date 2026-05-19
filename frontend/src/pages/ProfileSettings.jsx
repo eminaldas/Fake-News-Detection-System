@@ -24,16 +24,17 @@ const TABS = [
   { id: 'privacy',       label: 'Gizlilik',           icon: Shield,            Component: ProfilePrivacy       },
 ];
 
+const BD = { borderColor: 'var(--color-terminal-border-raw)' };
+
 export default function ProfileSettings() {
   const [activeTab, setActiveTab] = useState('account');
   const { user }                  = useAuth();
   const current                   = TABS.find(t => t.id === activeTab);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 pt-3 pb-16">
-
-      {/* Mobil dropdown — başlık yok, direkt menü */}
-      <div className="lg:hidden mb-4">
+    <>
+      {/* ── Mobil: normal scroll layout ── */}
+      <div className="lg:hidden px-4 pt-2 pb-16 space-y-5">
         <select
           value={activeTab}
           onChange={e => setActiveTab(e.target.value)}
@@ -42,13 +43,41 @@ export default function ProfileSettings() {
         >
           {TABS.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
         </select>
+        <AnimatePresence mode="wait">
+          {current && (
+            <motion.div key={activeTab}
+              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.22, ease: 'easeOut' }}>
+              <current.Component />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Ana grid: geniş sidebar (280px) + panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 items-start">
+      {/* ── Desktop: 3-kolon bağımsız scroll layout ── */}
+      {/* -mt-32: main'in pt-32'sini iptal et → tam viewport doldur */}
+      <div
+        className="hidden lg:flex"
+        style={{
+          marginTop:  '-8rem',   /* pt-32 iptal */
+          marginLeft: '-1rem',   /* Layout padding iptal */
+          marginRight: '-1rem',
+          height:      '100vh',
+          overflow:    'hidden',
+        }}
+      >
 
-        {/* Sidebar — yalnızca lg+ */}
-        <div className="hidden lg:block">
+        {/* ── 1/4 Sidebar — sabit, kaymaz ── */}
+        <div
+          style={{
+            width:       '25%',
+            flexShrink:  0,
+            overflowY:   'auto',
+            overflowX:   'hidden',
+            borderRight: '1px solid var(--color-terminal-border-raw)',
+            paddingTop:  '8rem',    /* navbar için mesafe */
+          }}
+        >
           <SettingsSidebar
             tabs={TABS}
             activeTab={activeTab}
@@ -57,24 +86,48 @@ export default function ProfileSettings() {
           />
         </div>
 
-        {/* Panel — AnimatePresence x-slide */}
-        <div className="min-w-0">
-          <AnimatePresence mode="wait">
-            {current && (
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{    opacity: 0, x: -20 }}
-                transition={{ duration: 0.22, ease: 'easeOut' }}
-              >
-                <current.Component />
-              </motion.div>
-            )}
-          </AnimatePresence>
+        {/* ── 2/4 İçerik — bağımsız scroll, düz arka plan ── */}
+        <div
+          style={{
+            flex:       1,
+            overflowY:  'auto',
+            overflowX:  'hidden',
+            background: 'var(--color-bg-surface)',
+            paddingTop: '8rem',    /* navbar için mesafe */
+          }}
+        >
+          <div style={{ padding: '1.5rem 2rem 4rem' }}>
+            <AnimatePresence mode="wait">
+              {current && (
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{    opacity: 0, x: -20 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                >
+                  <current.Component />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* ── 1/4 Sağ panel — şimdilik boş ── */}
+        <div
+          style={{
+            width:       '25%',
+            flexShrink:  0,
+            borderLeft:  '1px solid var(--color-terminal-border-raw)',
+            background:  'var(--color-bg-surface)',
+            paddingTop:  '8rem',
+            overflowY:   'auto',
+          }}
+        >
+          {/* İçeriğe göre doldurulacak */}
         </div>
 
       </div>
-    </div>
+    </>
   );
 }
