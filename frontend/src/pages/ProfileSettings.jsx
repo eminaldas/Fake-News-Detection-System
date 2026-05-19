@@ -24,7 +24,10 @@ const TABS = [
   { id: 'privacy',       label: 'Gizlilik',           icon: Shield,            Component: ProfilePrivacy       },
 ];
 
-const BD = { borderColor: 'var(--color-terminal-border-raw)' };
+/* Tema renkleri — navbar/marketband ile uyumlu */
+const SIDEBAR_BG  = '#070f12';           /* navbar band ile aynı */
+const CONTENT_BG  = '#0c1518';           /* terminal surface */
+const DIVIDER     = 'rgba(63,255,139,0.12)';
 
 export default function ProfileSettings() {
   const [activeTab, setActiveTab] = useState('account');
@@ -33,100 +36,118 @@ export default function ProfileSettings() {
 
   return (
     <>
-      {/* ── Mobil: normal scroll layout ── */}
-      <div className="lg:hidden px-4 pt-2 pb-16 space-y-5">
+      {/* ── Mobil ── */}
+      <div className="lg:hidden" style={{ paddingTop: '8rem', paddingBottom: '4rem', paddingLeft: '1rem', paddingRight: '1rem' }}>
         <select
           value={activeTab}
           onChange={e => setActiveTab(e.target.value)}
-          className="w-full bg-transparent border font-mono text-sm px-3 py-2.5 outline-none font-bold"
-          style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}
+          className="w-full bg-transparent border font-mono text-sm px-3 py-2.5 outline-none font-bold mb-4"
+          style={{ borderColor: DIVIDER, color: 'var(--color-text-primary)' }}
         >
           {TABS.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
         </select>
         <AnimatePresence mode="wait">
           {current && (
             <motion.div key={activeTab}
-              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.22, ease: 'easeOut' }}>
+              initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }}>
               <current.Component />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* ── Desktop: 3-kolon bağımsız scroll layout ── */}
-      {/* -mt-32: main'in pt-32'sini iptal et → tam viewport doldur */}
+      {/* ── Desktop: tam viewport, scroll yok ── */}
       <div
         className="hidden lg:flex"
-        style={{
-          marginTop:  '-8rem',   /* pt-32 iptal */
-          marginLeft: '-1rem',   /* Layout padding iptal */
-          marginRight: '-1rem',
-          height:      '100vh',
-          overflow:    'hidden',
-        }}
+        style={{ height: '100vh', overflow: 'hidden', background: CONTENT_BG }}
       >
 
-        {/* ── 1/4 Sidebar — sabit, kaymaz ── */}
+        {/* ═══ 1/5 SIDEBAR — sabit, tam yükseklik ═══ */}
         <div
           style={{
-            width:       '25%',
-            flexShrink:  0,
+            position:    'fixed',
+            top:         0,
+            left:        0,
+            width:       '20%',
+            height:      '100vh',
+            background:  SIDEBAR_BG,
+            borderRight: `1px solid ${DIVIDER}`,
+            zIndex:      40,
+            display:     'flex',
+            flexDirection: 'column',
             overflowY:   'auto',
             overflowX:   'hidden',
-            borderRight: '1px solid var(--color-terminal-border-raw)',
-            paddingTop:  '8rem',    /* navbar için mesafe */
           }}
         >
-          <SettingsSidebar
-            tabs={TABS}
-            activeTab={activeTab}
-            onSelect={setActiveTab}
-            user={user}
-          />
-        </div>
+          {/* Navbar boşluğu */}
+          <div style={{ flexShrink: 0, height: '8rem' }} />
 
-        {/* ── 2/4 İçerik — bağımsız scroll, düz arka plan ── */}
-        <div
-          style={{
-            flex:       1,
-            overflowY:  'auto',
-            overflowX:  'hidden',
-            background: 'var(--color-bg-surface)',
-            paddingTop: '8rem',    /* navbar için mesafe */
-          }}
-        >
-          <div style={{ padding: '1.5rem 2rem 4rem' }}>
-            <AnimatePresence mode="wait">
-              {current && (
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{    opacity: 0, x: -20 }}
-                  transition={{ duration: 0.22, ease: 'easeOut' }}
-                >
-                  <current.Component />
-                </motion.div>
-              )}
-            </AnimatePresence>
+          {/* Sidebar içeriği */}
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <SettingsSidebar
+              tabs={TABS}
+              activeTab={activeTab}
+              onSelect={setActiveTab}
+              user={user}
+              compact
+            />
           </div>
         </div>
 
-        {/* ── 1/4 Sağ panel — şimdilik boş ── */}
+        {/* ═══ İçerik wrapper — sidebar genişliği kadar margin ═══ */}
         <div
           style={{
-            width:       '25%',
-            flexShrink:  0,
-            borderLeft:  '1px solid var(--color-terminal-border-raw)',
-            background:  'var(--color-bg-surface)',
-            paddingTop:  '8rem',
-            overflowY:   'auto',
+            marginLeft: '20%',
+            flex:       1,
+            display:    'flex',
+            height:     '100vh',
+            overflow:   'hidden',
           }}
         >
-          {/* İçeriğe göre doldurulacak */}
-        </div>
 
+          {/* ── 3/4 Ana içerik — bağımsız scroll ── */}
+          <div
+            style={{
+              flex:       3,
+              overflowY:  'auto',
+              overflowX:  'hidden',
+              background: CONTENT_BG,
+              paddingTop: '8rem',
+            }}
+          >
+            <div style={{ padding: '1.5rem 2.5rem 6rem', maxWidth: '100%' }}>
+              <AnimatePresence mode="wait">
+                {current && (
+                  <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, x: 18 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{    opacity: 0, x: -18 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                  >
+                    <current.Component />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {/* ── 1/4 Sağ panel — boş, ileride dolacak ── */}
+          <div
+            style={{
+              flex:        1,
+              borderLeft:  `1px solid ${DIVIDER}`,
+              background:  SIDEBAR_BG,
+              overflowY:   'auto',
+              paddingTop:  '8rem',
+              flexShrink:  0,
+            }}
+          >
+            {/* Gelecek: bağlamsal bilgi, kısayollar vb. */}
+          </div>
+
+        </div>
       </div>
     </>
   );

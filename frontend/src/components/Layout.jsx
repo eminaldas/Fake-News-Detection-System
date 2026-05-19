@@ -125,8 +125,9 @@ const Layout = () => {
     const { pathname }  = useLocation();
     const { isDarkMode } = useTheme();
     const isAuth         = AUTH_PATHS.includes(pathname);
-    const isForum     = pathname.startsWith('/forum');
-    const isMessages  = pathname.startsWith('/messages');
+    const isForum        = pathname.startsWith('/forum');
+    const isMessages     = pathname.startsWith('/messages');
+    const isSettings     = pathname.startsWith('/profile/settings');
     const prevPathRef = useRef(null);
 
     /* Yön bilgisini render sırasında hesapla */
@@ -228,7 +229,7 @@ const Layout = () => {
             <MarketBand />
             <Navbar />
 
-            <main className="grow pt-32 md:pt-36 pb-10 overflow-x-hidden">
+            <main className={isSettings ? 'grow overflow-hidden' : 'grow pt-32 md:pt-36 pb-10 overflow-x-hidden'}>
                 <div key={pathname} className={pageClass}>
                     <Outlet />
                 </div>
@@ -239,7 +240,7 @@ const Layout = () => {
             {/* ── Mini mesajlaşma (LinkedIn stili, sağ alt) ── */}
             {!isAuth && !isMessages && <MiniMessenger />}
 
-            {!isAuth && !isForum && !isMessages && (
+            {!isAuth && !isForum && !isMessages && !isSettings && (
                 <footer style={{
                     background: 'var(--color-terminal-surface)',
                     borderTop: '1px solid var(--color-terminal-border-raw)',
