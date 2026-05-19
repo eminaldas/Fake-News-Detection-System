@@ -239,6 +239,8 @@ export default function SettingsAccount() {
 
   /* Platform picker */
   const [showPicker, setShowPicker] = useState(false);
+  const [pickerPos,  setPickerPos]  = useState({ top: 0, left: 0 });
+  const pickerBtnRef = useRef(null);
 
   /* Leave warning */
   const [showLeave, setShowLeave] = useState(false);
@@ -513,51 +515,24 @@ export default function SettingsAccount() {
             ))}
           </AnimatePresence>
 
-          {/* Bağlantı ekle butonu + platform picker */}
-          <div className="relative">
+          {/* Bağlantı ekle butonu */}
+          <div>
             <button
+              ref={pickerBtnRef}
               type="button"
-              onClick={() => setShowPicker(v => !v)}
+              onClick={() => {
+                if (!showPicker && pickerBtnRef.current) {
+                  const r = pickerBtnRef.current.getBoundingClientRect();
+                  setPickerPos({ top: r.bottom + 6, left: r.left });
+                }
+                setShowPicker(v => !v);
+              }}
               className="flex items-center gap-2 px-4 py-2.5 font-mono text-sm font-bold border transition-all"
               style={{ borderColor: 'var(--color-brand-primary)', color: 'var(--color-brand-primary)', background: 'rgba(16,185,129,0.05)' }}
             >
               <Plus className="w-4 h-4" />
               Bağlantı Ekle
             </button>
-
-            <AnimatePresence>
-              {showPicker && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute left-0 top-full mt-1 z-20 border overflow-hidden min-w-[200px]"
-                  style={S}
-                >
-                  {/* Dış tıkla kapat */}
-                  <div className="fixed inset-0 z-[-1]" onClick={() => setShowPicker(false)} />
-
-                  {availablePlatforms.length === 0 ? (
-                    <p className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                      Tüm platformlar eklendi
-                    </p>
-                  ) : (
-                    availablePlatforms.map(({ key, label, Icon }) => (
-                      <button
-                        key={key}
-                        onClick={() => addPlatform(key)}
-                        className="flex items-center gap-3 w-full px-4 py-2.5 font-mono text-sm font-bold border-b transition-colors hover:bg-white/8 text-left"
-                        style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}
-                      >
-                        <Icon className="w-4 h-4 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
-                        {label}
-                      </button>
-                    ))
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
         </Block>
 
@@ -582,6 +557,46 @@ export default function SettingsAccount() {
 
       </div>
     </SettingsPanelShell>
+
+    {/* Platform picker — fixed, overflow-hidden'dan etkilenmez */}
+    <AnimatePresence>
+      {showPicker && (
+        <>
+          {/* Dış tıkla kapat */}
+          <div className="fixed inset-0 z-[998]" onClick={() => setShowPicker(false)} />
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            className="fixed z-[999] border overflow-hidden min-w-[220px] shadow-2xl"
+            style={{ ...S, top: pickerPos.top, left: pickerPos.left }}
+          >
+            <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand" />
+            <div className="absolute top-0 left-0 h-4 w-[2px] bg-brand" />
+            {availablePlatforms.length === 0 ? (
+              <p className="px-4 py-3 font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                Tüm platformlar eklendi
+              </p>
+            ) : (
+              availablePlatforms.map(({ key, label, Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => addPlatform(key)}
+                  className="flex items-center gap-3 w-full px-4 py-3 font-mono text-sm font-bold border-b transition-colors text-left"
+                  style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <Icon className="w-4 h-4 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
+                  {label}
+                </button>
+              ))
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
 
     {/* ── STICKY KAYDET / İPTAL BARI ── */}
     <AnimatePresence>
