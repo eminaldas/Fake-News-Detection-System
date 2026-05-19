@@ -10,8 +10,8 @@ import SettingsPanelShell from './SettingsPanelShell';
 
 /* ── Renkler ── */
 const W     = '#eef2f7';                      /* tam beyaz */
-const W60   = 'rgba(238,242,247,0.60)';       /* soluk beyaz — label */
-const W30   = 'rgba(238,242,247,0.22)';       /* çok soluk — hint */
+const W60   = 'rgba(238,242,247,0.88)';       /* label */
+const W30   = 'rgba(238,242,247,0.55)';       /* hint / ikon / muted */
 const DIV   = 'rgba(65,73,77,0.60)';          /* --color-navbar-border */
 const DIV_S = 'rgba(65,73,77,0.30)';          /* input normal alt çizgi */
 
