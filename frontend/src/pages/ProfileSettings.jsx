@@ -106,8 +106,9 @@ export default function ProfileSettings() {
           }}
         >
 
-          {/* ── 3/4 Ana içerik — bağımsız scroll ── */}
+          {/* ── 3/4 Ana içerik — bağımsız scroll, scrollbar en sağda ── */}
           <div
+            className="settings-content-scroll"
             style={{
               flex:       3,
               overflowY:  'auto',
@@ -139,12 +140,11 @@ export default function ProfileSettings() {
               flex:        1,
               borderLeft:  `1px solid ${DIVIDER}`,
               background:  SIDEBAR_BG,
-              overflowY:   'auto',
               paddingTop:  '8rem',
               flexShrink:  0,
             }}
           >
-            {/* Gelecek: bağlamsal bilgi, kısayollar vb. */}
+            {/* Gelecek: bağlamsal bilgi */}
           </div>
 
         </div>

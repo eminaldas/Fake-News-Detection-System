@@ -19,8 +19,10 @@ const TIER_LABEL = {
 const PAL_BG   = ['rgba(16,185,129,0.22)','rgba(59,130,246,0.22)','rgba(245,158,11,0.22)','rgba(239,68,68,0.22)','rgba(168,85,247,0.22)'];
 const PAL_TEXT = ['#10b981','#3b82f6','#f59e0b','#ef4444','#a855f7'];
 
-const DIVIDER = 'rgba(63,255,139,0.12)';
-const DIVIDER_MID = 'rgba(63,255,139,0.06)';
+const DIVIDER     = 'rgba(255,255,255,0.07)';
+const DIVIDER_MID = 'rgba(255,255,255,0.04)';
+const WHITE       = '#f0f4f8';
+const WHITE_DIM   = 'rgba(240,244,248,0.55)';
 
 export default function SettingsSidebar({ tabs, activeTab, onSelect, user }) {
   const [xpStats, setXpStats] = useState(null);
@@ -66,7 +68,7 @@ export default function SettingsSidebar({ tabs, activeTab, onSelect, user }) {
           </div>
 
           <div style={{ minWidth: 0, flex: 1 }}>
-            <p style={{ fontFamily:'var(--font-manrope,sans-serif)', fontWeight:900, fontSize:'0.9rem', color:'#eef2f7', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            <p style={{ fontFamily:'var(--font-manrope,sans-serif)', fontWeight:900, fontSize:'0.9rem', color: WHITE, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
               {user?.username ?? '—'}
             </p>
             <span style={{
@@ -84,10 +86,10 @@ export default function SettingsSidebar({ tabs, activeTab, onSelect, user }) {
         {xpStats && (
           <div>
             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:5 }}>
-              <span style={{ fontFamily:'monospace', fontSize:'0.68rem', fontWeight:700, color:'var(--color-brand-primary)' }}>
+              <span style={{ fontFamily:'monospace', fontSize:'0.68rem', fontWeight:700, color: WHITE }}>
                 SEVİYE {xpStats.level}
               </span>
-              <span style={{ fontFamily:'monospace', fontSize:'0.68rem', color:'#4b5563' }}>
+              <span style={{ fontFamily:'monospace', fontSize:'0.68rem', color: WHITE_DIM }}>
                 {xpStats.xp_to_next_level} XP
               </span>
             </div>
@@ -109,10 +111,10 @@ export default function SettingsSidebar({ tabs, activeTab, onSelect, user }) {
 
       {/* ── Navigasyon bölüm başlığı ── */}
       <div style={{ padding:'0.5rem 1rem 0.375rem', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-        <span style={{ fontFamily:'monospace', fontSize:'0.6rem', letterSpacing:'0.1em', color:'#374151', textTransform:'uppercase' }}>
+        <span style={{ fontFamily:'monospace', fontSize:'0.6rem', letterSpacing:'0.1em', color: WHITE_DIM, textTransform:'uppercase' }}>
           // NAV_MENU
         </span>
-        <span style={{ fontFamily:'monospace', fontSize:'0.6rem', color:'#374151' }}>
+        <span style={{ fontFamily:'monospace', fontSize:'0.6rem', color: WHITE_DIM }}>
           {tabs.length}
         </span>
       </div>
@@ -136,15 +138,15 @@ export default function SettingsSidebar({ tabs, activeTab, onSelect, user }) {
                 fontFamily:  'monospace',
                 fontSize:    '0.8rem',
                 fontWeight:  active ? 700 : 500,
-                color:       active ? 'var(--color-brand-primary)' : '#9ca3af',
+                color:       active ? WHITE : WHITE_DIM,
                 borderLeft:  active ? '2.5px solid var(--color-brand-primary)' : '2.5px solid transparent',
                 borderBottom:`1px solid ${DIVIDER_MID}`,
-                background:  'transparent',
+                background:  active ? 'rgba(255,255,255,0.05)' : 'transparent',
                 cursor:      'pointer',
                 transition:  'color 0.15s, background 0.15s',
               }}
-              onMouseEnter={e => { if (!active) { e.currentTarget.style.color = '#d1fae5'; e.currentTarget.style.background = 'rgba(16,185,129,0.04)'; }}}
-              onMouseLeave={e => { if (!active) { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = 'transparent'; }}}
+              onMouseEnter={e => { if (!active) { e.currentTarget.style.color = WHITE; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}}
+              onMouseLeave={e => { if (!active) { e.currentTarget.style.color = WHITE_DIM; e.currentTarget.style.background = 'transparent'; }}}
             >
               {active && (
                 <motion.div
@@ -169,12 +171,12 @@ export default function SettingsSidebar({ tabs, activeTab, onSelect, user }) {
         borderTop: `1px solid ${DIVIDER}`,
         display: 'flex', alignItems:'center', justifyContent:'space-between',
       }}>
-        <span style={{ fontFamily:'monospace', fontSize:'0.6rem', color:'#374151', letterSpacing:'0.06em' }}>
+        <span style={{ fontFamily:'monospace', fontSize:'0.6rem', color: WHITE_DIM, letterSpacing:'0.06em' }}>
           // SYS_MONITOR
         </span>
         <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-          <div style={{ width:6, height:6, borderRadius:'50%', background:'var(--color-brand-primary)', opacity:0.7, animation:'ping 2s cubic-bezier(0,0,.2,1) infinite' }} />
-          <span style={{ fontFamily:'monospace', fontSize:'0.6rem', color:'var(--color-brand-primary)', opacity:0.7 }}>v2.4</span>
+          <div style={{ width:5, height:5, borderRadius:'50%', background:'var(--color-brand-primary)', opacity:0.6 }} />
+          <span style={{ fontFamily:'monospace', fontSize:'0.6rem', color: WHITE_DIM }}>v2.4</span>
         </div>
       </div>
 
