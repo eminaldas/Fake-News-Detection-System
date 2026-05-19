@@ -52,8 +52,11 @@ function UnderlineInput({ icon: Icon, label, hint, value, onChange, placeholder,
   return (
     <div>
       {label && (
-        <span style={{ display:'block', fontFamily:'monospace', fontSize:'0.6rem', fontWeight:600, letterSpacing:'0.09em', textTransform:'uppercase', color: focused ? W60 : W30, marginBottom:6, transition:'color 0.15s' }}>
-          {label}
+        <span style={{ display:'flex', alignItems:'center', gap:'0.35rem', marginBottom:6 }}>
+          <span style={{ width:4, height:4, background:'var(--color-brand-primary)', flexShrink:0, display:'inline-block', opacity: focused ? 1 : 0.55, transition:'opacity 0.15s' }} />
+          <span style={{ fontFamily:'monospace', fontSize:'0.6rem', fontWeight:600, letterSpacing:'0.09em', textTransform:'uppercase', color: focused ? W60 : W30, transition:'color 0.15s' }}>
+            {label}
+          </span>
         </span>
       )}
       <div style={{
@@ -90,8 +93,11 @@ function UnderlineTextarea({ label, hint, value, onChange, placeholder, rows=3, 
   return (
     <div>
       {label && (
-        <span style={{ display:'block', fontFamily:'monospace', fontSize:'0.6rem', fontWeight:600, letterSpacing:'0.09em', textTransform:'uppercase', color: focused ? W60 : W30, marginBottom:6, transition:'color 0.15s' }}>
-          {label}
+        <span style={{ display:'flex', alignItems:'center', gap:'0.35rem', marginBottom:6 }}>
+          <span style={{ width:4, height:4, background:'var(--color-brand-primary)', flexShrink:0, display:'inline-block', opacity: focused ? 1 : 0.55, transition:'opacity 0.15s' }} />
+          <span style={{ fontFamily:'monospace', fontSize:'0.6rem', fontWeight:600, letterSpacing:'0.09em', textTransform:'uppercase', color: focused ? W60 : W30, transition:'color 0.15s' }}>
+            {label}
+          </span>
         </span>
       )}
       <textarea
