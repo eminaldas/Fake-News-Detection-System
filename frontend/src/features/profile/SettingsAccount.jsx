@@ -29,7 +29,8 @@ const PLATFORMS = [
 ];
 
 /* Kart yok — sadece bölüm başlığı + alt çizgi ayırıcı */
-function Section({ title, children, accent, noDivider }) {
+function Section({ title, children, accent, noDivider, color }) {
+  const bar = color || 'var(--color-brand-primary)';
   return (
     <div style={{ paddingBottom: '2.5rem' }}>
       <div style={{
@@ -37,7 +38,7 @@ function Section({ title, children, accent, noDivider }) {
         paddingBottom:'0.625rem', marginBottom:'1.5rem',
         borderBottom: noDivider ? 'none' : `1px solid ${DIV}`,
       }}>
-        <div style={{ width:3, height:14, background:'var(--color-brand-primary)', flexShrink:0 }} />
+        <div style={{ width:3, height:14, background: bar, flexShrink:0 }} />
         <span style={{ fontFamily:'monospace', fontSize:'0.65rem', fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', color: W }}>{title}</span>
         {accent && <span style={{ marginLeft:'auto', fontFamily:'monospace', fontSize:'0.6rem', color: W30 }}>{accent}</span>}
       </div>
@@ -469,9 +470,8 @@ export default function SettingsAccount() {
                   style={hidden ? {
                     padding:'0.4rem 0.875rem',
                     fontFamily:'monospace', fontSize:'0.8rem', fontWeight:600,
-                    border:`1px solid ${DIV_S}`,
-                    color: W30, background:'transparent', cursor:'pointer',
-                    textDecoration:'line-through',
+                    border:'1px solid rgba(239,68,68,0.50)',
+                    color:'#fca5a5', background:'rgba(239,68,68,0.07)', cursor:'pointer',
                   } : {
                     padding:'0.4rem 0.875rem',
                     fontFamily:'monospace', fontSize:'0.8rem', fontWeight:600,
@@ -514,14 +514,14 @@ export default function SettingsAccount() {
           </button>
         </Section>
 
-        {/* ── TEHLİKELİ BÖLGE ── */}
-        <Section title="Tehlikeli Bölge" noDivider>
-          <div style={{ borderTop:`1px solid rgba(239,68,68,0.25)`, paddingTop:'1.5rem', display:'flex', flexDirection:'column', gap:'0.75rem' }}>
-            <p style={{ fontFamily:'monospace', fontSize:'0.8rem', color:W60 }}>
+        {/* ── HESAP SİLME ── */}
+        <Section title="Hesap Silme" noDivider color="rgba(239,68,68,0.80)">
+          <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
+            <p style={{ fontFamily:'monospace', fontSize:'0.8rem', color:W30 }}>
               Hesabı silmek geri alınamaz. Tüm veriler kalıcı olarak silinir.
             </p>
             <button type="button"
-                    style={{ alignSelf:'flex-start', padding:'0.5rem 1rem', fontFamily:'monospace', fontSize:'0.8rem', fontWeight:700, border:'1px solid rgba(239,68,68,0.5)', color:'#fca5a5', background:'transparent', cursor:'pointer' }}>
+                    style={{ alignSelf:'flex-start', padding:'0.5rem 1.25rem', fontFamily:'monospace', fontSize:'0.8rem', fontWeight:700, border:'1px solid rgba(239,68,68,0.5)', color:'#fca5a5', background:'transparent', cursor:'pointer' }}>
               Hesabı Sil
             </button>
           </div>
