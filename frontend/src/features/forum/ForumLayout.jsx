@@ -1,40 +1,39 @@
 import React from 'react';
 import { NavLink, Outlet, useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import {
-    MessageSquare, Search,
+    MessageSquare, Search, Hash, Activity,
     AlertTriangle, CheckCircle, Flame,
     Clock, Zap,
-    ChevronRight,
 } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 
-/* ── Tasarım sabitleri ── */
 const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
-const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 
 const SORT_OPTIONS = [
-    { key: 'hot',           label: 'Popüler',    Icon: Flame   },
-    { key: 'new',           label: 'Yeni',       Icon: Clock   },
-    { key: 'controversial', label: 'Tartışmalı', Icon: Zap     },
+    { key: 'hot',           label: 'Popüler',    Icon: Flame },
+    { key: 'new',           label: 'Yeni',       Icon: Clock },
+    { key: 'controversial', label: 'Tartışmalı', Icon: Zap   },
 ];
 
-
-const Block = ({ title, children }) => (
+const Block = ({ icon: Icon, label, children }) => (
     <div className="relative border overflow-hidden" style={TS}>
         <div className="absolute top-0 left-0 w-3 h-[2px] bg-brand pointer-events-none" />
         <div className="absolute top-0 left-0 h-3 w-[2px] bg-brand pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-3 h-[2px] bg-brand pointer-events-none" />
         <div className="absolute bottom-0 right-0 h-3 w-[2px] bg-brand pointer-events-none" />
-        <div className="px-4 py-3 border-b" style={BD}>
-            <span className="font-mono text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-brand-primary)' }}>
-                {title}
-            </span>
+        <div className="px-4 py-3 flex items-center gap-3">
+            {Icon && <Icon className="w-5 h-5" style={{ color: 'var(--color-brand-primary)' }} />}
+            {label && (
+                <span className="font-bold text-sm" style={{ color: 'var(--color-text-primary)' }}>{label}</span>
+            )}
         </div>
-        <div>{children}</div>
+        <div style={{ borderLeft: '3px solid var(--color-forum-left-border)' }}>
+            {children}
+        </div>
     </div>
 );
 
-const SIDEBAR_STYLE = { position: 'sticky', top: '6rem', alignSelf: 'start' };
+const SIDEBAR_STYLE = { position: 'sticky', top: '6rem', alignSelf: 'start', paddingTop: '46px' };
 
 const ForumLayout = () => {
     const location     = useLocation();
@@ -74,12 +73,12 @@ const ForumLayout = () => {
         setSearchQuery('');
     };
 
-
     return (
         <div className="w-full">
-            <div className="max-w-[1400px] mx-auto w-full px-4 md:px-6 py-6 flex flex-col lg:grid lg:gap-5"
-                 style={{ gridTemplateColumns: '1fr 260px' }}>
-
+            <div
+                className="max-w-[1400px] mx-auto w-full px-4 md:px-6 py-6 flex flex-col lg:grid lg:gap-5"
+                style={{ gridTemplateColumns: '1fr 320px' }}
+            >
                 {/* ══════ ORTA İÇERİK ══════ */}
                 <main className="min-w-0">
                     {!isSearchPage && (
@@ -112,16 +111,38 @@ const ForumLayout = () => {
                     className="hidden lg:flex flex-col gap-4"
                     style={isSearchPage ? { visibility: 'hidden' } : SIDEBAR_STYLE}
                 >
-
-                    {/* Genel Arama */}
-                    <Block title="// ara">
-                        <form onSubmit={handleSearch} className="px-4 py-3">
+                    {/* ── Arama ── */}
+                    <Block icon={Search} label="Ara">
+                        <form onSubmit={handleSearch} className="px-4 py-4 relative">
+                            {/* Decorative dot grid */}
                             <div
-                                className="flex items-center gap-2 border px-3 py-2.5 transition-colors"
-                                style={{ borderColor: searchFocused ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)' }}
+                                className="absolute top-3 right-4 w-16 h-10 pointer-events-none"
+                                style={{
+                                    backgroundImage: 'radial-gradient(circle, var(--color-brand-primary) 1px, transparent 1px)',
+                                    backgroundSize:  '6px 6px',
+                                    opacity: 0.08,
+                                }}
+                            />
+                            <div
+                                className="relative flex items-center gap-2 border px-3 py-2.5 transition-all duration-200"
+                                style={{
+                                    borderColor: searchFocused ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)',
+                                    background:  searchFocused ? 'rgba(16,185,129,0.04)' : 'transparent',
+                                    boxShadow:   searchFocused ? '0 0 0 3px rgba(16,185,129,0.08)' : 'none',
+                                }}
                                 onFocus={() => setSearchFocused(true)}
                                 onBlur={() => setSearchFocused(false)}
                             >
+                                {/* İç köşe aksanları */}
+                                <div className="absolute top-0 left-0 w-2 h-[2px] pointer-events-none transition-opacity duration-200"
+                                     style={{ background: 'var(--color-brand-primary)', opacity: searchFocused ? 1 : 0.35 }} />
+                                <div className="absolute top-0 left-0 h-2 w-[2px] pointer-events-none transition-opacity duration-200"
+                                     style={{ background: 'var(--color-brand-primary)', opacity: searchFocused ? 1 : 0.35 }} />
+                                <div className="absolute bottom-0 right-0 w-2 h-[2px] pointer-events-none transition-opacity duration-200"
+                                     style={{ background: 'var(--color-brand-primary)', opacity: searchFocused ? 1 : 0.35 }} />
+                                <div className="absolute bottom-0 right-0 h-2 w-[2px] pointer-events-none transition-opacity duration-200"
+                                     style={{ background: 'var(--color-brand-primary)', opacity: searchFocused ? 1 : 0.35 }} />
+
                                 <Search className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
                                 <input
                                     value={searchQuery}
@@ -130,34 +151,56 @@ const ForumLayout = () => {
                                     className="bg-transparent outline-none flex-1 font-mono text-sm"
                                     style={{ color: 'var(--color-text-primary)', caretColor: 'var(--color-brand-primary)' }}
                                 />
+                                {searchQuery && (
+                                    <kbd
+                                        className="font-mono text-[9px] px-1.5 py-0.5 shrink-0"
+                                        style={{
+                                            background: 'rgba(16,185,129,0.15)',
+                                            color:      'var(--color-brand-primary)',
+                                            border:     '1px solid rgba(16,185,129,0.30)',
+                                        }}
+                                    >
+                                        ↵
+                                    </kbd>
+                                )}
                             </div>
-                            <p className="font-mono text-[10px] mt-2 opacity-50" style={{ color: 'var(--color-text-muted)' }}>
-                                Enter ile ara
-                            </p>
+                            <div className="flex items-center justify-between mt-2">
+                                <p className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>
+                                    Enter ile ara
+                                </p>
+                                <p className="font-mono text-[10px]" style={{ color: 'var(--color-brand-primary)', opacity: 0.50 }}>
+                                    /search
+                                </p>
+                            </div>
                         </form>
                     </Block>
 
-                    {/* Trend Etiketler */}
+                    {/* ── Trend Etiketler ── */}
                     {trendingTags.length > 0 && (
-                        <Block title="// trend_etiketler">
+                        <Block icon={Hash} label="Trend Etiketler">
                             <div className="flex flex-col">
-                                {trendingTags.slice(0, 8).map((t) => (
+                                {trendingTags.slice(0, 8).map((t, idx, arr) => (
                                     <NavLink
                                         key={t.id}
                                         to={`/forum?tag=${encodeURIComponent(t.name.replace(/^#/, ''))}`}
-                                        className="flex items-center justify-between px-4 py-2.5 border-l-2 border-transparent font-mono text-sm transition-colors group"
-                                        style={{ color: 'var(--color-text-primary)' }}
-                                        onMouseEnter={e => e.currentTarget.style.borderLeftColor = 'var(--color-brand-primary)'}
-                                        onMouseLeave={e => e.currentTarget.style.borderLeftColor = 'transparent'}
+                                        className="flex items-center px-4 py-2.5 font-mono text-sm font-bold"
+                                        style={{
+                                            color:        'var(--color-text-primary)',
+                                            borderBottom: idx < arr.length - 1 ? '1px solid var(--color-terminal-border-raw)' : 'none',
+                                            transition:   'background 0.18s ease, padding-left 0.18s ease',
+                                        }}
+                                        onMouseEnter={e => {
+                                            e.currentTarget.style.background  = 'rgba(16,185,129,0.08)';
+                                            e.currentTarget.style.paddingLeft = '22px';
+                                        }}
+                                        onMouseLeave={e => {
+                                            e.currentTarget.style.background  = 'transparent';
+                                            e.currentTarget.style.paddingLeft = '16px';
+                                        }}
                                     >
-                                        <span className="truncate group-hover:text-brand transition-colors">
-                                            #{t.name.replace(/^#/, '')}
-                                        </span>
-                                        <span
-                                            className="font-mono text-xs font-bold shrink-0 ml-2 px-1.5 py-0.5 border"
-                                            style={{ color: 'var(--color-brand-primary)', borderColor: 'rgba(16,185,129,0.25)' }}
-                                        >
-                                            {t.usage_count}
+                                        <span className="truncate">
+                                            <span style={{ color: 'var(--color-brand-primary)' }}>#</span>
+                                            {t.name.replace(/^#/, '')}
                                         </span>
                                     </NavLink>
                                 ))}
@@ -165,68 +208,94 @@ const ForumLayout = () => {
                         </Block>
                     )}
 
-                    {/* Popüler Tartışmalar */}
+                    {/* ── Popüler Tartışmalar ── */}
                     {trending?.trending_threads?.length > 0 && (
-                        <Block title="// popüler">
+                        <Block icon={Flame} label="Popüler">
                             <div className="flex flex-col">
-                                {trending.trending_threads.slice(0, 6).map((t, i) => (
+                                {trending.trending_threads.slice(0, 6).map((t, i, arr) => (
                                     <NavLink
                                         key={t.id}
                                         to={`/forum/${t.id}`}
-                                        className="flex gap-3 px-4 py-3 border-l-2 border-transparent transition-colors group"
-                                        onMouseEnter={e => e.currentTarget.style.borderLeftColor = 'var(--color-brand-primary)'}
-                                        onMouseLeave={e => e.currentTarget.style.borderLeftColor = 'transparent'}
+                                        className="flex gap-3 px-4 py-3 group"
+                                        style={{
+                                            borderBottom: i < arr.length - 1 ? '1px solid var(--color-terminal-border-raw)' : 'none',
+                                            transition:   'background 0.18s ease, padding-left 0.18s ease',
+                                        }}
+                                        onMouseEnter={e => {
+                                            e.currentTarget.style.background  = 'rgba(16,185,129,0.08)';
+                                            e.currentTarget.style.paddingLeft = '20px';
+                                        }}
+                                        onMouseLeave={e => {
+                                            e.currentTarget.style.background  = 'transparent';
+                                            e.currentTarget.style.paddingLeft = '16px';
+                                        }}
                                     >
                                         <span
                                             className="font-mono text-xs font-black mt-0.5 shrink-0 w-5 text-right"
-                                            style={{ color: 'var(--color-brand-primary)', opacity: 0.7 }}
+                                            style={{ color: 'var(--color-brand-primary)' }}
                                         >
                                             {String(i + 1).padStart(2, '0')}
                                         </span>
                                         <div className="min-w-0 flex-1">
                                             <p
-                                                className="font-mono text-sm leading-snug line-clamp-2 group-hover:text-brand transition-colors"
+                                                className="font-mono text-sm font-bold leading-snug line-clamp-2"
                                                 style={{ color: 'var(--color-text-primary)' }}
                                             >
                                                 {t.title}
                                             </p>
-                                            <p className="font-mono text-[10px] mt-1 tracking-wide" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>
+                                            <p className="font-mono text-[10px] mt-1 tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
                                                 {t.comment_count ?? 0} yorum
                                             </p>
                                         </div>
-                                        <ChevronRight className="w-3.5 h-3.5 shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 transition-opacity" style={{ color: 'var(--color-brand-primary)' }} />
                                     </NavLink>
                                 ))}
                             </div>
                         </Block>
                     )}
 
-                    {/* Forum İstatistikleri */}
-                    <Block title="// forum_stats">
-                        <div className="px-4 pb-2 flex flex-col gap-0">
+                    {/* ── Forum İstatistikleri ── */}
+                    <Block icon={Activity} label="Forum Stats">
+                        <div className="flex flex-col">
                             {[
-                                { label: 'AKTİF TARTIŞMA',   value: trendingStats?.active,      icon: MessageSquare, color: 'var(--color-brand-primary)' },
-                                { label: 'İNCELEME ALTINDA', value: trendingStats?.underReview, icon: AlertTriangle, color: 'var(--color-accent-amber)'  },
-                                { label: 'ÇÖZÜME ULAŞAN',    value: trendingStats?.resolved,    icon: CheckCircle,   color: 'var(--color-brand-primary)' },
-                            ].map(({ label, value, icon: Icon, color }, idx, arr) => (
-                                <div key={label}>
-                                    <div className="flex items-center justify-between py-2.5">
-                                        <div className="flex items-center gap-2.5">
-                                            <Icon className="w-4 h-4 shrink-0" style={{ color }} />
-                                            <span className="font-mono text-xs tracking-wider" style={{ color: 'var(--color-text-primary)' }}>
-                                                {label}
-                                            </span>
-                                        </div>
-                                        <span className="font-mono text-sm font-black" style={{ color }}>
-                                            {value ?? '—'}
+                                { label: 'Aktif Tartışma',   value: trendingStats?.active,      icon: MessageSquare, color: 'var(--color-brand-primary)' },
+                                { label: 'İnceleme Altında', value: trendingStats?.underReview, icon: AlertTriangle, color: 'var(--color-accent-amber)'  },
+                                { label: 'Çözüme Ulaşan',    value: trendingStats?.resolved,    icon: CheckCircle,   color: 'var(--color-brand-primary)' },
+                            ].map(({ label, value, icon: StatIcon, color }, idx, arr) => (
+                                <div
+                                    key={label}
+                                    className="flex items-center justify-between px-4 py-3 cursor-default group"
+                                    style={{
+                                        borderBottom: idx < arr.length - 1 ? '1px solid var(--color-terminal-border-raw)' : 'none',
+                                        transition:   'background 0.18s ease, padding-left 0.18s ease',
+                                    }}
+                                    onMouseEnter={e => {
+                                        e.currentTarget.style.background  = 'rgba(16,185,129,0.05)';
+                                        e.currentTarget.style.paddingLeft = '20px';
+                                    }}
+                                    onMouseLeave={e => {
+                                        e.currentTarget.style.background  = 'transparent';
+                                        e.currentTarget.style.paddingLeft = '16px';
+                                    }}
+                                >
+                                    <div className="flex items-center gap-2.5">
+                                        <StatIcon
+                                            className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110"
+                                            style={{ color }}
+                                        />
+                                        <span className="font-mono text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                                            {label}
                                         </span>
                                     </div>
-                                    {idx < arr.length - 1 && <div className="h-px" style={{ background: 'var(--color-terminal-border-raw)' }} />}
+                                    <span
+                                        className="font-mono text-lg font-black transition-transform duration-200 group-hover:scale-110 origin-right"
+                                        style={{ color }}
+                                    >
+                                        {value ?? '—'}
+                                    </span>
                                 </div>
                             ))}
                         </div>
                     </Block>
-
                 </aside>
             </div>
         </div>

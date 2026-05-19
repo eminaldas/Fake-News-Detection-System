@@ -177,7 +177,7 @@ function FeaturedCard({ article }) {
                 </div>
             )}
 
-            <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/30 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent" />
 
             {article.category && (
                 <span className="absolute top-3 left-3 z-10 font-mono text-[10px] font-black uppercase tracking-widest px-2 py-1 text-white"
@@ -192,7 +192,9 @@ function FeaturedCard({ article }) {
                 </span>
             )}
 
-            <div className="absolute bottom-0 left-0 right-0 z-10 p-5">
+            {/* Flex spacer + içerik: absolute yerine flex flow ile daha yukarıda konumlanır */}
+            <div className="flex-1" />
+            <div className="relative z-10 px-5 pb-5 pt-10">
                 <h2 className="text-white font-extrabold text-xl md:text-2xl leading-snug line-clamp-3 mb-3 drop-shadow
                                group-hover:text-brand transition-colors">
                     {article.title}
@@ -274,7 +276,7 @@ function SmallCard({ article }) {
 
 function GridSkeleton() {
     return (
-        <div className="grid grid-cols-2 gap-4 auto-rows-[220px] animate-pulse">
+        <div className="grid grid-cols-2 gap-4 auto-rows-[260px] animate-pulse">
             <div className="col-span-1 row-span-2 overflow-hidden border" style={{ ...borderStyle, background: 'var(--color-skeleton)' }} />
             {Array.from({ length: 2 }).map((_, i) => (
                 <div key={i} className="overflow-hidden border" style={{ ...borderStyle, background: 'var(--color-terminal-surface)' }}>
@@ -319,7 +321,7 @@ export default function PopularNewsGrid({ featured, articles, loading, loadingMo
     return (
         <div>
             {/* Ana grid: sol büyük (row-span-2) + sağda 2 kart */}
-            <div className="grid grid-cols-2 gap-4 auto-rows-[220px] mb-4">
+            <div className="grid grid-cols-2 gap-4 auto-rows-[260px] mb-4">
                 {featured && <FeaturedCard article={featured} />}
                 {rest.slice(0, 2).map((a, idx) => (
                     <div key={a.id}

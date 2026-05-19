@@ -20,16 +20,38 @@ export function usePopularNews(category, dateFrom, dateTo) {
 
     // Günün en popüler haberi — ayrı çağrı
     const fetchFeatured = useCallback(async () => {
+        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
         try {
-            const data = await NewsService.getNews({
+            // 1. Bugünün en popülerini dene
+            const todayData = await NewsService.getNews({
+                sort:      'popular',
+                size:      1,
+                page:      1,
+                category:  category || undefined,
+                date_from: today,
+                date_to:   today,
+            });
+            const todayItem = todayData.items?.[0] ?? null;
+            if (todayItem) {
+                setFeatured(todayItem);
+                featuredIdRef.current = todayItem.id;
+                return;
+            }
+            // 2. Bugün yoksa dünün en popülerine bak — en az 3 kaynakla çıkmışsa göster
+            const fallbackData = await NewsService.getNews({
                 sort:     'popular',
                 size:     1,
                 page:     1,
                 category: category || undefined,
             });
-            const item = data.items?.[0] ?? null;
-            setFeatured(item);
-            featuredIdRef.current = item?.id ?? null;
+            const fallbackItem = fallbackData.items?.[0] ?? null;
+            if (fallbackItem && (fallbackItem.source_count ?? 0) >= 3) {
+                setFeatured(fallbackItem);
+                featuredIdRef.current = fallbackItem.id;
+            } else {
+                setFeatured(null);
+                featuredIdRef.current = null;
+            }
         } catch {
             setFeatured(null);
             featuredIdRef.current = null;

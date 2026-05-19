@@ -19,7 +19,8 @@ function ConvAvatar({ conv }) {
             }}
         >
             {conv.partner_avatar
-                ? <img src={conv.partner_avatar} className="w-full h-full object-cover" alt="" />
+                ? <img src={conv.partner_avatar} className="w-full h-full object-cover" alt=""
+                       referrerPolicy="no-referrer" />
                 : (conv.partner_name?.[0] ?? '?').toUpperCase()
             }
         </div>

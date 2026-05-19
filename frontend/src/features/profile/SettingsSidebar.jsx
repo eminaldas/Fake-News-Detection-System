@@ -19,10 +19,10 @@ const TIER_LABEL = {
 const PAL_BG   = ['rgba(16,185,129,0.22)','rgba(59,130,246,0.22)','rgba(245,158,11,0.22)','rgba(239,68,68,0.22)','rgba(168,85,247,0.22)'];
 const PAL_TEXT = ['#10b981','#3b82f6','#f59e0b','#ef4444','#a855f7'];
 
-const DIVIDER     = 'rgba(65,73,77,0.65)';   /* --color-navbar-border */
-const DIVIDER_MID = 'rgba(65,73,77,0.30)';
-const WHITE       = '#eef2f7';               /* tam opak beyaz */
-const WHITE_DIM   = 'rgba(238,242,247,0.75)'; /* hafif soluk ama gri değil */
+const DIVIDER     = 'var(--color-navbar-border)';
+const DIVIDER_MID = 'var(--color-terminal-border-raw)';
+const WHITE       = 'var(--color-text-primary)';
+const WHITE_DIM   = 'var(--color-text-secondary)';
 
 export default function SettingsSidebar({ tabs, activeTab, onSelect, user }) {
   const [xpStats, setXpStats] = useState(null);
@@ -99,7 +99,7 @@ export default function SettingsSidebar({ tabs, activeTab, onSelect, user }) {
                 return (
                   <div key={i} style={{
                     flex: 1, height: 3,
-                    background: filled ? 'var(--color-brand-primary)' : 'rgba(255,255,255,0.06)',
+                    background: filled ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)',
                     transition: 'background 0.3s',
                   }} />
                 );
@@ -141,12 +141,12 @@ export default function SettingsSidebar({ tabs, activeTab, onSelect, user }) {
                 color:       active ? WHITE : WHITE_DIM,
                 borderLeft:  active ? '2.5px solid var(--color-brand-primary)' : '2.5px solid transparent',
                 borderBottom:`1px solid ${DIVIDER_MID}`,
-                background:  active ? 'rgba(255,255,255,0.05)' : 'transparent',
+                background:  active ? 'rgba(16,185,129,0.07)' : 'transparent',
                 cursor:      'pointer',
                 transition:  'color 0.15s, background 0.15s',
               }}
-              onMouseEnter={e => { if (!active) { e.currentTarget.style.color = WHITE; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}}
-              onMouseLeave={e => { if (!active) { e.currentTarget.style.color = WHITE_DIM; e.currentTarget.style.background = 'transparent'; }}}
+              onMouseEnter={e => { if (!active) { e.currentTarget.style.color = 'var(--color-text-primary)'; e.currentTarget.style.background = 'rgba(16,185,129,0.05)'; }}}
+              onMouseLeave={e => { if (!active) { e.currentTarget.style.color = 'var(--color-text-secondary)'; e.currentTarget.style.background = 'transparent'; }}}
             >
               {active && (
                 <motion.div

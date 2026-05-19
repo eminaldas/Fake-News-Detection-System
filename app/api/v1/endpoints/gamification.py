@@ -46,7 +46,7 @@ def _stats_dict(user: User) -> dict:
     cur_floor = xp_for_level(level)
     nxt_floor = xp_for_level(level + 1)
     span      = max(nxt_floor - cur_floor, 1)
-    pct       = round((total_xp - cur_floor) / span * 100, 1)
+    pct       = round(max(0.0, (total_xp - cur_floor)) / span * 100, 1)
     return {
         "total_xp":         total_xp,
         "level":            level,

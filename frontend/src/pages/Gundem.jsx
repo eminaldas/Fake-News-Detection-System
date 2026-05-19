@@ -3,11 +3,12 @@ import { useSearchParams } from 'react-router-dom';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { usePopularNews } from '../hooks/usePopularNews';
 import PopularNewsGrid from '../components/features/gundem/PopularNewsGrid';
+import { RefreshCw } from 'lucide-react';
 
 export default function Gundem() {
-    const [searchParams]  = useSearchParams();
-    const { subscribe }   = useWebSocket();
-    const category        = searchParams.get('category');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const { subscribe } = useWebSocket();
+    const category = searchParams.get('category');
 
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo,   setDateTo]   = useState('');
@@ -20,39 +21,17 @@ export default function Gundem() {
         return unsub;
     }, [subscribe, refresh]);
 
-
     return (
-        <div className="max-w-6xl mx-auto px-4 pt-14 pb-16">
+        <div className="max-w-5xl mx-auto px-4 pt-14 pb-16">
 
-            {/* Yeni haber bildirimi */}
-            {newCount > 0 && (
-                <button
-                    onClick={refresh}
-                    className="w-full mb-6 flex items-center justify-center gap-2 py-3 px-4 font-mono text-xs font-bold cursor-pointer border transition-all hover:brightness-110"
-                    style={{
-                        background:  'var(--color-terminal-surface)',
-                        borderColor: 'var(--color-terminal-border-raw)',
-                        color:       'var(--color-brand-primary)',
-                    }}
-                >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round"
-                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                    {newCount} yeni haber
-                </button>
-            )}
-
-            {/* Başlık */}
-            <div className="mb-8">
-                <div className="flex items-center gap-3 mb-3">
-                    <span className="w-8 h-px" style={{ background: 'var(--color-brand-primary)' }} />
-                    <span className="text-[10px] uppercase tracking-[0.25em] font-bold"
-                          style={{ color: 'var(--color-brand-primary)' }}>
-                        Güncel Haberler
-                    </span>
-                </div>
-                <h1 className="text-4xl md:text-5xl font-extrabold text-tx-primary font-manrope tracking-tight leading-none">
+            {/* ── Header ── */}
+            <div className="mb-6">
+                <p className="font-mono text-[10px] uppercase tracking-widest mb-1.5"
+                   style={{ color: 'var(--color-brand-primary)' }}>
+                    // GÜNCEL_HABERLER
+                </p>
+                <h1 className="text-4xl md:text-5xl font-extrabold font-manrope tracking-tight leading-none"
+                    style={{ color: 'var(--color-text-primary)' }}>
                     {category
                         ? <>{category.charAt(0).toUpperCase() + category.slice(1)}<span style={{ color: 'var(--color-brand-primary)' }}>.</span></>
                         : <>Sizin İçin<span style={{ color: 'var(--color-brand-primary)' }}>.</span></>
@@ -60,23 +39,39 @@ export default function Gundem() {
                 </h1>
             </div>
 
-            {/* Tarih filtresi aktifse temizle */}
+            {/* ── Yeni haber bildirimi ── */}
+            {newCount > 0 && (
+                <button
+                    onClick={refresh}
+                    className="w-full mb-5 flex items-center justify-center gap-2 py-2.5 px-4 font-mono text-[11px] font-bold uppercase tracking-widest border transition-all hover:brightness-110"
+                    style={{
+                        background:  'rgba(16,185,129,0.05)',
+                        borderColor: 'var(--color-brand-primary)',
+                        color:       'var(--color-brand-primary)',
+                    }}
+                >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    {newCount} yeni haber — yükle
+                </button>
+            )}
+
+            {/* ── Tarih filtresi temizle ── */}
             {(dateFrom || dateTo) && (
-                <div className="flex items-center gap-3 mb-4 text-xs text-muted">
-                    <span>Tarih filtresi: {dateFrom || '…'} → {dateTo || '…'}</span>
+                <div className="flex items-center gap-3 mb-4 font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                    <span>Tarih: {dateFrom || '…'} → {dateTo || '…'}</span>
                     <button onClick={() => { setDateFrom(''); setDateTo(''); }}
-                            className="text-brand hover:underline">
+                            className="hover:underline" style={{ color: 'var(--color-brand-primary)' }}>
                         Temizle
                     </button>
                 </div>
             )}
 
-            {/* Hata */}
             {error && (
-                <p className="text-red-400/70 text-sm text-center py-10">{error}</p>
+                <p className="font-mono text-sm text-center py-10" style={{ color: 'var(--color-es-error)', opacity: 0.7 }}>
+                    {error}
+                </p>
             )}
 
-            {/* Popüler haberler */}
             <PopularNewsGrid
                 featured={featured}
                 articles={articles}
@@ -85,7 +80,6 @@ export default function Gundem() {
                 hasMore={hasMore}
                 loadMore={loadMore}
             />
-
         </div>
     );
 }

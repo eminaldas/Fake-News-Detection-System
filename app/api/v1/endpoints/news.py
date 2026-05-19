@@ -72,12 +72,18 @@ async def list_news(
     total = total_result.scalar_one()
 
     if sort == "popular":
-        # Kategori filtresi varsa daha geniş pencere (düşük frekanslı kategoriler için)
-        popular_cutoff = datetime.now(UTC) - timedelta(days=30 if category else 2)
+        # Her zaman 2 günlük pencere — kategori istisnası kaldırıldı
+        popular_cutoff = datetime.now(UTC) - timedelta(days=2)
         popular_filter = [
             *base_filter,
             func.coalesce(NewsArticle.pub_date, NewsArticle.created_at) >= popular_cutoff,
         ]
+        today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+        # Bugünkü haberler 3×, dünkü 1× — eski haberler doğal olarak baskılanır
+        day_weight = case(
+            (func.coalesce(NewsArticle.pub_date, NewsArticle.created_at) >= today_start, 3.0),
+            else_=1.0,
+        )
         hrs = (
             func.extract('epoch', func.now() - func.coalesce(NewsArticle.pub_date, NewsArticle.created_at))
             / 3600.0
@@ -88,11 +94,13 @@ async def list_news(
             .group_by(ContentInteraction.content_id)
             .subquery()
         )
-        pop = (
-            NewsArticle.source_count * 0.5
-            + func.coalesce(cv_sub.c.cv, 0) * 0.3
+        # Kaynak ve tıklama eşit ağırlıkta, tazelik destekleyici
+        base_score = (
+            NewsArticle.source_count * 0.4
+            + func.coalesce(cv_sub.c.cv, 0) * 0.4
             + (1.0 / (hrs + 1.0)) * 0.2
         )
+        pop = base_score * day_weight
         items_result = await db.execute(
             select(NewsArticle)
             .where(*popular_filter)

@@ -52,6 +52,10 @@
     /* ── Terminal / Cyber kartlar (light) ── */
     --color-terminal-surface:    #f8fffe;
     --color-terminal-border-raw: rgba(16,185,129,0.20);
+
+    /* ── Forum bileşen tokenları (light) ── */
+    --color-forum-left-border: rgba(36,41,47,0.22);
+    --color-forum-tab-active:  #e8f5ee;
     --color-market-label:        rgba(255,255,255,0.65);
     --color-market-value:        rgba(255,255,255,0.95);
     --color-market-sys:          rgba(63,255,139,0.70);
@@ -136,6 +140,10 @@
     /* ── Terminal / Cyber kartlar (dark) ── */
     --color-terminal-surface:    #0c1518;
     --color-terminal-border-raw: rgba(65,73,77,0.50);
+
+    /* ── Forum bileşen tokenları (dark) ── */
+    --color-forum-left-border: rgba(255,255,255,0.90);
+    --color-forum-tab-active:  rgb(8,21,14);
     --color-market-label:        rgba(255,255,255,0.65);
     --color-market-value:        rgba(255,255,255,0.95);
     --color-market-sys:          rgba(63,255,139,0.70);

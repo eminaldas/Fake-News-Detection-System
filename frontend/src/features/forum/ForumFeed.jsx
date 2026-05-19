@@ -84,6 +84,7 @@ function AuthorAvatar({ username, avatarUrl, size = 8 }) {
         >
             {avatarUrl
                 ? <img src={avatarUrl} alt={username} className="w-full h-full object-cover"
+                       referrerPolicy="no-referrer"
                        onError={e => { e.currentTarget.style.display = 'none'; }} />
                 : (username ?? '?')[0].toUpperCase()
             }
@@ -676,7 +677,7 @@ const ForumFeed = () => {
 
     return (
         <>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
 
             {/* ── Yeni gönderi banner ── */}
             {newCount > 0 && (
@@ -723,40 +724,47 @@ const ForumFeed = () => {
                     {[
                         { id: 'discover',  label: 'KEŞFET',         icon: Compass },
                         { id: 'following', label: 'TAKİP EDİLENLER', icon: Users   },
-                    ].map(({ id, label, icon: TabIcon }) => (
-                        <button
-                            key={id}
-                            onClick={() => {
-                                if (id === 'following' && !user) { navigate('/login'); return; }
-                                setActiveTab(id);
-                            }}
-                            className="flex-1 flex items-center justify-center gap-2 py-2.5 font-mono text-xs font-bold tracking-wider uppercase transition-colors border-l-2"
-                            style={{
-                                background:  activeTab === id ? 'rgba(16,185,129,0.10)' : 'transparent',
-                                color:       activeTab === id ? 'var(--color-brand-primary)' : 'var(--color-text-primary)',
-                                borderColor: activeTab === id ? 'var(--color-brand-primary)' : 'transparent',
-                            }}
-                        >
-                            <TabIcon className="w-3.5 h-3.5" />
-                            {label}
-                        </button>
-                    ))}
+                    ].map(({ id, label, icon: TabIcon }) => {
+                        const active = activeTab === id;
+                        return (
+                            <button
+                                key={id}
+                                onClick={() => {
+                                    if (id === 'following' && !user) { navigate('/login'); return; }
+                                    setActiveTab(id);
+                                }}
+                                className="flex-1 flex items-center justify-center gap-2 py-2.5 font-mono text-xs font-bold tracking-wider uppercase relative overflow-hidden"
+                                style={{
+                                    background: active
+                                        ? 'var(--color-forum-tab-active)'
+                                        : 'var(--color-terminal-surface)',
+                                    color:      'var(--color-text-primary)',
+                                    borderLeft: `2px solid ${active ? 'var(--color-brand-primary)' : 'transparent'}`,
+                                    transition: 'background 0.22s ease, border-color 0.22s ease',
+                                }}
+                            >
+                                <TabIcon
+                                    className="w-3.5 h-3.5"
+                                    style={{
+                                        color:      active ? 'var(--color-brand-primary)' : 'var(--color-text-muted)',
+                                        transition: 'color 0.22s ease, transform 0.22s ease',
+                                        transform:  active ? 'scale(1.1)' : 'scale(1)',
+                                    }}
+                                />
+                                <span style={{ opacity: active ? 1 : 0.6, transition: 'opacity 0.22s ease' }}>
+                                    {label}
+                                </span>
+                                {active && (
+                                    <span
+                                        className="absolute bottom-0 left-0 right-0 h-[2px]"
+                                        style={{ background: 'var(--color-brand-primary)' }}
+                                    />
+                                )}
+                            </button>
+                        );
+                    })}
                 </div>
             )}
-
-            {/* ── Başlık ── */}
-            <div className="flex items-center justify-between">
-                <span className="font-mono text-xs tracking-widest uppercase" style={{ color: 'var(--color-brand-primary)' }}>
-                    // {category
-                        ? category.toUpperCase()
-                        : tag ? tag.toUpperCase() : 'TÜM_TARTIŞMALAR'}
-                </span>
-                {total > 0 && (
-                    <span className="font-mono text-xs" style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
-                        {total} kayıt
-                    </span>
-                )}
-            </div>
 
             {/* ── Aktif filtreler ── */}
             {(category || tag) && (

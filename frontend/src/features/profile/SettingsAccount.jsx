@@ -8,12 +8,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import axiosInstance from '../../api/axios';
 import SettingsPanelShell from './SettingsPanelShell';
 
-/* ── Renkler ── */
-const W     = '#eef2f7';                      /* tam beyaz */
-const W60   = 'rgba(238,242,247,0.88)';       /* label */
-const W30   = 'rgba(238,242,247,0.55)';       /* hint / ikon / muted */
-const DIV   = 'rgba(65,73,77,0.60)';          /* --color-navbar-border */
-const DIV_S = 'rgba(65,73,77,0.30)';          /* input normal alt çizgi */
+/* ── Renkler — CSS değişkeni tabanlı, light/dark otomatik ── */
+const W     = 'var(--color-text-primary)';
+const W60   = 'var(--color-text-secondary)';
+const W30   = 'var(--color-text-muted)';
+const DIV   = 'var(--color-navbar-border)';
+const DIV_S = 'var(--color-terminal-border-raw)';
 
 const PAL_BG   = ['rgba(16,185,129,0.18)','rgba(59,130,246,0.18)','rgba(245,158,11,0.18)','rgba(239,68,68,0.18)','rgba(168,85,247,0.18)'];
 const PAL_TEXT = ['#10b981','#3b82f6','#f59e0b','#ef4444','#a855f7'];
@@ -62,7 +62,7 @@ function UnderlineInput({ icon: Icon, label, hint, value, onChange, placeholder,
       )}
       <div style={{
         display:'flex', alignItems:'center', gap:'0.625rem',
-        borderBottom: focused ? `2px solid ${W}` : `1px solid ${DIV_S}`,
+        borderBottom: focused ? `2px solid var(--color-brand-primary)` : `1px solid ${DIV_S}`,
         paddingBottom: focused ? 5 : 6,
         transition:'border-color 0.18s',
       }}>
@@ -75,7 +75,7 @@ function UnderlineInput({ icon: Icon, label, hint, value, onChange, placeholder,
             flex:1, background:'transparent', border:'none', outline:'none',
             fontFamily:'monospace', fontSize:'0.875rem',
             color: disabled ? W30 : W,
-            caretColor: W,
+            caretColor: 'var(--color-brand-primary)',
             opacity: disabled ? 0.5 : 1,
           }}
           onFocus={() => setFocused(true)}
@@ -107,9 +107,9 @@ function UnderlineTextarea({ label, hint, value, onChange, placeholder, rows=3, 
         style={{
           width:'100%', background:'transparent', outline:'none', resize:'none',
           fontFamily:'monospace', fontSize:'0.875rem', color: W,
-          caretColor: W,
+          caretColor: 'var(--color-brand-primary)',
           border:'none',
-          borderBottom: focused ? `2px solid ${W}` : `1px solid ${DIV_S}`,
+          borderBottom: focused ? `2px solid var(--color-brand-primary)` : `1px solid ${DIV_S}`,
           paddingBottom: focused ? 5 : 6,
           transition:'border-color 0.18s',
         }}
@@ -129,7 +129,7 @@ function LeaveModal({ onConfirm, onCancel }) {
       <motion.div
         initial={{ scale: 0.93, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        style={{ width:360, background:'#070f12', border:`1px solid ${DIV}`, overflow:'hidden' }}
+        style={{ width:360, background:'var(--color-terminal-surface)', border:`1px solid ${DIV}`, overflow:'hidden' }}
         onClick={e => e.stopPropagation()}
       >
         <div style={{ padding:'1rem 1.25rem', borderBottom:`1px solid ${DIV}`, display:'flex', alignItems:'center', gap:'0.5rem' }}>
@@ -475,8 +475,8 @@ export default function SettingsAccount() {
                   } : {
                     padding:'0.4rem 0.875rem',
                     fontFamily:'monospace', fontSize:'0.8rem', fontWeight:600,
-                    border:`1px solid ${W60}`,
-                    color: W, background:'rgba(238,242,247,0.05)', cursor:'pointer',
+                    border:`1px solid ${DIV_S}`,
+                    color: W, background:'rgba(16,185,129,0.04)', cursor:'pointer',
                   }}
                 >
                   {cat}
@@ -540,7 +540,7 @@ export default function SettingsAccount() {
             animate={{ opacity:1, y:0, scale:1 }}
             exit={{ opacity:0, y:-6, scale:0.97 }}
             transition={{ duration:0.15 }}
-            style={{ position:'fixed', zIndex:999, background:'#070f12', border:`1px solid ${DIV}`, minWidth:200, top:pickerPos.top, left:pickerPos.left, boxShadow:'0 8px 32px rgba(0,0,0,0.5)' }}
+            style={{ position:'fixed', zIndex:999, background:'var(--color-terminal-surface)', border:`1px solid ${DIV}`, minWidth:200, top:pickerPos.top, left:pickerPos.left, boxShadow:'0 8px 32px rgba(0,0,0,0.3)' }}
           >
             {availablePlatforms.length === 0 ? (
               <p style={{ padding:'0.75rem 1rem', fontFamily:'monospace', fontSize:'0.8rem', color:W30 }}>Tüm platformlar eklendi</p>
@@ -550,7 +550,7 @@ export default function SettingsAccount() {
                   key={key}
                   onClick={() => addPlatform(key)}
                   style={{ display:'flex', alignItems:'center', gap:'0.75rem', width:'100%', padding:'0.75rem 1rem', fontFamily:'monospace', fontSize:'0.8rem', fontWeight:600, borderBottom:`1px solid ${DIV_S}`, color:W, background:'transparent', cursor:'pointer', textAlign:'left' }}
-                  onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.04)'}
+                  onMouseEnter={e => e.currentTarget.style.background='rgba(16,185,129,0.06)'}
                   onMouseLeave={e => e.currentTarget.style.background='transparent'}
                 >
                   <Icon style={{ width:15, height:15, flexShrink:0, color:W60 }} />

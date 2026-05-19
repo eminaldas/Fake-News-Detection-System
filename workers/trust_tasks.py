@@ -96,7 +96,7 @@ async def _recalculate() -> dict:
                     u.total_xp                        AS total_xp
                 FROM users u
                 LEFT JOIN forum_comments c ON c.user_id = u.id
-                LEFT JOIN forum_threads  t ON t.author_id = u.id
+                LEFT JOIN forum_threads  t ON t.user_id = u.id
                 GROUP BY u.id, u.total_xp
             """))
             signals = {

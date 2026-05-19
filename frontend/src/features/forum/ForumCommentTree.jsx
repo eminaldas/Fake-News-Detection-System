@@ -113,6 +113,7 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                         {comment.avatar_url
                             ? <img src={comment.avatar_url} alt={comment.username}
                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                   referrerPolicy="no-referrer"
                                    onError={e => { e.currentTarget.style.display = 'none'; }} />
                             : (comment.username ?? '?')[0].toUpperCase()
                         }

@@ -38,14 +38,15 @@ function wmoLabel(code) {
 }
 
 function wmoAccent(code) {
-    if (code === 0)  return { bg: 'rgba(253,224,71,0.18)',  border: 'rgba(253,224,71,0.45)'  }; // güneş
-    if (code <= 3)   return { bg: 'rgba(148,163,184,0.18)', border: 'rgba(148,163,184,0.40)' }; // bulutlu
-    if (code <= 48)  return { bg: 'rgba(100,116,139,0.18)', border: 'rgba(100,116,139,0.40)' }; // sisli
-    if (code <= 65)  return { bg: 'rgba(59,130,246,0.18)',  border: 'rgba(59,130,246,0.45)'  }; // yağmur
-    if (code <= 75)  return { bg: 'rgba(186,230,253,0.18)', border: 'rgba(186,230,253,0.45)' }; // kar
-    if (code <= 82)  return { bg: 'rgba(59,130,246,0.22)',  border: 'rgba(59,130,246,0.50)'  }; // sağanak
-    if (code <= 86)  return { bg: 'rgba(186,230,253,0.22)', border: 'rgba(186,230,253,0.50)' }; // kar sağanağı
-    return             { bg: 'rgba(139,92,246,0.20)',  border: 'rgba(139,92,246,0.50)'  };       // fırtına
+    //                     gradient (alt renk)              alt çizgi
+    if (code === 0)  return { g: 'rgba(253,224,71,0.22)',  b: 'rgba(253,224,71,0.60)'  }; // güneş
+    if (code <= 3)   return { g: 'rgba(148,163,184,0.18)', b: 'rgba(148,163,184,0.45)' }; // bulutlu
+    if (code <= 48)  return { g: 'rgba(100,116,139,0.16)', b: 'rgba(100,116,139,0.42)' }; // sisli
+    if (code <= 65)  return { g: 'rgba(59,130,246,0.20)',  b: 'rgba(59,130,246,0.55)'  }; // yağmur
+    if (code <= 75)  return { g: 'rgba(186,230,253,0.18)', b: 'rgba(186,230,253,0.50)' }; // kar
+    if (code <= 82)  return { g: 'rgba(59,130,246,0.22)',  b: 'rgba(59,130,246,0.58)'  }; // sağanak
+    if (code <= 86)  return { g: 'rgba(186,230,253,0.20)', b: 'rgba(186,230,253,0.52)' }; // kar sağanağı
+    return             { g: 'rgba(139,92,246,0.22)',  b: 'rgba(139,92,246,0.58)'  };       // fırtına
 }
 
 async function fetchWeather(lat, lon) {
@@ -171,15 +172,16 @@ const WeatherWidget = () => {
 
     return (
         <div ref={ref} className="relative hidden md:block">
-            {/* Trigger — Sharp Rectangle */}
+            {/* Trigger — bandın altına yapışık, gradient + alt çizgi */}
             <button
                 onClick={toggleOpen}
                 className="select-none whitespace-nowrap transition-all hover:opacity-90 flex items-center"
                 style={{
-                    background:           accent.bg,
+                    background:           `linear-gradient(to right, ${accent.g} 0%, transparent 80%)`,
                     backdropFilter:       'blur(16px)',
                     WebkitBackdropFilter: 'blur(16px)',
-                    border:               `1px solid ${accent.border}`,
+                    border:               'none',
+                    borderLeft:           `2px solid ${accent.b}`,
                     borderRadius:         '0px',
                     padding:              '5px 10px 5px 8px',
                     gap:                  '7px',
@@ -223,13 +225,13 @@ const WeatherWidget = () => {
                     className="absolute right-0 top-full mt-1 min-w-[230px] z-50 overflow-hidden"
                     style={{
                         background:  '#070f12',
-                        border:      `1px solid ${accent.border}`,
+                        border:      `1px solid ${accent.b}`,
                         borderRadius: '4px',
                         boxShadow:   '0 8px 32px rgba(0,0,0,0.55)',
                     }}
                 >
                     {/* Konumun */}
-                    <div style={{ background: accent.bg, borderBottom: `1px solid ${accent.border}`, padding: '10px 14px' }}>
+                    <div style={{ background: accent.g, borderBottom: `1px solid ${accent.b}`, padding: '10px 14px' }}>
                         <p className="font-mono text-[9px] uppercase tracking-widest mb-1.5"
                            style={{ color: 'rgba(255,255,255,0.55)' }}>
                             Konumun

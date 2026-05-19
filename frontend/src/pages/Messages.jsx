@@ -43,6 +43,7 @@ function Avatar({ user, size = 36 }) {
                       fontSize: size * 0.38, border: `2px solid ${t[i]}40`, minWidth: size }}>
             {user?.avatar_url
                 ? <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover"
+                       referrerPolicy="no-referrer"
                        onError={e => { e.currentTarget.style.display = 'none'; }} />
                 : (user?.username?.[0] ?? '?').toUpperCase()
             }
@@ -234,7 +235,8 @@ function NewConversation({ onSelect, onClose }) {
                              style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid var(--color-brand-primary)',
                                       color: 'var(--color-brand-primary)', fontSize: 14 }}>
                             {u.avatar_url
-                                ? <img src={u.avatar_url} alt={u.username} className="w-full h-full object-cover" />
+                                ? <img src={u.avatar_url} alt={u.username} className="w-full h-full object-cover"
+                                       referrerPolicy="no-referrer" />
                                 : u.username[0].toUpperCase()
                             }
                         </div>

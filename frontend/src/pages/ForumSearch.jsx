@@ -83,6 +83,7 @@ function UserCard({ user: u, onFollowToggle }) {
                  }}>
                 {u.avatar_url
                     ? <img src={u.avatar_url} alt={u.username} className="w-full h-full object-cover"
+                           referrerPolicy="no-referrer"
                            onError={e => { e.currentTarget.style.display='none'; }} />
                     : u.username[0].toUpperCase()
                 }

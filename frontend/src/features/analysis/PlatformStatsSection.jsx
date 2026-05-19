@@ -106,6 +106,17 @@ export default function PlatformStatsSection() {
 
     return (
         <div className="w-full max-w-[1400px] mx-auto px-4 md:px-6 pb-6 mt-4 animate-fade-up">
+            {/* Başlık — kart dışında */}
+            <div className="flex items-center gap-2 mb-1">
+                <BarChart2 className="w-4 h-4 text-brand" />
+                <h2 className="text-sm font-black uppercase tracking-widest text-tx-primary">
+                    Platform İstatistikleri
+                </h2>
+            </div>
+            <p className="font-mono text-[10px] text-tx-secondary/80 uppercase tracking-widest mb-4">
+                // Canlı · Bugüne ait veriler
+            </p>
+
             <div className="relative border" style={{ background: SURFACE, borderColor: BORDER }}>
 
                 {/* Köşe çentikler */}
@@ -113,20 +124,6 @@ export default function PlatformStatsSection() {
                 <div className="absolute top-0 left-0 w-[2px] h-5 pointer-events-none" style={{ background: BRAND }} />
                 <div className="absolute bottom-0 right-0 w-5 h-[2px] pointer-events-none" style={{ background: BRAND }} />
                 <div className="absolute bottom-0 right-0 w-[2px] h-5 pointer-events-none" style={{ background: BRAND }} />
-
-                {/* Header */}
-                <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: BORDER }}>
-                    <div className="flex items-center gap-2">
-                        <BarChart2 className="w-3.5 h-3.5 shrink-0" style={{ color: BRAND }} />
-                        <span className="font-mono font-bold text-xs uppercase tracking-widest"
-                              style={{ color: 'var(--color-text-primary)' }}>
-                            Platform İstatistikleri
-                        </span>
-                    </div>
-                    <span className="font-mono text-[10px] tracking-widest" style={{ color: BRAND, opacity: 0.7 }}>
-                        // CANLI
-                    </span>
-                </div>
 
                 {/* Stat kutular */}
                 <div className="grid grid-cols-2 md:grid-cols-4 border-b" style={{ borderColor: BORDER }}>

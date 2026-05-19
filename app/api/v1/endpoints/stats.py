@@ -35,14 +35,13 @@ async def platform_stats(db: AsyncSession = Depends(get_db)):
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         week_start = today_start - timedelta(days=6)
 
-        # Bugünkü istatistikler
+        # Bugünkü istatistikler — analiz yapılma zamanına göre
         today_rows = (await db.execute(
             select(
                 AnalysisResult.status,
                 func.count().label("cnt"),
             )
-            .join(Article, AnalysisResult.article_id == Article.id)
-            .where(Article.created_at >= today_start)
+            .where(AnalysisResult.created_at >= today_start)
             .group_by(AnalysisResult.status)
         )).all()
 
@@ -58,17 +57,16 @@ async def platform_stats(db: AsyncSession = Depends(get_db)):
             )
         )).scalar_one()
 
-        # 7 günlük heatmap
+        # 7 günlük heatmap — analiz yapılma zamanına göre
         heatmap_rows = (await db.execute(
             select(
-                cast(Article.created_at, Date).label("day"),
+                cast(AnalysisResult.created_at, Date).label("day"),
                 func.count().label("total"),
                 func.sum(case((AnalysisResult.status == "FAKE", 1), else_=0)).label("fake_cnt"),
             )
-            .join(Article, AnalysisResult.article_id == Article.id)
-            .where(Article.created_at >= week_start)
-            .group_by(cast(Article.created_at, Date))
-            .order_by(cast(Article.created_at, Date))
+            .where(AnalysisResult.created_at >= week_start)
+            .group_by(cast(AnalysisResult.created_at, Date))
+            .order_by(cast(AnalysisResult.created_at, Date))
         )).all()
 
         heatmap = []
