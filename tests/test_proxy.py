@@ -1,4 +1,5 @@
 import pytest
+import httpx
 from io import BytesIO
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -137,4 +138,32 @@ def test_width_clamp_rejects_out_of_range():
     with TestClient(app) as c:
         r = c.get("/proxy/image?url=https://image.cnnturk.com/x.jpg&w=9999")
     assert r.status_code == 422
+    app.dependency_overrides.clear()
+
+
+def test_timeout_returns_502():
+    mock_r = _mock_redis()
+    app = _build_app()
+    app.dependency_overrides[get_raw_redis] = lambda: mock_r
+    with patch("app.api.v1.endpoints.proxy.httpx.AsyncClient") as cls:
+        timeout_client = AsyncMock()
+        timeout_client.get = AsyncMock(side_effect=httpx.TimeoutException("timeout"))
+        timeout_client.__aenter__ = AsyncMock(return_value=timeout_client)
+        timeout_client.__aexit__ = AsyncMock(return_value=None)
+        cls.return_value = timeout_client
+        with TestClient(app) as c:
+            r = c.get("/proxy/image?url=https://image.cnnturk.com/slow.jpg")
+    assert r.status_code == 502
+    app.dependency_overrides.clear()
+
+
+def test_corrupt_image_returns_400():
+    mock_r = _mock_redis()
+    app = _build_app()
+    app.dependency_overrides[get_raw_redis] = lambda: mock_r
+    with patch("app.api.v1.endpoints.proxy.httpx.AsyncClient") as cls:
+        cls.return_value = _mock_http(content=b"not an image at all")
+        with TestClient(app) as c:
+            r = c.get("/proxy/image?url=https://image.cnnturk.com/bad.jpg")
+    assert r.status_code == 400
     app.dependency_overrides.clear()

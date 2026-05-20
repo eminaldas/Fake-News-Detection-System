@@ -67,7 +67,11 @@ async def proxy_image(
     if len(r.content) > _MAX_BYTES:
         raise HTTPException(status_code=400, detail="Source image too large")
 
-    img = Image.open(BytesIO(r.content)).convert("RGB")
+    try:
+        img = Image.open(BytesIO(r.content)).convert("RGB")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid image data")
+
     new_h = int(img.height * w / img.width)
     img = img.resize((w, new_h), Image.LANCZOS)
 
