@@ -631,3 +631,20 @@ class Notification(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     user = relationship("User", backref="notifications")
+
+
+class DailySummary(Base):
+    __tablename__ = "daily_summaries"
+
+    id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    summary_date  = Column(Date, nullable=False)
+    generated_at  = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    summary_text  = Column(Text, nullable=False)
+    topics        = Column(JSONB, nullable=False, default=list)
+    article_count = Column(Integer, nullable=False, default=0)
+    slot          = Column(String(5), nullable=False)  # "09:00" | "13:00" | "17:00" | "21:00"
+
+    __table_args__ = (
+        UniqueConstraint("summary_date", "slot", name="uq_daily_summary_date_slot"),
+        Index("idx_ds_date", "summary_date"),
+    )
