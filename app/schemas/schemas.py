@@ -6,7 +6,7 @@ Tüm Pydantic request/response şemaları merkezi olarak burada tanımlanır.
 
 import html
 import re
-from datetime import datetime
+from datetime import date, datetime
 from typing import List, Optional
 from uuid import UUID
 
@@ -338,6 +338,22 @@ class NewsListResponse(BaseModel):
     items: List[NewsArticleResponse]
     total: int
     page:  int
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Daily Digest
+# ─────────────────────────────────────────────────────────────────────────────
+class DailySummaryResponse(BaseModel):
+    id:            UUID
+    summary_date:  date
+    generated_at:  datetime
+    summary_text:  str
+    topics:        List[str]
+    article_count: int
+    slot:          str
+
+    class Config:
+        from_attributes = True
 
 
 # ─────────────────────────────────────────────────────────────────────────────

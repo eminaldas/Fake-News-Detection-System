@@ -9,7 +9,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import HTMLResponse
 
 from app.api.v1.endpoints import (
-    ab as ab_endpoint, admin, admin_logs, analysis, articles, auth,
+    ab as ab_endpoint, admin, admin_logs, analysis, articles, auth, digest,
     forum, gamification, insights, interactions, market, messages,
     news, notifications, recommendations, reports, sources, stats, users, ws as ws_endpoint,
 )
@@ -126,6 +126,7 @@ app.include_router(ab_endpoint.router, prefix="/api/v1/admin/ab", tags=["AB Test
 app.include_router(admin_logs.router, prefix="/api/v1/admin", tags=["Admin Logs"])
 app.include_router(market.router,   prefix="/api/v1/market",  tags=["Market"])
 app.include_router(news.router,     prefix="/api/v1/news",    tags=["News"])
+app.include_router(digest.router,   prefix="/api/v1/digest",  tags=["Digest"])
 app.include_router(interactions.router,    prefix="/api/v1/interactions",   tags=["Interactions"])
 app.include_router(recommendations.router, prefix="/api/v1/recommendations", tags=["Recommendations"])
 app.include_router(insights.router,        prefix="/api/v1/insights",        tags=["Insights"])
