@@ -64,11 +64,22 @@ def test_cache_key_differs_by_url():
 
 # ── Endpoint tests ─────────────────────────────────────────────────────────
 
-def test_blocked_domain_returns_403():
+def test_private_ip_returns_403():
+    """SSRF koruması: private IP aralıklarına proxy yapılmaz."""
     app = _build_app()
     app.dependency_overrides[get_raw_redis] = lambda: _mock_redis()
     with TestClient(app) as c:
-        r = c.get("/proxy/image?url=https://evil.example.com/img.jpg")
+        # 192.168.x.x → private, engellenmeli
+        r = c.get("/proxy/image?url=http://192.168.1.1/img.jpg")
+    assert r.status_code == 403
+    app.dependency_overrides.clear()
+
+
+def test_localhost_returns_403():
+    app = _build_app()
+    app.dependency_overrides[get_raw_redis] = lambda: _mock_redis()
+    with TestClient(app) as c:
+        r = c.get("/proxy/image?url=http://localhost/img.jpg")
     assert r.status_code == 403
     app.dependency_overrides.clear()
 

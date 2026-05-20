@@ -1,4 +1,6 @@
 import hashlib
+import ipaddress
+import socket
 from io import BytesIO
 from urllib.parse import urlparse
 
@@ -12,39 +14,47 @@ from app.db.redis import get_raw_redis
 
 router = APIRouter()
 
-ALLOWED_DOMAINS = frozenset({
-    # CNN Türk
-    "image.cnnturk.com", "iavm.cnnturk.com",
-    # Haberler
-    "images.haberler.com", "i3.haberler.com", "images2.haberler.com",
-    # Sabah / HaberTürk
-    "i.sabah.com.tr", "i.hurriyettv.com",
-    "photos.haberturk.com", "cdn.haberturk.com", "im.haberturk.com",
-    # NTV / A Haber
-    "cdn.ntv.com.tr", "a5.ntv.com.tr", "img.a-haber.com",
-    # Sözcü / Posta
-    "i.sozcu.com.tr", "i.posta.com.tr",
-    # Milliyet / Hürriyet
-    "i.milliyet.com.tr", "i.hurriyet.com.tr",
-    # AA / TRT
-    "medya.aa.com.tr", "image.aa.com.tr", "media.trt.net.tr", "www.trt.net.tr",
-    # Ensonhaber
-    "imgcdn.ensonhaber.com", "i.ensonhaber.com",
-    # İHA / DHA
-    "img.iha.com.tr", "image.iha.com.tr", "dha.demiroren.com",
-    # Diğer Türk haber kaynakları
-    "images.mynet.com", "img.memurlar.net",
-    "img.internethaber.com", "img.bianet.org",
-    "img.timeturk.com", "i.ahaber.com.tr",
-    "img.gazeteoksijen.com", "image.hurriyet.com.tr",
-    "medya.dha.com.tr", "i.fanatik.com.tr",
-    "i.cumhuriyet.com.tr", "galeri.cumhuriyet.com.tr",
-    "fotogaleri.hurriyet.com.tr", "i.mynet.com",
-    # Wikipedia / Wikimedia
-    "upload.wikimedia.org",
-})
-
 _MAX_BYTES = 5 * 1024 * 1024  # 5 MB
+
+# RFC-1918 ve loopback aralıkları — bunlara proxy yapılmaz (SSRF koruması)
+_BLOCKED_NETWORKS = [
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("169.254.0.0/16"),
+    ipaddress.ip_network("0.0.0.0/8"),
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),
+    ipaddress.ip_network("fe80::/10"),
+]
+
+
+def _is_safe_url(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+        # "localhost" veya sayısal private IP string kontrolü (DNS olmadan hızlı guard)
+        if hostname == "localhost":
+            return False
+        try:
+            ip = ipaddress.ip_address(hostname)
+            return not any(ip in net for net in _BLOCKED_NETWORKS)
+        except ValueError:
+            pass  # hostname, sayısal IP değil — DNS ile devam et
+        # DNS çözümle ve IP kontrol et
+        try:
+            resolved = socket.gethostbyname(hostname)
+            ip = ipaddress.ip_address(resolved)
+            return not any(ip in net for net in _BLOCKED_NETWORKS)
+        except OSError:
+            return False
+    except Exception:
+        return False
 
 
 def _cache_key(url: str, width: int) -> str:
@@ -58,9 +68,8 @@ async def proxy_image(
     w:   int = Query(400, ge=50, le=1200, description="Output width px"),
     redis: Redis = Depends(get_raw_redis),
 ) -> Response:
-    domain = urlparse(url).hostname or ""
-    if domain not in ALLOWED_DOMAINS:
-        raise HTTPException(status_code=403, detail="Domain not allowed")
+    if not _is_safe_url(url):
+        raise HTTPException(status_code=403, detail="URL not allowed")
 
     key = _cache_key(url, w)
     cached = await redis.get(key)
