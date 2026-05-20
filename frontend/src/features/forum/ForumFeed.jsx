@@ -847,7 +847,7 @@ const ForumFeed = () => {
                     </div>
                 )}
                 {!hasMore && !loadError && threads.length > 0 && (
-                    <span className="font-mono text-xs" style={{ color: 'var(--color-text-muted)', opacity: 0.4 }}>
+                    <span className="font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
                         // son kayıt
                     </span>
                 )}

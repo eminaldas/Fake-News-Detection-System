@@ -11,6 +11,7 @@ export default function GeneralVoteBar({ thread, onVote, disabled }) {
             <button
                 disabled={disabled}
                 onClick={() => onVote('authentic')}
+                aria-label={isUp ? 'Güvenilir oyunu geri al' : 'Güvenilir oy ver'}
                 className="flex items-center gap-1.5 px-3 py-2 font-mono text-sm font-bold transition-colors disabled:opacity-40"
                 style={{
                     color:      isUp ? 'var(--color-brand-primary)' : 'var(--color-text-primary)',
@@ -24,6 +25,7 @@ export default function GeneralVoteBar({ thread, onVote, disabled }) {
             <button
                 disabled={disabled}
                 onClick={() => onVote('suspicious')}
+                aria-label={isDown ? 'Şüpheli oyunu geri al' : 'Şüpheli oy ver'}
                 className="flex items-center px-3 py-2 font-mono text-sm font-bold transition-colors disabled:opacity-40"
                 style={{
                     color:      isDown ? 'var(--color-fake-fill)' : 'var(--color-text-primary)',

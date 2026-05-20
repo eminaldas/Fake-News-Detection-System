@@ -251,8 +251,9 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                     {comment.user_id !== currentUserId && (
                         <button
                             onClick={() => onReport(comment.id)}
+                            aria-label="Yorumu bildir"
                             className="flex items-center gap-1 px-2 py-1 font-mono text-xs transition-opacity hover:opacity-60"
-                            style={{ color: 'var(--color-text-muted)', opacity: 0.4 }}
+                            style={{ color: 'var(--color-text-muted)' }}
                         >
                             <Flag className="w-3 h-3" />
                         </button>
