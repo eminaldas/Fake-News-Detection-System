@@ -150,8 +150,12 @@ function AnalyzeButton({ article }) {
 }
 
 function FeaturedCard({ article }) {
-    const [imgErr, setImgErr] = useState(false);
+    const [imgErr,    setImgErr]    = useState(false);
+    const [useProxy,  setUseProxy]  = useState(true);
     const hasImg = article.image_url && !imgErr;
+    const imgSrc = hasImg
+        ? (useProxy ? getProxiedImageUrl(article.image_url, 400) : article.image_url)
+        : undefined;
 
     return (
         <a href={article.source_url} target="_blank" rel="noopener noreferrer"
@@ -171,9 +175,9 @@ function FeaturedCard({ article }) {
             <div className="absolute bottom-0 right-0 h-5 w-[2px] z-20" style={{ background: BRAND }} />
 
             {hasImg ? (
-                <img src={getProxiedImageUrl(article.image_url, 400)} alt={article.title}
+                <img src={imgSrc} alt={article.title}
                      className="absolute inset-0 w-full h-full object-cover opacity-65 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700"
-                     onError={() => setImgErr(true)} />
+                     onError={() => useProxy ? setUseProxy(false) : setImgErr(true)} />
             ) : (
                 <div className="absolute inset-0 flex items-center justify-center"
                      style={{ background: 'transparent' }}>
@@ -218,8 +222,12 @@ function FeaturedCard({ article }) {
 }
 
 function SmallCard({ article }) {
-    const [imgErr, setImgErr] = useState(false);
+    const [imgErr,   setImgErr]   = useState(false);
+    const [useProxy, setUseProxy] = useState(true);
     const hasImg = article.image_url && !imgErr;
+    const imgSrc = hasImg
+        ? (useProxy ? getProxiedImageUrl(article.image_url, 400) : article.image_url)
+        : undefined;
 
     return (
         <a href={article.source_url} target="_blank" rel="noopener noreferrer"
@@ -233,12 +241,12 @@ function SmallCard({ article }) {
 
             {/* Tam kaplayan görsel veya koyu arka plan */}
             {hasImg ? (
-                <img src={getProxiedImageUrl(article.image_url, 400)} alt={article.title}
+                <img src={imgSrc} alt={article.title}
                      className="absolute inset-0 w-full h-full object-cover transition-all duration-[450ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
                      style={{ opacity: 0.78 }}
                      onMouseEnter={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'scale(1.04)'; }}
                      onMouseLeave={e => { e.currentTarget.style.opacity = '0.78'; e.currentTarget.style.transform = 'scale(1)'; }}
-                     onError={() => setImgErr(true)} />
+                     onError={() => useProxy ? setUseProxy(false) : setImgErr(true)} />
             ) : (
                 <div className="absolute inset-0" style={{ background: 'linear-gradient(145deg,#0f1e22,#0b1518)' }} />
             )}

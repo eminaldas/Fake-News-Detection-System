@@ -13,19 +13,35 @@ from app.db.redis import get_raw_redis
 router = APIRouter()
 
 ALLOWED_DOMAINS = frozenset({
-    "image.cnnturk.com",
-    "images.haberler.com",
-    "i.sabah.com.tr",
-    "i.hurriyettv.com",
-    "cdn.ntv.com.tr",
-    "im.haberturk.com",
+    # CNN Türk
+    "image.cnnturk.com", "iavm.cnnturk.com",
+    # Haberler
+    "images.haberler.com", "i3.haberler.com", "images2.haberler.com",
+    # Sabah / HaberTürk
+    "i.sabah.com.tr", "i.hurriyettv.com",
+    "photos.haberturk.com", "cdn.haberturk.com", "im.haberturk.com",
+    # NTV / A Haber
+    "cdn.ntv.com.tr", "a5.ntv.com.tr", "img.a-haber.com",
+    # Sözcü / Posta
+    "i.sozcu.com.tr", "i.posta.com.tr",
+    # Milliyet / Hürriyet
+    "i.milliyet.com.tr", "i.hurriyet.com.tr",
+    # AA / TRT
+    "medya.aa.com.tr", "image.aa.com.tr", "media.trt.net.tr", "www.trt.net.tr",
+    # Ensonhaber
+    "imgcdn.ensonhaber.com", "i.ensonhaber.com",
+    # İHA / DHA
+    "img.iha.com.tr", "image.iha.com.tr", "dha.demiroren.com",
+    # Diğer Türk haber kaynakları
+    "images.mynet.com", "img.memurlar.net",
+    "img.internethaber.com", "img.bianet.org",
+    "img.timeturk.com", "i.ahaber.com.tr",
+    "img.gazeteoksijen.com", "image.hurriyet.com.tr",
+    "medya.dha.com.tr", "i.fanatik.com.tr",
+    "i.cumhuriyet.com.tr", "galeri.cumhuriyet.com.tr",
+    "fotogaleri.hurriyet.com.tr", "i.mynet.com",
+    # Wikipedia / Wikimedia
     "upload.wikimedia.org",
-    "medya.aa.com.tr",
-    "image.aa.com.tr",
-    "img.a-haber.com",
-    "i.posta.com.tr",
-    "i.sozcu.com.tr",
-    "iavm.cnnturk.com",
 })
 
 _MAX_BYTES = 5 * 1024 * 1024  # 5 MB
