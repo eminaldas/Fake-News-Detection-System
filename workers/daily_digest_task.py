@@ -100,7 +100,7 @@ Sadece JSON formatında yanıt ver, başka hiçbir şey yazma:
     try:
         client = _get_gemini_client()
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model=settings.GEMINI_MODEL,
             contents=prompt,
             config={"response_mime_type": "application/json"},
         )
