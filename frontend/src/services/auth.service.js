@@ -60,8 +60,8 @@ class AuthService {
         return response.data;
     }
 
-    static async register(email, username, password) {
-        const response = await axiosInstance.post('/auth/register', { email, username, password });
+    static async register(email, username, password, termsAccepted = false) {
+        const response = await axiosInstance.post('/auth/register', { email, username, password, terms_accepted: termsAccepted });
         if (response.data.access_token) {
             this._saveToken(response.data.access_token, true);
         }

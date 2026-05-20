@@ -4,6 +4,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import LegalModal from '../components/ui/LegalModal';
 
 const InputWrap = ({ children }) => {
     const ref = React.useRef(null);
@@ -40,6 +41,8 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [loading,      setLoading]      = useState(false);
     const [error,        setError]        = useState('');
+    const [showLegal,    setShowLegal]    = useState(false);
+    const [pendingGoogle, setPendingGoogle] = useState(false);
 
     const { login, googleLogin } = useAuth();
     const { isDarkMode }         = useTheme();
@@ -60,8 +63,18 @@ const Login = () => {
                 setLoading(false);
             }
         },
-        onError: () => setError('Google ile giriş başarısız.'),
+        onError: () => { setError('Google ile giriş başarısız.'); setPendingGoogle(false); },
     });
+
+    const onGoogleButtonClick = () => {
+        // Yeni hesap oluşturulabilir — koşullar daha önce kabul edilmemişse modal göster
+        if (localStorage.getItem('terms_v1_accepted') !== 'true') {
+            setPendingGoogle(true);
+            setShowLegal(true);
+        } else {
+            handleGoogleLogin();
+        }
+    };
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -77,6 +90,7 @@ const Login = () => {
     };
 
     return (
+        <>
         <div className="relative -mt-32 md:-mt-36 min-h-screen">
 
             {/* Büyük dekoratif arka plan yazısı */}
@@ -247,7 +261,7 @@ const Login = () => {
                             {/* Google butonu */}
                             <button
                                 type="button"
-                                onClick={() => handleGoogleLogin()}
+                                onClick={onGoogleButtonClick}
                                 disabled={loading}
                                 className="w-full mt-3 py-3.5 flex items-center justify-center gap-3 transition-all duration-200 hover:opacity-90 disabled:opacity-50"
                                 style={{
@@ -335,6 +349,19 @@ const Login = () => {
                 </div>
             </div>
         </div>
+
+        {/* Legal Modal — yeni hesap oluşturmadan önce onay */}
+        {showLegal && (
+            <LegalModal
+                initialTab="privacy"
+                onAccept={() => {
+                    setShowLegal(false);
+                    if (pendingGoogle) { setPendingGoogle(false); handleGoogleLogin(); }
+                }}
+                onClose={() => { setShowLegal(false); setPendingGoogle(false); }}
+            />
+        )}
+        </>
     );
 };
 

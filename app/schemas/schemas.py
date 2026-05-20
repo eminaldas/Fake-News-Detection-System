@@ -35,6 +35,7 @@ class RegisterRequest(BaseModel):
     email:            str            = Field(..., max_length=255)
     username:         str            = Field(..., min_length=3, max_length=50)
     password:         str            = Field(..., min_length=8)
+    terms_accepted:   bool           = Field(False, description="Gizlilik Politikası ve Kullanım Koşulları onayı")
     interests:        List[str]      = Field(default_factory=list, description="Seçilen kategori listesi")
     marketing_source: Optional[str]  = Field(None, max_length=100, description="Bizi nereden duydunuz?")
 
@@ -92,7 +93,8 @@ class RegisterResponse(BaseModel):
 
 
 class GoogleAuthRequest(BaseModel):
-    credential: str
+    credential:     str
+    terms_accepted: bool = Field(False, description="Gizlilik Politikası ve Kullanım Koşulları onayı")
 
 
 class GoogleAuthResponse(BaseModel):

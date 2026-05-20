@@ -172,13 +172,18 @@ async def register(
 
     smtp_configured = bool(settings.SMTP_HOST and settings.SMTP_USER)
 
+    now_iso = datetime.now(timezone.utc).isoformat()
     user = User(
         email=body.email,
         username=body.username,
         hashed_password=get_password_hash(body.password),
         role=UserRole.user,
         is_active=True,
-        is_email_verified=not smtp_configured,  # SMTP yoksa otomatik doğrula
+        is_email_verified=not smtp_configured,
+        preferences={
+            "terms_version": "v1.0" if body.terms_accepted else None,
+            "terms_accepted_at": now_iso if body.terms_accepted else None,
+        },
     )
     db.add(user)
     await db.commit()
@@ -242,6 +247,7 @@ async def google_auth(
     user     = result.scalar_one_or_none()
     is_new   = user is None
 
+    now_iso = datetime.now(timezone.utc).isoformat()
     if is_new:
         username = await _unique_username(name, db)
         user = User(
@@ -252,6 +258,10 @@ async def google_auth(
             avatar_url=avatar_url,
             is_email_verified=True,
             is_active=True,
+            preferences={
+                "terms_version": "v1.0" if body.terms_accepted else None,
+                "terms_accepted_at": now_iso if body.terms_accepted else None,
+            },
         )
         db.add(user)
     else:
@@ -260,6 +270,12 @@ async def google_auth(
         if avatar_url and not user.avatar_url:
             user.avatar_url = avatar_url
         user.is_email_verified = True
+        # Mevcut kullanıcı ilk kez kabul ediyorsa güncelle
+        if body.terms_accepted and not (user.preferences or {}).get("terms_version"):
+            prefs = dict(user.preferences or {})
+            prefs["terms_version"]    = "v1.0"
+            prefs["terms_accepted_at"] = now_iso
+            user.preferences = prefs
 
     user.last_login_at = datetime.now(timezone.utc)
     await db.commit()

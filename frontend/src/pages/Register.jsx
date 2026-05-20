@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { Mail, User, Lock, ArrowRight, AlertCircle, Loader2, CheckCircle2,
-         Eye, EyeOff, Check, X, BarChart2, Clock, Cpu } from 'lucide-react';
+         Eye, EyeOff, Check, X, BarChart2, Clock, Cpu, ShieldCheck } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import LegalModal from '../components/ui/LegalModal';
 
 const PASSWORD_RULES = [
     { id: 'length', label: 'En az 8 karakter',  test: p => p.length >= 8 },
@@ -65,9 +66,11 @@ const Register = () => {
     const [success,         setSuccess]         = useState(false);
     const [pwTouched,       setPwTouched]       = useState(false);
     const [step,            setStep]            = useState(1);
-    const [consent,         setConsent]         = useState(false);
-    const [interests,       setInterests]       = useState([]);       // artık kullanılmıyor (onboarding'e taşındı)
-    const [marketingSource, setMarketingSource] = useState('');       // artık kullanılmıyor
+    const [consent,         setConsent]         = useState(() => localStorage.getItem('terms_v1_accepted') === 'true');
+    const [showLegal,       setShowLegal]       = useState(false);
+    const [legalTab,        setLegalTab]        = useState('privacy');
+    const [interests,       setInterests]       = useState([]);
+    const [marketingSource, setMarketingSource] = useState('');
 
     const { register, googleLogin } = useAuth();
     const { isDarkMode }            = useTheme();
@@ -106,7 +109,7 @@ const Register = () => {
     const handleRegister = async (e) => {
         e.preventDefault();
         setLoading(true);
-        const result = await register(email, username, password);
+        const result = await register(email, username, password, consent);
         if (result.success) {
             if (result.needsVerification) {
                 navigate('/email-verification', { replace: true });
@@ -124,6 +127,7 @@ const Register = () => {
         setInterests(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
 
     return (
+        <>
         <div className="relative -mt-32 md:-mt-36 min-h-screen">
 
             {/* Büyük dekoratif arka plan yazısı */}
@@ -199,23 +203,9 @@ const Register = () => {
                 <div className="flex items-center justify-center px-6 md:px-16 py-32 md:py-0">
                     <div className="w-full max-w-md animate-fade-right">
 
-                        {error && (
-                            <div
-                                className="mb-5 flex items-start gap-2.5 p-3.5 text-sm animate-fade-up"
-                                style={{
-                                    border: '1px solid rgba(239,68,68,0.35)',
-                                    background: 'rgba(239,68,68,0.08)',
-                                    color: '#ef4444',
-                                }}
-                            >
-                                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                                <span>{error}</span>
-                            </div>
-                        )}
-
                         {/* Kart */}
                         <div
-                            className="p-8 md:p-9 relative overflow-hidden"
+                            className="relative overflow-hidden"
                             style={{
                                 background: 'var(--color-terminal-surface)',
                                 border: '1px solid var(--color-terminal-border-raw)',
@@ -226,6 +216,16 @@ const Register = () => {
                             {/* Köşe aksanları */}
                             <div className="absolute top-0 left-0 w-5 h-[2px] pointer-events-none" style={{ background: 'var(--color-brand-primary)', opacity: 0.5 }} />
                             <div className="absolute top-0 left-0 h-5 w-[2px] pointer-events-none" style={{ background: 'var(--color-brand-primary)', opacity: 0.5 }} />
+
+                            {/* Sticky hata mesajı — her zaman kart içinde görünür */}
+                            {error && (
+                                <div className="flex items-start gap-2.5 p-3 text-sm mb-4 animate-fade-up"
+                                     role="alert"
+                                     style={{ border: '1px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.08)', color: '#ef4444' }}>
+                                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                                    <span className="text-xs">{error}</span>
+                                </div>
+                            )}
 
                             <p className="text-[10px] font-manrope font-black uppercase tracking-[0.22em] mb-4"
                                style={{ color: 'var(--color-brand-primary)' }}>
@@ -352,31 +352,34 @@ const Register = () => {
                                         )}
                                     </div>
 
-                                    {/* Onay checkbox */}
-                                    <label className="flex items-start gap-2.5 cursor-pointer select-none mt-2">
-                                        <input
-                                            type="checkbox"
-                                            id="consent"
-                                            checked={consent}
-                                            onChange={e => setConsent(e.target.checked)}
-                                            className="mt-0.5 shrink-0 w-4 h-4 accent-green-500"
-                                        />
-                                        <span className="text-[11px] leading-relaxed"
-                                              style={{ color: 'var(--color-text-secondary)' }}>
-                                            <Link to="/legal?doc=privacy" target="_blank"
-                                                  className="underline underline-offset-2 hover:opacity-80 transition-opacity"
-                                                  style={{ color: 'var(--color-brand-primary)' }}>
-                                                Gizlilik Politikası
-                                            </Link>
-                                            {'\'nı ve '}
-                                            <Link to="/legal?doc=terms" target="_blank"
-                                                  className="underline underline-offset-2 hover:opacity-80 transition-opacity"
-                                                  style={{ color: 'var(--color-brand-primary)' }}>
-                                                Kullanım Koşulları
-                                            </Link>
-                                            {'\'nı okudum, kabul ediyorum.'}
-                                        </span>
-                                    </label>
+                                    {/* Gizlilik & Koşullar onay alanı */}
+                                    {consent ? (
+                                        <div className="flex items-center gap-2 px-3 py-2.5 animate-fade-up"
+                                             style={{ border: '1px solid rgba(16,185,129,0.30)', background: 'rgba(16,185,129,0.06)' }}>
+                                            <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
+                                            <span className="font-mono text-[11px]" style={{ color: 'var(--color-brand-primary)' }}>
+                                                Gizlilik Politikası ve Kullanım Koşulları kabul edildi
+                                            </span>
+                                            <button type="button" onClick={() => setConsent(false)}
+                                                    className="ml-auto font-mono text-[10px] underline transition-opacity hover:opacity-60"
+                                                    style={{ color: 'var(--color-text-muted)' }}>
+                                                Geri al
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => { setLegalTab('privacy'); setShowLegal(true); }}
+                                            className="w-full flex items-center gap-2.5 px-3 py-2.5 transition-all hover:brightness-105"
+                                            style={{ border: '1px solid var(--color-terminal-border-raw)', background: 'rgba(255,255,255,0.03)', color: 'var(--color-text-muted)' }}
+                                        >
+                                            <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: 'var(--color-text-muted)' }} />
+                                            <span className="font-mono text-[11px] text-left">
+                                                Gizlilik Politikası ve Kullanım Koşullarını oku ve onayla
+                                                <span className="text-red-400 ml-1">*</span>
+                                            </span>
+                                        </button>
+                                    )}
 
                                     <button
                                         type="submit" disabled={loading || !consent}
@@ -404,7 +407,14 @@ const Register = () => {
 
                                     <button
                                         type="button"
-                                        onClick={() => consent ? handleGoogleRegister() : setError('Gizlilik Politikası ve Kullanım Koşulları\'nı kabul etmeniz gerekiyor.')}
+                                        onClick={() => {
+                                            if (!consent) {
+                                                setLegalTab('privacy');
+                                                setShowLegal(true);
+                                            } else {
+                                                handleGoogleRegister();
+                                            }
+                                        }}
                                         disabled={loading}
                                         className="w-full mt-3 py-3.5 flex items-center justify-center gap-3 transition-all duration-200 hover:opacity-90 disabled:opacity-50"
                                         style={{
@@ -440,6 +450,16 @@ const Register = () => {
                 </div>
             </div>
         </div>
+
+        {/* Legal Modal */}
+        {showLegal && (
+            <LegalModal
+                initialTab={legalTab}
+                onAccept={() => { setConsent(true); setShowLegal(false); setError(''); }}
+                onClose={() => setShowLegal(false)}
+            />
+        )}
+        </>
     );
 };
 
