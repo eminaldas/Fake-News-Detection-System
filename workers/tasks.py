@@ -381,4 +381,20 @@ celery_app.conf.beat_schedule = {
         "task":     "recalculate_trust_scores",
         "schedule": crontab(hour=3, minute=30),  # 03:30 her gece
     },
+    "daily-digest-0900": {
+        "task":     "workers.daily_digest_task.generate_daily_digest",
+        "schedule": crontab(hour=6, minute=0),   # 06:00 UTC = 09:00 TRT
+    },
+    "daily-digest-1300": {
+        "task":     "workers.daily_digest_task.generate_daily_digest",
+        "schedule": crontab(hour=10, minute=0),  # 10:00 UTC = 13:00 TRT
+    },
+    "daily-digest-1700": {
+        "task":     "workers.daily_digest_task.generate_daily_digest",
+        "schedule": crontab(hour=14, minute=0),  # 14:00 UTC = 17:00 TRT
+    },
+    "daily-digest-2100": {
+        "task":     "workers.daily_digest_task.generate_daily_digest",
+        "schedule": crontab(hour=18, minute=0),  # 18:00 UTC = 21:00 TRT
+    },
 }
