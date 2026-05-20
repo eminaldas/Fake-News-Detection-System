@@ -9,45 +9,26 @@ class WeatherService {
                 return;
             }
             navigator.geolocation.getCurrentPosition(
-                async ({ coords: { latitude: lat, longitude: lon } }) => {
-                    const city = await WeatherService.reverseGeocode(lat, lon);
-                    resolve({ lat, lon, city });
-                },
+                ({ coords: { latitude: lat, longitude: lon } }) => resolve({ lat, lon }),
                 () => resolve(ISTANBUL),
                 { timeout: 5000 }
             );
         });
     }
 
-    static async reverseGeocode(lat, lon) {
-        try {
-            const res = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=tr`,
-                { headers: { 'User-Agent': 'BiHaber/1.0' } }
-            );
-            const d = await res.json();
-            return d.address?.city || d.address?.town || d.address?.county || ISTANBUL.city;
-        } catch {
-            return ISTANBUL.city;
-        }
-    }
-
     static async getForecast(lat, lon) {
-        const res = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-            `&current=temperature_2m,weathercode,windspeed_10m` +
-            `&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=7`
-        );
-        const d = await res.json();
+        const res  = await fetch(`/api/v1/weather?lat=${lat}&lon=${lon}`);
+        const d    = await res.json();
         return {
-            temp:  Math.round(d.current.temperature_2m),
-            wind:  Math.round(d.current.windspeed_10m),
-            code:  d.current.weathercode,
-            daily: d.daily.time.map((t, i) => ({
-                day:  DAYS_TR[new Date(t).getDay()],
-                code: d.daily.weathercode[i],
-                max:  Math.round(d.daily.temperature_2m_max[i]),
-                min:  Math.round(d.daily.temperature_2m_min[i]),
+            temp:  d.temp,
+            wind:  d.wind,
+            code:  d.code,
+            city:  d.city,
+            daily: (d.daily || []).map(day => ({
+                day:  DAYS_TR[new Date(day.date).getDay()],
+                code: day.code,
+                max:  day.max,
+                min:  day.min,
             })),
         };
     }

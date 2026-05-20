@@ -1,16 +1,18 @@
 import asyncio
 import httpx
+import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
 from typing import List
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, field_validator
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.db.redis import get_redis
 from app.db.session import get_db
 from app.models.models import User
 
@@ -57,20 +59,7 @@ ALL_FETCH_SYMBOLS = STOCK_SYMBOLS + CRYPTO_SYMBOLS
 
 KNOWN_TICKERS = set(KEY_MAP.values()) | set(STOCK_SYMBOLS) | set(CRYPTO_SYMBOLS)
 
-_STOCKS_CACHE: dict = {}
-_STOCKS_TTL   = 60
-_executor     = ThreadPoolExecutor(max_workers=2)
-
-
-def _stocks_cache_get():
-    e = _STOCKS_CACHE.get("stocks")
-    if e and (datetime.now(timezone.utc).timestamp() - e["ts"]) < _STOCKS_TTL:
-        return e["data"]
-    return None
-
-
-def _stocks_cache_set(data):
-    _STOCKS_CACHE["stocks"] = {"data": data, "ts": datetime.now(timezone.utc).timestamp()}
+_executor = ThreadPoolExecutor(max_workers=2)
 
 
 def _fetch_stocks_sync():
@@ -134,8 +123,12 @@ class MarketPrefsRequest(BaseModel):
 
 
 @router.get("/rates", tags=["Market"])
-async def get_market_rates():
-    """USD, EUR, Gram Altın ve BIST 100 verilerini Truncgil üzerinden proxy eder."""
+async def get_market_rates(redis: Redis = Depends(get_redis)):
+    """USD, EUR, Gram Altın ve BIST 100 verilerini Truncgil üzerinden proxy eder. 5 dk Redis cache."""
+    cached = await redis.get("market:rates")
+    if cached:
+        return JSONResponse(content=json.loads(cached))
+
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             res = await client.get(TRUNCGIL_URL, headers={"User-Agent": "BiHaber/1.0"})
@@ -156,6 +149,7 @@ async def get_market_rates():
                 "sell":   parse(entry.get("Selling")),
                 "change": str(entry.get("Change", "")),
             }
+        await redis.setex("market:rates", 300, json.dumps(data))
         return data
 
     except Exception as exc:
@@ -163,16 +157,16 @@ async def get_market_rates():
 
 
 @router.get("/stocks", tags=["Market"])
-async def get_market_stocks():
-    """Yahoo Finance üzerinden 10 BIST hissesini döner. 60 sn cache'li."""
-    cached = _stocks_cache_get()
+async def get_market_stocks(redis: Redis = Depends(get_redis)):
+    """Yahoo Finance üzerinden 10 BIST hissesini döner. 60 sn Redis cache."""
+    cached = await redis.get("market:stocks")
     if cached:
-        return cached
+        return JSONResponse(content=json.loads(cached))
 
     try:
         loop   = asyncio.get_running_loop()
         result = await loop.run_in_executor(_executor, _fetch_stocks_sync)
-        _stocks_cache_set(result)
+        await redis.setex("market:stocks", 60, json.dumps(result))
         return result
     except Exception as exc:
         return JSONResponse(status_code=502, content={"error": str(exc)})

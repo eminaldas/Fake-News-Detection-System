@@ -13,7 +13,7 @@ from app.api.v1.endpoints import (
     ab as ab_endpoint, admin, admin_logs, analysis, articles, auth, digest,
     forum, gamification, insights, interactions, market, messages,
     news, notifications, proxy as proxy_endpoint, recommendations, reports,
-    sources, stats, users, ws as ws_endpoint,
+    sources, stats, users, weather as weather_endpoint, ws as ws_endpoint,
 )
 from app.api.v1.endpoints import share as share_router
 from app.core.logging import get_logger, setup_logging
@@ -141,7 +141,8 @@ app.include_router(gamification.router,    prefix="/api/v1/gamification",     ta
 app.include_router(stats.router,           prefix="/api/v1/stats",             tags=["Stats"])
 app.include_router(reports.router,         prefix="/api/v1/reports",            tags=["Reports"])
 app.include_router(ws_endpoint.router,     prefix="/api/v1")
-app.include_router(proxy_endpoint.router,  prefix="/api/v1/proxy", tags=["Proxy"])
+app.include_router(proxy_endpoint.router,   prefix="/api/v1/proxy",   tags=["Proxy"])
+app.include_router(weather_endpoint.router, prefix="/api/v1/weather", tags=["Weather"])
 app.include_router(share_router.router, prefix="/s", tags=["Share"])
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

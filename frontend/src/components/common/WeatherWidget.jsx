@@ -50,54 +50,34 @@ function wmoAccent(code) {
 }
 
 async function fetchWeather(lat, lon) {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&timezone=auto`;
-    const res  = await fetch(url);
+    const res  = await fetch(`/api/v1/weather?lat=${lat}&lon=${lon}`);
     const data = await res.json();
-    return {
-        temp: Math.round(data.current.temperature_2m),
-        code: data.current.weathercode,
-    };
-}
-
-async function reverseGeocode(lat, lon) {
-    try {
-        const res  = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=tr`,
-            { headers: { 'User-Agent': 'BiHaber/1.0' } }
-        );
-        const data = await res.json();
-        return (
-            data.address?.city  ||
-            data.address?.town  ||
-            data.address?.county ||
-            'İstanbul'
-        );
-    } catch {
-        return 'İstanbul';
-    }
+    return { temp: data.temp, code: data.code, city: data.city };
 }
 
 function CityRow({ city, weather }) {
     const Icon = weather ? wmoIcon(weather.code) : null;
     return (
-        <div className="flex items-center justify-between px-4 py-2 hover:bg-white/[0.05] transition-colors">
-            <span className="font-mono text-xs font-bold" style={{ color: 'rgba(255,255,255,0.80)' }}>
+        <div className="flex items-center justify-between px-4 py-2.5 transition-colors cursor-default"
+             onMouseEnter={e => e.currentTarget.style.background = 'rgba(128,128,128,0.07)'}
+             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+            <span className="text-xs font-semibold" style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-primary)' }}>
                 {city.name}
             </span>
             {weather ? (
                 <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                    <span className="text-[10px]" style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-muted)' }}>
                         {wmoLabel(weather.code)}
                     </span>
                     <div className="flex items-center gap-1">
-                        <Icon className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.75)' }} />
-                        <span className="font-mono text-sm font-black" style={{ color: 'rgba(255,255,255,0.95)' }}>
+                        <Icon className="w-3 h-3" style={{ color: 'var(--color-text-secondary)' }} />
+                        <span className="text-sm font-bold" style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-primary)' }}>
                             {weather.temp}°
                         </span>
                     </div>
                 </div>
             ) : (
-                <span className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>—</span>
+                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>—</span>
             )}
         </div>
     );
@@ -112,10 +92,10 @@ const WeatherWidget = () => {
 
     // Konum al + birincil hava durumu yükle
     useEffect(() => {
-        const load = async (lat, lon, city) => {
+        const load = async (lat, lon, fallbackCity = 'İstanbul') => {
             try {
                 const w = await fetchWeather(lat, lon);
-                setPrimary({ ...w, city, lat, lon });
+                setPrimary({ ...w, city: w.city || fallbackCity, lat, lon });
             } catch {
                 setPrimary(null);
             }
@@ -123,11 +103,7 @@ const WeatherWidget = () => {
 
         if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition(
-                async (pos) => {
-                    const { latitude, longitude } = pos.coords;
-                    const city = await reverseGeocode(latitude, longitude);
-                    load(latitude, longitude, city);
-                },
+                (pos) => load(pos.coords.latitude, pos.coords.longitude),
                 () => load(41.0082, 28.9784, 'İstanbul'),
                 { timeout: 5000 }
             );
@@ -172,49 +148,43 @@ const WeatherWidget = () => {
 
     return (
         <div ref={ref} className="relative hidden md:block">
-            {/* Trigger — bandın altına yapışık, gradient + alt çizgi */}
+            {/* Trigger — gradient yok, sadece sol border */}
             <button
                 onClick={toggleOpen}
-                className="select-none whitespace-nowrap transition-all hover:opacity-90 flex items-center"
+                className="select-none whitespace-nowrap transition-opacity hover:opacity-80 flex items-center gap-2"
                 style={{
-                    background:           `linear-gradient(to right, ${accent.g} 0%, transparent 80%)`,
-                    backdropFilter:       'blur(16px)',
-                    WebkitBackdropFilter: 'blur(16px)',
-                    border:               'none',
-                    borderLeft:           `2px solid ${accent.b}`,
-                    borderRadius:         '0px',
-                    padding:              '5px 10px 5px 8px',
-                    gap:                  '7px',
-                    display:              'flex',
-                    alignItems:           'center',
+                    borderLeft:  `2px solid ${accent.b}`,
+                    padding:     '5px 12px 5px 10px',
+                    background:  'transparent',
                 }}
             >
                 <Icon
                     className="w-4 h-4 shrink-0"
-                    style={{ color: 'rgba(255,255,255,0.92)' }}
+                    style={{ color: 'rgba(255,255,255,0.75)' }}
                 />
-
-                <div>
-                    <div style={{
-                        fontFamily: 'monospace', fontSize: 14, fontWeight: 900,
-                        color: 'rgba(255,255,255,0.96)', lineHeight: 1,
-                    }}>
-                        {primary.temp}°C
-                    </div>
-                    <div style={{
-                        fontFamily:    'monospace', fontSize: 9,
-                        color:         'rgba(255,255,255,0.75)',
-                        letterSpacing: '0.06em',
-                    }}>
-                        {primary.city.toUpperCase()}
-                    </div>
-                </div>
-
+                <span style={{
+                    fontFamily:    "'Open Sans', sans-serif",
+                    fontSize:      12,
+                    fontWeight:    600,
+                    color:         'rgba(255,255,255,0.82)',
+                    letterSpacing: '0.02em',
+                }}>
+                    {primary.city}
+                </span>
+                <span style={{
+                    fontFamily: "'Open Sans', sans-serif",
+                    fontSize:   13,
+                    fontWeight: 800,
+                    color:      'rgba(255,255,255,0.95)',
+                }}>
+                    {primary.temp}°
+                </span>
                 <ChevronDown
-                    className="w-3 h-3 shrink-0 transition-transform"
+                    className="w-3 h-3 shrink-0"
                     style={{
-                        color:     'rgba(255,255,255,0.65)',
-                        transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                        color:      'rgba(255,255,255,0.50)',
+                        transform:  open ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.25s ease',
                     }}
                 />
             </button>
@@ -222,31 +192,31 @@ const WeatherWidget = () => {
             {/* Dropdown */}
             {open && (
                 <div
-                    className="absolute right-0 top-full mt-1 min-w-[230px] z-50 overflow-hidden"
+                    className="absolute right-0 top-full mt-1 min-w-57.5 z-50 overflow-hidden animate-fade-up"
                     style={{
-                        background:  '#070f12',
+                        background:  'var(--color-navbar-bg)',
                         border:      `1px solid ${accent.b}`,
-                        borderRadius: '4px',
-                        boxShadow:   '0 8px 32px rgba(0,0,0,0.55)',
+                        boxShadow:   '0 8px 32px rgba(0,0,0,0.45)',
+                        minWidth:    '280px',
                     }}
                 >
-                    {/* Konumun */}
-                    <div style={{ background: accent.g, borderBottom: `1px solid ${accent.b}`, padding: '10px 14px' }}>
-                        <p className="font-mono text-[9px] uppercase tracking-widest mb-1.5"
-                           style={{ color: 'rgba(255,255,255,0.55)' }}>
+                    {/* Konum başlığı — gradient yok, sadece border */}
+                    <div style={{ borderBottom: `1px solid ${accent.b}`, padding: '12px 16px' }}>
+                        <p className="text-[9px] uppercase tracking-widest mb-2"
+                           style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-muted)' }}>
                             Konumun
                         </p>
                         <div className="flex items-center justify-between">
-                            <span className="font-mono text-sm font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>
+                            <span className="text-sm font-bold" style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-primary)' }}>
                                 {primary.city}
                             </span>
                             <div className="flex items-center gap-2">
-                                <span className="font-mono text-[10px] font-medium" style={{ color: 'rgba(255,255,255,0.70)' }}>
+                                <span className="text-[10px]" style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-secondary)' }}>
                                     {wmoLabel(primary.code)}
                                 </span>
                                 <div className="flex items-center gap-1">
-                                    <Icon className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.85)' }} />
-                                    <span className="font-mono text-base font-black" style={{ color: 'rgba(255,255,255,0.96)' }}>
+                                    <Icon className="w-3.5 h-3.5" style={{ color: `${accent.b}` }} />
+                                    <span className="text-base font-black" style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-primary)' }}>
                                         {primary.temp}°
                                     </span>
                                 </div>
@@ -255,9 +225,9 @@ const WeatherWidget = () => {
                     </div>
 
                     {/* Diğer şehirler */}
-                    <div className="pb-1">
-                        <p className="font-mono text-[9px] uppercase tracking-widest px-4 pt-2.5 pb-1"
-                           style={{ color: 'rgba(255,255,255,0.40)' }}>
+                    <div className="pb-2">
+                        <p className="text-[9px] uppercase tracking-widest px-4 pt-3 pb-1"
+                           style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-muted)' }}>
                             Diğer Şehirler
                         </p>
                         {CITIES.map(city => (
