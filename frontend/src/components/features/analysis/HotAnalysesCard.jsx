@@ -138,8 +138,8 @@ export default function HotAnalysesCard() {
 
             {/* Footer */}
             <div className="px-4 py-2 border-t flex justify-between items-center" style={divStyle}>
-                <span className="font-mono text-[11px] text-tx-secondary/70">// SYS_MONITOR_ACTIVE</span>
-                <span className="font-mono text-[11px] text-brand/70">v2.4</span>
+                <span className="font-mono text-[11px] text-tx-secondary">// SYS_MONITOR_ACTIVE</span>
+                <span className="font-mono text-[11px] text-brand">v2.4</span>
             </div>
         </div>
 

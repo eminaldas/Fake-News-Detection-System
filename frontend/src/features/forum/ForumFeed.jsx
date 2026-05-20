@@ -202,11 +202,11 @@ function ThreadCard({ thread, index }) {
                             </span>
                         )}
                         {local.author?.display_label && (
-                            <span className="font-mono text-[10px] uppercase tracking-widest" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>
+                            <span className="font-mono text-[10px] uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
                                 {local.author.display_label}
                             </span>
                         )}
-                        <span className="font-mono text-xs ml-auto shrink-0" style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
+                        <span className="font-mono text-xs ml-auto shrink-0" style={{ color: 'var(--color-text-muted)' }}>
                             {timeAgo(local.created_at)}
                         </span>
                     </div>
@@ -378,6 +378,7 @@ function ThreadCard({ thread, index }) {
                                 className="p-1.5 transition-opacity hover:opacity-70"
                                 style={{ color: shareOpen ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}
                                 onClick={handleShare}
+                                aria-label="Paylaş"
                             >
                                 <Share2 className="w-3.5 h-3.5" />
                             </button>
@@ -428,6 +429,7 @@ function ThreadCard({ thread, index }) {
                             className="p-1.5 transition-opacity hover:opacity-70"
                             style={{ color: bookmarked ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}
                             onClick={handleBookmark}
+                            aria-label={bookmarked ? 'Kaydedilenlerden çıkar' : 'Kaydet'}
                         >
                             <Bookmark
                                 className="w-3.5 h-3.5"
@@ -440,6 +442,7 @@ function ThreadCard({ thread, index }) {
                             className="p-1.5 transition-opacity hover:opacity-70"
                             style={{ color: 'var(--color-text-muted)' }}
                             onClick={handleFlag}
+                            aria-label="Bildir"
                         >
                             <Flag className="w-3.5 h-3.5" />
                         </button>
@@ -487,7 +490,7 @@ function ThreadCard({ thread, index }) {
                                             ? 'Bu içeriği zaten bildirdiniz.'
                                             : 'Bildiriminiz alındı. Teşekkürler.'}
                                     </p>
-                                    <p className="font-mono text-xs text-center" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>
+                                    <p className="font-mono text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>
                                         {reportSent !== 'already' && 'Belirli sayıda bildirim sonrası içerik incelemeye alınır.'}
                                     </p>
                                     <button

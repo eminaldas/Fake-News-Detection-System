@@ -224,7 +224,7 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                             Yanıtla
                         </button>
                     ) : (
-                        <span className="font-mono text-xs px-2 py-1" style={{ color: 'var(--color-text-muted)', opacity: 0.35 }}>
+                        <span className="font-mono text-xs px-2 py-1" style={{ color: 'var(--color-text-muted)' }}>
                             ↪ max derinlik
                         </span>
                     )}

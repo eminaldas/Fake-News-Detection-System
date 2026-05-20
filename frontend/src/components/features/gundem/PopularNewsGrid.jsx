@@ -184,8 +184,8 @@ function FeaturedCard({ article }) {
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent" />
 
             {article.category && (
-                <span className="absolute top-3 left-3 z-10 font-mono text-[10px] font-black uppercase tracking-widest px-2 py-1 text-white"
-                      style={{ background: BRAND }}>
+                <span className="absolute top-3 left-3 z-10 font-mono text-[10px] font-black uppercase tracking-widest px-2 py-1"
+                      style={{ background: BRAND, color: 'var(--color-brand-badge-text)' }}>
                     {article.category}
                 </span>
             )}

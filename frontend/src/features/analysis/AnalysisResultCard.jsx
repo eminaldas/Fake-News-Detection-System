@@ -80,7 +80,7 @@ const AnalysisResultCard = ({ result }) => {
     return (
         <>
         <div
-            className="animate-fade-up mt-6 md:mt-8 w-full rounded-2xl overflow-hidden flex flex-col"
+            className="animate-fade-up mt-6 md:mt-8 w-full overflow-hidden flex flex-col"
             style={{
                 background: 'var(--color-bg-surface)',
                 border: `1px solid ${hex30}`,
@@ -113,12 +113,12 @@ const AnalysisResultCard = ({ result }) => {
                         <h2 className="text-tx-primary font-manrope font-extrabold text-lg sm:text-xl tracking-tight leading-tight">
                             {theme.mainTitle}
                         </h2>
-                        <span className="inline-flex items-center gap-1.5 mt-1 text-[10px] font-bold uppercase tracking-widest text-tx-secondary/60">
+                        <span className="inline-flex items-center gap-1.5 mt-1 text-[10px] font-bold uppercase tracking-widest text-tx-secondary">
                             {isUrlAnalysis ? <Link2 size={10} /> : <Info size={10} />}
                             {badgeLabel}
                         </span>
                         {mlOverrideNote && (
-                            <span className="mt-1 text-[10px] text-tx-secondary/50 italic block">
+                            <span className="mt-1 text-[10px] text-tx-secondary italic block">
                                 {mlOverrideNote}
                             </span>
                         )}
@@ -293,7 +293,6 @@ const AnalysisResultCard = ({ result }) => {
                 </div>
             </div>
         </div>
-        <FeedbackBar result={result} />
         <ForumSuggestion articleId={articleId} />
         {showModal && (
             <FullReportModal
