@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.responses import HTMLResponse
 
 from app.api.v1.endpoints import (
@@ -99,6 +100,7 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
     expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 
 @app.middleware("http")
