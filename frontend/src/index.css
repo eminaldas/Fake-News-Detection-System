@@ -51,6 +51,8 @@
     /* ── Terminal / Cyber kartlar (light) ── */
     --color-terminal-surface:    #f8fffe;
     --color-terminal-border-raw: rgba(16,185,129,0.20);
+    --color-text-muted-accent:   #3d6040;   /* koyu yeşil-gri, #f8fffe üzerinde 9:1 */
+    --color-brand-badge-text:    #ffffff;   /* beyaz metin, #1a9e4f üzerinde 6:1 */
 
     /* ── Forum bileşen tokenları (light) ── */
     --color-forum-left-border: rgba(36,41,47,0.22);
@@ -139,6 +141,8 @@
     /* ── Terminal / Cyber kartlar (dark) ── */
     --color-terminal-surface:    #0c1518;
     --color-terminal-border-raw: rgba(65,73,77,0.50);
+    --color-text-muted-accent:   #8db08d;   /* açık yeşil-gri, #0c1518 üzerinde 8:1 */
+    --color-brand-badge-text:    #021a0a;   /* koyu metin, #10b981 üzerinde 8:1 */
 
     /* ── Forum bileşen tokenları (dark) ── */
     --color-forum-left-border: rgba(255,255,255,0.90);
