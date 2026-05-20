@@ -91,10 +91,9 @@ const AUTH_PATHS  = ['/login', '/register'];
 const FORUM_PATHS = ['/forum'];
 
 const FOOTER_LINKS = [
-    { label: 'Hakkımızda',      to: '/hakkimizda' },
-    { label: 'Gizlilik',        to: '/profile/settings' },
-    { label: 'İletişim',        to: '/hakkimizda' },
-    { label: 'Kullanım Koşulları', to: '#'        },
+    { label: 'Hakkımızda',        to: '/hakkimizda'       },
+    { label: 'Gizlilik',          to: '/profile/settings' },
+    { label: 'Kullanım Koşulları', to: '#'                },
 ];
 
 /* Floating dot particles — dark modda hafif görünür */
@@ -165,8 +164,8 @@ const Layout = () => {
                 style={{
                     zIndex: -10,
                     backgroundImage: isDarkMode
-                        ? 'linear-gradient(rgba(63,255,139,0.09) 1px,transparent 1px),linear-gradient(90deg,rgba(63,255,139,0.09) 1px,transparent 1px)'
-                        : 'linear-gradient(var(--color-border) 1px,transparent 1px),linear-gradient(90deg,var(--color-border) 1px,transparent 1px)',
+                        ? 'linear-gradient(rgba(255,255,255,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.05) 1px,transparent 1px)'
+                        : 'linear-gradient(rgba(16,185,129,0.18) 1px,transparent 1px),linear-gradient(90deg,rgba(16,185,129,0.18) 1px,transparent 1px)',
                     backgroundSize: '40px 40px',
                     opacity: isDarkMode ? 1 : 0.35,
                 }}
@@ -177,31 +176,6 @@ const Layout = () => {
             {/* ── Animasyonlu arka plan (her iki mod) ──────────── */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: -9 }}>
 
-                {/* Yavaş hareket eden orb'lar — dark modda çok subtle */}
-                {isDarkMode && ORBS.map((o, i) => (
-                    <div key={i}
-                         className={`absolute rounded-full animate-blob-${(i % 3) + 1}`}
-                         style={{
-                             left: o.left, top: o.top,
-                             width: o.size, height: o.size,
-                             background: o.color,
-                             filter: 'blur(80px)',
-                             animationDuration: o.dur,
-                             animationDelay: o.delay,
-                         }} />
-                ))}
-
-                {/* Light mod blob'lar — dark modla aynı mantık, açık tonda */}
-                {!isDarkMode && (
-                    <>
-                        <div className="absolute -top-40 -left-40 w-[620px] h-[620px] rounded-full animate-blob-1"
-                             style={{ background: 'rgba(22,163,74,0.13)', filter: 'blur(90px)' }} />
-                        <div className="absolute top-[-8%] right-[30%] w-[500px] h-[500px] rounded-full animate-blob-2"
-                             style={{ background: 'rgba(59,130,246,0.09)', filter: 'blur(90px)' }} />
-                        <div className="absolute top-[50%] left-[10%] w-[440px] h-[440px] rounded-full animate-blob-3"
-                             style={{ background: 'rgba(139,92,246,0.07)', filter: 'blur(80px)' }} />
-                    </>
-                )}
 
                 {/* Scan line — sadece dark modda, çok soluk */}
                 {isDarkMode && (
@@ -240,7 +214,7 @@ const Layout = () => {
             {/* ── Mini mesajlaşma (LinkedIn stili, sağ alt) ── */}
             {!isAuth && !isMessages && <MiniMessenger />}
 
-            {!isAuth && !isForum && !isMessages && !isSettings && (
+            {pathname === '/' && (
                 <footer style={{
                     background: 'var(--color-terminal-surface)',
                     borderTop: '1px solid var(--color-terminal-border-raw)',
@@ -314,10 +288,12 @@ const Layout = () => {
                             <p className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}>
                                 © {new Date().getFullYear()} NE_HABER_SİSTEMİ · TÜM_HAKLAR_SAKLIDIR
                             </p>
-                            <a href="https://github.com" target="_blank" rel="noopener noreferrer"
-                               className="flex items-center gap-1.5 font-mono text-[10px] transition-opacity hover:opacity-60"
-                               style={{ color: 'var(--color-text-muted)' }}>
-                                <Github size={12} /> GitHub
+                            <a href="https://github.com/eminaldas/Fake-News-Detection-System"
+                               target="_blank" rel="noopener noreferrer"
+                               aria-label="GitHub'da yıldızlayın"
+                               className="flex items-center gap-1.5 font-mono text-[10px] transition-opacity hover:opacity-80"
+                               style={{ color: '#f59e0b' }}>
+                                <Github size={12} /> ⭐ Yıldızlayın
                             </a>
                         </div>
                     </div>

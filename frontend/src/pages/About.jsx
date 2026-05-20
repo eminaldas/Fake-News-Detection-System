@@ -4,7 +4,7 @@ import {
     Search, Brain, Globe, Shield, Cpu, Database,
     Zap, Eye, Target, CheckCircle2, Clock, Circle,
     ArrowRight, Layers, Users, BarChart2, Timer,
-    Mail, Github, ExternalLink, MessageSquare,
+    Github, ExternalLink,
 } from 'lucide-react';
 
 const BRAND   = 'var(--color-brand-primary)';
@@ -120,7 +120,7 @@ const About = () => (
                     {[
                         { icon: Database,  label: 'Analiz Kaydı',     target: 3286,  suffix: 'K+', delay: 0,   accent: BRAND },
                         { icon: BarChart2, label: 'Doğruluk Oranı',   target: 88,    suffix: '%',  delay: 120, accent: '#3fff8b' },
-                        { icon: Users,     label: 'Aktif Kullanıcı',  target: 47,    suffix: 'K+', delay: 240, accent: '#60a5fa' },
+                        { icon: Zap,       label: 'NLP Sinyali',      target: 8,     suffix: '',   delay: 240, accent: '#60a5fa' },
                         { icon: Timer,     label: 'Ort. Analiz Süresi', target: 1.4, suffix: 'sn', delay: 360, accent: '#f59e0b' },
                     ].map(({ icon: Icon, label, target, suffix, delay, accent }, i) => (
                         <div key={label}
@@ -385,78 +385,6 @@ const About = () => (
             </div>
         </section>
 
-        {/* ══ İLETİŞİM ════════════════════════════════════ */}
-        <section className="mb-20">
-            <Reveal className="mb-8">
-                <p className="font-mono text-[10px] uppercase tracking-widest mb-1" style={{ color: BRAND }}>
-                    // İLETİŞİM
-                </p>
-                <h2 className="text-2xl md:text-3xl font-manrope font-extrabold tracking-tight"
-                    style={{ color: 'var(--color-text-primary)' }}>
-                    Bize Ulaşın
-                </h2>
-                <p className="font-mono text-sm mt-2" style={{ color: 'var(--color-text-muted)' }}>
-                    Her mesaja en kısa sürede yanıt veriyoruz.
-                </p>
-            </Reveal>
-
-            <div className="grid sm:grid-cols-3 gap-4">
-                {[
-                    {
-                        icon: Mail,
-                        label: 'E-POSTA',
-                        value: 'iletisim@nehaber.dev',
-                        sub: 'Genellikle 24 saat içinde yanıt',
-                        href: 'mailto:iletisim@nehaber.dev',
-                        accent: BRAND,
-                        delay: 0,
-                    },
-                    {
-                        icon: Github,
-                        label: 'GİTHUB',
-                        value: 'github.com/nehaber',
-                        sub: 'Issue açın veya PR gönderin',
-                        href: 'https://github.com',
-                        accent: '#60a5fa',
-                        delay: 100,
-                    },
-                    {
-                        icon: MessageSquare,
-                        label: 'TOPLULUK',
-                        value: 'discord.gg/nehaber',
-                        sub: 'Canlı tartışma & destek kanalı',
-                        href: '#',
-                        accent: '#a78bfa',
-                        delay: 200,
-                    },
-                ].map(({ icon: Icon, label, value, sub, href, accent, delay }) => (
-                    <Reveal key={label} delay={delay}>
-                        <a href={href}
-                           target={href.startsWith('http') ? '_blank' : undefined}
-                           rel="noopener noreferrer"
-                           className="group relative border flex flex-col gap-3 p-5 transition-all duration-300 hover:brightness-105 block"
-                           style={{ background: SURFACE, borderColor: BORDER }}>
-                            <Notch color={accent} size={12} />
-                            <div className="flex items-center justify-between">
-                                <p className="font-mono text-[10px] uppercase tracking-widest"
-                                   style={{ color: accent }}>// {label}</p>
-                                <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-opacity"
-                                              style={{ color: accent }} />
-                            </div>
-                            <Icon className="w-5 h-5" style={{ color: accent }} />
-                            <div>
-                                <p className="font-mono text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>
-                                    {value}
-                                </p>
-                                <p className="font-mono text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                                    {sub}
-                                </p>
-                            </div>
-                        </a>
-                    </Reveal>
-                ))}
-            </div>
-        </section>
 
         {/* ══ CTA ══════════════════════════════════════════ */}
         <Reveal>
@@ -481,6 +409,33 @@ const About = () => (
                     <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
             </div>
+        </Reveal>
+
+        {/* ══ GİTHUB ════════════════════════════════════════ */}
+        <Reveal>
+            <a href="https://github.com/eminaldas/Fake-News-Detection-System"
+               target="_blank"
+               rel="noopener noreferrer"
+               className="mt-6 relative border flex items-center justify-between p-5 transition-all duration-300 hover:brightness-105 group"
+               style={{ background: SURFACE, borderColor: BORDER }}>
+                <div className="flex items-center gap-4">
+                    <Github className="w-5 h-5 shrink-0" style={{ color: '#60a5fa' }} />
+                    <div>
+                        <p className="font-mono text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                            eminaldas / Fake-News-Detection-System
+                        </p>
+                        <p className="font-mono text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                            Açık kaynak · MIT Lisansı · Katkıda bulunmaya davetlisiniz
+                        </p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-1.5 font-mono text-xs font-bold border px-3 py-1.5 shrink-0 transition-all group-hover:brightness-110"
+                     style={{ color: '#f59e0b', borderColor: 'rgba(245,158,11,0.30)', background: 'rgba(245,158,11,0.06)' }}>
+                    ⭐ Yıldızlayın
+                </div>
+                <ExternalLink className="w-3 h-3 absolute top-3 right-3 opacity-0 group-hover:opacity-40 transition-opacity"
+                              style={{ color: 'var(--color-text-muted)' }} />
+            </a>
         </Reveal>
 
     </div>
