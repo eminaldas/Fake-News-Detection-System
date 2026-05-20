@@ -4,11 +4,14 @@ import AnalysisService from '../../../services/analysis.service';
 import NewsSummaryModal from '../../../features/analysis/NewsSummaryModal';
 import AnalysisModal from '../../../features/analysis/AnalysisModal';
 import { trackInteraction } from '../../../services/interaction.service';
+import { getProxiedImageUrl } from '../../../utils/imageProxy';
 
-const BRAND  = 'var(--color-brand-primary)';
-const BORDER = 'var(--color-terminal-border-raw)';
+const BRAND       = 'var(--color-brand-primary)';
+const BORDER      = 'var(--color-terminal-border-raw)';
 const borderStyle = { borderColor: BORDER };
-const cardStyle   = { background: 'var(--color-terminal-surface)', borderColor: BORDER };
+const cardStyle   = { background: 'transparent', borderColor: BORDER };
+const CARD_BORDER = 'rgba(255,255,255,0.07)';
+const CARD_BG     = 'rgba(255,255,255,0.025)';
 
 function nlpColor(score) {
     if (score == null) return 'var(--color-text-muted)';
@@ -33,9 +36,10 @@ function relTime(pubDate) {
     if (!pubDate) return '';
     const diff = Math.floor((Date.now() - new Date(pubDate)) / 1000);
     if (diff < 60)    return 'Az önce';
-    if (diff < 3600)  return `${Math.floor(diff / 60)} dk`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)} sa`;
-    return `${Math.floor(diff / 86400)} gün`;
+    if (diff < 3600)  return `${Math.floor(diff / 60)} dk önce`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} saat önce`;
+    const days = Math.floor(diff / 86400);
+    return days === 1 ? 'Dün' : `${days} gün önce`;
 }
 
 function AnalyzeButton({ article }) {
@@ -151,9 +155,9 @@ function FeaturedCard({ article }) {
 
     return (
         <a href={article.source_url} target="_blank" rel="noopener noreferrer"
-           className="animate-fade-up col-span-1 row-span-2 group relative flex flex-col overflow-hidden border
+           className="animate-fade-up col-span-1 row-span-2 group relative flex flex-col overflow-hidden
                       transition-all duration-300 hover:shadow-[0_0_20px_rgba(63,255,139,0.18)]"
-           style={borderStyle}
+           style={{ border: `1px solid ${CARD_BORDER}` }}
            onClick={() => trackInteraction({
                content_id: article.id, interaction_type: 'click', category: article.category,
                source_domain: (() => { try { return new URL(article.source_url).hostname; } catch { return null; } })(),
@@ -167,12 +171,12 @@ function FeaturedCard({ article }) {
             <div className="absolute bottom-0 right-0 h-5 w-[2px] z-20" style={{ background: BRAND }} />
 
             {hasImg ? (
-                <img src={article.image_url} alt={article.title}
+                <img src={getProxiedImageUrl(article.image_url, 400)} alt={article.title}
                      className="absolute inset-0 w-full h-full object-cover opacity-65 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700"
                      onError={() => setImgErr(true)} />
             ) : (
                 <div className="absolute inset-0 flex items-center justify-center"
-                     style={{ background: 'var(--color-terminal-surface)' }}>
+                     style={{ background: 'transparent' }}>
                     <Layers className="w-10 h-10 text-brutal-border/30" />
                 </div>
             )}
@@ -219,74 +223,113 @@ function SmallCard({ article }) {
 
     return (
         <a href={article.source_url} target="_blank" rel="noopener noreferrer"
-           className="h-full flex flex-col overflow-hidden border group
-                      transition-all duration-300 hover:shadow-[0_0_14px_rgba(63,255,139,0.15)]"
-           style={cardStyle}
+           className="group relative h-full overflow-hidden block"
+           style={{ border: `1px solid ${CARD_BORDER}` }}
            onClick={() => trackInteraction({
                content_id: article.id, interaction_type: 'click', category: article.category,
                source_domain: (() => { try { return new URL(article.source_url).hostname; } catch { return null; } })(),
                nlp_score_at_time: article.nlp_score,
            })}>
 
-            <div className="relative h-28 overflow-hidden shrink-0"
-                 style={{ background: 'var(--color-bg-surface-solid)' }}>
-                {hasImg ? (
-                    <img src={article.image_url} alt={article.title}
-                         className="w-full h-full object-cover opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
-                         onError={() => setImgErr(true)} />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center"
-                         style={{ background: 'var(--color-bg-surface-solid)' }}>
-                        <Layers className="w-6 h-6" style={{ color: BORDER, opacity: 0.3 }} />
-                    </div>
-                )}
+            {/* Tam kaplayan görsel veya koyu arka plan */}
+            {hasImg ? (
+                <img src={getProxiedImageUrl(article.image_url, 400)} alt={article.title}
+                     className="absolute inset-0 w-full h-full object-cover transition-all duration-[450ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+                     style={{ opacity: 0.78 }}
+                     onMouseEnter={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'scale(1.04)'; }}
+                     onMouseLeave={e => { e.currentTarget.style.opacity = '0.78'; e.currentTarget.style.transform = 'scale(1)'; }}
+                     onError={() => setImgErr(true)} />
+            ) : (
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(145deg,#0f1e22,#0b1518)' }} />
+            )}
+
+            {/* Temel gradyan */}
+            <div className="absolute inset-0"
+                 style={{ background: 'linear-gradient(to top,rgba(7,11,14,0.92) 0%,rgba(7,11,14,0.55) 42%,rgba(7,11,14,0.08) 75%,transparent 100%)' }} />
+            {/* Hover gradyan — opacity ile koyulaşır */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                 style={{ background: 'linear-gradient(to top,rgba(7,11,14,0.98) 0%,rgba(7,11,14,0.78) 52%,rgba(7,11,14,0.22) 82%,transparent 100%)' }} />
+
+            {/* İçerik — hover'da yukarı kayar */}
+            <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-10
+                            translate-y-0 group-hover:-translate-y-[7px]
+                            transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]">
+
+                {/* Kategori rozeti */}
                 {article.category && (
-                    <span className="absolute bottom-2 left-2 font-mono text-[10px] font-black uppercase tracking-widest px-2 py-0.5 text-white"
-                          style={{ background: BRAND }}>
+                    <span className="inline-block font-mono text-[9px] font-black uppercase tracking-widest
+                                     px-2 py-0.5 rounded mb-2"
+                          style={{ color: BRAND, border: '1px solid rgba(63,255,139,0.35)', background: 'rgba(63,255,139,0.08)' }}>
                         {article.category}
                     </span>
                 )}
-            </div>
 
-            <div className="p-3.5 flex flex-col gap-2 flex-1">
-                <h3 className="text-sm font-bold leading-snug line-clamp-2 transition-colors group-hover:text-brand"
-                    style={{ color: 'var(--color-text-primary)' }}>
+                {/* Başlık */}
+                <h3 className="text-[13px] font-bold leading-snug line-clamp-2 mb-2.5"
+                    style={{ color: '#fff' }}>
                     {article.title}
                 </h3>
-                <div className="flex items-center gap-2 flex-wrap mt-auto pt-2 border-t" style={borderStyle}>
+
+                {/* Meta: güven + kaynak + zaman + buton */}
+                <div className="flex items-center gap-2 flex-wrap">
+                    <NlpLabel score={article.nlp_score} />
                     {article.source_name && (
-                        <span className="font-mono text-[10px] font-semibold truncate max-w-[110px]"
-                              style={{ color: 'var(--color-text-secondary)' }}>
+                        <span className="font-mono text-[10px] font-semibold"
+                              style={{ color: 'rgba(255,255,255,0.85)' }}>
                             {article.source_name}
                         </span>
                     )}
-                    <span style={{ color: 'var(--color-text-muted)', opacity: 0.4 }}>·</span>
-                    <span className="font-mono text-[10px] shrink-0" style={{ color: 'var(--color-text-muted)' }}>
-                        {relTime(article.pub_date)}
-                    </span>
-                    <NlpLabel score={article.nlp_score} />
+                    {article.pub_date && (
+                        <span className="font-mono text-[10px]"
+                              style={{ color: 'rgba(255,255,255,0.55)' }}>
+                            {relTime(article.pub_date)}
+                        </span>
+                    )}
                     <div className="ml-auto shrink-0">
                         <AnalyzeButton article={article} />
                     </div>
                 </div>
             </div>
+
+            {/* Alt sağa kayan çizgi */}
+            <div className="absolute bottom-0 left-0 h-0.5 w-0 group-hover:w-full transition-[width] duration-300 ease-out"
+                 style={{ background: BRAND }} />
         </a>
+    );
+}
+
+function SkeletonCard({ className = '', style = {} }) {
+    return (
+        <div
+            className={`animate-shimmer overflow-hidden ${className}`}
+            style={{ border: `1px solid ${CARD_BORDER}`, ...style }}
+        >
+            {/* Alt içerik alanı simülasyonu — gerçek kartla aynı oran */}
+            <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 space-y-2">
+                <div className="h-2 w-14 rounded-sm" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                <div className="h-3.5 w-4/5 rounded-sm" style={{ background: 'rgba(255,255,255,0.07)' }} />
+                <div className="h-3.5 w-3/5 rounded-sm" style={{ background: 'rgba(255,255,255,0.05)' }} />
+            </div>
+        </div>
     );
 }
 
 function GridSkeleton() {
     return (
-        <div className="grid grid-cols-2 gap-4 auto-rows-[260px] animate-pulse">
-            <div className="col-span-1 row-span-2 overflow-hidden border" style={{ ...borderStyle, background: 'var(--color-skeleton)' }} />
-            {Array.from({ length: 2 }).map((_, i) => (
-                <div key={i} className="overflow-hidden border" style={{ ...borderStyle, background: 'var(--color-terminal-surface)' }}>
-                    <div className="h-28" style={{ background: 'var(--color-skeleton)' }} />
-                    <div className="p-3 space-y-2">
-                        <div className="h-3 w-2/3" style={{ background: 'var(--color-skeleton)' }} />
-                        <div className="h-3 w-full" style={{ background: 'var(--color-skeleton)' }} />
-                    </div>
-                </div>
-            ))}
+        <div>
+            {/* Ana grid — featured + 2 küçük */}
+            <div className="grid grid-cols-2 gap-4 auto-rows-[260px] mb-4">
+                <SkeletonCard className="col-span-1 row-span-2 relative" />
+                {[0, 1].map(i => (
+                    <SkeletonCard key={i} className="relative" style={{ animationDelay: `${i * 0.15}s` }} />
+                ))}
+            </div>
+            {/* Alt grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-[260px]">
+                {[0, 1, 2].map(i => (
+                    <SkeletonCard key={i} className="relative" style={{ animationDelay: `${(i + 2) * 0.12}s` }} />
+                ))}
+            </div>
         </div>
     );
 }
@@ -319,7 +362,7 @@ export default function PopularNewsGrid({ featured, articles, loading, loadingMo
     const rest = articles || [];
 
     return (
-        <div>
+        <div className="animate-fade-in">
             {/* Ana grid: sol büyük (row-span-2) + sağda 2 kart */}
             <div className="grid grid-cols-2 gap-4 auto-rows-[260px] mb-4">
                 {featured && <FeaturedCard article={featured} />}
@@ -334,7 +377,7 @@ export default function PopularNewsGrid({ featured, articles, loading, loadingMo
 
             {/* Kalan kartlar */}
             {rest.length > 2 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-[260px]">
                     {rest.slice(2).map((a, idx) => (
                         <div key={a.id}
                              className="animate-fade-up"
