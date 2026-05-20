@@ -50,15 +50,16 @@ function Section({ title, children, accent, noDivider, color }) {
 /* Underline input — sadece alt border, focus'ta 2px beyaz */
 function UnderlineInput({ icon: Icon, label, hint, value, onChange, placeholder, type='text', disabled, rightEl }) {
   const [focused, setFocused] = useState(false);
+  const inputId = label ? `ui-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined;
   return (
     <div>
       {label && (
-        <span style={{ display:'flex', alignItems:'center', gap:'0.35rem', marginBottom:6 }}>
+        <label htmlFor={inputId} style={{ display:'flex', alignItems:'center', gap:'0.35rem', marginBottom:6, cursor:'default' }}>
           <span style={{ width:4, height:4, background:'var(--color-brand-primary)', flexShrink:0, display:'inline-block', opacity: focused ? 1 : 0.55, transition:'opacity 0.15s' }} />
           <span style={{ fontFamily:'monospace', fontSize:'0.6rem', fontWeight:600, letterSpacing:'0.09em', textTransform:'uppercase', color: focused ? W60 : W30, transition:'color 0.15s' }}>
             {label}
           </span>
-        </span>
+        </label>
       )}
       <div style={{
         display:'flex', alignItems:'center', gap:'0.625rem',
@@ -68,15 +69,15 @@ function UnderlineInput({ icon: Icon, label, hint, value, onChange, placeholder,
       }}>
         {Icon && <Icon style={{ width:15, height:15, flexShrink:0, color: focused ? W60 : W30, transition:'color 0.18s' }} />}
         <input
+          id={inputId}
           type={type} value={value}
-          onChange={e => onChange(e.target.value)}
+          onChange={e => onChange?.(e.target.value)}
           placeholder={placeholder} disabled={disabled}
           style={{
             flex:1, background:'transparent', border:'none', outline:'none',
             fontFamily:'monospace', fontSize:'0.875rem',
             color: disabled ? W30 : W,
             caretColor: 'var(--color-brand-primary)',
-            opacity: disabled ? 0.5 : 1,
           }}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
@@ -193,12 +194,16 @@ function SocialLinkRow({ item, onUrlChange, onRemove, platforms }) {
         onBlur={() => setF(false)}
       />
       {item.url && (
-        <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ flexShrink:0, opacity:0.3 }}
+        <a href={item.url} target="_blank" rel="noopener noreferrer"
+           aria-label={`${platform?.label || 'Bağlantıyı'} yeni sekmede aç`}
+           style={{ flexShrink:0, opacity:0.3 }}
            onMouseEnter={e => e.currentTarget.style.opacity='0.7'} onMouseLeave={e => e.currentTarget.style.opacity='0.3'}>
           <ExternalLink style={{ width:13, height:13, color:W }} />
         </a>
       )}
-      <button onClick={() => onRemove(item.id)} style={{ flexShrink:0, opacity:0.3, background:'none', border:'none', cursor:'pointer' }}
+      <button onClick={() => onRemove(item.id)}
+              aria-label="Sosyal bağlantıyı kaldır"
+              style={{ flexShrink:0, opacity:0.3, background:'none', border:'none', cursor:'pointer' }}
               onMouseEnter={e => e.currentTarget.style.opacity='0.7'} onMouseLeave={e => e.currentTarget.style.opacity='0.3'}>
         <Trash2 style={{ width:13, height:13, color:'#fca5a5' }} />
       </button>
