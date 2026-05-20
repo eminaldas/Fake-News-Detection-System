@@ -65,6 +65,7 @@ const Register = () => {
     const [success,         setSuccess]         = useState(false);
     const [pwTouched,       setPwTouched]       = useState(false);
     const [step,            setStep]            = useState(1);
+    const [consent,         setConsent]         = useState(false);
     const [interests,       setInterests]       = useState([]);       // artık kullanılmıyor (onboarding'e taşındı)
     const [marketingSource, setMarketingSource] = useState('');       // artık kullanılmıyor
 
@@ -79,6 +80,7 @@ const Register = () => {
     const handleGoogleRegister = useGoogleLogin({
         flow: 'implicit',
         onSuccess: async (tokenResponse) => {
+            if (!consent) { setError('Gizlilik Politikası ve Kullanım Koşulları\'nı kabul etmeniz gerekiyor.'); return; }
             setLoading(true);
             setError('');
             const result = await googleLogin(tokenResponse.access_token);
@@ -95,6 +97,7 @@ const Register = () => {
     const handleStep1 = (e) => {
         e.preventDefault();
         setError('');
+        if (!consent)             { setError('Gizlilik Politikası ve Kullanım Koşulları\'nı kabul etmeniz gerekiyor.'); return; }
         if (!allPassed)           { setError('Şifre gereksinimlerini karşılamıyor.'); return; }
         if (password !== confirm) { setError('Şifreler eşleşmiyor.'); return; }
         handleRegister(e);
@@ -349,8 +352,34 @@ const Register = () => {
                                         )}
                                     </div>
 
+                                    {/* Onay checkbox */}
+                                    <label className="flex items-start gap-2.5 cursor-pointer select-none mt-2">
+                                        <input
+                                            type="checkbox"
+                                            id="consent"
+                                            checked={consent}
+                                            onChange={e => setConsent(e.target.checked)}
+                                            className="mt-0.5 shrink-0 w-4 h-4 accent-green-500"
+                                        />
+                                        <span className="text-[11px] leading-relaxed"
+                                              style={{ color: 'var(--color-text-secondary)' }}>
+                                            <Link to="/legal?doc=privacy" target="_blank"
+                                                  className="underline underline-offset-2 hover:opacity-80 transition-opacity"
+                                                  style={{ color: 'var(--color-brand-primary)' }}>
+                                                Gizlilik Politikası
+                                            </Link>
+                                            {'\'nı ve '}
+                                            <Link to="/legal?doc=terms" target="_blank"
+                                                  className="underline underline-offset-2 hover:opacity-80 transition-opacity"
+                                                  style={{ color: 'var(--color-brand-primary)' }}>
+                                                Kullanım Koşulları
+                                            </Link>
+                                            {'\'nı okudum, kabul ediyorum.'}
+                                        </span>
+                                    </label>
+
                                     <button
-                                        type="submit" disabled={loading}
+                                        type="submit" disabled={loading || !consent}
                                         className="group w-full mt-1 py-4 font-manrope font-black text-[11px] uppercase tracking-[0.2em]
                                                    hover:opacity-90 disabled:opacity-50 transition-all duration-200
                                                    flex items-center justify-center gap-2 active:scale-[0.98]"
@@ -375,7 +404,7 @@ const Register = () => {
 
                                     <button
                                         type="button"
-                                        onClick={() => handleGoogleRegister()}
+                                        onClick={() => consent ? handleGoogleRegister() : setError('Gizlilik Politikası ve Kullanım Koşulları\'nı kabul etmeniz gerekiyor.')}
                                         disabled={loading}
                                         className="w-full mt-3 py-3.5 flex items-center justify-center gap-3 transition-all duration-200 hover:opacity-90 disabled:opacity-50"
                                         style={{

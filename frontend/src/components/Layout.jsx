@@ -91,9 +91,9 @@ const AUTH_PATHS  = ['/login', '/register'];
 const FORUM_PATHS = ['/forum'];
 
 const FOOTER_LINKS = [
-    { label: 'Hakkımızda',        to: '/hakkimizda'       },
-    { label: 'Gizlilik',          to: '/profile/settings' },
-    { label: 'Kullanım Koşulları', to: '#'                },
+    { label: 'Hakkımızda',        to: '/hakkimizda'          },
+    { label: 'Gizlilik Politikası', to: '/legal?doc=privacy'  },
+    { label: 'Kullanım Koşulları',  to: '/legal?doc=terms'    },
 ];
 
 /* Floating dot particles — dark modda hafif görünür */
