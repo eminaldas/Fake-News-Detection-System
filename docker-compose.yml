@@ -15,8 +15,8 @@ services:
       timeout: 5s
       retries: 18
       start_period: 90s
-    mem_limit: 600m
-    memswap_limit: 600m
+    mem_limit: 900m
+    memswap_limit: 1800m
 
   app:
     build: .
