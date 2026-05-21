@@ -1,37 +1,59 @@
 version: '3.8'
 
 services:
+  embedding-service:
+    build: .
+    command: uvicorn workers.embedding_server:app --host 0.0.0.0 --port 8001
+    volumes:
+      - .:/workspace
+      - hf_cache:/root/.cache/huggingface
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 90s
+    mem_limit: 600m
+    memswap_limit: 600m
+
   app:
     build: .
     ports:
       - "127.0.0.1:8000:8000"
     volumes:
       - .:/workspace
-      - hf_cache:/root/.cache/huggingface
     env_file:
       - .env
+    environment:
+      - EMBEDDING_SERVICE_URL=http://embedding-service:8001
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
+      embedding-service:
+        condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
-    mem_limit: 1g
-    memswap_limit: 1g
+    mem_limit: 600m
+    memswap_limit: 600m
 
   worker:
     build: .
     env_file:
       - .env
+    environment:
+      - EMBEDDING_SERVICE_URL=http://embedding-service:8001
     volumes:
       - .:/workspace
-      - hf_cache:/root/.cache/huggingface
     depends_on:
       - redis
       - db
+      - embedding-service
     command: celery -A workers.tasks worker --concurrency=1 --include=workers.link_analysis_task --loglevel=info -Q celery,deep_report
-    mem_limit: 1200m
-    memswap_limit: 1200m
+    mem_limit: 500m
+    memswap_limit: 500m
 
   ai-comment-worker:
     build: .
@@ -39,52 +61,59 @@ services:
       - .env
     volumes:
       - .:/workspace
-      - hf_cache:/root/.cache/huggingface
     depends_on:
       - redis
       - db
     command: celery -A workers.ai_comment_task worker --loglevel=info --concurrency=1 -Q ai_comment
-    mem_limit: 400m
-    memswap_limit: 400m
+    mem_limit: 150m
+    memswap_limit: 150m
 
   news-agent:
     image: fake-news-detection-system-app
     env_file:
       - .env
+    environment:
+      - EMBEDDING_SERVICE_URL=http://embedding-service:8001
     volumes:
       - .:/workspace
-      - hf_cache:/root/.cache/huggingface
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
+      embedding-service:
+        condition: service_healthy
     command: python -m scrapers.rss_monitor
     restart: unless-stopped
-    mem_limit: 900m
-    memswap_limit: 900m
+    mem_limit: 200m
+    memswap_limit: 200m
 
   rss-worker:
     image: fake-news-detection-system-app
     env_file:
       - .env
+    environment:
+      - EMBEDDING_SERVICE_URL=http://embedding-service:8001
     volumes:
       - .:/workspace
-      - hf_cache:/root/.cache/huggingface
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
+      embedding-service:
+        condition: service_healthy
     command: celery -A workers.rss_ingester worker --loglevel=info --concurrency=1 -Q rss
     restart: unless-stopped
-    mem_limit: 900m
-    memswap_limit: 900m
+    mem_limit: 200m
+    memswap_limit: 200m
 
   rss-beat:
     image: fake-news-detection-system-app
     env_file:
       - .env
+    environment:
+      - EMBEDDING_SERVICE_URL=http://embedding-service:8001
     volumes:
       - .:/workspace
       - rss_beat_data:/beat
@@ -93,13 +122,15 @@ services:
       - rss-worker
     command: celery -A workers.rss_ingester beat --loglevel=info --schedule=/beat/celerybeat-schedule
     restart: unless-stopped
-    mem_limit: 600m
-    memswap_limit: 600m
+    mem_limit: 200m
+    memswap_limit: 200m
 
   audit-beat:
     image: fake-news-detection-system-app
     env_file:
       - .env
+    environment:
+      - EMBEDDING_SERVICE_URL=http://embedding-service:8001
     volumes:
       - .:/workspace
     depends_on:
@@ -111,8 +142,8 @@ services:
         condition: service_started
     command: celery -A workers.tasks beat --loglevel=info
     restart: unless-stopped
-    mem_limit: 600m
-    memswap_limit: 600m
+    mem_limit: 300m
+    memswap_limit: 300m
 
   frontend:
     build:
