@@ -6,12 +6,7 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import LegalModal from '../components/ui/LegalModal';
-
-const PASSWORD_RULES = [
-    { id: 'length', label: 'En az 8 karakter',  test: p => p.length >= 8 },
-    { id: 'letter', label: 'En az 1 harf',       test: p => /[a-zA-ZğüşıöçĞÜŞİÖÇ]/.test(p) },
-    { id: 'digit',  label: 'En az 1 rakam',      test: p => /\d/.test(p) },
-];
+import { PASSWORD_RULES } from '../utils/passwordRules';
 
 const INTEREST_OPTIONS = [
     { value: 'gündem',    label: '📰 Gündem' },
