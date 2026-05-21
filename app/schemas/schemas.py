@@ -97,6 +97,32 @@ class GoogleAuthRequest(BaseModel):
     terms_accepted: bool = Field(False, description="Gizlilik Politikası ve Kullanım Koşulları onayı")
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(..., max_length=255)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        v = v.strip().lower()
+        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v):
+            raise ValueError("Geçersiz email formatı")
+        return v
+
+
+class ResetPasswordRequest(BaseModel):
+    token:        str = Field(..., min_length=10)
+    new_password: str = Field(..., min_length=8)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if not any(c.isdigit() for c in v):
+            raise ValueError("Şifre en az bir rakam içermelidir")
+        if not any(c.isalpha() for c in v):
+            raise ValueError("Şifre en az bir harf içermelidir")
+        return v
+
+
 class GoogleAuthResponse(BaseModel):
     access_token:         str
     token_type:           str  = "bearer"
