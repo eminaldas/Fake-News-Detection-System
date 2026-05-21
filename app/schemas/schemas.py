@@ -72,6 +72,7 @@ class UserResponse(BaseModel):
     is_active:            bool
     created_at:           datetime
     last_login_at:        Optional[datetime]  = None
+    deleted_at:           Optional[datetime]  = None
     avatar_url:           Optional[str]       = None
     bio:                  Optional[str]       = None
     social_links:         Optional[dict]      = None

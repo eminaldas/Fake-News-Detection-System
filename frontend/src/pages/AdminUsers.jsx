@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, UserX, UserCheck, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Shield, UserX, UserCheck, ChevronLeft, ChevronRight, Loader2, RotateCcw } from 'lucide-react';
 import axiosInstance from '../api/axios';
 
 const AdminUsers = () => {
@@ -33,6 +33,18 @@ const AdminUsers = () => {
             await fetchUsers();
         } catch (err) {
             console.error('Güncelleme hatası:', err.message);
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const restoreUser = async (user) => {
+        setActionLoading(user.id);
+        try {
+            await axiosInstance.post(`/admin/users/${user.id}/restore`);
+            await fetchUsers();
+        } catch (err) {
+            console.error('Geri yükleme hatası:', err.message);
         } finally {
             setActionLoading(null);
         }
@@ -99,19 +111,36 @@ const AdminUsers = () => {
                                         {new Date(u.created_at).toLocaleDateString('tr-TR')}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <button
-                                            onClick={() => toggleActive(u)}
-                                            disabled={actionLoading === u.id}
-                                            className={`p-1.5 rounded-lg transition-colors ${
-                                                u.is_active ? 'hover:bg-red-50 text-red-500' : 'hover:bg-green-50 text-green-600'
-                                            }`}
-                                            title={u.is_active ? 'Devre dışı bırak' : 'Aktif et'}
-                                        >
-                                            {actionLoading === u.id
-                                                ? <Loader2 className="w-4 h-4 animate-spin" />
-                                                : u.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />
-                                            }
-                                        </button>
+                                        <div className="flex items-center gap-1">
+                                            {u.deleted_at ? (
+                                                <button
+                                                    onClick={() => restoreUser(u)}
+                                                    disabled={actionLoading === u.id}
+                                                    className="p-1.5 rounded-lg transition-colors hover:bg-green-50 text-green-600"
+                                                    title="Hesabı geri yükle"
+                                                >
+                                                    {actionLoading === u.id
+                                                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                                                        : <RotateCcw className="w-4 h-4" />
+                                                    }
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={() => toggleActive(u)}
+                                                    disabled={actionLoading === u.id}
+                                                    className={`p-1.5 rounded-lg transition-colors ${
+                                                        u.is_active ? 'hover:bg-red-50 text-red-500' : 'hover:bg-green-50 text-green-600'
+                                                    }`}
+                                                    title={u.is_active ? 'Devre dışı bırak' : 'Aktif et'}
+                                                    aria-label={u.is_active ? 'Devre dışı bırak' : 'Aktif et'}
+                                                >
+                                                    {actionLoading === u.id
+                                                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                                                        : u.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />
+                                                    }
+                                                </button>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

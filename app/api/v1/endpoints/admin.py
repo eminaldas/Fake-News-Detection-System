@@ -130,6 +130,35 @@ async def delete_user(
     )
 
 
+@router.post("/users/{user_id}/restore", response_model=UserResponse)
+async def restore_user(
+    user_id: UUID,
+    request: Request,
+    admin:   User         = Depends(require_admin),
+    db:      AsyncSession = Depends(get_db),
+    redis    = Depends(get_redis),
+):
+    """Soft-delete edilmiş hesabı geri yükle."""
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    if user.deleted_at is None:
+        raise HTTPException(status_code=400, detail="Bu hesap silinmiş değil")
+
+    user.deleted_at = None
+    user.is_active  = True
+    await db.commit()
+    await db.refresh(user)
+    log.info("user.restored", user_id=str(user_id), by_admin_id=str(admin.id))
+    await audit_log(
+        redis, "USER_ACTION", "admin.action",
+        ip=request.client.host if request.client else "unknown",
+        user_id=str(admin.id), severity="INFO",
+        details={"action": "restore_user", "target_user_id": str(user_id)},
+    )
+    return user
+
+
 @router.get("/forum/queue", response_model=ModerationQueueResponse)
 async def forum_moderation_queue(
     page: int = Query(1, ge=1),

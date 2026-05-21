@@ -355,7 +355,45 @@ async def delete_account(
     current_user.deleted_at = datetime.now(timezone.utc)
     await db.commit()
     log.info("user.soft_deleted", user_id=str(current_user.id))
+
+    # Recovery token — 30 gün geçerli
+    recovery_token = secrets.token_urlsafe(32)
+    await redis.setex(f"account_recover:{recovery_token}", 2592000, str(current_user.id))
+    if bool(settings.SMTP_HOST and settings.SMTP_USER):
+        _send_recovery_email(current_user.email, recovery_token, current_user.username)
+    else:
+        log.warning("DEV_RECOVERY_TOKEN: %s | user: %s", recovery_token, current_user.email)
+
     return {"message": "Hesabınız silindi."}
+
+
+@router.post("/recover")
+async def recover_account(
+    request: Request,
+    db:      AsyncSession = Depends(get_db),
+    redis    = Depends(get_redis),
+):
+    """Silinen hesabı geri yükle (recovery token ile)."""
+    body = await request.json()
+    token = body.get("token", "")
+    if not token:
+        raise HTTPException(status_code=400, detail="Token gerekli.")
+
+    user_id_str = await redis.get(f"account_recover:{token}")
+    if not user_id_str:
+        raise HTTPException(status_code=400, detail="Bağlantı geçersiz veya süresi dolmuş.")
+
+    result = await db.execute(select(User).where(User.id == uuid.UUID(user_id_str)))
+    user   = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=400, detail="Kullanıcı bulunamadı.")
+
+    user.deleted_at = None
+    user.is_active  = True
+    await redis.delete(f"account_recover:{token}")
+    await db.commit()
+    log.info("user.recovered", user_id=str(user.id))
+    return {"message": "Hesabınız başarıyla geri yüklendi."}
 
 
 @router.post("/forgot-password")
@@ -502,6 +540,47 @@ def _send_welcome_email(to_email: str, username: str) -> None:
         msg["From"]    = f"Ne Haber <{settings.SMTP_FROM}>"
         msg["To"]      = to_email
         msg.attach(MIMEText(_build_welcome_html(username), "html"))
+        _smtp_send(msg, to_email)
+    except Exception:
+        pass
+
+
+def _send_recovery_email(to_email: str, token: str, username: str = "") -> None:
+    try:
+        recover_url = f"{settings.FRONTEND_URL}/recover-account?token={token}"
+        msg            = MIMEMultipart("alternative")
+        msg["Subject"] = "Hesabınızı Geri Yükleyin — Ne Haber"
+        msg["From"]    = f"Ne Haber <{settings.SMTP_FROM}>"
+        msg["To"]      = to_email
+        display_name = username or to_email.split("@")[0]
+        body = f"""
+          <p style="margin:0 0 6px;font-size:11px;color:#10b981;letter-spacing:2px;text-transform:uppercase;">
+            &gt; HESAP_SİLME_TALEBİ_ALINDI
+          </p>
+          <h1 style="margin:0 0 8px;font-size:28px;font-weight:900;color:#ffffff;">Merhaba, {display_name}</h1>
+          <p style="margin:0 0 24px;font-size:15px;color:#ffffff;line-height:1.8;">
+            Ne Haber hesabınız silme talebiniz üzerine askıya alındı.<br>
+            <strong style="color:#10b981;">30 gün</strong> içinde fikrinizi değiştirirseniz
+            hesabınızı geri yükleyebilirsiniz.
+          </p>
+          <table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
+            <tr><td style="background:#10b981;">
+              <a href="{recover_url}"
+                 style="display:inline-block;padding:15px 36px;font-size:12px;font-weight:700;
+                        color:#070f12;text-decoration:none;letter-spacing:2px;text-transform:uppercase;">
+                [ HESABIMI GERİ YÜKLE ]
+              </a>
+            </td></tr>
+          </table>
+          <p style="margin:0 0 6px;font-size:11px;color:#3a5566;">// Buton çalışmıyorsa:</p>
+          <p style="margin:0 0 28px;font-size:11px;color:#10b981;word-break:break-all;">{recover_url}</p>
+          <div style="border-top:1px solid #1c3344;margin:0 0 20px;"></div>
+          <p style="margin:0;font-size:12px;color:#3a5566;line-height:1.8;">
+            Bu bağlantı <strong style="color:#ffffff;">30 gün</strong> geçerlidir.<br>
+            Geri yüklemek istemiyorsanız bu emaili dikkate almayın — hesabınız otomatik silinecektir.
+          </p>
+        """
+        msg.attach(MIMEText(_email_base().replace("{{BODY}}", body), "html"))
         _smtp_send(msg, to_email)
     except Exception:
         pass
