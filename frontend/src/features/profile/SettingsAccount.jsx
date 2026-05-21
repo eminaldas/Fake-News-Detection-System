@@ -232,7 +232,7 @@ function linksToObj(links) {
    Ana bileşen
 ════════════════════════════════════════════════════════ */
 export default function SettingsAccount() {
-  const { user: authUser } = useAuth();
+  const { user: authUser, logout } = useAuth();
 
   const [username,  setUsername]  = useState('');
   const [bio,       setBio]       = useState('');
@@ -247,6 +247,13 @@ export default function SettingsAccount() {
   /* Save state */
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
+
+  /* Hesap silme */
+  const [deleteModal,   setDeleteModal]   = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteLoading,  setDeleteLoading]  = useState(false);
+  const [deleteError,    setDeleteError]    = useState('');
+  const isGoogleUser = authUser && !authUser.hashed_password && authUser.google_id;
   const [saveError, setSaveError] = useState('');
 
   /* Original snapshot — dirty detection için */
@@ -523,9 +530,11 @@ export default function SettingsAccount() {
         <Section title="Hesap Silme" noDivider color="rgba(239,68,68,0.80)">
           <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
             <p style={{ fontFamily:'monospace', fontSize:'0.8rem', color:W30 }}>
-              Hesabı silmek geri alınamaz. Tüm veriler kalıcı olarak silinir.
+              Hesabınız 30 gün boyunca askıya alınır, ardından kalıcı olarak silinir.
+              Forum gönderileriniz anonim olarak korunur.
             </p>
             <button type="button"
+                    onClick={() => { setDeleteModal(true); setDeleteError(''); setDeletePassword(''); }}
                     style={{ alignSelf:'flex-start', padding:'0.5rem 1.25rem', fontFamily:'monospace', fontSize:'0.8rem', fontWeight:700, border:'1px solid rgba(239,68,68,0.5)', color:'#fca5a5', background:'transparent', cursor:'pointer' }}>
               Hesabı Sil
             </button>
@@ -534,6 +543,73 @@ export default function SettingsAccount() {
 
       </div>
     </SettingsPanelShell>
+
+    {/* ── Hesap Silme Onay Modalı ── */}
+    {deleteModal && (
+      <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'1rem' }}
+           role="dialog" aria-modal="true" aria-label="Hesap Silme Onayı"
+           onClick={e => { if (e.target === e.currentTarget) setDeleteModal(false); }}>
+        <div style={{ background:'var(--color-terminal-surface)', border:'1px solid rgba(239,68,68,0.40)', borderTop:'3px solid #ef4444', width:'100%', maxWidth:420, padding:'2rem', boxShadow:'0 32px 80px rgba(0,0,0,0.6)' }}>
+          <p style={{ fontFamily:'monospace', fontSize:'0.65rem', color:'#ef4444', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'0.5rem' }}>
+            // HESAP_SİLME
+          </p>
+          <p style={{ fontFamily:'var(--font-manrope, sans-serif)', fontWeight:800, fontSize:'1.2rem', color:W, marginBottom:'1rem' }}>
+            Hesabı silmek istediğinize emin misiniz?
+          </p>
+          <p style={{ fontFamily:'monospace', fontSize:'0.75rem', color:W30, lineHeight:1.7, marginBottom:'1.5rem' }}>
+            Hesabınız <strong style={{ color:W }}>30 gün</strong> boyunca askıya alınır.
+            Bu süre içinde geri dönebilirsiniz. 30 gün sonra tüm kişisel veriler kalıcı olarak silinir.
+          </p>
+
+          {deleteError && (
+            <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.35)', color:'#ef4444', padding:'0.625rem 0.75rem', fontFamily:'monospace', fontSize:'0.75rem', marginBottom:'1rem' }}>
+              {deleteError}
+            </div>
+          )}
+
+          {!isGoogleUser && (
+            <div style={{ marginBottom:'1rem' }}>
+              <label style={{ display:'block', fontFamily:'monospace', fontSize:'0.65rem', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:W60, marginBottom:'0.4rem' }}>
+                Şifrenizi onaylayın
+              </label>
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={deletePassword}
+                onChange={e => setDeletePassword(e.target.value)}
+                placeholder="••••••••"
+                style={{ width:'100%', background:'rgba(0,0,0,0.25)', border:'1px solid var(--color-terminal-border-raw)', outline:'none', padding:'0.75rem 1rem', fontFamily:'monospace', fontSize:'0.875rem', color:W, boxSizing:'border-box' }}
+              />
+            </div>
+          )}
+
+          <div style={{ display:'flex', gap:'0.75rem', justifyContent:'flex-end' }}>
+            <button type="button" onClick={() => setDeleteModal(false)}
+                    style={{ padding:'0.6rem 1.25rem', fontFamily:'monospace', fontSize:'0.75rem', fontWeight:700, border:'1px solid var(--color-terminal-border-raw)', color:W60, background:'transparent', cursor:'pointer' }}>
+              Vazgeç
+            </button>
+            <button type="button"
+                    disabled={deleteLoading || (!isGoogleUser && !deletePassword)}
+                    onClick={async () => {
+                      setDeleteLoading(true);
+                      setDeleteError('');
+                      try {
+                        await axiosInstance.delete('/auth/me', { data: { password: deletePassword } });
+                        setDeleteModal(false);
+                        logout();
+                      } catch (err) {
+                        setDeleteError(err.message || 'Bir hata oluştu.');
+                      } finally {
+                        setDeleteLoading(false);
+                      }
+                    }}
+                    style={{ padding:'0.6rem 1.25rem', fontFamily:'monospace', fontSize:'0.75rem', fontWeight:700, background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.5)', color:'#fca5a5', cursor:'pointer', opacity: (deleteLoading || (!isGoogleUser && !deletePassword)) ? 0.5 : 1 }}>
+              {deleteLoading ? '...' : 'Hesabı Sil'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* Platform picker */}
     <AnimatePresence>

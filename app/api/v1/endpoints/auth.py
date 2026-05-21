@@ -32,6 +32,7 @@ from app.services.xp_service import award_xp as _award_xp
 from app.api.deps import get_current_user
 from app.models.models import User, UserRole
 from app.schemas.schemas import (
+    DeleteAccountRequest,
     EmailVerifyRequest,
     ForgotPasswordRequest,
     GoogleAuthRequest,
@@ -90,6 +91,13 @@ async def login(
                 ip=ip, severity="CRITICAL",
                 details={"subnet_hash": hash_ip(".".join(ip.split(".")[:3]))},
             )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=_GENERIC_AUTH_ERROR,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if user.deleted_at is not None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=_GENERIC_AUTH_ERROR,
@@ -330,6 +338,24 @@ async def send_verification(
     else:
         # Dev mode: token'ı döndür
         return {"detail": "dev_mode", "token": token}
+
+
+@router.delete("/me")
+async def delete_account(
+    body:         DeleteAccountRequest,
+    current_user: User         = Depends(get_current_user),
+    db:           AsyncSession = Depends(get_db),
+):
+    """Hesabı soft-delete ile sil. Google kullanıcıları için şifre onayı atlanır."""
+    if current_user.hashed_password:
+        if not verify_password(body.password, current_user.hashed_password):
+            raise HTTPException(status_code=400, detail="Şifre hatalı.")
+
+    current_user.is_active  = False
+    current_user.deleted_at = datetime.now(timezone.utc)
+    await db.commit()
+    log.info("user.soft_deleted", user_id=str(current_user.id))
+    return {"message": "Hesabınız silindi."}
 
 
 @router.post("/forgot-password")

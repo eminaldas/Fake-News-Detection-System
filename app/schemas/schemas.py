@@ -123,6 +123,10 @@ class ResetPasswordRequest(BaseModel):
         return v
 
 
+class DeleteAccountRequest(BaseModel):
+    password: str = Field("", description="Şifre onayı (Google hesapları için boş bırakılabilir)")
+
+
 class GoogleAuthResponse(BaseModel):
     access_token:         str
     token_type:           str  = "bearer"
