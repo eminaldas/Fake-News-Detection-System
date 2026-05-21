@@ -16,7 +16,7 @@ const AnalysisResultSkeleton = () => {
 
     return (
         <div
-            className="animate-fade-up mt-6 md:mt-8 w-full rounded-2xl overflow-hidden flex flex-col relative"
+            className="animate-fade-up mt-6 md:mt-8 w-full overflow-hidden flex flex-col relative"
             style={{
                 background: 'var(--color-bg-surface)',
                 border: `1px solid ${hex30}`,
@@ -36,7 +36,7 @@ const AnalysisResultSkeleton = () => {
             >
                 {/* Sol: ikon + başlık */}
                 <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-12 h-12 rounded-xl shrink-0 animate-sk-glitch d1" style={{ background: hex15 }} />
+                    <div className="w-12 h-12 shrink-0 animate-sk-glitch d1" style={{ background: hex15 }} />
                     <div className="flex flex-col gap-2 min-w-0">
                         <Bar w="w-20" h="h-2" delay="d2" />
                         <Bar w="w-48" h="h-5" delay="d1" />

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Link as LinkIcon } from 'lucide-react';
+import { MessageSquare, X, Link as LinkIcon, CornerDownLeft } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 
 const CATEGORIES = [
@@ -15,8 +15,8 @@ const CATEGORIES = [
     { value: 'yaşam',     label: 'Yaşam'       },
 ];
 
-const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
-const BD = { borderColor: 'var(--color-terminal-border-raw)' };
+const BD    = { borderColor: 'var(--color-terminal-border-raw)' };
+const BRAND = 'var(--color-brand-primary)';
 
 function extractError(err) {
     const detail = err?.response?.data?.detail;
@@ -29,9 +29,9 @@ function extractError(err) {
     return 'Tartışma oluşturulamadı.';
 }
 
-const CreateThreadModal = ({ onClose, articleId = null }) => {
+const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle = null }) => {
     const navigate   = useNavigate();
-    const firstInput = useRef(null);
+    const titleRef   = useRef(null);
 
     const [title,      setTitle]      = React.useState('');
     const [body,       setBody]       = React.useState('');
@@ -40,6 +40,16 @@ const CreateThreadModal = ({ onClose, articleId = null }) => {
     const [submitting, setSubmitting] = React.useState(false);
     const [error,      setError]      = React.useState('');
     const [visible,    setVisible]    = React.useState(false);
+    const [suggestion, setSuggestion] = React.useState(propTitle || '');
+
+    // Haber başlığını articleId'den çek (prop yoksa)
+    useEffect(() => {
+        if (propTitle) { setSuggestion(propTitle); return; }
+        if (!articleId) return;
+        axiosInstance.get(`/news/${articleId}`)
+            .then(r => { if (r.data?.title) setSuggestion(r.data.title); })
+            .catch(() => {});
+    }, [articleId, propTitle]);
 
     const handleClose = React.useCallback(() => {
         setVisible(false);
@@ -47,8 +57,7 @@ const CreateThreadModal = ({ onClose, articleId = null }) => {
     }, [onClose]);
 
     useEffect(() => {
-        const t = setTimeout(() => setVisible(true), 20);
-        firstInput.current?.focus();
+        const t = setTimeout(() => { setVisible(true); titleRef.current?.focus(); }, 20);
         return () => clearTimeout(t);
     }, []);
 
@@ -63,11 +72,22 @@ const CreateThreadModal = ({ onClose, articleId = null }) => {
         return () => { document.body.style.overflow = ''; };
     }, []);
 
+    // Tab tuşu ile öneri doldur
+    const handleTitleKeyDown = (e) => {
+        if (e.key === 'Tab' && suggestion && !title) {
+            e.preventDefault();
+            setTitle(suggestion);
+            setTimeout(() => {
+                const inp = titleRef.current;
+                if (inp) inp.setSelectionRange(inp.value.length, inp.value.length);
+            }, 0);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!title.trim()) { setError('Başlık zorunludur.'); return; }
         if (title.trim().length < 3) { setError('Başlık en az 3 karakter olmalı.'); return; }
-
         setSubmitting(true);
         setError('');
         try {
@@ -96,8 +116,8 @@ const CreateThreadModal = ({ onClose, articleId = null }) => {
             <div
                 className="fixed inset-0 z-[200]"
                 style={{
-                    background:        visible ? 'rgba(0,0,0,0.68)' : 'rgba(0,0,0,0)',
-                    backdropFilter:    visible ? 'blur(3px)' : 'blur(0px)',
+                    background:           visible ? 'rgba(0,0,0,0.68)' : 'rgba(0,0,0,0)',
+                    backdropFilter:       visible ? 'blur(3px)' : 'blur(0px)',
                     WebkitBackdropFilter: visible ? 'blur(3px)' : 'blur(0px)',
                     transition: 'background 0.18s ease, backdrop-filter 0.18s ease',
                 }}
@@ -105,118 +125,134 @@ const CreateThreadModal = ({ onClose, articleId = null }) => {
             />
 
             {/* Modal */}
-            <div className="fixed inset-0 z-[201] flex items-start justify-center pt-[82px] px-4 pointer-events-none">
+            <div className="fixed inset-0 z-[201] flex items-start justify-center pt-18 px-4 pointer-events-none">
                 <div
                     className="w-full max-w-xl pointer-events-auto flex flex-col overflow-hidden relative"
                     style={{
-                        ...TS,
-                        border: '1px solid var(--color-terminal-border-raw)',
-                        boxShadow: '0 20px 60px rgba(0,0,0,0.80), 0 0 0 1px rgba(16,185,129,0.12)',
+                        background:      'var(--color-terminal-surface)',
+                        border:          '1px solid var(--color-terminal-border-raw)',
+                        borderTop:       `3px solid ${BRAND}`,
+                        boxShadow:       '0 24px 64px rgba(0,0,0,0.75), 0 0 0 1px rgba(16,185,129,0.10)',
                         transformOrigin: 'top center',
-                        transform: visible ? 'scaleY(1) translateY(0)' : 'scaleY(0.62) translateY(-14px)',
-                        opacity:   visible ? 1 : 0,
-                        transition: 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease',
-                        maxHeight: '84vh',
+                        transform:       visible ? 'scaleY(1) translateY(0)' : 'scaleY(0.62) translateY(-14px)',
+                        opacity:         visible ? 1 : 0,
+                        transition:      'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease',
+                        maxHeight:       '86vh',
                     }}
                 >
-                    {/* Köşe aksanları */}
-                    <div className="absolute top-0 left-0 w-3 h-[2px] bg-brand pointer-events-none" />
-                    <div className="absolute top-0 left-0 h-3 w-[2px] bg-brand pointer-events-none" />
-                    <div className="absolute bottom-0 right-0 w-3 h-[2px] bg-brand pointer-events-none" />
-                    <div className="absolute bottom-0 right-0 h-3 w-[2px] bg-brand pointer-events-none" />
-
                     {/* Header */}
-                    <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={BD}>
-                        <span className="font-mono text-xs font-bold tracking-widest uppercase"
-                              style={{ color: 'var(--color-brand-primary)' }}>
-                            // tartışma_başlat
+                    <div className="flex items-center gap-3 px-5 py-4 border-b shrink-0" style={BD}>
+                        <div className="w-7 h-7 flex items-center justify-center shrink-0"
+                             style={{ background: 'rgba(63,255,139,0.10)', border: '1px solid rgba(63,255,139,0.22)' }}>
+                            <MessageSquare className="w-3.5 h-3.5" style={{ color: BRAND }} />
+                        </div>
+                        <span className="text-sm font-bold flex-1" style={{ color: 'var(--color-text-primary)' }}>
+                            Tartışma Başlat
                         </span>
                         <button onClick={handleClose}
-                                className="font-mono text-xs transition-opacity hover:opacity-60"
+                                className="p-1 transition-opacity hover:opacity-60"
                                 style={{ color: 'var(--color-text-muted)' }}>
-                            [✕]
+                            <X className="w-4 h-4" />
                         </button>
                     </div>
 
                     <form onSubmit={handleSubmit} className="flex flex-col overflow-y-auto">
 
                         {/* Bağlı haber bandı */}
-                        {articleId && (
-                            <div className="mx-4 mt-4 flex items-center gap-3 px-3 py-2.5 border"
-                                 style={{ background: 'rgba(16,185,129,0.05)', borderColor: 'rgba(16,185,129,0.25)' }}>
-                                <LinkIcon className="w-3.5 h-3.5 flex-shrink-0"
-                                          style={{ color: 'var(--color-brand-primary)' }} />
-                                <p className="font-mono text-xs flex-1"
+                        {articleId && suggestion && (
+                            <div className="mx-5 mt-4 flex items-start gap-3 px-3 py-2.5"
+                                 style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.20)' }}>
+                                <LinkIcon className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: BRAND }} />
+                                <p className="text-xs flex-1 leading-snug"
                                    style={{ color: 'var(--color-text-secondary)' }}>
-                                    Haber ID: {articleId.slice(0, 12)}…
+                                    {suggestion}
                                 </p>
                             </div>
                         )}
 
                         {/* Başlık */}
-                        <div className="px-4 pt-4 pb-3 border-b" style={BD}>
+                        <div className="px-5 pt-4 pb-4 border-b" style={BD}>
                             <div className="flex items-center justify-between mb-2">
-                                <label className="font-mono text-[9px] font-bold uppercase tracking-widest"
+                                <label className="text-[11px] font-semibold uppercase tracking-wider"
                                        style={{ color: 'var(--color-text-muted)' }}>
-                                    Başlık <span style={{ color: 'var(--color-fake-fill)' }}>*</span>
+                                    Başlık <span style={{ color: 'var(--color-es-error)' }}>*</span>
                                 </label>
-                                <span className="font-mono text-[9px]"
-                                      style={{ color: title.length < 3 && title.length > 0 ? '#ff6b6b' : 'var(--color-text-muted)' }}>
+                                <span className="text-[10px]"
+                                      style={{ color: title.length > 0 && title.length < 3 ? '#ff6b6b' : 'var(--color-text-muted)' }}>
                                     {title.length}/300
                                 </span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="font-mono text-sm shrink-0"
-                                      style={{ color: 'var(--color-brand-primary)' }}>{'>'}</span>
-                                <input
-                                    ref={firstInput}
-                                    value={title}
-                                    onChange={e => setTitle(e.target.value)}
-                                    maxLength={300}
-                                    placeholder="tartışma başlığını yaz..."
-                                    className="flex-1 bg-transparent outline-none font-mono text-sm"
-                                    style={{ color: 'var(--color-text-primary)', caretColor: 'var(--color-brand-primary)' }}
-                                />
-                            </div>
+
+                            <input
+                                ref={titleRef}
+                                value={title}
+                                onChange={e => setTitle(e.target.value)}
+                                onKeyDown={handleTitleKeyDown}
+                                maxLength={300}
+                                placeholder={suggestion ? 'Başlık yaz veya Tab ile önerilen başlığı kullan…' : 'Tartışma başlığını yaz…'}
+                                className="w-full bg-transparent outline-none text-sm"
+                                style={{
+                                    color:       'var(--color-text-primary)',
+                                    caretColor:  BRAND,
+                                    fontFamily:  "'Open Sans', sans-serif",
+                                    padding:     '6px 0',
+                                    borderBottom: `1px solid ${title ? 'rgba(63,255,139,0.30)' : 'rgba(255,255,255,0.08)'}`,
+                                    transition:  'border-color 0.2s',
+                                }}
+                            />
+
+                            {/* Tab öneri ipucu */}
+                            {suggestion && !title && (
+                                <div className="flex items-center gap-1.5 mt-2">
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-bold font-mono"
+                                          style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.10)' }}>
+                                        Tab ↹
+                                    </span>
+                                    <span className="text-[10px] truncate max-w-75"
+                                          style={{ color: 'rgba(255,255,255,0.32)' }}>
+                                        {suggestion.length > 60 ? suggestion.slice(0, 60) + '…' : suggestion}
+                                    </span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Açıklama */}
-                        <div className="px-4 pt-3 pb-3 border-b" style={BD}>
+                        <div className="px-5 pt-4 pb-4 border-b" style={BD}>
                             <div className="flex items-center justify-between mb-2">
-                                <label className="font-mono text-[9px] font-bold uppercase tracking-widest"
+                                <label className="text-[11px] font-semibold uppercase tracking-wider"
                                        style={{ color: 'var(--color-text-muted)' }}>
                                     Açıklama
-                                    <span className="font-normal ml-1 opacity-60">(isteğe bağlı)</span>
+                                    <span className="ml-1 font-normal normal-case" style={{ opacity: 0.55 }}>(isteğe bağlı)</span>
                                 </label>
-                                <span className="font-mono text-[9px]" style={{ color: 'var(--color-text-muted)' }}>
+                                <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
                                     {body.length}/10000
                                 </span>
                             </div>
-                            <div className="flex gap-2 items-start">
-                                <span className="font-mono text-sm shrink-0 mt-0.5"
-                                      style={{ color: 'var(--color-brand-primary)' }}>{'>'}</span>
-                                <textarea
-                                    value={body}
-                                    onChange={e => setBody(e.target.value)}
-                                    rows={4}
-                                    maxLength={10000}
-                                    placeholder="kanıtını veya sorununu açıkla..."
-                                    className="flex-1 bg-transparent resize-none outline-none font-mono text-sm leading-relaxed"
-                                    style={{ color: 'var(--color-text-primary)', caretColor: 'var(--color-brand-primary)' }}
-                                />
-                            </div>
+                            <textarea
+                                value={body}
+                                onChange={e => setBody(e.target.value)}
+                                rows={3}
+                                maxLength={10000}
+                                placeholder="Kanıtını veya görüşünü yaz…"
+                                className="w-full bg-transparent resize-none outline-none text-sm leading-relaxed"
+                                style={{
+                                    color:      'var(--color-text-primary)',
+                                    caretColor: BRAND,
+                                    fontFamily: "'Open Sans', sans-serif",
+                                }}
+                            />
                         </div>
 
-                        {/* Gönderi Türü */}
-                        <div className="px-4 pt-3 pb-3 border-b" style={BD}>
-                            <div className="flex flex-col gap-1.5">
-                                <span className="font-mono text-[10px] uppercase tracking-widest font-bold"
-                                      style={{ color: 'var(--color-text-muted)' }}>
-                                    Gönderi Türü
-                                </span>
-                                <div className="flex gap-2">
+                        {/* Gönderi türü + Kategori — yan yana */}
+                        <div className="px-5 pt-4 pb-4 border-b flex gap-4" style={BD}>
+                            <div className="flex-1">
+                                <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2"
+                                       style={{ color: 'var(--color-text-muted)' }}>
+                                    Tür
+                                </label>
+                                <div className="flex gap-1.5">
                                     {[
-                                        { value: 'iddia',    label: 'İddia / Haber' },
+                                        { value: 'iddia',    label: 'İddia' },
                                         { value: 'soru',     label: 'Soru' },
                                         { value: 'tartisma', label: 'Tartışma' },
                                     ].map(opt => (
@@ -224,10 +260,10 @@ const CreateThreadModal = ({ onClose, articleId = null }) => {
                                             key={opt.value}
                                             type="button"
                                             onClick={() => setPostType(opt.value)}
-                                            className="flex-1 py-2 font-mono text-xs border transition-all"
+                                            className="flex-1 py-1.5 text-xs font-semibold border transition-all"
                                             style={{
-                                                borderColor: postType === opt.value ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)',
-                                                color:       postType === opt.value ? 'var(--color-brand-primary)' : 'var(--color-text-muted)',
+                                                borderColor: postType === opt.value ? BRAND : 'var(--color-terminal-border-raw)',
+                                                color:       postType === opt.value ? BRAND : 'var(--color-text-muted)',
                                                 background:  postType === opt.value ? 'rgba(16,185,129,0.06)' : 'transparent',
                                             }}
                                         >
@@ -236,43 +272,48 @@ const CreateThreadModal = ({ onClose, articleId = null }) => {
                                     ))}
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Kategori */}
-                        <div className="px-4 pt-3 pb-3 border-b" style={BD}>
-                            <label className="block font-mono text-[9px] font-bold uppercase tracking-widest mb-2"
-                                   style={{ color: 'var(--color-text-muted)' }}>
-                                Kategori
-                            </label>
-                            <select
-                                value={category}
-                                onChange={e => setCategory(e.target.value)}
-                                className="w-full px-3 py-2 font-mono text-[11px] cursor-pointer border outline-none"
-                                style={{ background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}
-                            >
-                                {CATEGORIES.map(c => (
-                                    <option key={c.value} value={c.value}>{c.label}</option>
-                                ))}
-                            </select>
+                            <div className="flex-1">
+                                <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2"
+                                       style={{ color: 'var(--color-text-muted)' }}>
+                                    Kategori
+                                </label>
+                                <select
+                                    value={category}
+                                    onChange={e => setCategory(e.target.value)}
+                                    className="w-full px-3 py-1.5 text-xs cursor-pointer border outline-none"
+                                    style={{
+                                        background:  'var(--color-terminal-surface)',
+                                        borderColor: 'var(--color-terminal-border-raw)',
+                                        color:       'var(--color-text-primary)',
+                                        fontFamily:  "'Open Sans', sans-serif",
+                                    }}
+                                >
+                                    {CATEGORIES.map(c => (
+                                        <option key={c.value} value={c.value}>{c.label}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
 
                         {/* Footer */}
-                        <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0"
-                             style={{ background: 'rgba(0,0,0,0.18)' }}>
+                        <div className="flex items-center gap-3 px-5 py-4 shrink-0"
+                             style={{ background: 'rgba(0,0,0,0.15)', borderTop: `1px solid var(--color-terminal-border-raw)` }}>
                             {error
-                                ? <p className="font-mono text-[10px] flex-1 leading-relaxed" style={{ color: '#ff6b6b' }}>{error}</p>
+                                ? <p className="text-xs flex-1 leading-relaxed" style={{ color: '#ff6b6b' }}>{error}</p>
                                 : <span className="flex-1" />
                             }
                             <div className="flex gap-2 ml-auto shrink-0">
                                 <button type="button" onClick={handleClose}
-                                        className="px-4 py-2 font-mono text-[11px] font-semibold border transition-opacity hover:opacity-60"
+                                        className="px-4 py-2 text-xs font-semibold border transition-opacity hover:opacity-60"
                                         style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-terminal-border-raw)' }}>
-                                    [ İPTAL ]
+                                    İptal
                                 </button>
                                 <button type="submit" disabled={!canSubmit}
-                                        className="px-4 py-2 font-mono text-[11px] font-bold transition-opacity hover:opacity-80 disabled:opacity-30"
-                                        style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
-                                    {submitting ? '[ OLUŞTURULUYOR... ]' : '[ BAŞLAT ]'}
+                                        className="flex items-center gap-1.5 px-5 py-2 text-xs font-bold transition-opacity hover:opacity-80 disabled:opacity-30"
+                                        style={{ background: BRAND, color: '#070f12' }}>
+                                    <CornerDownLeft className="w-3.5 h-3.5" />
+                                    {submitting ? 'Oluşturuluyor…' : 'Tartışmayı Başlat'}
                                 </button>
                             </div>
                         </div>

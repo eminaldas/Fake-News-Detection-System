@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { Moon, Sun, Menu, X, ChevronDown, User, Settings, Shield, BarChart2, LogOut, Users, MessageSquare, Award } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -45,14 +45,74 @@ const GUNDEM_CATEGORIES = [
 ];
 
 const NAV_LINKS = [
-    { name: 'Analiz',   path: '/'       },
-    { name: 'Haberler', path: '/gundem' },
-    { name: 'Forum',    path: '/forum'  },
-    { name: 'Bildir',   path: '/report' },
+    { name: 'ANALİZ',   path: '/'       },
+    { name: 'HABERLER', path: '/gundem' },
+    { name: 'FORUM',    path: '/forum'  },
+    { name: 'BİLDİR',  path: '/report' },
 ];
 
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
+
+/* ── Kayan Kategori Barı ── */
+function CategoryBar({ activeCategory, onSelect }) {
+    const containerRef = useRef(null);
+    const btnRefs      = useRef({});
+    const [indicator,  setIndicator] = useState({ left: 0, width: 0, ready: false });
+
+    const items = [
+        { label: 'SİZİN İÇİN', value: null },
+        ...GUNDEM_CATEGORIES.map(c => ({ label: c.label.toLocaleUpperCase('tr-TR'), value: c.value })),
+    ];
+
+    useLayoutEffect(() => {
+        const key = activeCategory ?? '__foryou__';
+        const btn = btnRefs.current[key];
+        const container = containerRef.current;
+        if (!btn || !container) return;
+        const br = btn.getBoundingClientRect();
+        const cr = container.getBoundingClientRect();
+        setIndicator({ left: br.left - cr.left, width: br.width, ready: true });
+    }, [activeCategory]);
+
+    return (
+        <div style={{ borderTop: '1px solid var(--color-border)' }}>
+            <div ref={containerRef}
+                 className="max-w-7xl mx-auto px-6 flex items-center justify-center overflow-x-auto relative">
+                {/* Kayan indikatör çizgisi */}
+                {indicator.ready && (
+                    <div
+                        className="absolute bottom-0 h-0.5 pointer-events-none"
+                        style={{
+                            left:       indicator.left,
+                            width:      indicator.width,
+                            background: 'var(--color-brand-primary)',
+                            transition: 'left 0.3s cubic-bezier(0.22,1,0.36,1), width 0.3s cubic-bezier(0.22,1,0.36,1)',
+                        }}
+                    />
+                )}
+                {items.map(item => {
+                    const isActive = activeCategory === item.value;
+                    const refKey   = item.value ?? '__foryou__';
+                    return (
+                        <button
+                            key={refKey}
+                            ref={el => { btnRefs.current[refKey] = el; }}
+                            onClick={() => onSelect(item.value)}
+                            className="px-5 py-3 text-[11px] font-bold tracking-widest whitespace-nowrap transition-colors duration-200"
+                            style={{
+                                fontFamily: "'Open Sans', sans-serif",
+                                color:      isActive ? 'var(--color-brand-primary)' : 'var(--color-text-primary)',
+                            }}
+                        >
+                            {item.label}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
 
 /* ── Glitch logo ── */
 const GLITCH_CHARS = '!@#$%^&*<>{}|/\\~=+?01X#';
@@ -200,7 +260,7 @@ const Corners = () => (
 );
 
 function TrustProgress({ trust }) {
-    if (!trust) return null;
+    if (!trust || trust.score <= 0) return null;
     return (
         <div className="px-4 py-3 border-b" style={BD}>
             <div className="flex items-center justify-between mb-2">
@@ -281,24 +341,27 @@ const Navbar = () => {
                 }}
             />
 
-            <div className="max-w-7xl mx-auto px-6 flex items-center justify-between py-2.5">
+            <div className="max-w-7xl mx-auto px-6 flex items-center py-2.5">
 
-                {/* ── LOGO ── */}
-                <Link to="/" className="flex items-center hover:opacity-80 transition-opacity shrink-0 self-stretch -my-2.5">
-                    <div className="self-stretch aspect-square flex items-center justify-center px-3"
-                         style={{ background: 'var(--color-brand-primary)' }}>
-                        <span className="font-pacifico text-2xl text-white leading-none select-none">Ne</span>
-                    </div>
-                </Link>
+                {/* ── LOGO — sol, sabit genişlik ── */}
+                <div className="flex-1 flex items-center">
+                    <Link to="/" className="flex items-center hover:opacity-80 transition-opacity self-stretch -my-2.5">
+                        <div className="self-stretch aspect-square flex items-center justify-center px-3"
+                             style={{ background: 'var(--color-brand-primary)' }}>
+                            <span className="font-pacifico text-2xl text-white leading-none select-none">Ne</span>
+                        </div>
+                    </Link>
+                </div>
 
-                {/* ── NAV — masaüstü ── */}
-                <nav className="hidden md:flex items-center gap-1">
+                {/* ── NAV — masaüstü, gerçekten ortada ── */}
+                <nav className="hidden md:flex items-center gap-1 shrink-0">
                     {NAV_LINKS.map((item) => (
                         <Link
                             key={item.path}
                             to={item.path}
-                            className="px-4 py-2 font-mono text-xs font-bold tracking-widest uppercase transition-colors"
+                            className="px-4 py-2 text-xs font-bold tracking-widest transition-colors"
                             style={{
+                                fontFamily:   "'Open Sans', sans-serif",
                                 color: isActive(item.path)
                                     ? 'var(--color-brand-primary)'
                                     : 'var(--color-text-primary)',
@@ -312,8 +375,8 @@ const Navbar = () => {
                     ))}
                 </nav>
 
-                {/* ── SAĞ ARAÇLAR ── */}
-                <div className="flex items-center gap-2">
+                {/* ── SAĞ ARAÇLAR — flex-1 + justify-end ── */}
+                <div className="flex-1 flex items-center justify-end gap-2">
 
                     {/* Tema toggle */}
                     <button
@@ -437,8 +500,6 @@ const Navbar = () => {
                                         </p>
                                     </div>
 
-                                    {/* Trust */}
-                                    <TrustProgress trust={trust} />
 
                                     {/* Linkler */}
                                     <div className="py-1">
@@ -514,33 +575,10 @@ const Navbar = () => {
 
             {/* ── Gündem Kategori Barı ── */}
             {isGundem && (
-                <div style={{ borderTop: '1px solid var(--color-border)' }}>
-                    <div className="max-w-7xl mx-auto px-6 flex items-center justify-center overflow-x-auto">
-                        <button
-                            onClick={() => setGundemParams({ forYou: '1' })}
-                            className="px-4 py-2 font-mono text-xs font-bold tracking-widest uppercase whitespace-nowrap transition-colors"
-                            style={{
-                                color:        !activeCategory ? 'var(--color-brand-primary)' : 'var(--color-text-primary)',
-                                borderBottom: !activeCategory ? '2px solid var(--color-brand-primary)' : '2px solid transparent',
-                            }}
-                        >
-                            Sizin İçin
-                        </button>
-                        {GUNDEM_CATEGORIES.map(c => (
-                            <button
-                                key={c.value}
-                                onClick={() => setGundemParams({ category: c.value })}
-                                className="px-4 py-2 font-mono text-xs font-bold tracking-widest uppercase whitespace-nowrap transition-colors"
-                                style={{
-                                    color:        activeCategory === c.value ? 'var(--color-brand-primary)' : 'var(--color-text-primary)',
-                                    borderBottom: activeCategory === c.value ? '2px solid var(--color-brand-primary)' : '2px solid transparent',
-                                }}
-                            >
-                                {c.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+                <CategoryBar
+                    activeCategory={activeCategory}
+                    onSelect={(val) => val ? setGundemParams({ category: val }) : setGundemParams({ forYou: '1' })}
+                />
             )}
 
             {/* ── Mobil dropdown ── */}

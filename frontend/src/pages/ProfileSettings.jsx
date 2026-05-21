@@ -25,8 +25,8 @@ const TABS = [
 ];
 
 /* Tema renkleri — CSS değişkeni tabanlı, light/dark otomatik */
-const SIDEBAR_BG  = 'var(--color-bg-base)';
-const CONTENT_BG  = 'var(--color-bg-base)';
+const SIDEBAR_BG  = 'var(--color-navbar-bg)';
+const CONTENT_BG  = 'var(--color-navbar-bg)';
 const DIVIDER     = 'var(--color-navbar-border)';
 
 export default function ProfileSettings() {
@@ -37,14 +37,19 @@ export default function ProfileSettings() {
   return (
     <>
       {/* ── Mobil ── */}
-      <div className="lg:hidden" style={{ paddingTop: '8rem', paddingBottom: '4rem', paddingLeft: '1rem', paddingRight: '1rem' }}>
+      <div className="lg:hidden" style={{ paddingTop: '8rem', paddingBottom: '4rem', paddingLeft: '1rem', paddingRight: '1rem', background: CONTENT_BG, minHeight: '100vh' }}>
         <select
           value={activeTab}
           onChange={e => setActiveTab(e.target.value)}
-          className="w-full bg-transparent border font-mono text-sm px-3 py-2.5 outline-none font-bold mb-4"
-          style={{ borderColor: DIVIDER, color: 'var(--color-text-primary)' }}
+          className="w-full border text-sm px-3 py-2.5 outline-none font-semibold mb-4"
+          style={{
+            borderColor: DIVIDER,
+            color:       'var(--color-text-primary)',
+            background:  'var(--color-terminal-surface)',
+            fontFamily:  "'Open Sans', sans-serif",
+          }}
         >
-          {TABS.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+          {TABS.map(t => <option key={t.id} value={t.id} style={{ background: 'var(--color-terminal-surface)', color: 'var(--color-text-primary)' }}>{t.label}</option>)}
         </select>
         <AnimatePresence mode="wait">
           {current && (
