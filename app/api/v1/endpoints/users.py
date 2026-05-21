@@ -21,6 +21,7 @@ from app.services.xp_service import award_xp
 from app.models.models import (
     AnalysisRequest, AnalysisResult, Article, AuditLog, Bookmark, ContentInteraction,
     ForumThread, ForumVote, ModelFeedback, User, UserFollow, UserNotification, UserPreferenceProfile,
+    UserRole,
 )
 from app.schemas.schemas import (
     AnalysisRequestResponse, DataExportResponse, FeedbackHistoryItem,
@@ -695,7 +696,7 @@ async def search_users(
     """Kullanıcı adına göre arama."""
     query = (
         select(User)
-        .where(User.username.ilike(f"%{q}%"), User.is_active == True)
+        .where(User.username.ilike(f"%{q}%"), User.is_active == True, User.role != UserRole.admin)
         .order_by(
             # Tam eşleşme önce
             (User.username.ilike(q)).desc(),

@@ -191,7 +191,7 @@ async def leaderboard(
     if type == "xp" and not since:
         rows = await db.execute(text(
             "SELECT id, username, avatar_url, level, total_xp AS value "
-            "FROM users ORDER BY total_xp DESC LIMIT 50"
+            "FROM users WHERE role::text != 'admin' ORDER BY total_xp DESC LIMIT 50"
         ))
     elif type == "xp":
         rows = await db.execute(text("""
@@ -199,6 +199,7 @@ async def leaderboard(
                    COALESCE(SUM(e.xp_amount), 0) AS value
             FROM users u
             LEFT JOIN user_xp_events e ON e.user_id = u.id AND e.created_at >= :since
+            WHERE u.role::text != 'admin'
             GROUP BY u.id, u.username, u.avatar_url, u.level
             ORDER BY value DESC LIMIT 50
         """), {"since": since})
@@ -208,6 +209,7 @@ async def leaderboard(
             FROM users u
             LEFT JOIN analysis_requests ar ON ar.user_id = u.id
                 AND (:since IS NULL OR ar.created_at >= :since)
+            WHERE u.role::text != 'admin'
             GROUP BY u.id, u.username, u.avatar_url, u.level
             ORDER BY value DESC LIMIT 50
         """), {"since": since})
@@ -217,6 +219,7 @@ async def leaderboard(
             FROM users u
             LEFT JOIN forum_threads t ON t.user_id = u.id
                 AND (:since IS NULL OR t.created_at >= :since)
+            WHERE u.role::text != 'admin'
             GROUP BY u.id, u.username, u.avatar_url, u.level
             ORDER BY value DESC LIMIT 50
         """), {"since": since})
@@ -227,6 +230,7 @@ async def leaderboard(
             LEFT JOIN user_xp_events e ON e.user_id = u.id
                 AND e.action_type = 'evidence_added'
                 AND (:since IS NULL OR e.created_at >= :since)
+            WHERE u.role::text != 'admin'
             GROUP BY u.id, u.username, u.avatar_url, u.level
             ORDER BY value DESC LIMIT 50
         """), {"since": since})
