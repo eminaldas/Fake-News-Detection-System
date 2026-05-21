@@ -2,6 +2,7 @@ import hashlib
 import re
 import secrets
 import smtplib
+import uuid
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -32,11 +33,13 @@ from app.api.deps import get_current_user
 from app.models.models import User, UserRole
 from app.schemas.schemas import (
     EmailVerifyRequest,
+    ForgotPasswordRequest,
     GoogleAuthRequest,
     GoogleAuthResponse,
     OnboardingRequest,
     RegisterRequest,
     RegisterResponse,
+    ResetPasswordRequest,
     TokenResponse,
     UpdateProfileRequest,
     UserResponse,
@@ -329,6 +332,50 @@ async def send_verification(
         return {"detail": "dev_mode", "token": token}
 
 
+@router.post("/forgot-password")
+async def forgot_password(
+    body:    ForgotPasswordRequest,
+    request: Request,
+    db:      AsyncSession = Depends(get_db),
+    redis    = Depends(get_redis),
+):
+    result = await db.execute(select(User).where(User.email == body.email))
+    user   = result.scalar_one_or_none()
+
+    if user:
+        token = secrets.token_urlsafe(32)
+        await redis.setex(f"pwd_reset:{token}", 900, str(user.id))
+        smtp_configured = bool(settings.SMTP_HOST and settings.SMTP_USER)
+        if smtp_configured:
+            _send_reset_email(user.email, token, user.username)
+        else:
+            log.warning("DEV_PWD_RESET_TOKEN: %s | user: %s", token, user.email)
+
+    return {"message": "Şifre sıfırlama bağlantısı gönderildi."}
+
+
+@router.post("/reset-password")
+async def reset_password(
+    body:  ResetPasswordRequest,
+    db:    AsyncSession = Depends(get_db),
+    redis  = Depends(get_redis),
+):
+    user_id_str = await redis.get(f"pwd_reset:{body.token}")
+    if not user_id_str:
+        raise HTTPException(status_code=400, detail="Bağlantı geçersiz veya süresi dolmuş.")
+
+    result = await db.execute(select(User).where(User.id == uuid.UUID(user_id_str)))
+    user   = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=400, detail="Kullanıcı bulunamadı.")
+
+    user.hashed_password = get_password_hash(body.new_password)
+    await redis.delete(f"pwd_reset:{body.token}")
+    await db.commit()
+
+    return {"message": "Şifreniz başarıyla güncellendi."}
+
+
 @router.post("/verify-email", response_model=UserResponse)
 async def verify_email(
     body: EmailVerifyRequest,
@@ -432,6 +479,74 @@ def _send_welcome_email(to_email: str, username: str) -> None:
         _smtp_send(msg, to_email)
     except Exception:
         pass
+
+
+def _send_reset_email(to_email: str, token: str, username: str = "") -> None:
+    try:
+        reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
+        msg            = MIMEMultipart("alternative")
+        msg["Subject"] = "Şifrenizi Sıfırlayın — Ne Haber"
+        msg["From"]    = f"Ne Haber <{settings.SMTP_FROM}>"
+        msg["To"]      = to_email
+        display_name = username or to_email.split("@")[0]
+        msg.attach(MIMEText(_build_reset_html(display_name, reset_url), "html"))
+        _smtp_send(msg, to_email)
+    except Exception:
+        pass
+
+
+def _build_reset_html(username: str, reset_url: str) -> str:
+    body = f"""
+      <p style="margin:0 0 6px;font-size:11px;color:#10b981;
+                letter-spacing:2px;text-transform:uppercase;">
+        &gt; ŞİFRE_SIFIRLAMA_TALEBİ
+      </p>
+
+      <h1 style="margin:0 0 8px;font-size:30px;font-weight:900;
+                 color:#ffffff;line-height:1.2;">
+        Merhaba,
+      </h1>
+      <h1 style="margin:0 0 24px;font-size:34px;font-weight:900;
+                 color:#10b981;line-height:1.2;">
+        {username}
+      </h1>
+
+      <p style="margin:0 0 28px;font-size:15px;color:#ffffff;line-height:1.8;">
+        Ne Haber hesabınız için şifre sıfırlama talebinde bulundunuz.<br>
+        Aşağıdaki butona tıklayarak yeni şifrenizi belirleyebilirsiniz.
+      </p>
+
+      <table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
+        <tr>
+          <td style="background:#10b981;">
+            <a href="{reset_url}"
+               style="display:inline-block;padding:15px 36px;
+                      font-size:12px;font-weight:700;color:#070f12;
+                      text-decoration:none;letter-spacing:2px;
+                      text-transform:uppercase;">
+              [ ŞİFREMİ SIFIRLA ]
+            </a>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin:0 0 6px;font-size:11px;color:#3a5566;">
+        // Buton çalışmıyorsa bu bağlantıyı kopyalayın:
+      </p>
+      <p style="margin:0 0 28px;font-size:11px;color:#10b981;word-break:break-all;
+                line-height:1.6;">
+        {reset_url}
+      </p>
+
+      <div style="border-top:1px solid #1c3344;margin:0 0 20px;"></div>
+
+      <p style="margin:0;font-size:12px;color:#3a5566;line-height:1.8;">
+        &#9888; Bu bağlantı <strong style="color:#ffffff;">15 dakika</strong> geçerlidir.<br>
+        Bu talebi siz yapmadıysanız bu e-postayı dikkate almayın —
+        hesabınız güvende.
+      </p>
+    """
+    return _email_base().replace("{{BODY}}", body)
 
 
 def _smtp_send(msg: MIMEMultipart, to_email: str) -> None:
