@@ -52,6 +52,7 @@ const Messages           = lazy(() => import('./pages/Messages'));
 const ForumSearch        = lazy(() => import('./pages/ForumSearch'));
 const AnalysisReport     = lazy(() => import('./pages/AnalysisReport'));
 const Badges             = lazy(() => import('./pages/Badges'));
+const ForgotPassword     = lazy(() => import('./pages/ForgotPassword'));
 
 function ProfileRedirect() {
     const { user } = useAuth();
@@ -107,6 +108,7 @@ function App() {
                             <Route path="report"     element={<RequireAuth><Report /></RequireAuth>} />
                             <Route path="login"      element={<Login />} />
                             <Route path="register"          element={<Register />} />
+                            <Route path="forgot-password"   element={<ForgotPassword />} />
                             <Route path="email-verification" element={<EmailVerification />} />
                             <Route path="verify-email"       element={<EmailVerification />} />
                             <Route path="onboarding"         element={<RequireAuth><Onboarding /></RequireAuth>} />

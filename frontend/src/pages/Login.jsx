@@ -206,6 +206,17 @@ const Login = () => {
                                     </InputWrap>
                                 </div>
 
+                                {/* Şifremi unuttum linki */}
+                                <div className="flex justify-end -mt-1">
+                                    <Link
+                                        to="/forgot-password"
+                                        className="font-mono text-[11px] transition-opacity hover:opacity-80"
+                                        style={{ color: 'var(--color-brand-primary)' }}
+                                    >
+                                        Şifrenizi mi unuttunuz?
+                                    </Link>
+                                </div>
+
                                 {/* Beni Hatırla */}
                                 <label className="flex items-center gap-2.5 cursor-pointer select-none w-fit group">
                                     <div
