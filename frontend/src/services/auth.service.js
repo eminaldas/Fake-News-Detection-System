@@ -76,6 +76,19 @@ class AuthService {
         return response.data;
     }
 
+    static async forgotPassword(email) {
+        const response = await axiosInstance.post('/auth/forgot-password', { email });
+        return response.data;
+    }
+
+    static async resetPassword(token, newPassword) {
+        const response = await axiosInstance.post('/auth/reset-password', {
+            token,
+            new_password: newPassword,
+        });
+        return response.data;
+    }
+
     static async sendVerification() {
         const response = await axiosInstance.post('/auth/send-verification');
         return response.data;
