@@ -356,40 +356,68 @@ def _build_enriched_prompt(
         if news_evidence else ""
     )
 
+    coordinated_warning = (
+        "\n[KRİTİK UYARI] Koordineli yayılım tespit edildi. "
+        "Birden fazla kaynağın eş zamanlı yayımlaması sahtelik göstergesi olabilir. "
+        "Bu durumu summary'de açıkça belirt ve kullanıcıyı uyar."
+        if temporal.get("coordinated_spread") else ""
+    )
+
+    source_quality_note = ""
+    tabloid_domains = {"haberler.com","ensonhaber.com","haberturk.com","sozcu.com.tr",
+                       "sabah.com.tr","takvim.com.tr","aksam.com.tr","turkiyegazetesi.com.tr"}
+    found_tabloids = [s.get("domain","") for s in enriched_sources[:10]
+                      if s.get("domain","") in tabloid_domains]
+    if len(found_tabloids) >= 2:
+        source_quality_note = (
+            f"\n[KAYNAK KALİTESİ UYARISI] Bulunan kaynakların çoğu ({', '.join(set(found_tabloids[:3]))}) "
+            "magazin/haber agregat sitesidir ve birbirini kopyalıyor olabilir. "
+            "Çok sayıda kaynak bulunması bu durumda bağımsız teyit anlamına GELMEZ. "
+            "Bu tespiti summary'de kullanıcıya açıkça belirt."
+        )
+
     if needs_decision:
-        task_block = """[GÖREV]
+        task_block = f"""[GÖREV]
 Yerel model kararsız kaldı. Yukarıdaki kaynaklar ve sinyalleri değerlendirerek karar ver.
+{coordinated_warning}{source_quality_note}
 
 Verdict kriterleri:
 - "FAKE"     → Kesin yanlış bilgi, kanıtlanabilir
-- "AUTHENTIC"→ Doğrulanmış, güncel olgularla tutarlı
+- "AUTHENTIC"→ Doğrulanmış, güvenilir kaynaklarla tutarlı
 - "IDDIA"    → Doğrulanamaz iddia, anonim kaynak, kanıt yetersiz
 
 JSON alanları:
 - "gemini_verdict": "FAKE" veya "AUTHENTIC" veya "IDDIA"
-- "reason_type": max 40 karakter serbest etiket
-- "news_summary": Haberin ne iddia ettiğini 1-2 cümleyle tarafsızca özetle, karar belirtme (max 200 karakter)
-- "summary": 2-3 cümle Türkçe açıklama (max 500 karakter). Kaynak yanlılığını ve tarih bilgisini açıklamana ekle.
-- "evidence": ilgili kaynaklardan en fazla 3 kanıt [{"title":"...","url":"...","date":"..."}]
-- "false_claims": Haberde tespit ettiğin olgusal hatalar. YALNIZCA Google Search ile doğrulayabildiğin iddiaları ekle. Kanıtlayamazsan boş liste bırak: []. Her madde: {"wrong_text": "haberdeki yanlış ifade (max 200 karakter)", "correction": "doğrusu nedir (max 300 karakter)", "source_title": "kaynağın başlığı", "source_url": "https://..."}
+- "reason_type": max 40 karakter serbest etiket (örn: "Magazin Haberi", "Koordineli Yayılım")
+- "news_summary": Haberin ne iddia ettiğini 1-2 cümleyle tarafsızca özetle (max 200 karakter)
+- "summary": Türkçe açıklama (max 500 karakter). ZORUNLU YAPI:
+    1. "Bu haber [SAHTE / GÜVENİLİR / BELİRSİZ] görünüyor." cümlesiyle başla.
+    2. Neden bu kararı verdiğini açıkla — kaynak kalitesini ve koordineli yayılımı değerlendir.
+    3. Kullanıcıya eylem önerisi ver: "Bu haberi paylaşmadan önce [güvenilir kaynak] üzerinden teyit edin." veya benzeri.
+- "evidence": en fazla 3 kanıt [{"title":"...","url":"...","date":"..."}]
+- "false_claims": YALNIZCA Google Search ile doğrulayabildiğin olgusal hatalar. Kanıtlayamazsan []. Her madde: {"wrong_text":"...","correction":"...","source_title":"...","source_url":"https://..."}
 Yanıtı YALNIZCA geçerli JSON formatında ver."""
     else:
         task_block = f"""[GÖREV]
 Yerel model bu haberi {local_verdict} olarak sınıflandırdı (%{local_confidence*100:.0f} güven).
 Yukarıdaki kaynaklar, bias bilgisi ve temporal analizi değerlendirerek bu kararı doğrula veya düzelt.
+{coordinated_warning}{source_quality_note}
 
 Verdict kriterleri:
 - "FAKE"     → Kesin yanlış bilgi, kanıtlanabilir
-- "AUTHENTIC"→ Doğrulanmış, güncel olgularla tutarlı
+- "AUTHENTIC"→ Doğrulanmış, güvenilir kaynaklarla tutarlı
 - "IDDIA"    → Doğrulanamaz iddia, anonim kaynak, kanıt yetersiz
 
 JSON alanları:
 - "gemini_verdict": "FAKE" veya "AUTHENTIC" veya "IDDIA"
-- "reason_type": max 40 karakter serbest etiket
-- "news_summary": Haberin ne iddia ettiğini 1-2 cümleyle tarafsızca özetle, karar belirtme (max 200 karakter)
-- "summary": 2-3 cümle Türkçe açıklama (max 500 karakter). Kaynak yanlılığını ve tarih bilgisini açıklamana ekle.
-- "evidence": ilgili kaynaklardan en fazla 3 kanıt [{{"title":"...","url":"...","date":"..."}}]
-- "false_claims": Haberde tespit ettiğin olgusal hatalar. YALNIZCA Google Search ile doğrulayabildiğin iddiaları ekle. Kanıtlayamazsan boş liste bırak: []. Her madde: {{"wrong_text": "haberdeki yanlış ifade (max 200 karakter)", "correction": "doğrusu nedir (max 300 karakter)", "source_title": "kaynağın başlığı", "source_url": "https://..."}}
+- "reason_type": max 40 karakter serbest etiket (örn: "Magazin Haberi", "Koordineli Yayılım")
+- "news_summary": Haberin ne iddia ettiğini 1-2 cümleyle tarafsızca özetle (max 200 karakter)
+- "summary": Türkçe açıklama (max 500 karakter). ZORUNLU YAPI:
+    1. "Bu haber [SAHTE / GÜVENİLİR / BELİRSİZ] görünüyor." cümlesiyle başla.
+    2. Neden bu kararı verdiğini açıkla — kaynak kalitesini ve koordineli yayılımı değerlendir.
+    3. Kullanıcıya eylem önerisi ver: "Bu haberi paylaşmadan önce [güvenilir kaynak] üzerinden teyit edin." veya benzeri.
+- "evidence": en fazla 3 kanıt [{{"title":"...","url":"...","date":"..."}}]
+- "false_claims": YALNIZCA Google Search ile doğrulayabildiğin olgusal hatalar. Kanıtlayamazsan []. Her madde: {{"wrong_text":"...","correction":"...","source_title":"...","source_url":"https://..."}}
 Yanıtı YALNIZCA geçerli JSON formatında ver."""
 
     return f"""[SİSTEM]
