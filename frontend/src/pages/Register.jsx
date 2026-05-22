@@ -222,6 +222,7 @@ const Register = () => {
                                 </div>
                             )}
 
+                            <div className="p-8 md:p-9">
                             <p className="text-[10px] font-manrope font-black uppercase tracking-[0.22em] mb-4"
                                style={{ color: 'var(--color-brand-primary)' }}>
                                 // Hesap Oluştur
@@ -430,6 +431,7 @@ const Register = () => {
 
                                 </form>
                             )}
+                            </div>{/* /p-8 */}
                         </div>
 
                         <div className="mt-5 flex items-center justify-between">
