@@ -88,33 +88,23 @@ export default function HotAnalysisModal({ item, onClose }) {
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="px-5 py-4 flex items-start justify-between gap-3"
+                <div className="px-6 py-5 flex items-start justify-between gap-3"
                      style={{ borderBottom: `1px solid ${hex15}` }}>
-                    <div className="flex flex-col gap-1.5 min-w-0">
+                    <div className="flex flex-col gap-2 min-w-0">
                         <div className="flex items-center gap-2">
-                            <theme.Icon className={`w-4 h-4 ${theme.textCls} shrink-0`} />
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${theme.textCls}`}>
+                            <theme.Icon className={`w-5 h-5 ${theme.textCls} shrink-0`} />
+                            <span className={`text-xs font-black uppercase tracking-widest ${theme.textCls}`}>
                                 {theme.label}
                             </span>
                         </div>
-                        <p className="text-[13px] font-semibold leading-snug text-tx-primary">
+                        <p className="text-base font-semibold leading-snug text-tx-primary">
                             {item.title}
                         </p>
-                        {result?.ai_comment?.ml_status &&
-                         result.ai_comment.gemini_verdict &&
-                         result.ai_comment.gemini_verdict !== result.ai_comment.ml_status && (
-                            <span className="text-[9px] text-tx-secondary/50 italic block mt-0.5">
-                                NLP: {result.ai_comment.ml_status}
-                                {result.ai_comment.ml_confidence != null
-                                    ? ` %${Math.round(result.ai_comment.ml_confidence * 100)}`
-                                    : ''} → Gemini revize etti
-                            </span>
-                        )}
-                        <div className="flex items-center gap-1.5 text-[10px] text-tx-secondary">
-                            <BarChart2 className="w-3 h-3" />
+                        <div className="flex items-center gap-1.5 text-xs text-tx-secondary">
+                            <BarChart2 className="w-3.5 h-3.5" />
                             {item.request_count}× analiz edildi
                             {item.source_domain && (
-                                <span className="text-brutal-border/60">· {item.source_domain}</span>
+                                <span style={{ opacity: 0.6 }}>· {item.source_domain}</span>
                             )}
                         </div>
                     </div>
@@ -122,58 +112,65 @@ export default function HotAnalysisModal({ item, onClose }) {
                         onClick={onClose}
                         className="text-tx-secondary/40 hover:text-tx-primary transition-colors shrink-0 mt-0.5"
                     >
-                        <X className="w-4 h-4" />
+                        <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Body */}
-                <div className="px-5 py-4 flex flex-col gap-4 overflow-y-auto">
+                <div className="px-6 py-5 flex flex-col gap-5 overflow-y-auto">
                     {loading ? (
-                        <div className="flex items-center justify-center gap-2 py-6 text-tx-secondary/60 text-xs">
+                        <div className="flex items-center justify-center gap-2 py-8 text-tx-secondary/60 text-sm">
                             <Loader2 className="w-4 h-4 animate-spin" />
                             Analiz yükleniyor...
                         </div>
                     ) : !result ? (
-                        <p className="text-xs text-tx-secondary/60 text-center py-4">
+                        <p className="text-sm text-tx-secondary/60 text-center py-6">
                             Analiz verisi bulunamadı.
                         </p>
                     ) : (
                         <>
-                            {/* Confidence */}
+                            {/* Güven Skoru */}
                             {pct != null && (
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-4">
                                     <div
-                                        className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 font-black text-base"
+                                        className="w-16 h-16 rounded-full flex items-center justify-center shrink-0 font-black text-lg"
                                         style={{ border: `3px solid ${theme.hex}`, color: theme.hex, background: hex15 }}
                                     >
                                         %{pct}
                                     </div>
                                     <div className="flex-1">
-                                        <p className="text-xs font-bold text-tx-primary mb-1.5">Güven Skoru</p>
-                                        <div className="h-1.5 w-full rounded-full bg-brutal-border/20 overflow-hidden">
+                                        <p className="text-sm font-bold text-tx-primary mb-2">Güven Skoru</p>
+                                        <div className="h-2 w-full rounded-full bg-brutal-border/20 overflow-hidden">
                                             <div
                                                 className="h-full rounded-full transition-all duration-700"
                                                 style={{ width: `${pct}%`, background: theme.hex }}
                                             />
                                         </div>
+                                        <p className="text-xs text-tx-secondary mt-1.5" style={{ opacity: 0.7 }}>
+                                            {pct >= 70
+                                                ? 'Yüksek güvenle tespit edildi'
+                                                : pct >= 50
+                                                    ? 'Orta düzeyde güven'
+                                                    : 'Düşük güven — ek doğrulama önerilir'}
+                                        </p>
                                     </div>
                                 </div>
                             )}
 
                             {/* NLP Sinyalleri */}
                             {topSignals.length > 0 && (
-                                <div className="rounded-xl p-3.5" style={{ background: hex15, borderLeft: `3px solid ${hex30}` }}>
-                                    <div className={`flex items-center gap-1.5 mb-2.5 text-[10px] font-bold uppercase tracking-widest ${theme.textCls}`}>
-                                        <Brain className="w-3 h-3" />
-                                        NLP Sinyalleri
+                                <div className="p-4" style={{ background: hex15, borderLeft: `3px solid ${hex30}` }}>
+                                    <div className={`flex items-center gap-1.5 mb-3 text-xs font-bold uppercase tracking-widest ${theme.textCls}`}>
+                                        <Brain className="w-3.5 h-3.5" />
+                                        Tespit Edilen Sinyaller
                                     </div>
-                                    <div className="flex flex-col gap-2">
+                                    <div className="flex flex-col gap-2.5">
                                         {topSignals.map(key => (
-                                            <div key={key} className="flex items-center gap-2">
-                                                <span className="text-[10px] text-tx-secondary w-24 shrink-0">
+                                            <div key={key} className="flex items-center gap-3">
+                                                <span className="text-xs text-tx-secondary w-28 shrink-0">
                                                     {SIGNAL_LABELS[key]}
                                                 </span>
-                                                <div className="flex-1 h-1.5 rounded-full bg-brutal-border/20 overflow-hidden">
+                                                <div className="flex-1 h-2 rounded-full bg-brutal-border/20 overflow-hidden">
                                                     <div
                                                         className="h-full rounded-full"
                                                         style={{
@@ -182,8 +179,8 @@ export default function HotAnalysisModal({ item, onClose }) {
                                                         }}
                                                     />
                                                 </div>
-                                                <span className="text-[9px] text-tx-secondary/60 w-8 text-right shrink-0">
-                                                    {Math.round((signals[key] || 0) * 100)}%
+                                                <span className="text-xs text-tx-secondary w-9 text-right shrink-0" style={{ opacity: 0.75 }}>
+                                                    %{Math.round((signals[key] || 0) * 100)}
                                                 </span>
                                             </div>
                                         ))}
@@ -191,16 +188,16 @@ export default function HotAnalysisModal({ item, onClose }) {
                                 </div>
                             )}
 
-                            {/* Gemini AI özeti */}
+                            {/* Gemini Değerlendirmesi */}
                             {aiComment?.gemini_verdict && (
-                                <div className="rounded-xl p-3.5" style={{ background: 'var(--color-bg-surface-solid)' }}>
-                                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                                        <span className="text-[10px] font-bold uppercase tracking-widest text-tx-secondary">
+                                <div className="p-4" style={{ background: 'var(--color-bg-surface-solid)', borderLeft: '3px solid var(--color-terminal-border-raw)' }}>
+                                    <div className="flex items-center gap-2 mb-3 flex-wrap">
+                                        <span className="text-xs font-bold uppercase tracking-widest text-tx-secondary">
                                             Gemini Değerlendirmesi
                                         </span>
                                         {aiComment.reason_type && (
                                             <span
-                                                className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full"
+                                                className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5"
                                                 style={{ background: `${theme.hex}1a`, color: theme.hex, border: `1px solid ${theme.hex}33` }}
                                             >
                                                 {aiComment.reason_type}
@@ -208,13 +205,15 @@ export default function HotAnalysisModal({ item, onClose }) {
                                         )}
                                     </div>
                                     {aiComment.news_summary && (
-                                        <p className="text-[10px] text-tx-secondary/70 leading-snug mb-2">
+                                        <p className="text-sm text-tx-secondary leading-relaxed mb-3">
                                             {aiComment.news_summary}
                                         </p>
                                     )}
-                                    <p className="text-[11px] text-tx-secondary leading-relaxed italic">
-                                        {aiComment.summary || aiComment.gemini_verdict}
-                                    </p>
+                                    {aiComment.summary && aiComment.summary !== aiComment.news_summary && (
+                                        <p className="text-sm text-tx-secondary leading-relaxed" style={{ opacity: 0.85 }}>
+                                            {aiComment.summary}
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </>
@@ -223,13 +222,13 @@ export default function HotAnalysisModal({ item, onClose }) {
 
                 {/* Footer */}
                 {!loading && hasFullReport && (
-                    <div className="px-5 pb-4 pt-1">
+                    <div className="px-6 pb-5 pt-1">
                         <button
                             onClick={() => navigate(`/analysis/report/${item.task_id}`)}
-                            className="w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-opacity hover:opacity-80"
+                            className="w-full py-3 text-sm font-bold flex items-center justify-center gap-2 transition-opacity hover:opacity-80"
                             style={{ background: hex15, color: theme.hex, border: `1px solid ${hex30}` }}
                         >
-                            <FileSearch className="w-3.5 h-3.5" />
+                            <FileSearch className="w-4 h-4" />
                             Tam Raporu Gör →
                         </button>
                     </div>
