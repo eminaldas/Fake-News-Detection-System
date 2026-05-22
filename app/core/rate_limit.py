@@ -48,7 +48,12 @@ async def check_rate_limit(
             return
 
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    ip = request.client.host if request.client else "unknown"
+    ip = (
+        request.headers.get("CF-Connecting-IP")
+        or request.headers.get("X-Real-IP")
+        or request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+        or (request.client.host if request.client else "unknown")
+    )
     ip_hash = hash_ip(ip)
 
     if current_user is not None:

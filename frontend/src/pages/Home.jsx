@@ -279,14 +279,19 @@ function GlitchNe() {
   );
 }
 
+const RATE_LIMIT_KEY = 'rl_exceeded';
+
 const Home = () => {
   const { isAuthenticated } = useAuth();
-  const [rateLimitExceeded, setRateLimitExceeded] = useState(false);
+  const [rateLimitExceeded, setRateLimitExceeded] = useState(
+    () => sessionStorage.getItem(RATE_LIMIT_KEY) === '1'
+  );
   const [remaining] = useState(null);
   const { threads: trendThreads, loading: trendLoading } = useForumTrends();
 
   useEffect(() => {
       const handler = () => {
+          sessionStorage.setItem(RATE_LIMIT_KEY, '1');
           setRateLimitExceeded(true);
       };
       window.addEventListener('rate-limit-exceeded', handler);
@@ -325,28 +330,62 @@ const Home = () => {
   return (
     <div className="w-full min-h-[80vh] flex flex-col px-4 md:px-6">
 
-      {/* Rate Limit Banner */}
+      {/* Rate Limit Modal */}
       {rateLimitExceeded && (
-          <div className="mb-4 p-4 rounded-xl bg-app-burgundy bg-opacity-10 border border-app-burgundy border-opacity-20 text-app-burgundy text-sm flex flex-col gap-2">
-              <p className="font-bold">Günlük analiz limitinize ulaştınız.</p>
-              {!isAuthenticated && (
-                  <p>
-                      <Link to="/register" className="underline font-semibold">Ücretsiz kayıt olarak</Link>{' '}
-                      günde 20 analize erişebilirsiniz.
-                  </p>
-              )}
-              <p className="text-xs opacity-70">Limit gece yarısı (UTC) sıfırlanır.</p>
-          </div>
-      )}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+               style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+              <div className="w-full max-w-sm p-8 relative"
+                   style={{
+                       background: 'var(--color-terminal-surface)',
+                       border: '1px solid var(--color-terminal-border-raw)',
+                       borderLeft: '3px solid var(--color-brand-primary)',
+                       boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+                   }}>
+                  <div className="absolute top-0 right-0 w-5 h-[2px]" style={{ background: 'var(--color-brand-primary)', opacity: 0.5 }} />
+                  <div className="absolute top-0 right-0 h-5 w-[2px]" style={{ background: 'var(--color-brand-primary)', opacity: 0.5 }} />
 
-      {!isAuthenticated && remaining !== null && remaining <= 1 && !rateLimitExceeded && (
-          <div className="mb-4 p-3 rounded-xl bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs flex justify-between items-center">
-              <span>
-                  {remaining === 0
-                      ? 'Tüm ücretsiz analizlerinizi kullandınız.'
-                      : `${remaining} ücretsiz analiziniz kaldı.`}
-              </span>
-              <Link to="/register" className="font-bold underline">Kayıt Ol →</Link>
+                  <p className="text-[10px] font-manrope font-black uppercase tracking-[0.22em] mb-4"
+                     style={{ color: 'var(--color-brand-primary)' }}>
+                      // Limit Aşıldı
+                  </p>
+
+                  <h2 className="text-lg font-manrope font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>
+                      Ücretsiz analizinizi kullandınız.
+                  </h2>
+                  <p className="text-sm mb-6" style={{ color: 'var(--color-text-primary)', opacity: 0.65 }}>
+                      {isAuthenticated
+                          ? 'Günlük analiz limitinize ulaştınız. Limit gece yarısı (UTC) sıfırlanır.'
+                          : 'Devam etmek için giriş yapın veya ücretsiz hesap oluşturun. Günde 20 analiz hakkı kazanın.'}
+                  </p>
+
+                  {!isAuthenticated && (
+                      <div className="flex flex-col gap-3">
+                          <Link
+                              to="/login"
+                              className="w-full py-3.5 font-manrope font-black text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+                              style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}
+                          >
+                              Giriş Yap
+                          </Link>
+                          <Link
+                              to="/register"
+                              className="w-full py-3 font-manrope font-bold text-[11px] uppercase tracking-[0.15em] flex items-center justify-center gap-2 transition-opacity hover:opacity-80"
+                              style={{
+                                  border: '1px solid var(--color-terminal-border-raw)',
+                                  color: 'var(--color-text-primary)',
+                              }}
+                          >
+                              Ücretsiz Kayıt Ol
+                          </Link>
+                      </div>
+                  )}
+
+                  {isAuthenticated && (
+                      <p className="text-xs" style={{ color: 'var(--color-text-primary)', opacity: 0.45 }}>
+                          Limit gece yarısı (UTC) sıfırlanır.
+                      </p>
+                  )}
+              </div>
           </div>
       )}
 
