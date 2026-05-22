@@ -67,8 +67,8 @@ function BarDay({ dateStr, dayLabel, data, isToday, idx }) {
                     className="w-full max-w-[32px] cursor-default"
                     style={{
                         height:        animH,
-                        background:    color,
-                        opacity:       pct === 0 ? 0.2 : 1,
+                        background:    pct === 0 ? 'var(--color-terminal-border-raw)' : color,
+                        opacity:       pct === 0 ? 0.5 : 1,
                         outline:       isToday ? `2px solid ${BRAND}` : 'none',
                         outlineOffset: 2,
                         transition:    'height 0.55s cubic-bezier(0.22,1,0.36,1)',

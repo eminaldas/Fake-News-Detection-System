@@ -656,7 +656,7 @@ export default function SettingsAccount() {
             position:'sticky', bottom:0, marginTop:'1.5rem',
             padding:'0.875rem 1.5rem',
             display:'flex', alignItems:'center', gap:'1rem',
-            background:'#070f12',
+            background:'var(--color-terminal-surface)',
             borderTop:`1px solid ${DIV}`,
             zIndex:20,
           }}
