@@ -267,7 +267,7 @@ function StepSource({ selected, setSelected, onBack, onFinish, loading }) {
             <div>
                 <h2 className="text-3xl font-manrope font-extrabold mb-2"
                     style={{ color: 'var(--color-text-primary)' }}>
-                    Sizi Nasıl Buldunuz?
+                    Bizi Nasıl Buldunuz?
                 </h2>
                 <p className="text-base" style={{ color: 'var(--color-text-primary)', opacity: 0.6 }}>
                     Bizi nereden öğrendiniz? (isteğe bağlı)
