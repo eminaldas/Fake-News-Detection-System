@@ -17,7 +17,7 @@ class WeatherService {
     }
 
     static async getForecast(lat, lon) {
-        const res  = await fetch(`/api/v1/weather?lat=${lat}&lon=${lon}`);
+        const res  = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1'}/weather?lat=${lat}&lon=${lon}`);
         const d    = await res.json();
         return {
             temp:  d.temp,

@@ -50,7 +50,7 @@ function wmoAccent(code) {
 }
 
 async function fetchWeather(lat, lon) {
-    const res  = await fetch(`/api/v1/weather?lat=${lat}&lon=${lon}`);
+    const res  = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1'}/weather?lat=${lat}&lon=${lon}`);
     const data = await res.json();
     return { temp: data.temp, code: data.code, city: data.city };
 }
