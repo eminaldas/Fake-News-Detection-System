@@ -9,7 +9,7 @@ import {
 import NewsVoteBar    from './NewsVoteBar';
 import GeneralVoteBar from './GeneralVoteBar';
 import axiosInstance from '../../api/axios';
-import LoginNudgeModal, { useLoginNudge } from '../../components/ui/LoginNudgeModal';
+import LoginNudgeModal from '../../components/ui/LoginNudgeModal';
 import { useAuth } from '../../contexts/AuthContext';
 import CreateThreadModal from './CreateThreadModal';
 import SendToFriendModal from './SendToFriendModal';
@@ -593,7 +593,6 @@ const ForumFeed = () => {
     const [loading,     setLoading]     = React.useState(false);
     const [loadError,   setLoadError]   = React.useState(false);
     const [showModal,   setShowModal]   = React.useState(false);
-    const [showNudge,   closeNudge]     = useLoginNudge();
     const [newCount,    setNewCount]    = React.useState(0);
     const SIZE = 20;
     const sentinelRef   = React.useRef(null);
@@ -855,7 +854,6 @@ const ForumFeed = () => {
         </div>
 
         {showModal && <CreateThreadModal onClose={() => setShowModal(false)} />}
-        {showNudge && <LoginNudgeModal  onClose={closeNudge} />}
         </>
     );
 };

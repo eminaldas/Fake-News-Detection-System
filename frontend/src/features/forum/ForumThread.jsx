@@ -10,7 +10,7 @@ import { useWebSocket } from '../../contexts/WebSocketContext';
 import { useAuth } from '../../contexts/AuthContext';
 import ForumCommentTree from './ForumCommentTree';
 import MentionTextarea from './MentionTextarea';
-import LoginNudgeModal, { useLoginNudge } from '../../components/ui/LoginNudgeModal';
+import LoginNudgeModal from '../../components/ui/LoginNudgeModal';
 import ShareDropdown from '../../components/ui/ShareDropdown';
 import SendToFriendModal from './SendToFriendModal';
 import NewsVoteBar    from './NewsVoteBar';
@@ -86,7 +86,6 @@ const ForumThread = () => {
     const [voting,   setVoting]   = React.useState(false);
     const [bodyOpen, setBodyOpen] = React.useState(true);
 
-    const [showNudge, closeNudge] = useLoginNudge();
     const isAuthor = user?.id === thread?.author?.id;
 
     const [editMode,  setEditMode]  = React.useState(false);
@@ -532,7 +531,6 @@ const ForumThread = () => {
                 </div>
             </Block>
         </div>
-        {showNudge && <LoginNudgeModal onClose={closeNudge} />}
         {sendModal && (
             <SendToFriendModal
                 threadTitle={thread.title}

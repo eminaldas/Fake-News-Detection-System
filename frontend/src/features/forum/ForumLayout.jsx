@@ -6,6 +6,8 @@ import {
     Clock, Zap,
 } from 'lucide-react';
 import axiosInstance from '../../api/axios';
+import { useAuth } from '../../contexts/AuthContext';
+import LoginNudgeModal from '../../components/ui/LoginNudgeModal';
 
 const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 
@@ -36,11 +38,27 @@ const Block = ({ icon: Icon, label, children }) => (
 const SIDEBAR_STYLE = { position: 'sticky', top: '6rem', alignSelf: 'start', paddingTop: '46px' };
 
 const ForumLayout = () => {
+    const { isAuthenticated } = useAuth();
     const location     = useLocation();
     const navigate     = useNavigate();
     const isSearchPage = location.pathname === '/forum/search';
     const isThreadPage = /^\/forum\/[^/]+$/.test(location.pathname) && !isSearchPage;
     const [searchParams, setSearchParams] = useSearchParams();
+
+    // Paylaşılan thread: ilk ziyarette içeriği göster, yenileyince modal
+    const [threadAllowed] = React.useState(() => {
+        if (!isThreadPage || isAuthenticated) return true;
+        const key = `forum_thread_seen_${location.pathname}`;
+        const seen = sessionStorage.getItem(key);
+        if (!seen) {
+            sessionStorage.setItem(key, '1');
+            return true;   // ilk ziyaret: izin ver
+        }
+        return false;      // daha önce görüldü: modal
+    });
+
+    const showLoginWall = !isAuthenticated && !threadAllowed;
+    const showFeedWall  = !isAuthenticated && !isThreadPage;
     const currentSort  = searchParams.get('sort') ?? 'hot';
 
     const [trending,      setTrending]     = React.useState(null);
@@ -75,6 +93,7 @@ const ForumLayout = () => {
 
     return (
         <div className="w-full">
+            {(showLoginWall || showFeedWall) && <LoginNudgeModal />}
             <div
                 className="max-w-[1400px] mx-auto w-full px-4 md:px-6 py-6 flex flex-col lg:grid lg:gap-5"
                 style={{ gridTemplateColumns: '1fr 320px' }}
