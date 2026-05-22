@@ -39,8 +39,10 @@ export const AuthProvider = ({ children }) => {
         try {
             await AuthService.login(username, password, rememberMe);
             await fetchUser();
+            setLoading(false);
             return { success: true };
         } catch (error) {
+            setLoading(false);
             return { success: false, error: error.message };
         }
     };
@@ -54,8 +56,10 @@ export const AuthProvider = ({ children }) => {
             } else {
                 await fetchUser();
             }
+            setLoading(false);
             return { success: true, needsVerification: data.needs_verification, needsOnboarding: data.needs_onboarding };
         } catch (error) {
+            setLoading(false);
             return { success: false, error: error.message };
         }
     };
