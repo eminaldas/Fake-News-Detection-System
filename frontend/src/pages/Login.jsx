@@ -14,7 +14,7 @@ const InputWrap = ({ children }) => {
             className="relative flex items-center transition-all duration-200"
             style={{
                 border: '1px solid var(--color-terminal-border-raw)',
-                background: 'rgba(0,0,0,0.25)',
+                background: 'var(--color-terminal-surface)',
             }}
             onFocusCapture={() => {
                 if (ref.current) {

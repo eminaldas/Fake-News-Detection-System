@@ -30,7 +30,7 @@ const InputWrap = ({ children, hasError, hasSuccess }) => {
         <div
             ref={ref}
             className="relative flex items-center transition-all duration-200"
-            style={{ border: `1px solid ${neutral}`, background: 'rgba(0,0,0,0.25)' }}
+            style={{ border: `1px solid ${neutral}`, background: 'var(--color-terminal-surface)' }}
             onFocusCapture={() => {
                 if (ref.current) {
                     ref.current.style.borderColor = hasError ? 'rgba(239,68,68,0.70)' : 'var(--color-brand-primary)';
@@ -195,7 +195,7 @@ const Register = () => {
                 </div>
 
                 {/* ── SAĞ: Form ── */}
-                <div className="flex items-center justify-center px-6 md:px-16 py-32 md:py-0">
+                <div className="flex items-center justify-center px-6 md:px-16 pt-44 pb-16 md:py-0">
                     <div className="w-full max-w-md animate-fade-right">
 
                         {/* Kart */}
