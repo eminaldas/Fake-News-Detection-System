@@ -279,26 +279,42 @@ function GlitchNe() {
   );
 }
 
-const RATE_LIMIT_KEY = 'rl_exceeded';
+const ANON_USED_KEY = 'anon_used_free';
 
 const Home = () => {
   const { isAuthenticated } = useAuth();
-  const [rateLimitExceeded, setRateLimitExceeded] = useState(
-    () => sessionStorage.getItem(RATE_LIMIT_KEY) === '1'
-  );
-  const [remaining] = useState(null);
+  const [showAnonToast, setShowAnonToast] = useState(false);
   const { threads: trendThreads, loading: trendLoading } = useForumTrends();
 
+  const { analyze: _analyze, analyzeUrl: _analyzeUrl, loading, result, error, isPolling, analysisStage } = useAnalysis();
+
+  // Anonim kullanıcı için 1 ücretsiz analiz — 2. denemede toast göster
+  const analyze = (text) => {
+      if (!isAuthenticated) {
+          if (sessionStorage.getItem(ANON_USED_KEY)) {
+              setShowAnonToast(true);
+              return;
+          }
+      }
+      _analyze(text);
+  };
+
+  const analyzeUrl = (url) => {
+      if (!isAuthenticated) {
+          if (sessionStorage.getItem(ANON_USED_KEY)) {
+              setShowAnonToast(true);
+              return;
+          }
+      }
+      _analyzeUrl(url);
+  };
+
+  // Backend'den 429 gelirse de yakala
   useEffect(() => {
-      const handler = () => {
-          sessionStorage.setItem(RATE_LIMIT_KEY, '1');
-          setRateLimitExceeded(true);
-      };
+      const handler = () => setShowAnonToast(true);
       window.addEventListener('rate-limit-exceeded', handler);
       return () => window.removeEventListener('rate-limit-exceeded', handler);
   }, []);
-
-  const { analyze, analyzeUrl, loading, result, error, isPolling, analysisStage } = useAnalysis();
   const {
     loading: imgLoading,
     isPolling: imgPolling,
@@ -318,6 +334,13 @@ const Home = () => {
     submitImage(file);
   };
 
+  // Analiz tamamlanınca anonim bayrağı set et
+  useEffect(() => {
+      if (result && !isAuthenticated) {
+          sessionStorage.setItem(ANON_USED_KEY, '1');
+      }
+  }, [result, isAuthenticated]);
+
   // Analiz tamamlanınca sonuca smooth scroll
   useEffect(() => {
     if (!showAnalysisSkeleton && result && resultRef.current) {
@@ -330,36 +353,33 @@ const Home = () => {
   return (
     <div className="w-full min-h-[80vh] flex flex-col px-4 md:px-6">
 
-      {/* Rate Limit Banner — analiz sürerken gösterme */}
-      {rateLimitExceeded && !loading && !isPolling && (
-          <div className="mb-4 px-4 py-3 flex items-center justify-between gap-4 animate-fade-up"
+      {/* Anonim limit toast — altta küçük, overlay yok */}
+      {showAnonToast && !isAuthenticated && (
+          <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 animate-fade-up"
                style={{
                    background: 'var(--color-terminal-surface)',
                    border: '1px solid var(--color-terminal-border-raw)',
                    borderLeft: '3px solid var(--color-brand-primary)',
+                   boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                   minWidth: '280px',
+                   maxWidth: '420px',
                }}>
-              <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-xs shrink-0" style={{ color: 'var(--color-brand-primary)' }}>⚡</span>
-                  <span className="text-xs" style={{ color: 'var(--color-text-primary)', opacity: 0.75 }}>
-                      {isAuthenticated
-                          ? 'Günlük analiz limitinize ulaştınız. Gece yarısı sıfırlanır.'
-                          : 'Ücretsiz analiz hakkınızı kullandınız.'}
-                  </span>
+              <span className="text-xs shrink-0" style={{ color: 'var(--color-brand-primary)' }}>⚡</span>
+              <span className="text-xs flex-1" style={{ color: 'var(--color-text-primary)', opacity: 0.8 }}>
+                  Daha fazla analiz için kayıt ol
+              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                  <Link to="/login"
+                      className="text-xs font-bold transition-opacity hover:opacity-70"
+                      style={{ color: 'var(--color-text-primary)', opacity: 0.55 }}>
+                      Giriş
+                  </Link>
+                  <Link to="/register"
+                      className="text-xs font-manrope font-black uppercase tracking-wide px-2.5 py-1 transition-opacity hover:opacity-90"
+                      style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
+                      Kayıt Ol →
+                  </Link>
               </div>
-              {!isAuthenticated && (
-                  <div className="flex items-center gap-2 shrink-0">
-                      <Link to="/login"
-                          className="text-xs font-bold transition-opacity hover:opacity-80"
-                          style={{ color: 'var(--color-text-primary)', opacity: 0.6 }}>
-                          Giriş Yap
-                      </Link>
-                      <Link to="/register"
-                          className="text-xs font-manrope font-black uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-90"
-                          style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
-                          Kayıt Ol →
-                      </Link>
-                  </div>
-              )}
           </div>
       )}
 
