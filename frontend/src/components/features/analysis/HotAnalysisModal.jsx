@@ -77,7 +77,7 @@ export default function HotAnalysisModal({ item, onClose }) {
             onClick={onClose}
         >
             <div
-                className="w-full max-w-sm rounded-2xl overflow-hidden flex flex-col"
+                className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col max-h-[90vh]"
                 style={{
                     background: 'var(--color-bg-surface)',
                     border: `1px solid ${hex30}`,
@@ -97,7 +97,7 @@ export default function HotAnalysisModal({ item, onClose }) {
                                 {theme.label}
                             </span>
                         </div>
-                        <p className="text-[13px] font-semibold leading-snug text-tx-primary line-clamp-3">
+                        <p className="text-[13px] font-semibold leading-snug text-tx-primary">
                             {item.title}
                         </p>
                         {result?.ai_comment?.ml_status &&
@@ -127,7 +127,7 @@ export default function HotAnalysisModal({ item, onClose }) {
                 </div>
 
                 {/* Body */}
-                <div className="px-5 py-4 flex flex-col gap-4">
+                <div className="px-5 py-4 flex flex-col gap-4 overflow-y-auto">
                     {loading ? (
                         <div className="flex items-center justify-center gap-2 py-6 text-tx-secondary/60 text-xs">
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -212,7 +212,7 @@ export default function HotAnalysisModal({ item, onClose }) {
                                             {aiComment.news_summary}
                                         </p>
                                     )}
-                                    <p className="text-[11px] text-tx-secondary leading-relaxed line-clamp-3 italic">
+                                    <p className="text-[11px] text-tx-secondary leading-relaxed italic">
                                         {aiComment.summary || aiComment.gemini_verdict}
                                     </p>
                                 </div>
