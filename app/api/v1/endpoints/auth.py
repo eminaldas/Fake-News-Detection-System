@@ -473,11 +473,6 @@ async def complete_onboarding(
     from app.models.models import UserPreferenceProfile
 
     if body.avatar_url:
-        # base64 data URL'lerini reddet — DB sütunu varchar(500)
-        if body.avatar_url.startswith('data:'):
-            raise HTTPException(status_code=400, detail="Avatar URL olarak data URL kabul edilmiyor. Harici bir URL kullanın.")
-        if len(body.avatar_url) > 500:
-            raise HTTPException(status_code=400, detail="Avatar URL çok uzun.")
         current_user.avatar_url = body.avatar_url
     current_user.onboarding_completed = True
     await db.commit()

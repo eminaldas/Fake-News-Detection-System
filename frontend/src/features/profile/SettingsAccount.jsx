@@ -317,15 +317,28 @@ export default function SettingsAccount() {
     }, 400);
   };
 
-  /* ── Avatar upload ── */
+  /* ── Avatar upload — 120×120 sıkıştırılmış JPEG ── */
   const handleFileChange = e => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) return;
-    if (file.size > 5 * 1024 * 1024) { alert('Görsel 5MB\'den küçük olmalı'); return; }
-    const reader = new FileReader();
-    reader.onload = ev => setAvatarUrl(ev.target.result);
-    reader.readAsDataURL(file);
+    if (file.size > 10 * 1024 * 1024) { alert('Görsel 10MB\'den küçük olmalı'); return; }
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      const SIZE = 120;
+      const canvas = document.createElement('canvas');
+      canvas.width  = SIZE;
+      canvas.height = SIZE;
+      const ctx = canvas.getContext('2d');
+      const min = Math.min(img.width, img.height);
+      const sx  = (img.width  - min) / 2;
+      const sy  = (img.height - min) / 2;
+      ctx.drawImage(img, sx, sy, min, min, 0, 0, SIZE, SIZE);
+      setAvatarUrl(canvas.toDataURL('image/jpeg', 0.6));
+      URL.revokeObjectURL(objectUrl);
+    };
+    img.src = objectUrl;
     e.target.value = '';
   };
 
