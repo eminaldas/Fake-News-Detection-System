@@ -330,8 +330,8 @@ const Home = () => {
   return (
     <div className="w-full min-h-[80vh] flex flex-col px-4 md:px-6">
 
-      {/* Rate Limit Banner */}
-      {rateLimitExceeded && (
+      {/* Rate Limit Banner — analiz sürerken gösterme */}
+      {rateLimitExceeded && !loading && !isPolling && (
           <div className="mb-4 px-4 py-3 flex items-center justify-between gap-4 animate-fade-up"
                style={{
                    background: 'var(--color-terminal-surface)',
