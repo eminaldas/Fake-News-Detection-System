@@ -330,62 +330,36 @@ const Home = () => {
   return (
     <div className="w-full min-h-[80vh] flex flex-col px-4 md:px-6">
 
-      {/* Rate Limit Modal */}
+      {/* Rate Limit Banner */}
       {rateLimitExceeded && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-               style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
-              <div className="w-full max-w-sm p-8 relative"
-                   style={{
-                       background: 'var(--color-terminal-surface)',
-                       border: '1px solid var(--color-terminal-border-raw)',
-                       borderLeft: '3px solid var(--color-brand-primary)',
-                       boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
-                   }}>
-                  <div className="absolute top-0 right-0 w-5 h-[2px]" style={{ background: 'var(--color-brand-primary)', opacity: 0.5 }} />
-                  <div className="absolute top-0 right-0 h-5 w-[2px]" style={{ background: 'var(--color-brand-primary)', opacity: 0.5 }} />
-
-                  <p className="text-[10px] font-manrope font-black uppercase tracking-[0.22em] mb-4"
-                     style={{ color: 'var(--color-brand-primary)' }}>
-                      // Limit Aşıldı
-                  </p>
-
-                  <h2 className="text-lg font-manrope font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>
-                      Ücretsiz analizinizi kullandınız.
-                  </h2>
-                  <p className="text-sm mb-6" style={{ color: 'var(--color-text-primary)', opacity: 0.65 }}>
+          <div className="mb-4 px-4 py-3 flex items-center justify-between gap-4 animate-fade-up"
+               style={{
+                   background: 'var(--color-terminal-surface)',
+                   border: '1px solid var(--color-terminal-border-raw)',
+                   borderLeft: '3px solid var(--color-brand-primary)',
+               }}>
+              <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-xs shrink-0" style={{ color: 'var(--color-brand-primary)' }}>⚡</span>
+                  <span className="text-xs" style={{ color: 'var(--color-text-primary)', opacity: 0.75 }}>
                       {isAuthenticated
-                          ? 'Günlük analiz limitinize ulaştınız. Limit gece yarısı (UTC) sıfırlanır.'
-                          : 'Devam etmek için giriş yapın veya ücretsiz hesap oluşturun. Günde 20 analiz hakkı kazanın.'}
-                  </p>
-
-                  {!isAuthenticated && (
-                      <div className="flex flex-col gap-3">
-                          <Link
-                              to="/login"
-                              className="w-full py-3.5 font-manrope font-black text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
-                              style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}
-                          >
-                              Giriş Yap
-                          </Link>
-                          <Link
-                              to="/register"
-                              className="w-full py-3 font-manrope font-bold text-[11px] uppercase tracking-[0.15em] flex items-center justify-center gap-2 transition-opacity hover:opacity-80"
-                              style={{
-                                  border: '1px solid var(--color-terminal-border-raw)',
-                                  color: 'var(--color-text-primary)',
-                              }}
-                          >
-                              Ücretsiz Kayıt Ol
-                          </Link>
-                      </div>
-                  )}
-
-                  {isAuthenticated && (
-                      <p className="text-xs" style={{ color: 'var(--color-text-primary)', opacity: 0.45 }}>
-                          Limit gece yarısı (UTC) sıfırlanır.
-                      </p>
-                  )}
+                          ? 'Günlük analiz limitinize ulaştınız. Gece yarısı sıfırlanır.'
+                          : 'Ücretsiz analiz hakkınızı kullandınız.'}
+                  </span>
               </div>
+              {!isAuthenticated && (
+                  <div className="flex items-center gap-2 shrink-0">
+                      <Link to="/login"
+                          className="text-xs font-bold transition-opacity hover:opacity-80"
+                          style={{ color: 'var(--color-text-primary)', opacity: 0.6 }}>
+                          Giriş Yap
+                      </Link>
+                      <Link to="/register"
+                          className="text-xs font-manrope font-black uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-90"
+                          style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
+                          Kayıt Ol →
+                      </Link>
+                  </div>
+              )}
           </div>
       )}
 

@@ -22,8 +22,10 @@ export const useAnalysis = () => {
 
         const unsubComplete = subscribe('analysis_complete', (payload) => {
             if (payload.task_id !== pollingTaskId) return;
+            // WebSocket'te de ai_comment bekliyoruz — Gemini bitmeden sonuç gösterme
             AnalysisService.checkStatus(pollingTaskId).then(response => {
-                if (response.status === 'SUCCESS') {
+                const isDone = response.status === 'SUCCESS' && response.result?.ai_comment !== null;
+                if (isDone) {
                     setResult({
                         ...(response.result || response),
                         originalText: pendingTextRef.current,
@@ -34,6 +36,7 @@ export const useAnalysis = () => {
                     setAnalysisStage(null);
                     GamificationService.checkAndShowXPGain('Analiz Tamamlandı');
                 }
+                // isDone değilse polling devam eder
             }).catch(() => {});
         });
 

@@ -23,25 +23,12 @@ import sqlalchemy
 from sqlalchemy import select
 from celery import Celery
 from celery.schedules import crontab
-from celery.signals import worker_process_init
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 from app.models.models import NewsArticle
-from ml_engine.vectorizer import TurkishVectorizer
-from ml_engine.processing.cleaner import NewsCleaner, _compute_risk, _classify_content
-
-vectorizer = None
-_cleaner   = None
-
-
-@worker_process_init.connect
-def _load_models(**kwargs):
-    global vectorizer, _cleaner
-    vectorizer = TurkishVectorizer()
-    _cleaner   = NewsCleaner()
 
 logger = logging.getLogger(__name__)
 
@@ -480,24 +467,25 @@ def _raw_image_map(rss_url: str) -> dict:
 
 
 # ── Yardımcı: cosine similarity ile dedup kontrol ────────────────────────────
-async def _find_duplicate(db: AsyncSession, embedding: list) -> NewsArticle | None:
+async def _find_duplicate(db: AsyncSession, title: str) -> NewsArticle | None:
     """
-    pgvector cosine distance ile en yakın news_article'ı bul.
-    Distance < settings.RSS_DEDUP_THRESHOLD ise duplicate sayılır.
+    pg_trgm trigram benzerliğiyle duplicate bul.
+    Son 24 saatteki kayıtlarda similarity > 0.65 ise aynı haber sayılır.
     """
-    embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+    from datetime import timedelta
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
     sql = sqlalchemy.text(
         """
-        SELECT id, source_count, embedding <=> :emb AS dist
-        FROM news_articles
-        WHERE embedding IS NOT NULL
-        ORDER BY embedding <=> :emb
+        SELECT id FROM news_articles
+        WHERE created_at >= :cutoff
+          AND similarity(title, :title) > 0.65
+        ORDER BY similarity(title, :title) DESC
         LIMIT 1
         """
     )
-    result = await db.execute(sql, {"emb": embedding_str})
+    result = await db.execute(sql, {"cutoff": cutoff, "title": title})
     row = result.fetchone()
-    if row and row.dist < settings.RSS_DEDUP_THRESHOLD:
+    if row:
         return await db.get(NewsArticle, row.id)
     return None
 
@@ -550,40 +538,7 @@ async def _run_ingest():
 
                 pub_date = _parse_pub_date(entry)
 
-                try:
-                    embedding = vectorizer.get_embedding(title + " " + content[:500])
-                except Exception as exc:
-                    logger.warning("rss.embed_error title=%s err=%s", title[:60], exc)
-                    continue
-
-                # NLP sinyal hesabı
-                content_words   = " ".join(content.split()[:400])
-                title_signals   = _cleaner.extract_manipulative_signals(title,         trust_score)
-                content_signals = _cleaner.extract_manipulative_signals(content_words, trust_score)
-                title_nlp   = _compute_risk(title_signals,   source_url)
-                content_nlp = _compute_risk(content_signals, source_url)
-                nlp_signals_data = {
-                    "title":         {k: v for k, v in title_signals.items() if k != "triggered_words"},
-                    "content":       {k: v for k, v in content_signals.items() if k != "triggered_words"},
-                    "title_score":   title_nlp,
-                    "content_score": content_nlp,
-                }
-                # Metin uzunluğu cezası — title + content toplam kelimesine göre
-                total_words = len(title.split()) + len(content.split())
-                if total_words < 30:
-                    length_penalty = 0.15
-                elif total_words < 80:
-                    length_penalty = 0.05
-                else:
-                    length_penalty = 0.0
-                nlp_score = round(min(1.0, title_nlp * 0.55 + content_nlp * 0.45 + length_penalty), 4)
-
-                content_type = _classify_content(
-                    title_signals, content_signals,
-                    trust_score=trust_score, nlp_score=nlp_score,
-                )
-
-                duplicate = await _find_duplicate(db, embedding)
+                duplicate = await _find_duplicate(db, title)
 
                 # cluster_id: yeni haber ise kendi id'si, duplicate ise canonical'ın cluster_id'si
                 if duplicate:
@@ -605,7 +560,7 @@ async def _run_ingest():
                     id           = article_id,
                     title        = title,
                     content      = content,
-                    embedding    = embedding,
+                    embedding    = None,
                     category     = category,
                     subcategory  = subcategory,
                     image_url    = image_url,
@@ -617,9 +572,9 @@ async def _run_ingest():
                     source_count = 1,
                     label        = None,
                     label_source = None,
-                    nlp_score    = nlp_score,
-                    nlp_signals  = nlp_signals_data,
-                    content_type = content_type,
+                    nlp_score    = None,
+                    nlp_signals  = None,
+                    content_type = None,
                 )
                 db.add(article)
                 source_new += 1
