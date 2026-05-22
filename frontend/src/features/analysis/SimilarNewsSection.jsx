@@ -121,10 +121,10 @@ export default function SimilarNewsSection({ taskId }) {
 
     const count   = loading ? 4 : items.length;
     const colsCls = count <= 2
-        ? 'grid-cols-2'
+        ? 'grid-cols-1 sm:grid-cols-2'
         : count === 3
-            ? 'grid-cols-3'
-            : 'grid-cols-2 sm:grid-cols-4';
+            ? 'grid-cols-1 sm:grid-cols-3'
+            : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4';
 
     return (
         <section className="w-full max-w-[1400px] mx-auto px-4 md:px-6 pb-6 mt-6">

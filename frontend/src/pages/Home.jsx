@@ -8,6 +8,7 @@ import AnalysisForm from "../features/analysis/AnalysisForm";
 import ImageResultCard from '../features/analysis/ImageResultCard';
 import AnalysisResultCard from "../features/analysis/AnalysisResultCard";
 import AnalysisResultSkeleton from "../features/analysis/AnalysisResultSkeleton";
+import AnalysisLoadingScreen from "../features/analysis/AnalysisLoadingScreen";
 import RecentHeadlines from "../components/features/analysis/RecentHeadlines";
 import AnalysisDisclaimer from "../features/analysis/AnalysisDisclaimer";
 import HotAnalysesCard from "../components/features/analysis/HotAnalysesCard";
@@ -289,6 +290,8 @@ const Home = () => {
   const { analyze: _analyze, analyzeUrl: _analyzeUrl, loading, result, error, isPolling, analysisStage } = useAnalysis();
 
   // Anonim kullanıcı için 1 ücretsiz analiz — 2. denemede toast göster
+  const [pendingText, setPendingText] = React.useState('');
+
   const analyze = (text) => {
       if (!isAuthenticated) {
           if (sessionStorage.getItem(ANON_USED_KEY)) {
@@ -296,6 +299,7 @@ const Home = () => {
               return;
           }
       }
+      setPendingText(text || '');
       _analyze(text);
   };
 
@@ -452,7 +456,7 @@ const Home = () => {
           {/* Sonuç alanı — key değişince animate-fade-up tetiklenir */}
           <div ref={resultRef} className="mt-4 md:mt-6 w-full">
             {showAnalysisSkeleton ? (
-              <AnalysisResultSkeleton key="skeleton" />
+              <AnalysisLoadingScreen key="loading" analysisStage={analysisStage} pendingText={pendingText} />
             ) : result ? (
               <AnalysisResultCard
                 key={`result-${result.task_id ?? result.prediction ?? 'analysis'}`}

@@ -45,10 +45,11 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const register = async (email, username, password) => {
+    const register = async (email, username, password, termsAccepted) => {
         try {
-            const data = await AuthService.register(email, username, password);
-            await fetchUser();
+            const data = await AuthService.register(email, username, password, termsAccepted);
+            // fetchUser() yerine response'daki user'ı direkt kullan — ekstra round trip yok
+            if (data.user) { setUser(data.user); setIsAuthenticated(true); }
             return { success: true, needsVerification: data.needs_verification, needsOnboarding: data.needs_onboarding };
         } catch (error) {
             return { success: false, error: error.message };

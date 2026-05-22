@@ -139,7 +139,7 @@ export default function PopularNewsSection() {
                 // Son 2 Gün / Görüntülenme Bazlı
             </p>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 auto-rows-[220px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 auto-rows-[220px]">
                 {loading
                     ? Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
                     : news.map((item, i) => <NewsCard key={item.id} item={item} rank={i + 1} />)

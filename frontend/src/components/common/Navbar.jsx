@@ -72,7 +72,8 @@ function CategoryBar({ activeCategory, onSelect }) {
         if (!btn || !container) return;
         const br = btn.getBoundingClientRect();
         const cr = container.getBoundingClientRect();
-        setIndicator({ left: br.left - cr.left, width: br.width, ready: true });
+        // scrollLeft ekle — sağdaki kategorilerde yanlış pozisyon hesabını düzeltir
+        setIndicator({ left: br.left - cr.left + container.scrollLeft, width: br.width, ready: true });
     }, [activeCategory]);
 
     return (

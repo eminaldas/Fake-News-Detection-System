@@ -163,10 +163,46 @@ function LeaveModal({ onConfirm, onCancel }) {
 }
 
 /* Social link satırı */
+function isValidUrl(url) {
+  try { const u = new URL(url); return u.protocol === 'http:' || u.protocol === 'https:'; }
+  catch { return false; }
+}
+
+async function checkUrl(url) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 4000);
+  try {
+    await fetch(url, { mode: 'no-cors', signal: ctrl.signal });
+    return 'ok';
+  } catch (e) {
+    return e.name === 'AbortError' ? 'ok' : 'error'; // timeout = sunucu var ama yavaş
+  } finally { clearTimeout(timer); }
+}
+
 function SocialLinkRow({ item, onUrlChange, onRemove, platforms }) {
   const platform = platforms.find(p => p.key === item.platform);
-  const [f, setF] = useState(false);
+  const [f,       setF]       = useState(false);
+  const [status,  setStatus]  = useState('idle'); // idle | checking | ok | error
+  const timerRef = useRef(null);
   const Icon = platform?.Icon ?? Link2;
+
+  const handleChange = (val) => {
+    onUrlChange(item.id, val);
+    setStatus('idle');
+    clearTimeout(timerRef.current);
+    if (!val) return;
+    if (!isValidUrl(val)) { setStatus('error'); return; }
+    setStatus('checking');
+    timerRef.current = setTimeout(async () => {
+      const result = await checkUrl(val);
+      setStatus(result);
+    }, 600);
+  };
+
+  const dot = status === 'checking' ? { color:'#f59e0b', symbol:'●' }
+            : status === 'ok'       ? { color:'#3fff8b', symbol:'✓' }
+            : status === 'error'    ? { color:'#ff7351', symbol:'✗' }
+            : null;
 
   return (
     <motion.div
@@ -187,13 +223,20 @@ function SocialLinkRow({ item, onUrlChange, onRemove, platforms }) {
       </span>
       <input
         value={item.url}
-        onChange={e => onUrlChange(item.id, e.target.value)}
+        onChange={e => handleChange(e.target.value)}
         placeholder={platform?.placeholder ?? 'https://'}
         style={{ flex:1, background:'transparent', border:'none', outline:'none', fontFamily:'monospace', fontSize:'0.875rem', color: W, caretColor: W }}
         onFocus={() => setF(true)}
         onBlur={() => setF(false)}
       />
-      {item.url && (
+      {/* Link kontrol göstergesi */}
+      {dot && (
+        <span style={{ fontFamily:'monospace', fontSize:'0.65rem', fontWeight:700, color: dot.color, flexShrink:0,
+                       animation: status === 'checking' ? 'pulse 1s infinite' : undefined }}>
+          {dot.symbol}
+        </span>
+      )}
+      {item.url && status === 'ok' && (
         <a href={item.url} target="_blank" rel="noopener noreferrer"
            aria-label={`${platform?.label || 'Bağlantıyı'} yeni sekmede aç`}
            style={{ flexShrink:0, opacity:0.3 }}
