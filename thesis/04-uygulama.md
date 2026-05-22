@@ -107,9 +107,49 @@ Frontend, React 19 ve Tailwind CSS v4 ile geliştirilmiş olup 32 sayfa ve bunla
 
 *[Şekil 4.4–4.9: Ekran görüntüleri — Giriş, Anasayfa, Analiz Sonucu, Forum, Profil, Admin Paneli]*
 
-## 4.6 Önemli Kod Bileşenleri
+## 4.6 Proje Dizin Yapısı
 
-### 4.6.1 SIGNAL_KEYS — Sinyal Sıra Sabiti
+Projenin kaynak kod organizasyonu işlevsel sorumluluklara göre ayrıştırılmıştır. Temel dizin yapısı aşağıda gösterilmektedir:
+
+```
+Fake-News-Detection-System/
+├── app/                        # FastAPI backend
+│   ├── api/v1/endpoints/       # 25 REST endpoint dosyası
+│   ├── core/                   # Güvenlik, yapılandırma, loglama
+│   ├── db/                     # Veritabanı oturumu, Redis
+│   ├── models/                 # SQLAlchemy ORM modelleri (35 tablo)
+│   └── schemas/                # Pydantic istek/yanıt şemaları
+├── ml_engine/                  # Makine öğrenimi katmanı
+│   ├── processing/
+│   │   ├── cleaner.py          # SIGNAL_KEYS, metin ön işleme
+│   │   └── stylometric.py      # Stilometrik özellikler
+│   ├── models/
+│   │   └── fake_news_classifier.pkl  # Eğitilmiş model
+│   └── vectorizer.py           # BERT embedding üretimi
+├── workers/                    # Celery async görev işçileri
+│   ├── tasks.py                # Ana analiz pipeline
+│   ├── agent_tasks.py          # RSS agent + fact-check
+│   ├── image_analysis_task.py  # Görsel analiz
+│   └── deep_report_task.py     # Derinlemesine rapor
+├── scrapers/                   # Veri toplama
+│   ├── rss_monitor.py          # RSS besleme izleme
+│   └── web_scraper.py          # URL içerik çekme
+├── scripts/                    # Yardımcı betikler
+│   ├── train_classifier.py     # Model eğitimi
+│   └── ingest_aa_data.py       # Veri seti yükleme
+├── frontend/                   # React 19 + Tailwind CSS v4
+│   └── src/
+│       ├── pages/              # 32 sayfa bileşeni
+│       └── components/         # Yeniden kullanılabilir bileşenler
+├── docker-compose.yml          # 9 Docker servisi
+└── requirements.txt            # Python bağımlılıkları
+```
+
+Bu yapı, her katmanın bağımsız olarak geliştirilebilmesini ve test edilebilmesini sağlamaktadır. Backend, ML katmanı ve frontend arasındaki bağımlılıklar API sözleşmesiyle sınırlandırılmıştır.
+
+## 4.7 Önemli Kod Bileşenleri
+
+### 4.7.1 SIGNAL_KEYS — Sinyal Sıra Sabiti
 
 `ml_engine/processing/cleaner.py` dosyasında tanımlanan SIGNAL_KEYS listesi, eğitim ve çıkarım aşamalarında sinyal vektörünün sırasını garanti eder. Yeni bir sinyal eklenmesi durumunda hem bu liste hem de model yeniden eğitilmelidir:
 
@@ -126,7 +166,7 @@ SIGNAL_KEYS = [
 ]
 ```
 
-### 4.6.2 Ensemble Karar Mekanizması
+### 4.7.2 Ensemble Karar Mekanizması
 
 `workers/tasks.py` dosyasındaki ensemble mantığı, model olasılığını ve kural skorunu dengeleyen ağırlıklı bir birleşim uygular:
 
@@ -136,7 +176,7 @@ pred_status = "FAKE" if combined > 0.50 else "AUTHENTIC"
 confidence  = max(combined, 1 - combined)
 ```
 
-### 4.6.3 pgvector Cosine Benzerlik Sorgusu
+### 4.7.3 pgvector Cosine Benzerlik Sorgusu
 
 `app/api/v1/endpoints/analysis.py` dosyasında Stage 1 araması şu şekilde gerçekleştirilmektedir:
 
@@ -148,7 +188,7 @@ results = await db.execute(
 )
 ```
 
-### 4.6.4 Stage 1 Ağırlıklı Oylama
+### 4.7.4 Stage 1 Ağırlıklı Oylama
 
 Birden fazla eşleşme bulunduğunda benzerlik karesi ağırlıklı oylama uygulanır; bu sayede yakın eşleşmeler üstel olarak daha fazla söz hakkı taşır:
 
@@ -160,9 +200,9 @@ for article, similarity in matches:
 winner = max(weighted_votes, key=weighted_votes.get)
 ```
 
-## 4.7 Test ve Performans
+## 4.8 Test ve Performans
 
-### 4.7.1 Model Performansı
+### 4.8.1 Model Performansı
 
 **Tablo 4.3.** Sınıflandırıcı test sonuçları
 
@@ -175,7 +215,7 @@ winner = max(weighted_votes, key=weighted_votes.get)
 
 Model, 3.286 örnekten oluşan dengeli test bölümünde %88 doğruluk oranına ulaşmıştır. Sınıf başına F1 değerlerinin birbirine yakın olması (0,89 ve 0,88), class_weight="balanced" parametresinin dengesiz sınıf dağılımını başarıyla telafi ettiğini göstermektedir.
 
-### 4.7.2 API Hata Yönetimi
+### 4.8.2 API Hata Yönetimi
 
 Sistem, kullanıcıya anlamlı geri bildirim sağlamak amacıyla HTTP standart hata kodlarını tutarlı biçimde kullanmaktadır:
 
@@ -186,7 +226,7 @@ Sistem, kullanıcıya anlamlı geri bildirim sağlamak amacıyla HTTP standart h
 | 429 Too Many Requests | Günlük analiz limiti aşıldı | Günlük analiz limitinize ulaştınız |
 | 503 Service Unavailable | Embedding servisi başlamamış | Analiz servisi geçici olarak kullanılamıyor |
 
-### 4.7.3 Güvenlik Testleri
+### 4.8.3 Güvenlik Testleri
 
 Sistem, aşağıdaki güvenlik mekanizmaları manuel olarak test edilmiş ve doğrulanmıştır:
 

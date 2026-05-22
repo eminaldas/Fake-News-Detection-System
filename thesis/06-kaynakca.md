@@ -33,3 +33,9 @@ Wang, W. Y. (2017). "Liar, liar pants on fire": A new benchmark dataset for fake
 Wardle, C., & Derakhshan, H. (2017). *Information disorder: Toward an interdisciplinary framework for research and policy making* (DGI(2017)09). Council of Europe. https://rm.coe.int/information-disorder-report-november-2017/1680764666
 
 World Health Organization. (2020). *Infodemic management: A key component of the COVID-19 global response*. WHO. https://www.who.int/teams/risk-communication/infodemic-management
+
+Zhou, X. ve Zafarani, R. (2020). A survey of fake news: Fundamental theories, detection methods, and opportunities. *ACM Computing Surveys*, *53*(5), 1–40. https://doi.org/10.1145/3395046
+
+Sharma, K., Qian, F., Jiang, H., Ruchansky, N., Zhang, M. ve Liu, Y. (2019). Combating fake news: A survey on identification and mitigation techniques. *ACM Transactions on Intelligent Systems and Technology*, *10*(3), 1–42. https://doi.org/10.1145/3305260
+
+Zubiaga, A., Aker, A., Bontcheva, K., Liakata, M. ve Procter, R. (2018). Detection and resolution of rumours in social media: A survey. *ACM Computing Surveys*, *51*(2), 1–36. https://doi.org/10.1145/3161603

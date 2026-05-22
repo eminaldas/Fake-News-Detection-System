@@ -132,9 +132,46 @@ Proje, Agile benzeri bir iteratif geliştirme modeli benimsenmiştir. Her özell
 | Veri kümesi sınıf dengesizliği | Orta | Orta | class_weight="balanced" parametresi, proportion cap (%15) |
 | Rate limit aşımı | Orta | Düşük | Redis tabanlı IP başına sayaç, Celery kuyruklama |
 
-## 3.3 Algoritma ve Makine Öğrenimi Metodolojisi
+## 3.3 Araç ve Teknik Belirleme
 
-### 3.3.1 İki Aşamalı Analiz Pipeline
+### 3.3.1 Geliştirme Ortamı ve Yardımcı Araçlar
+
+Projenin geliştirilmesinde birincil kod editörü olarak **Visual Studio Code** kullanılmıştır. Çok sayıda dile ve çerçeveye yönelik eklenti desteği, entegre terminal ve Docker uzantısı bu tercihin temel gerekçelerini oluşturmaktadır. Python geliştirme tarafında Pylance ve Ruff eklentileri tip denetimi ve kod kalitesi için etkinleştirilmiştir.
+
+Versiyon kontrolü için **Git** ve uzak depo yönetimi için **GitHub** kullanılmıştır. Her özellik bağımsız bir dal üzerinde geliştirilmiş; pull request iş akışı uygulanmıştır. Toplam 50'den fazla commit ile proje tarihçesi tam olarak kayıt altına alınmıştır.
+
+Yerel geliştirme ortamında **Docker Desktop** kullanılarak tüm servisler konteyner içinde çalıştırılmıştır. Bu yaklaşım, geliştirme ve üretim ortamları arasındaki tutarsızlıkları ortadan kaldırmıştır.
+
+### 3.3.2 Donanım Gereksinimleri
+
+Proje CPU tabanlı çıkarım (inference) üzerine tasarlanmıştır; GPU zorunlu değildir. Önerilen minimum donanım gereksinimleri aşağıda belirtilmektedir.
+
+**Tablo 3.7.** Donanım gereksinimleri
+
+| Bileşen | Minimum | Üretim Ortamı |
+|---------|---------|--------------|
+| RAM | 4 GB | 8 GB |
+| CPU | 2 çekirdek | 4 çekirdek |
+| Disk | 10 GB | 20 GB (model + DB) |
+| GPU | Gerekmez | Gerekmez |
+
+BERT modelinin CPU'da çalışması, GPU sunucusu maliyetini sıfıra indirmiştir. FP16 (yarım hassasiyet) desteği eklenerek model bellek tüketimi yaklaşık %40 oranında azaltılmıştır.
+
+### 3.3.3 Yazılım Yaşam Döngüsü Modeli
+
+Proje, **Agile (Çevik)** metodolojisinin özelleştirilmiş bir varyantıyla yönetilmiştir. Her özellik için şu döngü izlenmiştir:
+
+1. **Brainstorming** — kullanıcı ihtiyacı ve tasarım alternatifleri belirlenir
+2. **Spec yazımı** — tasarım kararları doküman olarak kaydedilir
+3. **Implementation plan** — görev bazlı uygulama adımları planlanır
+4. **Kodlama** — plan doğrultusunda geliştirme yapılır
+5. **Commit** — değişiklikler versiyonlanır
+
+Waterfall modelinin aksine gereksinimler proje boyunca evrilmiştir; her iterasyon çalışan bir yazılım parçası üretmiştir. Toplam 46 tasarım dokümanı ve 52 uygulama planı bu sürecin somut çıktılarıdır.
+
+## 3.4 Algoritma ve Makine Öğrenimi Metodolojisi
+
+### 3.4.1 İki Aşamalı Analiz Pipeline
 
 Sistem, gerçek zamanlı yanıt hızını ve derin analiz kalitesini aynı anda karşılamak amacıyla iki aşamalı bir mimari üzerine inşa edilmiştir.
 
@@ -156,11 +193,11 @@ Bu tasarım, tek bir yakın eşleşmenin kararı çarpıtmasını önlerken bird
 5. Ensemble kararı hesaplanır
 6. Güven belirsizse Gemini LLM devreye girer
 
-### 3.3.2 NLP Sinyal Çıkarımı
+### 3.4.2 NLP Sinyal Çıkarımı
 
 Sekiz sinyal, manipülatif dilin karakteristik göstergelerini ölçmek amacıyla seçilmiştir. Her sinyal, cleaner.py modülündeki SIGNAL_KEYS sabiti üzerinden sıra korunarak sınıflandırıcıya iletilir.
 
-**Tablo 3.7.** NLP sinyal tanımları
+**Tablo 3.8.** NLP sinyal tanımları
 
 | Sinyal | Tanım | Sahtelik Katkısı |
 |--------|-------|-----------------|
@@ -182,7 +219,7 @@ risk = clickbait × 0,30 + exclamation × 0,20 + uppercase × 0,15
 risk = clamp(risk, 0,0, 1,0)
 ```
 
-### 3.3.3 Ensemble Karar Mekanizması
+### 3.4.3 Ensemble Karar Mekanizması
 
 Makine öğrenimi modelinin olasılık çıktısı ile kural tabanlı risk skorunu dengeleyen ağırlıklı topluluk kararı şu formülle hesaplanır:
 
@@ -194,11 +231,11 @@ güven       = max(combined, 1 − combined)
 
 0,70 / 0,30 ağırlık dağılımı, modelin temel karar kaynağı olmaya devam etmesini; ancak kural sinyallerinin ikincil düzeltici rol üstlenmesini sağlamaktadır. Bu tasarımın ardındaki temel motivasyon, önceki yaklaşımın hatasını gidermektir: eski kodda düşük güvenlikli GERÇEK tahminleri, minimal bir kural sinyaliyle SAHTE etiketine çekiliyordu. Ağırlıklı topluluk kararı bu asimetriyi ortadan kaldırmaktadır.
 
-### 3.3.4 Model Eğitimi
+### 3.4.4 Model Eğitimi
 
 Sınıflandırıcı, iki farklı kaynaktan derlenen Türkçe haber veri kümesi üzerinde eğitilmiştir: Teyit sahte haber arşivi ve Anadolu Ajansı doğrulanmış haber veri kümesi.
 
-**Tablo 3.8.** Model eğitim istatistikleri
+**Tablo 3.9.** Model eğitim istatistikleri
 
 | Parametre | Değer |
 |-----------|-------|
