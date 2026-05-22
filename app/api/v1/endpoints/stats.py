@@ -35,13 +35,16 @@ async def platform_stats(db: AsyncSession = Depends(get_db)):
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         week_start = today_start - timedelta(days=6)
 
-        # Bugünkü istatistikler — analiz yapılma zamanına göre
+        # Bugünkü istatistikler — sadece kullanıcı analizleri (RSS/otomatik hariç)
         today_rows = (await db.execute(
             select(
                 AnalysisResult.status,
                 func.count().label("cnt"),
             )
-            .where(AnalysisResult.created_at >= today_start)
+            .where(
+                AnalysisResult.created_at >= today_start,
+                AnalysisResult.user_id.is_not(None),
+            )
             .group_by(AnalysisResult.status)
         )).all()
 
@@ -57,14 +60,17 @@ async def platform_stats(db: AsyncSession = Depends(get_db)):
             )
         )).scalar_one()
 
-        # 7 günlük heatmap — analiz yapılma zamanına göre
+        # 7 günlük heatmap — sadece kullanıcı analizleri
         heatmap_rows = (await db.execute(
             select(
                 cast(AnalysisResult.created_at, Date).label("day"),
                 func.count().label("total"),
                 func.sum(case((AnalysisResult.status == "FAKE", 1), else_=0)).label("fake_cnt"),
             )
-            .where(AnalysisResult.created_at >= week_start)
+            .where(
+                AnalysisResult.created_at >= week_start,
+                AnalysisResult.user_id.is_not(None),
+            )
             .group_by(cast(AnalysisResult.created_at, Date))
             .order_by(cast(AnalysisResult.created_at, Date))
         )).all()
