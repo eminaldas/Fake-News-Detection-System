@@ -19,25 +19,25 @@ services:
     memswap_limit: 1800m
 
   app:
-    build: .
-    ports:
-      - "127.0.0.1:8000:8000"
-    volumes:
-      - .:/workspace
-    env_file:
-      - .env
-    environment:
-      - EMBEDDING_SERVICE_URL=http://embedding-service:8001
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_started
-      embedding-service:
-        condition: service_healthy
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
-    mem_limit: 600m
-    memswap_limit: 600m
+      build: .
+      ports:
+        - "127.0.0.1:8000:8000"
+      volumes:
+        - .:/workspace
+      env_file:
+        - .env
+      environment:
+        - EMBEDDING_SERVICE_URL=http://embedding-service:8001
+      depends_on:
+        db:
+          condition: service_healthy
+        redis:
+          condition: service_started
+        embedding-service:
+          condition: service_healthy
+      command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+      mem_limit: 600m
+      memswap_limit: 600m
 
   worker:
     build: .
@@ -144,18 +144,6 @@ services:
     restart: unless-stopped
     mem_limit: 300m
     memswap_limit: 300m
-
-  frontend:
-    build:
-      context: ./frontend
-      args:
-        VITE_API_URL: /api/v1
-    ports:
-      - "80:80"
-    depends_on:
-      - app
-    mem_limit: 100m
-    memswap_limit: 100m
 
   db:
     image: ankane/pgvector:latest
