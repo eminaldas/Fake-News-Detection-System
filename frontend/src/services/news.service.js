@@ -11,6 +11,11 @@ class NewsService {
         const res = await axiosInstance.get('/news', { params });
         return res.data;
     }
+
+    static async summarize(articleId) {
+        const res = await axiosInstance.post(`/news/${articleId}/summarize`);
+        return res.data; // { summary: string }
+    }
 }
 
 export default NewsService;
