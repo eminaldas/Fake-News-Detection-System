@@ -114,7 +114,7 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
         <>
             {/* Overlay */}
             <div
-                className="fixed inset-0 z-[200]"
+                className="fixed inset-0 z-9999"
                 style={{
                     background:           visible ? 'rgba(0,0,0,0.68)' : 'rgba(0,0,0,0)',
                     backdropFilter:       visible ? 'blur(3px)' : 'blur(0px)',
@@ -125,7 +125,7 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
             />
 
             {/* Modal */}
-            <div className="fixed inset-0 z-[201] flex items-start justify-center pt-18 px-4 pointer-events-none">
+            <div className="fixed inset-0 z-10000 flex items-center justify-center px-4 py-6 pointer-events-none">
                 <div
                     className="w-full max-w-xl pointer-events-auto flex flex-col overflow-hidden relative"
                     style={{
@@ -196,7 +196,7 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
                                     caretColor:  BRAND,
                                     fontFamily:  "'Open Sans', sans-serif",
                                     padding:     '6px 0',
-                                    borderBottom: `1px solid ${title ? 'rgba(63,255,139,0.30)' : 'rgba(255,255,255,0.08)'}`,
+                                    borderBottom: `1px solid ${title ? 'rgba(63,255,139,0.30)' : 'var(--color-terminal-border-raw)'}`,
                                     transition:  'border-color 0.2s',
                                 }}
                             />
@@ -205,11 +205,11 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
                             {suggestion && !title && (
                                 <div className="flex items-center gap-1.5 mt-2">
                                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-bold font-mono"
-                                          style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.10)' }}>
+                                          style={{ background: 'var(--color-terminal-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-terminal-border-raw)' }}>
                                         Tab ↹
                                     </span>
                                     <span className="text-[10px] truncate max-w-75"
-                                          style={{ color: 'rgba(255,255,255,0.32)' }}>
+                                          style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
                                         {suggestion.length > 60 ? suggestion.slice(0, 60) + '…' : suggestion}
                                     </span>
                                 </div>

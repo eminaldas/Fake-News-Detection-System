@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     ScanText, Cpu, Globe, Sparkles, ShieldCheck,
     CheckCircle2, Circle, Loader2,
@@ -29,8 +29,8 @@ const STEPS = [
 ];
 
 // Hangi adım aktif/tamamlanmış?
-function getStepState(stepIdx, stage) {
-    const order = [null, null, 'source_discovery', 'gemini', 'complete'];
+function getStepState(stepIdx, stage, allComplete) {
+    if (allComplete) return 'done';
     const stageIdx = stage === null ? 1
         : stage === 'source_discovery' ? 2
         : stage === 'gemini' ? 3
@@ -47,20 +47,36 @@ function pctFromStage(stage) {
     return 90;
 }
 
-export default function AnalysisLoadingScreen({ analysisStage, pendingText }) {
+export default function AnalysisLoadingScreen({ analysisStage, pendingText, isComplete, onComplete }) {
     const [tipIdx, setTipIdx] = useState(() => Math.floor(Math.random() * TIPS.length));
     const [pct,    setPct]    = useState(5);
+    const startTimeRef = useRef(Date.now());
 
     useEffect(() => {
         const id = setInterval(() => setTipIdx(i => (i + 1) % TIPS.length), 4500);
         return () => clearInterval(id);
     }, []);
 
+    // Zaman tabanlı + stage tabanlı ilerleme (isComplete olmadığı sürece)
     useEffect(() => {
-        const target = pctFromStage(analysisStage ?? null);
-        const id = setInterval(() => setPct(p => p >= target ? p : Math.min(p + 1, target)), 45);
+        if (isComplete) return;
+        const id = setInterval(() => {
+            const elapsedSec = (Date.now() - startTimeRef.current) / 1000;
+            const stagePct   = pctFromStage(analysisStage ?? null);
+            const timePct    = elapsedSec >= 15 ? 70 : elapsedSec >= 10 ? 50 : 18;
+            const target     = Math.max(stagePct, timePct);
+            setPct(p => p >= target ? p : Math.min(p + 1, target));
+        }, 45);
         return () => clearInterval(id);
-    }, [analysisStage]);
+    }, [analysisStage, isComplete]);
+
+    // Tamamlanma animasyonu: bar → 100%, tüm adımlar tik, sonra onComplete
+    useEffect(() => {
+        if (!isComplete) return;
+        const id = setInterval(() => setPct(p => Math.min(p + 2, 100)), 20);
+        const tid = setTimeout(() => { clearInterval(id); onComplete?.(); }, 1200);
+        return () => { clearInterval(id); clearTimeout(tid); };
+    }, [isComplete, onComplete]);
 
     return (
         <div
@@ -79,9 +95,12 @@ export default function AnalysisLoadingScreen({ analysisStage, pendingText }) {
 
             {/* Header */}
             <div className="px-5 sm:px-7 py-4 flex items-center gap-3 border-b" style={{ borderColor: BORDER }}>
-                <Loader2 className="w-4 h-4 animate-spin shrink-0" style={{ color: BRAND }} />
+                {isComplete
+                    ? <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: BRAND }} />
+                    : <Loader2 className="w-4 h-4 animate-spin shrink-0" style={{ color: BRAND }} />
+                }
                 <span className="font-mono text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: BRAND }}>
-                    // Analiz Devam Ediyor
+                    {isComplete ? '// Analiz Tamamlandı' : '// Analiz Devam Ediyor'}
                 </span>
                 <div className="ml-auto flex items-center gap-3">
                     <div className="hidden sm:flex h-1.5 w-32 overflow-hidden" style={{ background: BORDER }}>
@@ -91,7 +110,7 @@ export default function AnalysisLoadingScreen({ analysisStage, pendingText }) {
                         />
                     </div>
                     <span className="font-mono text-sm font-black" style={{ color: BRAND }}>
-                        %{pct}
+                        {isComplete && pct >= 100 ? '✓ 100%' : `%${pct}`}
                     </span>
                 </div>
             </div>
@@ -106,7 +125,7 @@ export default function AnalysisLoadingScreen({ analysisStage, pendingText }) {
                     </p>
 
                     {STEPS.map(({ key, label, Icon }, idx) => {
-                        const state = getStepState(idx, analysisStage ?? null);
+                        const state = getStepState(idx, analysisStage ?? null, isComplete);
                         const isDone   = state === 'done';
                         const isActive = state === 'active';
                         return (

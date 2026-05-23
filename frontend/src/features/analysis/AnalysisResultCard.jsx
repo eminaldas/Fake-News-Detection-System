@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import {
-    Brain, MessageSquare,
+    Brain, MessageSquare, CheckCircle2,
     Link2, Info, ThumbsUp, ThumbsDown, FileSearch, ExternalLink,
 } from 'lucide-react';
+import { trackInteraction } from '../../services/interaction.service';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import SignalPanel from './SignalPanel';
 import HighlightedText from './HighlightedText';
 import AICommentCard from './AICommentCard';
 import FalseClaimsCard from './FalseClaimsCard';
-import FeedbackBar from './FeedbackBar';
 import ForumSuggestion from '../forum/ForumSuggestion';
 import ShareDropdown from '../../components/ui/ShareDropdown';
 import FullReportModal from './FullReportModal';
@@ -21,6 +21,22 @@ const AnalysisResultCard = ({ result }) => {
     const { isAuthenticated } = useAuth();
 
     const [showModal, setShowModal] = useState(false);
+    const [feedbackState,  setFeedbackState]  = useState('idle'); // idle | asking | sent
+    const [feedbackReason, setFeedbackReason] = useState('');
+
+    const handleFeedbackPositive = async () => {
+        if (feedbackState !== 'idle') return;
+        setFeedbackState('sent');
+        try { await trackInteraction({ content_id: articleId, interaction_type: 'feedback_positive' }); } catch {}
+    };
+    const handleFeedbackNegative = () => {
+        if (feedbackState !== 'idle') return;
+        setFeedbackState('asking');
+    };
+    const handleFeedbackSubmit = async () => {
+        setFeedbackState('sent');
+        try { await trackInteraction({ content_id: articleId, interaction_type: 'feedback_negative', note: feedbackReason }); } catch {}
+    };
 
     // Hooks must come before the early return — compute values safely with optional chaining
     const isUrlAnalysis = !!result?.truth_score;
@@ -80,7 +96,7 @@ const AnalysisResultCard = ({ result }) => {
     return (
         <>
         <div
-            className="animate-fade-up mt-6 md:mt-8 w-full overflow-hidden flex flex-col"
+            className="animate-fade-up mt-6 md:mt-8 w-full flex flex-col relative"
             style={{
                 background: 'var(--color-bg-surface)',
                 border: `1px solid ${hex30}`,
@@ -238,34 +254,69 @@ const AnalysisResultCard = ({ result }) => {
 
             {/* ── Footer: Geri Bildirim ── */}
             <div style={{ borderTop: `1px solid ${hex15}`, background: 'var(--color-bg-surface-solid)' }}>
-                {/* Satır 1: Bu sonuç doğru mu? + Hayır / Evet */}
+                {/* Satır 1: Bu sonuç doğru mu? */}
                 <div className="px-5 sm:px-7 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                             style={{ background: hex15 }}>
-                            <MessageSquare className={`w-4 h-4 ${theme.statusCls}`} />
+                    {feedbackState === 'sent' ? (
+                        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                            <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: theme.hex }} />
+                            <span>Geri bildirim alındı, teşekkürler.</span>
                         </div>
-                        <p className="text-tx-secondary text-sm font-medium">Bu sonuç doğru mu?</p>
-                    </div>
-                    <div className="flex gap-2.5 w-full sm:w-auto">
-                        <button className="flex-1 sm:flex-none flex items-center justify-center gap-1.5
-                                           px-5 py-2 rounded-xl border border-brutal-border/40
-                                           text-tx-secondary font-manrope font-bold text-[11px] uppercase tracking-wider
-                                           hover:bg-surface-solid hover:text-tx-primary transition-colors active:scale-95">
-                            <ThumbsDown className="w-3.5 h-3.5" />
-                            Hayır
-                        </button>
-                        <button
-                            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5
-                                        px-6 py-2 rounded-xl ${theme.bgCls} ${theme.onBgCls}
-                                        font-manrope font-bold text-[11px] uppercase tracking-wider
-                                        hover:opacity-85 transition-opacity active:scale-95`}
-                            style={{ boxShadow: `0 4px 16px rgba(${theme.glowRgb},0.25)` }}
-                        >
-                            <ThumbsUp className="w-3.5 h-3.5" />
-                            Evet
-                        </button>
-                    </div>
+                    ) : feedbackState === 'asking' ? (
+                        <div className="flex flex-col gap-2 w-full">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-tx-secondary">
+                                Neyi eksik buldun? <span className="normal-case font-normal">(opsiyonel)</span>
+                            </label>
+                            <textarea
+                                value={feedbackReason}
+                                onChange={e => setFeedbackReason(e.target.value)}
+                                rows={2}
+                                placeholder="Yazabilirsin..."
+                                className="w-full border text-sm p-2.5 resize-none focus:outline-none transition-colors rounded-none"
+                                style={{ background: 'var(--color-terminal-surface)', borderColor: `${theme.hex}30`, color: 'var(--color-text-primary)' }}
+                            />
+                            <div className="flex justify-end">
+                                <button
+                                    onClick={handleFeedbackSubmit}
+                                    className="px-4 py-1.5 font-manrope font-bold text-[11px] uppercase tracking-wider border transition-all hover:opacity-85 rounded-xl"
+                                    style={{ borderColor: theme.hex, color: theme.hex, background: hex08 }}
+                                >
+                                    Gönder
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                                     style={{ background: hex15 }}>
+                                    <MessageSquare className={`w-4 h-4 ${theme.statusCls}`} />
+                                </div>
+                                <p className="text-tx-secondary text-sm font-medium">Bu sonuç doğru mu?</p>
+                            </div>
+                            <div className="flex gap-2.5 w-full sm:w-auto">
+                                <button
+                                    onClick={handleFeedbackNegative}
+                                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5
+                                               px-5 py-2 rounded-xl border border-brutal-border/40
+                                               text-tx-secondary font-manrope font-bold text-[11px] uppercase tracking-wider
+                                               hover:bg-surface-solid hover:text-tx-primary transition-colors active:scale-95">
+                                    <ThumbsDown className="w-3.5 h-3.5" />
+                                    Hayır
+                                </button>
+                                <button
+                                    onClick={handleFeedbackPositive}
+                                    className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5
+                                                px-6 py-2 rounded-xl ${theme.bgCls} ${theme.onBgCls}
+                                                font-manrope font-bold text-[11px] uppercase tracking-wider
+                                                hover:opacity-85 transition-opacity active:scale-95`}
+                                    style={{ boxShadow: `0 4px 16px rgba(${theme.glowRgb},0.25)` }}
+                                >
+                                    <ThumbsUp className="w-3.5 h-3.5" />
+                                    Evet
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </div>
                 {/* Satır 2: Tam Rapor + Paylaş */}
                 <div className="px-5 sm:px-7 py-3 flex items-center justify-between"

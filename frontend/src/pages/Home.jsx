@@ -330,6 +330,8 @@ const Home = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const showAnalysisSkeleton = loading || isPolling;
   const resultRef = useRef(null);
+  const [completionPhase, setCompletionPhase] = useState(false);
+  const wasLoadingRef = useRef(false);
 
   const handleAnalyzeImage = (file) => {
     if (!file) return;
@@ -345,14 +347,30 @@ const Home = () => {
       }
   }, [result, isAuthenticated]);
 
-  // Analiz tamamlanınca sonuca smooth scroll
+  // Loading'den result'a geçişi takip et → completionPhase
   useEffect(() => {
-    if (!showAnalysisSkeleton && result && resultRef.current) {
+      if (showAnalysisSkeleton) { wasLoadingRef.current = true; }
+  }, [showAnalysisSkeleton]);
+
+  useEffect(() => {
+      if (result && wasLoadingRef.current) {
+          wasLoadingRef.current = false;
+          setCompletionPhase(true);
+      }
+      if (!result) {
+          wasLoadingRef.current = false;
+          setCompletionPhase(false);
+      }
+  }, [result]);
+
+  // Sonuç kartı göründüğünde smooth scroll (completionPhase bitti + result var)
+  useEffect(() => {
+    if (!completionPhase && result && resultRef.current) {
       setTimeout(() => {
         resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }, 120);
     }
-  }, [result, showAnalysisSkeleton]);
+  }, [completionPhase, result]);
 
   return (
     <div className="w-full min-h-[80vh] flex flex-col px-4 md:px-6">
@@ -455,8 +473,14 @@ const Home = () => {
 
           {/* Sonuç alanı — key değişince animate-fade-up tetiklenir */}
           <div ref={resultRef} className="mt-4 md:mt-6 w-full">
-            {showAnalysisSkeleton ? (
-              <AnalysisLoadingScreen key="loading" analysisStage={analysisStage} pendingText={pendingText} />
+            {(showAnalysisSkeleton || completionPhase) ? (
+              <AnalysisLoadingScreen
+                key="loading"
+                analysisStage={analysisStage}
+                pendingText={pendingText}
+                isComplete={completionPhase}
+                onComplete={() => setCompletionPhase(false)}
+              />
             ) : result ? (
               <AnalysisResultCard
                 key={`result-${result.task_id ?? result.prediction ?? 'analysis'}`}

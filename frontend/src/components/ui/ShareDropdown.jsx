@@ -54,7 +54,7 @@ export default function ShareDropdown({ url, text, onSendToFriend }) {
 
             {isOpen && (
                 <div
-                    className="absolute right-0 top-full mt-1 w-48 border z-50 overflow-hidden"
+                    className="absolute right-0 bottom-full mb-1 w-48 border z-50"
                     style={TS}
                 >
                     <button

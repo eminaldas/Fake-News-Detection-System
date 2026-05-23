@@ -2,13 +2,15 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { MessageSquare, Plus, ArrowRight } from 'lucide-react';
 import axiosInstance from '../../api/axios';
+import CreateThreadModal from './CreateThreadModal';
 
 const BORDER = 'var(--color-terminal-border-raw)';
 const BRAND  = 'var(--color-brand-primary)';
 
 const ForumSuggestion = ({ articleId }) => {
-    const [threads, setThreads] = React.useState([]);
-    const [loading, setLoading] = React.useState(false);
+    const [threads,     setThreads]     = React.useState([]);
+    const [loading,     setLoading]     = React.useState(false);
+    const [showModal,   setShowModal]   = React.useState(false);
 
     React.useEffect(() => {
         if (!articleId) return;
@@ -19,9 +21,8 @@ const ForumSuggestion = ({ articleId }) => {
             .finally(() => setLoading(false));
     }, [articleId]);
 
-    const newThreadUrl = articleId ? `/forum/new?article=${articleId}` : '/forum/new';
-
     return (
+        <>
         <div className="mt-4 overflow-hidden"
              style={{ background: 'var(--color-bg-surface)', border: `1px solid ${BORDER}`, borderTop: `3px solid ${BRAND}` }}>
 
@@ -41,14 +42,14 @@ const ForumSuggestion = ({ articleId }) => {
                         </p>
                     )}
                 </div>
-                <Link
-                    to={newThreadUrl}
+                <button
+                    onClick={() => setShowModal(true)}
                     className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80"
                     style={{ background: 'rgba(63,255,139,0.08)', color: BRAND, border: '1px solid rgba(63,255,139,0.25)' }}
                 >
                     <Plus className="w-3.5 h-3.5" />
                     Yeni
-                </Link>
+                </button>
             </div>
 
             {/* İçerik */}
@@ -65,14 +66,14 @@ const ForumSuggestion = ({ articleId }) => {
                         <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                             Bu haber henüz tartışılmadı. İlk tartışmayı sen başlat.
                         </p>
-                        <Link
-                            to={newThreadUrl}
+                        <button
+                            onClick={() => setShowModal(true)}
                             className="flex items-center gap-2 px-4 py-2 text-sm font-semibold whitespace-nowrap transition-opacity hover:opacity-85"
                             style={{ background: BRAND, color: '#070f12' }}
                         >
                             <MessageSquare className="w-3.5 h-3.5" />
                             Tartışma Başlat
-                        </Link>
+                        </button>
                     </div>
                 ) : (
                     <div className="flex flex-col divide-y" style={{ borderColor: BORDER }}>
@@ -117,6 +118,14 @@ const ForumSuggestion = ({ articleId }) => {
                 )}
             </div>
         </div>
+
+        {showModal && (
+            <CreateThreadModal
+                onClose={() => setShowModal(false)}
+                articleId={articleId ?? null}
+            />
+        )}
+        </>
     );
 };
 

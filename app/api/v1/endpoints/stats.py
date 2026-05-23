@@ -1,13 +1,16 @@
 from datetime import datetime, timezone, timedelta
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, func, case, cast, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
-from app.models.models import Article, AnalysisResult, User
+from app.models.models import AnalysisResult, User
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 _CACHE: dict = {}
 _CACHE_TTL = 300  # 5 dakika
@@ -94,5 +97,6 @@ async def platform_stats(db: AsyncSession = Depends(get_db)):
         }
         _cache_set(result)
         return result
-    except Exception:
+    except Exception as exc:
+        logger.exception("platform_stats hatası: %s", exc)
         raise HTTPException(status_code=503, detail="İstatistikler şu an kullanılamıyor.")
