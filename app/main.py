@@ -16,6 +16,7 @@ from app.api.v1.endpoints import (
     sources, stats, users, weather as weather_endpoint, ws as ws_endpoint,
 )
 from app.api.v1.endpoints import share as share_router
+from app.api.v1.endpoints import news_summary
 from app.core.logging import get_logger, setup_logging
 from app.core.seo import inject_thread_meta, is_bot
 from app.db.redis import close_redis
@@ -102,9 +103,10 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 @app.middleware("http")
 async def security_headers(request: Request, call_next) -> Response:
     response = await call_next(request)
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"]        = "DENY"
-    response.headers["Referrer-Policy"]        = "strict-origin-when-cross-origin"
+    response.headers["X-Content-Type-Options"]         = "nosniff"
+    response.headers["X-Frame-Options"]               = "DENY"
+    response.headers["Referrer-Policy"]               = "strict-origin-when-cross-origin"
+    response.headers["Cross-Origin-Opener-Policy"]    = "same-origin-allow-popups"
 
     # Rate limit header'larını request.state'den ekle (set edildiyse)
     if hasattr(request.state, "rate_limit_limit"):
@@ -124,6 +126,7 @@ app.include_router(ab_endpoint.router, prefix="/api/v1/admin/ab", tags=["AB Test
 app.include_router(admin_logs.router, prefix="/api/v1/admin", tags=["Admin Logs"])
 app.include_router(market.router,   prefix="/api/v1/market",  tags=["Market"])
 app.include_router(news.router,     prefix="/api/v1/news",    tags=["News"])
+app.include_router(news_summary.router, prefix="/api/v1/news", tags=["News"])
 app.include_router(digest.router,   prefix="/api/v1/digest",  tags=["Digest"])
 app.include_router(interactions.router,    prefix="/api/v1/interactions",   tags=["Interactions"])
 app.include_router(recommendations.router, prefix="/api/v1/recommendations", tags=["Recommendations"])
