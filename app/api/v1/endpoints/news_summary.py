@@ -9,6 +9,7 @@ import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -18,6 +19,11 @@ from app.models.models import NewsArticle
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+class SummaryResponse(BaseModel):
+    summary: str
+
 
 _SUMMARY_PROMPT = """\
 Aşağıda bir haber başlığı ve içeriği verilmiştir.
@@ -37,12 +43,24 @@ BAŞLIK: {title}
 Yalnızca özet metnini yaz, başka hiçbir şey ekleme.
 """
 
+_gemini_client = None
+
+
+def _get_gemini_client():
+    global _gemini_client
+    if _gemini_client is None:
+        from google import genai
+        _gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    return _gemini_client
+
 
 def _call_gemini_summary(title: str, content: str) -> str | None:
     """Senkron Gemini çağrısı — asyncio.to_thread ile sarılır."""
+    if not settings.GEMINI_API_KEY:
+        logger.warning("summarize: GEMINI_API_KEY ayarlanmamış")
+        return None
     try:
-        from google import genai
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        client = _get_gemini_client()
         prompt = _SUMMARY_PROMPT.format(
             title=title,
             content=content[:3000],  # token limiti için kısalt
@@ -58,7 +76,7 @@ def _call_gemini_summary(title: str, content: str) -> str | None:
         return None
 
 
-@router.post("/{article_id}/summarize")
+@router.post("/{article_id}/summarize", response_model=SummaryResponse)
 async def summarize_article(
     article_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -67,7 +85,7 @@ async def summarize_article(
     cache_key = f"news_sum:{article_id}"
     cached = await redis.get(cache_key)
     if cached:
-        return {"summary": cached.decode() if isinstance(cached, bytes) else cached}
+        return {"summary": cached}
 
     article = await db.get(NewsArticle, article_id)
     if not article:
