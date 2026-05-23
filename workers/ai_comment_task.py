@@ -380,8 +380,8 @@ JSON alanları:
     1. "Bu haber [SAHTE / GÜVENİLİR / BELİRSİZ] görünüyor." cümlesiyle başla.
     2. Neden bu kararı verdiğini açıkla — kaynak kalitesini ve koordineli yayılımı değerlendir.
     3. Kullanıcıya eylem önerisi ver: "Bu haberi paylaşmadan önce [güvenilir kaynak] üzerinden teyit edin." veya benzeri.
-- "evidence": en fazla 3 kanıt [{"title":"...","url":"...","date":"..."}]
-- "false_claims": YALNIZCA Google Search ile doğrulayabildiğin olgusal hatalar. Kanıtlayamazsan []. Her madde: {"wrong_text":"...","correction":"...","source_title":"...","source_url":"https://..."}
+- "evidence": en fazla 3 kanıt [{{"title":"...","url":"...","date":"..."}}]
+- "false_claims": YALNIZCA Google Search ile doğrulayabildiğin olgusal hatalar. Kanıtlayamazsan []. Her madde: {{"wrong_text":"...","correction":"...","source_title":"...","source_url":"https://..."}}
 Yanıtı YALNIZCA geçerli JSON formatında ver."""
     else:
         task_block = f"""[GÖREV]
