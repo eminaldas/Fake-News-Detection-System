@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, FileText, ThumbsUp, ThumbsDown, CheckCircle2 } from 'lucide-react';
+import { X, FileText, ThumbsUp, ThumbsDown, CheckCircle2, Loader2, FlaskConical } from 'lucide-react';
 import { trackInteraction } from '../../services/interaction.service';
 
 const BRAND  = 'var(--color-brand-primary)';
@@ -16,7 +16,7 @@ function relTime(pubDate) {
 }
 
 function SummaryFeedback() {
-    const [state,  setState]  = useState('idle'); // idle | asking | sent
+    const [state,  setState]  = useState('idle');
     const [reason, setReason] = useState('');
 
     const handlePositive = async () => {
@@ -24,12 +24,7 @@ function SummaryFeedback() {
         setState('sent');
         await trackInteraction({ content_id: null, interaction_type: 'feedback_positive' });
     };
-
-    const handleNegative = () => {
-        if (state !== 'idle') return;
-        setState('asking');
-    };
-
+    const handleNegative = () => { if (state !== 'idle') return; setState('asking'); };
     const handleSubmit = async () => {
         setState('sent');
         await trackInteraction({ content_id: null, interaction_type: 'feedback_negative', note: reason });
@@ -55,9 +50,9 @@ function SummaryFeedback() {
                 placeholder="Yazabilirsin..."
                 className="w-full text-sm p-2.5 resize-none focus:outline-none transition-colors"
                 style={{
-                    background:  'var(--color-terminal-surface)',
-                    border:      `1px solid ${BORDER}`,
-                    color:       'var(--color-text-primary)',
+                    background: 'var(--color-terminal-surface)',
+                    border:     `1px solid ${BORDER}`,
+                    color:      'var(--color-text-primary)',
                 }}
             />
             <button
@@ -76,18 +71,14 @@ function SummaryFeedback() {
                 Bu özet faydalı mıydı?
             </span>
             <div className="flex gap-2">
-                <button
-                    onClick={handlePositive}
-                    className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 border transition-all hover:brightness-110"
-                    style={{ borderColor: BRAND, color: BRAND, background: 'rgba(16,185,129,0.06)' }}
-                >
+                <button onClick={handlePositive}
+                        className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 border transition-all hover:brightness-110"
+                        style={{ borderColor: BRAND, color: BRAND, background: 'rgba(16,185,129,0.06)' }}>
                     <ThumbsUp className="w-3 h-3" /> Evet
                 </button>
-                <button
-                    onClick={handleNegative}
-                    className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 border transition-all hover:opacity-70"
-                    style={{ borderColor: BORDER, color: 'var(--color-text-secondary)' }}
-                >
+                <button onClick={handleNegative}
+                        className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 border transition-all hover:opacity-70"
+                        style={{ borderColor: BORDER, color: 'var(--color-text-secondary)' }}>
                     <ThumbsDown className="w-3 h-3" /> Hayır
                 </button>
             </div>
@@ -95,9 +86,15 @@ function SummaryFeedback() {
     );
 }
 
-export default function NewsSummaryModal({ result, article, onClose, onAnalyze }) {
-    const summary = result?.ai_comment?.news_summary;
-
+export default function NewsSummaryModal({
+    summary,
+    article,
+    analysisPhase,
+    analysisResult,
+    onClose,
+    onAnalyze,
+    onViewAnalysis,
+}) {
     return createPortal(
         <div
             className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
@@ -119,10 +116,7 @@ export default function NewsSummaryModal({ result, article, onClose, onAnalyze }
                             // HABER_ÖZETİ
                         </span>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="opacity-40 hover:opacity-100 transition-opacity"
-                    >
+                    <button onClick={onClose} className="opacity-40 hover:opacity-100 transition-opacity">
                         <X className="w-4 h-4" style={{ color: 'var(--color-text-primary)' }} />
                     </button>
                 </div>
@@ -131,25 +125,25 @@ export default function NewsSummaryModal({ result, article, onClose, onAnalyze }
                 {article && (article.source_name || article.pub_date) && (
                     <div className="px-5 pt-3 flex items-center gap-2 font-mono text-[10px]"
                          style={{ color: 'var(--color-text-muted)' }}>
-                        {article?.source_name && (
+                        {article.source_name && (
                             <span className="font-semibold">{article.source_name}</span>
                         )}
-                        {article?.source_name && article?.pub_date && <span>·</span>}
-                        {article?.pub_date && <span>{relTime(article.pub_date)}</span>}
+                        {article.source_name && article.pub_date && <span>·</span>}
+                        {article.pub_date && <span>{relTime(article.pub_date)}</span>}
                     </div>
                 )}
 
-                {/* Summary */}
-                <div className="px-5 py-4 max-h-[40vh] overflow-y-auto">
+                {/* Özet */}
+                <div className="px-5 py-5 max-h-[45vh] overflow-y-auto">
                     {summary ? (
-                        <p className="text-sm leading-relaxed"
+                        <p className="text-sm leading-[1.8]"
                            style={{ color: 'var(--color-text-primary)' }}>
                             {summary}
                         </p>
                     ) : (
                         <p className="text-sm italic"
                            style={{ color: 'var(--color-text-muted)' }}>
-                            Özet henüz mevcut değil, tam analizi deneyebilirsin.
+                            Özet alınamadı.
                         </p>
                     )}
                 </div>
@@ -159,15 +153,40 @@ export default function NewsSummaryModal({ result, article, onClose, onAnalyze }
                     <SummaryFeedback />
                 </div>
 
-                {/* Footer */}
-                <div className="px-5 pb-5">
-                    <button
-                        onClick={onAnalyze ?? onClose}
-                        className="w-full font-mono text-[10px] font-bold uppercase tracking-widest px-4 py-3 border transition-all hover:brightness-110"
-                        style={{ borderColor: BRAND, color: BRAND, background: 'rgba(16,185,129,0.06)' }}
-                    >
-                        Tam Analizi Gör →
-                    </button>
+                {/* Analiz footer */}
+                <div className="px-5 pb-5 pt-2 flex flex-col gap-2">
+                    {analysisPhase === 'analyzed' && analysisResult ? (
+                        <>
+                            <button
+                                onClick={onViewAnalysis}
+                                className="w-full font-mono text-[10px] font-bold uppercase tracking-widest px-4 py-3 border transition-all hover:brightness-110"
+                                style={{ borderColor: BRAND, color: BRAND, background: 'rgba(16,185,129,0.06)' }}
+                            >
+                                Tam Analizi Gör →
+                            </button>
+                            <div className="flex items-center justify-center gap-1.5 font-mono text-[10px]"
+                                 style={{ color: 'var(--color-text-muted)' }}>
+                                <CheckCircle2 className="w-3 h-3" style={{ color: BRAND }} />
+                                Analiz tamamlandı
+                            </div>
+                        </>
+                    ) : analysisPhase === 'analyzing' ? (
+                        <div className="w-full flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-widest px-4 py-3 border opacity-60"
+                             style={{ borderColor: BORDER, color: 'var(--color-text-muted)' }}>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            analiz ediliyor...
+                        </div>
+                    ) : (
+                        <button
+                            onClick={onAnalyze}
+                            disabled={!article?.source_url}
+                            className="w-full flex items-center justify-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest px-4 py-3 border transition-all hover:brightness-110 disabled:opacity-30"
+                            style={{ borderColor: BORDER, color: 'var(--color-text-secondary)', background: 'transparent' }}
+                        >
+                            <FlaskConical className="w-3.5 h-3.5" />
+                            Haberi Analiz Et
+                        </button>
+                    )}
                 </div>
             </div>
         </div>,
