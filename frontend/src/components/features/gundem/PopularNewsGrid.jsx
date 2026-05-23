@@ -192,7 +192,7 @@ function FeaturedCard({ article }) {
     const [useProxy,  setUseProxy]  = useState(true);
     const hasImg = article.image_url && !imgErr;
     const imgSrc = hasImg
-        ? (useProxy ? getProxiedImageUrl(article.image_url, 400) : article.image_url)
+        ? (useProxy ? getProxiedImageUrl(article.image_url, 800) : article.image_url)
         : undefined;
 
     return (
@@ -214,6 +214,8 @@ function FeaturedCard({ article }) {
 
             {hasImg ? (
                 <img src={imgSrc} alt={article.title}
+                     fetchPriority="high"
+                     loading="eager"
                      className="absolute inset-0 w-full h-full object-cover opacity-65 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700"
                      onError={() => useProxy ? setUseProxy(false) : setImgErr(true)} />
             ) : (

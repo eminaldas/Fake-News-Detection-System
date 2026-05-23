@@ -10,16 +10,21 @@ Pattern: workers/tasks.py ile aynı yapı —
 """
 
 import asyncio
+import hashlib
 import logging
 import re
 import uuid as uuid_module
 from datetime import datetime, timezone
 from email.utils import mktime_tz, parsedate_tz
+from io import BytesIO
 from urllib.parse import urlparse
 
 import feedparser
+import httpx
 import requests as _requests
 import sqlalchemy
+from PIL import Image
+from redis.asyncio import from_url as redis_from_url
 from sqlalchemy import select
 from celery import Celery
 from celery.schedules import crontab
@@ -29,6 +34,38 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 from app.models.models import NewsArticle
+
+_WARM_WIDTH = 800
+_WARM_TTL   = 3600  # proxy.py ile aynı
+
+
+def _img_cache_key(url: str, width: int) -> str:
+    h = hashlib.sha256(url.encode()).hexdigest()
+    return f"imgproxy:{h}:{width}"
+
+
+async def _warm_one(url: str) -> None:
+    """Tek bir görseli indir, WebP'ye çevir, Redis'e yaz. Hata olursa sessizce atla."""
+    if not url:
+        return
+    key = _img_cache_key(url, _WARM_WIDTH)
+    try:
+        redis = await redis_from_url(settings.REDIS_URL, decode_responses=False)
+        if await redis.exists(key):
+            return
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.get(url, follow_redirects=True)
+        if r.status_code >= 400 or len(r.content) > 5 * 1024 * 1024:
+            return
+        img = Image.open(BytesIO(r.content)).convert("RGB")
+        new_h = int(img.height * _WARM_WIDTH / img.width)
+        img = img.resize((_WARM_WIDTH, new_h), Image.LANCZOS)
+        buf = BytesIO()
+        img.save(buf, format="WEBP", quality=80)
+        await redis.setex(key, _WARM_TTL, buf.getvalue())
+        await redis.aclose()
+    except Exception as exc:
+        logger.debug("image_cache_warm skip url=%s err=%s", url, exc)
 
 logger = logging.getLogger(__name__)
 
@@ -499,6 +536,7 @@ async def _ensure_pg_trgm():
 
 async def _run_ingest():
     await _ensure_pg_trgm()
+    urls_to_warm: list[str] = []
     async with AsyncSessionLocal() as db:
         total_new = 0
         total_dup = 0
@@ -584,6 +622,8 @@ async def _run_ingest():
                     content_type = None,
                 )
                 db.add(article)
+                if image_url:
+                    urls_to_warm.append(image_url)
                 source_new += 1
                 total_new  += 1
                 if duplicate:
@@ -596,6 +636,11 @@ async def _run_ingest():
             )
 
         logger.info("rss.ingest_complete total_new=%d", total_new)
+
+    if urls_to_warm:
+        logger.info("image_cache_warm start count=%d", len(urls_to_warm))
+        await asyncio.gather(*[_warm_one(u) for u in urls_to_warm], return_exceptions=True)
+        logger.info("image_cache_warm done")
 
 
 # ── Celery task ───────────────────────────────────────────────────────────────
