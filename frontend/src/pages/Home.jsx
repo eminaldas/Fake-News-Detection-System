@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Lock, UserPlus, LogIn } from "lucide-react";
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { useAnalysis } from "../hooks/useAnalysis";
@@ -280,45 +280,35 @@ function GlitchNe() {
   );
 }
 
-const ANON_USED_KEY = 'anon_used_free';
-
 const Home = () => {
   const { isAuthenticated } = useAuth();
-  const [showAnonToast, setShowAnonToast] = useState(false);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
   const { threads: trendThreads, loading: trendLoading } = useForumTrends();
 
   const { analyze: _analyze, analyzeUrl: _analyzeUrl, loading, result, error, isPolling, analysisStage } = useAnalysis();
 
-  // Anonim kullanıcı için 1 ücretsiz analiz — 2. denemede toast göster
   const [pendingText, setPendingText] = React.useState('');
 
   const analyze = (text) => {
-      if (!isAuthenticated) {
-          if (sessionStorage.getItem(ANON_USED_KEY)) {
-              setShowAnonToast(true);
-              return;
-          }
-      }
       setPendingText(text || '');
       _analyze(text);
   };
 
   const analyzeUrl = (url) => {
-      if (!isAuthenticated) {
-          if (sessionStorage.getItem(ANON_USED_KEY)) {
-              setShowAnonToast(true);
-              return;
-          }
-      }
       _analyzeUrl(url);
   };
 
-  // Backend'den 429 gelirse de yakala
+  // Backend'den 429 gelirse quota bölümünü göster
   useEffect(() => {
-      const handler = () => setShowAnonToast(true);
+      const handler = () => { if (!isAuthenticated) setQuotaExceeded(true); };
       window.addEventListener('rate-limit-exceeded', handler);
       return () => window.removeEventListener('rate-limit-exceeded', handler);
-  }, []);
+  }, [isAuthenticated]);
+
+  // Kullanıcı giriş yaparsa quota UI'ı gizle
+  useEffect(() => {
+      if (isAuthenticated) setQuotaExceeded(false);
+  }, [isAuthenticated]);
   const {
     loading: imgLoading,
     isPolling: imgPolling,
@@ -339,13 +329,6 @@ const Home = () => {
     setImagePreview(URL.createObjectURL(file));
     submitImage(file);
   };
-
-  // Analiz tamamlanınca anonim bayrağı set et
-  useEffect(() => {
-      if (result && !isAuthenticated) {
-          sessionStorage.setItem(ANON_USED_KEY, '1');
-      }
-  }, [result, isAuthenticated]);
 
   // Loading'den result'a geçişi takip et → completionPhase
   useEffect(() => {
@@ -375,35 +358,6 @@ const Home = () => {
   return (
     <div className="w-full min-h-[80vh] flex flex-col px-4 md:px-6">
 
-      {/* Anonim limit toast — altta küçük, overlay yok */}
-      {showAnonToast && !isAuthenticated && (
-          <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 animate-fade-up"
-               style={{
-                   background: 'var(--color-terminal-surface)',
-                   border: '1px solid var(--color-terminal-border-raw)',
-                   borderLeft: '3px solid var(--color-brand-primary)',
-                   boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                   minWidth: '280px',
-                   maxWidth: '420px',
-               }}>
-              <span className="text-xs shrink-0" style={{ color: 'var(--color-brand-primary)' }}>⚡</span>
-              <span className="text-xs flex-1" style={{ color: 'var(--color-text-primary)', opacity: 0.8 }}>
-                  Daha fazla analiz için kayıt ol
-              </span>
-              <div className="flex items-center gap-2 shrink-0">
-                  <Link to="/login"
-                      className="text-xs font-bold transition-opacity hover:opacity-70"
-                      style={{ color: 'var(--color-text-primary)', opacity: 0.55 }}>
-                      Giriş
-                  </Link>
-                  <Link to="/register"
-                      className="text-xs font-manrope font-black uppercase tracking-wide px-2.5 py-1 transition-opacity hover:opacity-90"
-                      style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
-                      Kayıt Ol →
-                  </Link>
-              </div>
-          </div>
-      )}
 
       {/* ── Hero ── */}
       <div className="text-center mb-4 md:mb-6 mt-1 md:mt-2 flex flex-col items-center gap-3 md:gap-4">
@@ -452,6 +406,58 @@ const Home = () => {
               />
             </div>
           </div>
+
+          {/* Günlük limit bölümü — anonim kullanıcı kotası dolunca */}
+          {quotaExceeded && !isAuthenticated && (
+              <div className="animate-fade-up mt-4 md:mt-6 relative overflow-hidden"
+                   style={{
+                       background: 'var(--color-terminal-surface)',
+                       border: '1px solid var(--color-terminal-border-raw)',
+                       borderTop: '3px solid var(--color-brand-primary)',
+                   }}>
+                  {/* Köşe aksanları */}
+                  <div className="absolute top-0 left-0 w-4 h-0.5" style={{ background: 'var(--color-brand-primary)' }} />
+                  <div className="absolute top-0 left-0 h-4 w-0.5" style={{ background: 'var(--color-brand-primary)' }} />
+                  <div className="absolute bottom-0 right-0 w-4 h-0.5" style={{ background: 'var(--color-brand-primary)' }} />
+                  <div className="absolute bottom-0 right-0 h-4 w-0.5" style={{ background: 'var(--color-brand-primary)' }} />
+
+                  <div className="px-5 py-5 flex flex-col sm:flex-row items-start sm:items-center gap-5">
+                      <div className="flex items-center gap-3 shrink-0">
+                          <div className="w-8 h-8 flex items-center justify-center shrink-0"
+                               style={{ background: 'rgba(63,255,139,0.08)', border: '1px solid rgba(63,255,139,0.22)' }}>
+                              <Lock className="w-4 h-4" style={{ color: 'var(--color-brand-primary)' }} />
+                          </div>
+                          <div>
+                              <p className="font-mono text-[10px] uppercase tracking-widest mb-0.5"
+                                 style={{ color: 'var(--color-brand-primary)', opacity: 0.65 }}>
+                                  // Günlük limit
+                              </p>
+                              <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                                  Ücretsiz analiz hakkınız doldu.
+                              </p>
+                              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                                  Hesap oluşturarak günlük 20 analiz yapabilirsiniz.
+                              </p>
+                          </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 sm:ml-auto">
+                          <Link to="/login"
+                              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold border transition-opacity hover:opacity-70"
+                              style={{ color: 'var(--color-brand-primary)', borderColor: 'var(--color-brand-primary)' }}>
+                              <LogIn className="w-3.5 h-3.5" />
+                              Giriş Yap
+                          </Link>
+                          <Link to="/register"
+                              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold transition-opacity hover:opacity-85"
+                              style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
+                              <UserPlus className="w-3.5 h-3.5" />
+                              Hesap Oluştur
+                          </Link>
+                      </div>
+                  </div>
+              </div>
+          )}
 
           {/* Hata mesajı */}
           {error && (

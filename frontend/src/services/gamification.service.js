@@ -4,7 +4,13 @@ import toast from './toast';
 
 const _XP_KEY = 'xp_last_known';
 
+const TOKEN_KEY = 'fnds_token';
+function _hasToken() {
+    return !!(localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY));
+}
+
 async function checkAndShowXPGain(label = '') {
+  if (!_hasToken()) return;
   try {
     const stats = await axiosInstance.get('/gamification/me/stats').then(r => r.data);
     const newXP  = stats.total_xp || 0;
