@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import AnalysisService from '../../../services/analysis.service';
+import NewsService from '../../../services/news.service';
 import NewsSummaryModal from '../../../features/analysis/NewsSummaryModal';
 import AnalysisModal from '../../../features/analysis/AnalysisModal';
 import { trackInteraction } from '../../../services/interaction.service';
@@ -44,90 +45,127 @@ function relTime(pubDate) {
 
 function AnalyzeButton({ article }) {
     const [phase,        setPhase]        = useState('idle');
+    const [summary,      setSummary]      = useState(null);
     const [result,       setResult]       = useState(null);
     const [showSummary,  setShowSummary]  = useState(false);
     const [showAnalysis, setShowAnalysis] = useState(false);
     const pollerRef = useRef(null);
-    const lsKey     = article.source_url ? `g_analysis_${article.source_url}` : null;
 
-    useEffect(() => {
-        if (!lsKey) return;
-        try {
-            const raw = localStorage.getItem(lsKey);
-            if (!raw) return;
-            const { result: r, ts } = JSON.parse(raw);
-            if (Date.now() - ts < 86_400_000) { setResult(r); setPhase('done'); }
-            else localStorage.removeItem(lsKey);
-        } catch { /* ignore */ }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [lsKey]);
+    // LocalStorage cache key'leri
+    const sumKey  = article.id ? `ns_sum_${article.id}`  : null;
+    const anaKey  = article.source_url ? `g_analysis_${article.source_url}` : null;
 
+    // Startup: cache restore
     useEffect(() => {
-        if (phase === 'done' && result && lsKey) {
-            try { localStorage.setItem(lsKey, JSON.stringify({ result, ts: Date.now() })); } catch { /* ignore */ }
+        if (sumKey) {
+            try {
+                const raw = localStorage.getItem(sumKey);
+                if (raw) {
+                    const { summary: s, ts } = JSON.parse(raw);
+                    if (Date.now() - ts < 3_600_000) { setSummary(s); setPhase('summarized'); }
+                    else localStorage.removeItem(sumKey);
+                }
+            } catch { /* ignore */ }
         }
-    }, [phase, result, lsKey]);
+        if (anaKey) {
+            try {
+                const raw = localStorage.getItem(anaKey);
+                if (raw) {
+                    const { result: r, ts } = JSON.parse(raw);
+                    if (Date.now() - ts < 86_400_000) { setResult(r); }
+                }
+            } catch { /* ignore */ }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => () => { if (pollerRef.current) clearInterval(pollerRef.current); }, []);
 
-    const handleClick = async (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (phase === 'done') { setShowSummary(true); return; }
-        if (phase !== 'idle' || !article.source_url) return;
-        setPhase('loading');
-        trackInteraction({ content_id: article.id, interaction_type: 'click', category: article.category, nlp_score_at_time: article.nlp_score });
+    // Özet butonu tıklandı
+    const handleSummarize = async (e) => {
+        e.preventDefault(); e.stopPropagation();
+        if (phase === 'summarized') { setShowSummary(true); return; }
+        if (phase !== 'idle' || !article.id) return;
+        setPhase('summarizing');
+        try {
+            const data = await NewsService.summarize(article.id);
+            setSummary(data.summary);
+            setPhase('summarized');
+            setShowSummary(true);
+            if (sumKey) {
+                try { localStorage.setItem(sumKey, JSON.stringify({ summary: data.summary, ts: Date.now() })); } catch { /* ignore */ }
+            }
+        } catch {
+            setPhase('error');
+        }
+    };
+
+    // Analiz et (modal içinden çağrılır)
+    const handleAnalyze = async () => {
+        if (!article.source_url || phase === 'analyzing' || phase === 'analyzed') return;
+        setPhase('analyzing');
         try {
             const data = await AnalysisService.analyzeUrl(article.source_url);
-            if (!data.task_id) { setPhase('error'); return; }
+            if (!data.task_id) { setPhase('summarized'); return; }
             const t0 = Date.now();
             pollerRef.current = setInterval(async () => {
                 try {
-                    const s       = await AnalysisService.checkStatus(data.task_id);
-                    const done    = s.status === 'SUCCESS' && s.result?.ai_comment != null;
-                    const failed  = ['FAILED', 'FAILURE'].includes(s.status);
+                    const s      = await AnalysisService.checkStatus(data.task_id);
+                    const done   = s.status === 'SUCCESS' && s.result?.ai_comment != null;
+                    const failed = ['FAILED', 'FAILURE'].includes(s.status);
                     const timeout = Date.now() - t0 > 90_000;
                     if (done || (timeout && s.result)) {
                         clearInterval(pollerRef.current);
                         setResult(s.result);
-                        setPhase('done');
-                        setShowSummary(true);
+                        setPhase('analyzed');
+                        if (anaKey) {
+                            try { localStorage.setItem(anaKey, JSON.stringify({ result: s.result, ts: Date.now() })); } catch { /* ignore */ }
+                        }
                     } else if (failed || timeout) {
                         clearInterval(pollerRef.current);
-                        setPhase('error');
+                        setPhase('summarized');
                     }
-                } catch { clearInterval(pollerRef.current); setPhase('error'); }
+                } catch { clearInterval(pollerRef.current); setPhase('summarized'); }
             }, 2000);
-        } catch { setPhase('error'); }
+        } catch { setPhase('summarized'); }
     };
 
-    if (phase === 'loading') return (
+    if (phase === 'summarizing') return (
         <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest"
               style={{ color: BRAND }}>
             <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
             </svg>
-            taranıyor
+            özetleniyor
         </span>
     );
 
-    if (phase === 'done' && result) return (
+    if (phase === 'error') return (
+        <span className="font-mono text-[10px]" style={{ color: 'var(--color-es-error)', opacity: 0.7 }}>hata</span>
+    );
+
+    if (phase === 'summarized' || phase === 'analyzing' || phase === 'analyzed') return (
         <>
-            <button onClick={handleClick}
-                    className="font-mono text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 border transition-all hover:brightness-110"
-                    style={{ borderColor: BRAND, color: BRAND, background: 'rgba(16,185,129,0.06)' }}>
+            <button
+                onClick={handleSummarize}
+                className="font-mono text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 border transition-all hover:brightness-110"
+                style={{ borderColor: BRAND, color: BRAND, background: 'rgba(16,185,129,0.06)' }}
+            >
                 özeti gör →
             </button>
             {showSummary && (
                 <NewsSummaryModal
-                    result={result}
+                    summary={summary}
                     article={article}
+                    analysisPhase={phase}
+                    analysisResult={result}
                     onClose={() => setShowSummary(false)}
-                    onAnalyze={() => { setShowSummary(false); setShowAnalysis(true); }}
+                    onAnalyze={handleAnalyze}
+                    onViewAnalysis={() => { setShowSummary(false); setShowAnalysis(true); }}
                 />
             )}
-            {showAnalysis && (
+            {showAnalysis && result && (
                 <AnalysisModal
                     result={result}
                     onClose={() => { setShowAnalysis(false); setShowSummary(true); }}
@@ -136,14 +174,14 @@ function AnalyzeButton({ article }) {
         </>
     );
 
-    if (phase === 'error') return (
-        <span className="font-mono text-[10px]" style={{ color: 'var(--color-es-error)', opacity: 0.7 }}>hata</span>
-    );
-
+    // idle
     return (
-        <button onClick={handleClick} disabled={!article.source_url}
-                className="font-mono text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 border transition-all hover:brightness-110 disabled:opacity-30"
-                style={{ borderColor: BRAND, color: BRAND, background: 'rgba(16,185,129,0.06)' }}>
+        <button
+            onClick={handleSummarize}
+            disabled={!article.id}
+            className="font-mono text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 border transition-all hover:brightness-110 disabled:opacity-30"
+            style={{ borderColor: BRAND, color: BRAND, background: 'rgba(16,185,129,0.06)' }}
+        >
             haberi özetle →
         </button>
     );
