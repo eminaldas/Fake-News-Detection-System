@@ -491,7 +491,14 @@ async def _find_duplicate(db: AsyncSession, title: str) -> NewsArticle | None:
 
 
 # ── Ana ingest fonksiyonu (async) ─────────────────────────────────────────────
+async def _ensure_pg_trgm():
+    async with AsyncSessionLocal() as db:
+        await db.execute(sqlalchemy.text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+        await db.commit()
+
+
 async def _run_ingest():
+    await _ensure_pg_trgm()
     async with AsyncSessionLocal() as db:
         total_new = 0
         total_dup = 0
