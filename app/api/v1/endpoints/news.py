@@ -39,7 +39,6 @@ async def list_news(
     now_plus_2h = datetime.now(UTC) + timedelta(hours=2)
 
     base_filter = [
-        NewsArticle.embedding.is_not(None),
         # Sadece canonical kayıtları göster (cluster içindeki diğer kaynaklar gizli)
         NewsArticle.id == NewsArticle.cluster_id,
         # Yanlış gelecek tarihli makaleleri gizle (pub_date olmayan makaleler dahil edilir)

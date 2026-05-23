@@ -8,7 +8,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -228,22 +228,26 @@ async def register(
 @router.post("/google", response_model=GoogleAuthResponse)
 async def google_auth(
     body: GoogleAuthRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     redis=Depends(get_redis),
 ):
     if not settings.GOOGLE_CLIENT_ID:
         raise HTTPException(status_code=501, detail="Google OAuth yapılandırılmamış")
 
-    async with httpx.AsyncClient(timeout=10) as client:
-        resp = await client.get(
-            "https://www.googleapis.com/oauth2/v3/userinfo",
-            headers={"Authorization": f"Bearer {body.credential}"},
+    import asyncio
+    try:
+        from google.oauth2 import id_token as _google_id_token
+        from google.auth.transport import requests as _google_requests
+        payload = await asyncio.to_thread(
+            _google_id_token.verify_oauth2_token,
+            body.credential,
+            _google_requests.Request(),
+            settings.GOOGLE_CLIENT_ID,
         )
-
-    if resp.status_code != 200:
+    except Exception:
         raise HTTPException(status_code=400, detail="Geçersiz Google token")
 
-    payload    = resp.json()
     google_id  = payload.get("sub", "")
     email      = payload.get("email", "")
     name       = payload.get("name", "")
@@ -299,9 +303,9 @@ async def google_auth(
     except Exception:
         pass
 
-    # Yeni kullanıcıya hoş geldin emaili gönder
+    # Yeni kullanıcıya hoş geldin emaili gönder (background — response'u bloklamasın)
     if is_new and bool(settings.SMTP_HOST and settings.SMTP_USER):
-        _send_welcome_email(user.email, user.username)
+        background_tasks.add_task(_send_welcome_email, user.email, user.username)
 
     expires_delta = timedelta(days=settings.REMEMBER_ME_EXPIRE_DAYS)
     access_token  = create_access_token(
@@ -345,6 +349,7 @@ async def delete_account(
     body:         DeleteAccountRequest,
     current_user: User         = Depends(get_current_user),
     db:           AsyncSession = Depends(get_db),
+    redis                      = Depends(get_redis),
 ):
     """Hesabı soft-delete ile sil. Google kullanıcıları için şifre onayı atlanır."""
     if current_user.hashed_password:
