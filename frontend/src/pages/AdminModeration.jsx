@@ -1,280 +1,370 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Flag, CheckCircle, XCircle, MessageSquare, Loader2, X } from 'lucide-react';
 import axiosInstance from '../api/axios';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { A, pageWrap, card, cardHead, badge, ANIM } from './adminTheme';
+
+const STATUS_COLORS = {
+  open:      { color: A.amber, dim: A.amberDim },
+  in_review: { color: A.blue,  dim: A.blueDim  },
+  resolved:  { color: A.brand, dim: A.brandDim },
+};
+const TYPE_LABELS = { fake_news: 'Sahte Haber', bug: 'Hata', complaint: 'Şikayet', other: 'Diğer' };
+
+function TabBtn({ active, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding:      '8px 18px',
+        borderRadius: 8,
+        border:       `1px solid ${active ? A.brand : A.border}`,
+        background:   active ? A.brandDim : 'transparent',
+        color:        active ? A.brand : A.text3,
+        fontSize:     13,
+        fontWeight:   600,
+        cursor:       'pointer',
+        fontFamily:   'inherit',
+        transition:   'all 0.12s',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ActionBtn({ label, color, dim, onClick, loading }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading}
+      style={{
+        padding:      '6px 14px',
+        borderRadius: 6,
+        border:       'none',
+        background:   dim,
+        color,
+        fontSize:     12,
+        fontWeight:   600,
+        cursor:       loading ? 'not-allowed' : 'pointer',
+        fontFamily:   'inherit',
+        opacity:      loading ? 0.5 : 1,
+      }}
+    >
+      {loading ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : label}
+    </button>
+  );
+}
 
 export default function AdminModeration() {
-    const { user }      = useAuth();
-    const navigate      = useNavigate();
-    const [tab, setTab] = React.useState('comments');
+  const { user }   = useAuth();
+  const navigate   = useNavigate();
+  const [tab, setTab] = useState('comments');
 
-    const [flaggedComments, setFlaggedComments] = React.useState([]);
-    const [flaggedThreads,  setFlaggedThreads]  = React.useState([]);
-    const [loading, setLoading] = React.useState(true);
+  const [flaggedComments, setFlaggedComments] = useState([]);
+  const [flaggedThreads,  setFlaggedThreads]  = useState([]);
+  const [reports,         setReports]         = useState([]);
+  const [reportsTotal,    setReportsTotal]    = useState(0);
+  const [loading,         setLoading]         = useState(true);
+  const [acting,          setActing]          = useState(null);
 
-    const [reports,      setReports]      = React.useState([]);
-    const [reportsTotal, setReportsTotal] = React.useState(0);
-    const [replyModal,   setReplyModal]   = React.useState(null);
-    const [replyText,    setReplyText]    = React.useState('');
-    const [replyStatus,  setReplyStatus]  = React.useState('resolved');
-    const [replySaving,  setReplySaving]  = React.useState(false);
+  const [replyModal,  setReplyModal]  = useState(null);
+  const [replyText,   setReplyText]   = useState('');
+  const [replyStatus, setReplyStatus] = useState('resolved');
+  const [replySaving, setReplySaving] = useState(false);
 
-    React.useEffect(() => {
-        if (!user) return;
-        if (user.role !== 'admin') { navigate('/forum'); return; }
-        Promise.all([
-            axiosInstance.get('/forum/admin/flagged-comments'),
-            axiosInstance.get('/forum/admin/flagged-threads'),
-            axiosInstance.get('/reports/admin?size=50'),
-        ])
-        .then(([c, t, r]) => {
-            setFlaggedComments(c.data);
-            setFlaggedThreads(t.data);
-            setReports(r.data.items || []);
-            setReportsTotal(r.data.total || 0);
-        })
-        .catch(() => {})
-        .finally(() => setLoading(false));
-    }, [user, navigate]);
+  useEffect(() => {
+    if (!user) return;
+    if (user.role !== 'admin') { navigate('/forum'); return; }
+    Promise.all([
+      axiosInstance.get('/forum/admin/flagged-comments'),
+      axiosInstance.get('/forum/admin/flagged-threads'),
+      axiosInstance.get('/reports/admin?size=50'),
+    ]).then(([c, t, r]) => {
+      setFlaggedComments(c.data);
+      setFlaggedThreads(t.data);
+      setReports(r.data.items || []);
+      setReportsTotal(r.data.total || 0);
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, [user, navigate]);
 
-    const approveComment = async (id) => {
-        await axiosInstance.put(`/forum/admin/comments/${id}/approve`).catch(() => {});
-        setFlaggedComments(prev => prev.filter(c => c.id !== id));
-    };
+  const approveComment = async (id) => {
+    setActing(id + '_approve');
+    await axiosInstance.put(`/forum/admin/comments/${id}/approve`).catch(() => {});
+    setFlaggedComments(prev => prev.filter(c => c.id !== id));
+    setActing(null);
+  };
 
-    const removeComment = async (id) => {
-        await axiosInstance.put(`/forum/admin/comments/${id}/remove`).catch(() => {});
-        setFlaggedComments(prev => prev.filter(c => c.id !== id));
-    };
+  const removeComment = async (id) => {
+    setActing(id + '_remove');
+    await axiosInstance.put(`/forum/admin/comments/${id}/remove`).catch(() => {});
+    setFlaggedComments(prev => prev.filter(c => c.id !== id));
+    setActing(null);
+  };
 
-    const resolveThread = async (id) => {
-        await axiosInstance.put(`/forum/admin/threads/${id}/resolve`).catch(() => {});
-        setFlaggedThreads(prev => prev.filter(t => t.id !== id));
-    };
+  const resolveThread = async (id) => {
+    setActing(id + '_resolve');
+    await axiosInstance.put(`/forum/admin/threads/${id}/resolve`).catch(() => {});
+    setFlaggedThreads(prev => prev.filter(t => t.id !== id));
+    setActing(null);
+  };
 
-    const closeThread = async (id) => {
-        await axiosInstance.put(`/forum/admin/threads/${id}/close`).catch(() => {});
-        setFlaggedThreads(prev => prev.filter(t => t.id !== id));
-    };
+  const closeThread = async (id) => {
+    setActing(id + '_close');
+    await axiosInstance.put(`/forum/admin/threads/${id}/close`).catch(() => {});
+    setFlaggedThreads(prev => prev.filter(t => t.id !== id));
+    setActing(null);
+  };
 
-    const submitReply = async () => {
-        if (!replyModal) return;
-        setReplySaving(true);
-        try {
-            await axiosInstance.post(`/reports/admin/${replyModal.id}/reply`, {
-                reply:  replyText.trim(),
-                status: replyStatus,
-            });
-            setReports(prev => prev.map(r =>
-                r.id === replyModal.id
-                    ? { ...r, status: replyStatus, admin_reply: replyText.trim() || r.admin_reply }
-                    : r
-            ));
-            setReplyModal(null);
-            setReplyText('');
-        } catch {
-            // sessizce başarısız
-        } finally {
-            setReplySaving(false);
-        }
-    };
+  const submitReply = async () => {
+    if (!replyModal) return;
+    setReplySaving(true);
+    try {
+      await axiosInstance.post(`/reports/admin/${replyModal.id}/reply`, {
+        reply: replyText.trim(), status: replyStatus,
+      });
+      setReports(prev => prev.map(r =>
+        r.id === replyModal.id
+          ? { ...r, status: replyStatus, admin_reply: replyText.trim() || r.admin_reply }
+          : r
+      ));
+      setReplyModal(null);
+      setReplyText('');
+    } catch { /* sessiz */ } finally {
+      setReplySaving(false);
+    }
+  };
 
-    if (loading) return (
-        <div className="flex justify-center items-center h-64">
-            <div className="w-8 h-8 rounded-full animate-spin border-2 border-t-transparent"
-                 style={{ borderColor: 'var(--color-brand-primary)' }} />
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
+      <Loader2 size={28} color={A.brand} style={{ animation: 'spin 1s linear infinite' }} />
+    </div>
+  );
+
+  return (
+    <div style={{ ...pageWrap }}>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+        <Flag size={20} color={A.amber} />
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: A.text1, margin: 0 }}>Moderasyon Paneli</h1>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <TabBtn active={tab === 'comments'} onClick={() => setTab('comments')}>
+          Flagged Yorumlar
+          {flaggedComments.length > 0 && (
+            <span style={{ ...badge(A.amber, A.amberDim), marginLeft: 8 }}>{flaggedComments.length}</span>
+          )}
+        </TabBtn>
+        <TabBtn active={tab === 'threads'} onClick={() => setTab('threads')}>
+          Şüpheli Tartışmalar
+          {flaggedThreads.length > 0 && (
+            <span style={{ ...badge(A.amber, A.amberDim), marginLeft: 8 }}>{flaggedThreads.length}</span>
+          )}
+        </TabBtn>
+        <TabBtn active={tab === 'reports'} onClick={() => setTab('reports')}>
+          Kullanıcı Raporları
+          {reportsTotal > 0 && (
+            <span style={{ ...badge(A.red, A.redDim), marginLeft: 8 }}>{reportsTotal}</span>
+          )}
+        </TabBtn>
+      </div>
+
+      {/* Flagged comments */}
+      {tab === 'comments' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {flaggedComments.length === 0 ? (
+            <div style={{ ...card, padding: '40px 20px', textAlign: 'center', color: A.text3, fontSize: 13 }}>
+              Flagged yorum yok
+            </div>
+          ) : flaggedComments.map(c => (
+            <div key={c.id} style={{
+              ...card,
+              borderLeft: `3px solid ${A.amber}`,
+              padding: 18,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <MessageSquare size={13} color={A.amber} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: A.text1 }}>@{c.username}</span>
+                <span style={{ ...badge(A.amber, A.amberDim) }}>{c.moderation_status}</span>
+                {c.moderation_note && (
+                  <span style={{ fontSize: 12, color: A.text3 }}>— {c.moderation_note}</span>
+                )}
+              </div>
+              <p style={{ fontSize: 13, color: A.text2, lineHeight: 1.6, marginBottom: 14 }}>{c.body}</p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <ActionBtn label="Onayla" color={A.brand} dim={A.brandDim} onClick={() => approveComment(c.id)} loading={acting === c.id + '_approve'} />
+                <ActionBtn label="Kaldır" color={A.red}   dim={A.redDim}   onClick={() => removeComment(c.id)}  loading={acting === c.id + '_remove'}  />
+              </div>
+            </div>
+          ))}
         </div>
-    );
+      )}
 
-    return (
-        <div className="max-w-3xl mx-auto py-6 flex flex-col gap-5">
-            <h1 className="text-base font-black font-manrope" style={{ color: 'var(--color-text-primary)' }}>
-                Moderasyon Paneli
-            </h1>
-            <div className="flex gap-2">
-                {[
-                    { key: 'comments', label: `Flagged Yorumlar (${flaggedComments.length})` },
-                    { key: 'threads',  label: `İnceleme Altı Tartışmalar (${flaggedThreads.length})` },
-                    { key: 'reports',  label: `Raporlar (${reportsTotal})` },
-                ].map(t => (
-                    <button
-                        key={t.key}
-                        onClick={() => setTab(t.key)}
-                        className="px-4 py-2 rounded-xl text-xs font-semibold transition-colors"
-                        style={tab === t.key
-                            ? { background: 'var(--color-brand-primary)', color: '#070f12' }
-                            : { border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }
-                        }
-                    >
-                        {t.label}
-                    </button>
-                ))}
+      {/* Flagged threads */}
+      {tab === 'threads' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {flaggedThreads.length === 0 ? (
+            <div style={{ ...card, padding: '40px 20px', textAlign: 'center', color: A.text3, fontSize: 13 }}>
+              Şüpheli tartışma yok
+            </div>
+          ) : flaggedThreads.map(t => (
+            <div key={t.id} style={{
+              ...card,
+              borderLeft: `3px solid ${A.amber}`,
+              padding: 18,
+            }}>
+              <p style={{ fontSize: 14, fontWeight: 700, color: A.text1, marginBottom: 6 }}>{t.title}</p>
+              <p style={{ fontSize: 12, color: A.text3, marginBottom: 14 }}>
+                @{t.username}
+                <span style={{ marginLeft: 10, color: A.red }}>🚩 {t.vote_suspicious}</span>
+                <span style={{ marginLeft: 8, color: A.brand }}>✅ {t.vote_authentic}</span>
+              </p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <ActionBtn label="Çözüldü İşaretle" color={A.blue}  dim={A.blueDim}  onClick={() => resolveThread(t.id)} loading={acting === t.id + '_resolve'} />
+                <ActionBtn label="Tartışmayı Kapat" color={A.red}   dim={A.redDim}   onClick={() => closeThread(t.id)}   loading={acting === t.id + '_close'}   />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Reports */}
+      {tab === 'reports' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {reports.length === 0 ? (
+            <div style={{ ...card, padding: '40px 20px', textAlign: 'center', color: A.text3, fontSize: 13 }}>
+              Rapor yok
+            </div>
+          ) : reports.map(r => {
+            const sc = STATUS_COLORS[r.status] || STATUS_COLORS.open;
+            return (
+              <div key={r.id} style={{ ...card, padding: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                  <span style={{ ...badge(sc.color, sc.dim) }}>{r.status}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: A.text3, background: A.card, padding: '2px 8px', borderRadius: 4 }}>
+                    {TYPE_LABELS[r.type] || r.type}
+                  </span>
+                  <span style={{ marginLeft: 'auto', fontSize: 12, color: A.text3 }}>
+                    @{r.reporter_username} · {new Date(r.created_at).toLocaleDateString('tr-TR')}
+                  </span>
+                </div>
+                <p style={{ fontSize: 14, fontWeight: 700, color: A.text1, marginBottom: 6 }}>{r.subject}</p>
+                <p style={{ fontSize: 13, color: A.text2, lineHeight: 1.6, marginBottom: r.url_or_ref || r.admin_reply ? 10 : 12 }}>
+                  {r.description.slice(0, 200)}{r.description.length > 200 ? '…' : ''}
+                </p>
+                {r.url_or_ref && (
+                  <a href={r.url_or_ref} target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: 12, color: A.brand, display: 'block', marginBottom: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {r.url_or_ref}
+                  </a>
+                )}
+                {r.admin_reply && (
+                  <div style={{ padding: '8px 14px', borderLeft: `3px solid ${A.brand}`, background: A.brandDim, borderRadius: '0 6px 6px 0', marginBottom: 12, fontSize: 13, color: A.text2 }}>
+                    <span style={{ color: A.brand, fontWeight: 700 }}>Admin: </span>{r.admin_reply}
+                  </div>
+                )}
+                <button
+                  onClick={() => { setReplyModal(r); setReplyText(r.admin_reply || ''); setReplyStatus(r.status); }}
+                  style={{
+                    padding:    '6px 16px', borderRadius: 6, border: `1px solid ${A.border}`,
+                    background: 'transparent', color: A.text2, fontSize: 12, fontWeight: 600,
+                    cursor:     'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  İncele / Yanıtla
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Reply modal */}
+      {replyModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.72)' }}
+          onClick={e => { if (e.target === e.currentTarget) setReplyModal(null); }}
+        >
+          <div style={{
+            width: '100%', maxWidth: 520,
+            background: A.surface,
+            border:     `1px solid ${A.border}`,
+            borderRadius: 12,
+            padding:    24,
+            display:    'flex', flexDirection: 'column', gap: 16,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div>
+                <p style={{ fontSize: 16, fontWeight: 800, color: A.text1, marginBottom: 4 }}>{replyModal.subject}</p>
+                <p style={{ fontSize: 12, color: A.text3 }}>@{replyModal.reporter_username} · {replyModal.reporter_email}</p>
+              </div>
+              <button onClick={() => setReplyModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: A.text3 }}>
+                <X size={18} />
+              </button>
             </div>
 
-            {tab === 'comments' && (
-                <div className="flex flex-col gap-3">
-                    {flaggedComments.length === 0 ? (
-                        <p className="text-sm text-center py-12" style={{ color: 'var(--color-text-muted)' }}>Flagged yorum yok.</p>
-                    ) : flaggedComments.map(c => (
-                        <div key={c.id} className="rounded-xl border p-4"
-                            style={{ background: 'var(--color-bg-surface)', borderColor: 'rgba(245,158,11,0.30)' }}>
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>@{c.username}</span>
-                                <span className="text-[9px] px-2 py-0.5 rounded-full font-semibold"
-                                    style={{ background: 'rgba(245,158,11,0.10)', color: '#f59e0b' }}>
-                                    {c.moderation_status}
-                                </span>
-                                {c.moderation_note && (
-                                    <span className="text-[9px]" style={{ color: 'var(--color-text-muted)' }}>— {c.moderation_note}</span>
-                                )}
-                            </div>
-                            <p className="text-xs leading-relaxed mb-3" style={{ color: 'var(--color-text-secondary)' }}>{c.body}</p>
-                            <div className="flex gap-2">
-                                <button onClick={() => approveComment(c.id)}
-                                    className="text-[10px] px-3 py-1.5 rounded-lg font-semibold"
-                                    style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--color-brand-primary)' }}>
-                                    Onayla
-                                </button>
-                                <button onClick={() => removeComment(c.id)}
-                                    className="text-[10px] px-3 py-1.5 rounded-lg font-semibold"
-                                    style={{ background: 'rgba(239,68,68,0.10)', color: '#ef4444' }}>
-                                    Kaldır
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: A.text3, display: 'block', marginBottom: 6 }}>
+                Durum
+              </label>
+              <select
+                value={replyStatus}
+                onChange={e => setReplyStatus(e.target.value)}
+                style={{
+                  width: '100%', padding: '9px 12px',
+                  background: A.card, border: `1px solid ${A.border}`,
+                  borderRadius: 8, color: A.text1, fontSize: 13,
+                  fontFamily: 'inherit', outline: 'none',
+                }}
+              >
+                <option value="open">Açık</option>
+                <option value="in_review">İnceleniyor</option>
+                <option value="resolved">Çözüldü</option>
+              </select>
+            </div>
 
-            {tab === 'threads' && (
-                <div className="flex flex-col gap-3">
-                    {flaggedThreads.length === 0 ? (
-                        <p className="text-sm text-center py-12" style={{ color: 'var(--color-text-muted)' }}>İnceleme altı tartışma yok.</p>
-                    ) : flaggedThreads.map(t => (
-                        <div key={t.id} className="rounded-xl border p-4"
-                            style={{ background: 'var(--color-bg-surface)', borderColor: 'rgba(245,158,11,0.30)' }}>
-                            <p className="text-sm font-bold mb-1" style={{ color: 'var(--color-text-primary)' }}>{t.title}</p>
-                            <p className="text-[9px] mb-3" style={{ color: 'var(--color-text-muted)' }}>
-                                @{t.username} · 🚩{t.vote_suspicious} · ✅{t.vote_authentic}
-                            </p>
-                            <div className="flex gap-2">
-                                <button onClick={() => resolveThread(t.id)}
-                                    className="text-[10px] px-3 py-1.5 rounded-lg font-semibold"
-                                    style={{ background: 'rgba(59,130,246,0.10)', color: 'var(--color-accent-blue)' }}>
-                                    Çözüldü İşaretle
-                                </button>
-                                <button onClick={() => closeThread(t.id)}
-                                    className="text-[10px] px-3 py-1.5 rounded-lg font-semibold"
-                                    style={{ background: 'rgba(239,68,68,0.10)', color: '#ef4444' }}>
-                                    Kapat
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: A.text3, display: 'block', marginBottom: 6 }}>
+                Yanıt <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(opsiyonel)</span>
+              </label>
+              <textarea
+                value={replyText}
+                onChange={e => setReplyText(e.target.value)}
+                rows={4}
+                placeholder="Kullanıcıya gönderilecek yanıt…"
+                style={{
+                  width: '100%', padding: '9px 12px',
+                  background: A.card, border: `1px solid ${A.border}`,
+                  borderRadius: 8, color: A.text1, fontSize: 13,
+                  fontFamily: 'inherit', outline: 'none',
+                  resize: 'vertical', boxSizing: 'border-box',
+                }}
+              />
+            </div>
 
-            {tab === 'reports' && (
-                <div className="flex flex-col gap-3">
-                    {reports.length === 0 ? (
-                        <p className="text-sm text-center py-12 font-mono" style={{ color: 'var(--color-text-muted)' }}>
-                            Rapor yok.
-                        </p>
-                    ) : reports.map(r => {
-                        const statusColor = r.status === 'open' ? '#f59e0b' : r.status === 'in_review' ? '#3b82f6' : '#10b981';
-                        const typeLabels = { fake_news: 'Sahte Haber', bug: 'Hata', complaint: 'Şikayet', other: 'Diğer' };
-                        return (
-                            <div key={r.id} className="border p-4 flex flex-col gap-2"
-                                 style={{ background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' }}>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="font-mono text-[10px] px-2 py-0.5 font-black uppercase"
-                                          style={{ background: `${statusColor}20`, color: statusColor, border: `1px solid ${statusColor}40` }}>
-                                        {r.status}
-                                    </span>
-                                    <span className="font-mono text-[10px] px-2 py-0.5"
-                                          style={{ background: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)' }}>
-                                        {typeLabels[r.type] || r.type}
-                                    </span>
-                                    <span className="font-mono text-[10px] ml-auto" style={{ color: 'var(--color-text-muted)' }}>
-                                        @{r.reporter_username} · {new Date(r.created_at).toLocaleDateString('tr-TR')}
-                                    </span>
-                                </div>
-                                <p className="font-mono text-sm font-bold text-tx-primary">{r.subject}</p>
-                                <p className="font-mono text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
-                                    {r.description.slice(0, 200)}{r.description.length > 200 ? '...' : ''}
-                                </p>
-                                {r.url_or_ref && (
-                                    <a href={r.url_or_ref} target="_blank" rel="noopener noreferrer"
-                                       className="font-mono text-[10px] truncate hover:opacity-70" style={{ color: 'var(--color-brand-primary)' }}>
-                                        {r.url_or_ref}
-                                    </a>
-                                )}
-                                {r.admin_reply && (
-                                    <p className="font-mono text-xs px-3 py-2 border-l-2"
-                                       style={{ borderColor: 'var(--color-brand-primary)', color: 'var(--color-text-secondary)', background: 'rgba(16,185,129,0.04)' }}>
-                                        <span style={{ color: 'var(--color-brand-primary)' }}>Admin: </span>{r.admin_reply}
-                                    </p>
-                                )}
-                                <button
-                                    onClick={() => { setReplyModal(r); setReplyText(r.admin_reply || ''); setReplyStatus(r.status); }}
-                                    className="self-start font-mono text-[10px] px-4 py-1.5 border transition-opacity hover:opacity-70"
-                                    style={{ borderColor: 'var(--color-brand-primary)', color: 'var(--color-brand-primary)' }}>
-                                    İncele / Yanıtla
-                                </button>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-
-            {replyModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                     style={{ background: 'rgba(0,0,0,0.7)' }}
-                     onClick={e => { if (e.target === e.currentTarget) setReplyModal(null); }}>
-                    <div className="w-full max-w-lg border flex flex-col gap-4 p-6"
-                         style={{ background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' }}>
-                        <div>
-                            <p className="font-mono text-[10px] uppercase tracking-widest mb-1" style={{ color: 'var(--color-brand-primary)' }}>
-                                // RAPOR_YANITI
-                            </p>
-                            <p className="font-mono text-base font-black text-tx-primary">{replyModal.subject}</p>
-                            <p className="font-mono text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
-                                @{replyModal.reporter_username} · {replyModal.reporter_email}
-                            </p>
-                        </div>
-                        <div>
-                            <label className="font-mono text-[10px] uppercase tracking-widest block mb-2" style={{ color: 'var(--color-text-muted)' }}>Durum</label>
-                            <select value={replyStatus} onChange={e => setReplyStatus(e.target.value)}
-                                    className="w-full border px-3 py-2 font-mono text-sm"
-                                    style={{ background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}>
-                                <option value="open">Açık</option>
-                                <option value="in_review">İnceleniyor</option>
-                                <option value="resolved">Çözüldü</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="font-mono text-[10px] uppercase tracking-widest block mb-2" style={{ color: 'var(--color-text-muted)' }}>
-                                Yanıt <span style={{ opacity: 0.5 }}>(opsiyonel — boşsa mail gönderilmez)</span>
-                            </label>
-                            <textarea value={replyText} onChange={e => setReplyText(e.target.value)}
-                                      rows={4} placeholder="Kullanıcıya gönderilecek yanıt..."
-                                      className="w-full border px-3 py-2 font-mono text-sm resize-y"
-                                      style={{ background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }} />
-                        </div>
-                        <div className="flex gap-2 justify-end">
-                            <button onClick={() => setReplyModal(null)} className="font-mono text-xs px-4 py-2 border"
-                                    style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)' }}>
-                                İptal
-                            </button>
-                            <button disabled={replySaving} onClick={submitReply}
-                                    className="font-mono text-xs px-5 py-2 font-black disabled:opacity-50"
-                                    style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
-                                {replySaving ? 'Kaydediliyor...' : 'Kaydet'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setReplyModal(null)}
+                style={{ padding: '8px 18px', borderRadius: 8, background: 'transparent', border: `1px solid ${A.border}`, color: A.text3, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                İptal
+              </button>
+              <button
+                onClick={submitReply} disabled={replySaving}
+                style={{ padding: '8px 18px', borderRadius: 8, background: A.brand, border: 'none', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: replySaving ? 0.6 : 1 }}
+              >
+                {replySaving ? 'Kaydediliyor…' : 'Kaydet'}
+              </button>
+            </div>
+          </div>
         </div>
-    );
+      )}
+
+      <style>{ANIM}</style>
+    </div>
+  );
 }
