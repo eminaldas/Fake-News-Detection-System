@@ -4,8 +4,9 @@ import { X, Brain, Link2, Info } from 'lucide-react';
 import AICommentCard from './AICommentCard';
 import FalseClaimsCard from './FalseClaimsCard';
 import SignalPanel from './SignalPanel';
-import ShareDropdown from '../../components/ui/ShareDropdown';
+import ShareModal from '../../components/ui/ShareModal';
 import { getTheme, buildExplanation, RING_CIRC } from './analysisTheme';
+import { useIsDark } from '../../hooks/useIsDark';
 
 export default function AnalysisModal({ result, onClose }) {
     const isUrlAnalysis = !!result?.truth_score;
@@ -16,6 +17,7 @@ export default function AnalysisModal({ result, onClose }) {
         : '0';
 
     const targetOffset = parseFloat((RING_CIRC * (1 - parseFloat(displayScore) / 100)).toFixed(2));
+    const isDark = useIsDark();
     const [ringOffset, setRingOffset] = useState(RING_CIRC);
     useEffect(() => {
         const id = setTimeout(() => setRingOffset(targetOffset), 100);
@@ -30,6 +32,8 @@ export default function AnalysisModal({ result, onClose }) {
     const isIddia     = ['IDDIA', 'UNCERTAIN'].includes(status);
 
     const theme      = getTheme(isAuthentic, isFake, isIddia);
+    const hex        = isDark ? theme.hex : (theme.lightHex || theme.hex);
+    const rgb        = isDark ? theme.glowRgb : (theme.lightRgb || theme.glowRgb);
     const signals    = result.signals    || null;
     const aiComment  = result.ai_comment || null;
     const explanation = buildExplanation(signals);
@@ -44,9 +48,9 @@ export default function AnalysisModal({ result, onClose }) {
                 ? 'Gemini AI Kararı'
                 : 'Yapay Zeka Sınıflandırması';
 
-    const hex08 = `${theme.hex}14`;
-    const hex15 = `${theme.hex}26`;
-    const hex30 = `${theme.hex}4d`;
+    const hex08 = `${hex}14`;
+    const hex15 = `${hex}26`;
+    const hex30 = `${hex}4d`;
 
     return createPortal(
         <div
@@ -59,7 +63,7 @@ export default function AnalysisModal({ result, onClose }) {
                 style={{
                     background:  'var(--color-bg-surface)',
                     border:      `1px solid ${hex30}`,
-                    borderTop:   `3px solid ${theme.hex}`,
+                    borderTop:   `3px solid ${hex}`,
                     maxHeight:   '90vh',
                 }}
                 onClick={e => e.stopPropagation()}
@@ -96,7 +100,7 @@ export default function AnalysisModal({ result, onClose }) {
                                     <circle cx="48" cy="48" r="42" fill="transparent"
                                             stroke={hex15} strokeWidth="7" />
                                     <circle cx="48" cy="48" r="42" fill="transparent"
-                                            stroke={theme.hex} strokeWidth="7"
+                                            stroke={hex} strokeWidth="7"
                                             strokeDasharray={RING_CIRC} strokeDashoffset={ringOffset}
                                             strokeLinecap="round"
                                             style={{ transition: 'stroke-dashoffset 1.4s cubic-bezier(0.22,1,0.36,1)' }} />
@@ -113,11 +117,11 @@ export default function AnalysisModal({ result, onClose }) {
                         ) : (
                             <div className="flex flex-col items-end">
                                 <span className="font-manrope font-black text-2xl leading-none"
-                                      style={{ color: theme.hex }}>
+                                      style={{ color: hex }}>
                                     %{displayScore}
                                 </span>
                                 <span className="font-mono text-[9px] tracking-widest uppercase mt-0.5"
-                                      style={{ color: `${theme.hex}80` }}>
+                                      style={{ color: `${hex}80` }}>
                                     SCORE
                                 </span>
                             </div>
@@ -188,9 +192,9 @@ export default function AnalysisModal({ result, onClose }) {
                     style={{ borderTop: `1px solid ${hex15}`, background: 'var(--color-bg-surface-solid)' }}
                 >
                     {articleId ? (
-                        <ShareDropdown
+                        <ShareModal
                             url={`${window.location.origin}/analysis/share/${articleId}`}
-                            text={`${status === 'FAKE' ? 'SAHTE' : 'GÜVENİLİR'} (%${displayScore}) | Sahte Haber Dedektifi`}
+                            hex={hex}
                         />
                     ) : <span />}
                     <button

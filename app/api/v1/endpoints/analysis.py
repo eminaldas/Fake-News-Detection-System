@@ -697,7 +697,9 @@ async def get_shared_analysis(
         raise HTTPException(status_code=404, detail="Bulunamadı")
 
     article, result = pair
-    signals = result.signals or {}
+    signals    = result.signals or {}
+    ai_comment = result.ai_comment or {}
+    ai_summary = ai_comment.get("summary") or ai_comment.get("news_summary") or None
     return SharedAnalysisResponse(
         article_id=str(article.id),
         title=article.title or "",
@@ -705,6 +707,8 @@ async def get_shared_analysis(
         confidence=result.confidence or 0.0,
         risk_score=signals.get("risk_score"),
         clickbait_score=signals.get("clickbait_score"),
+        source_url=article.source_url or None,
+        ai_summary=ai_summary,
         created_at=result.created_at.isoformat() if result.created_at else None,
     )
 

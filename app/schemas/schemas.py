@@ -881,6 +881,8 @@ class SharedAnalysisResponse(BaseModel):
     confidence:      float
     risk_score:      Optional[float] = None
     clickbait_score: Optional[float] = None
+    source_url:      Optional[str]   = None
+    ai_summary:      Optional[str]   = None
     created_at:      Optional[str]   = None
 
 

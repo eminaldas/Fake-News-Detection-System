@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
     ShieldCheck, ShieldX, Shield, ExternalLink,
-    AlertCircle, ArrowRight, Calendar, ChevronRight,
+    AlertCircle, ArrowRight, Calendar, ChevronRight, MessageSquare,
 } from 'lucide-react';
 import axiosInstance from '../api/axios';
+import { useIsDark } from '../hooks/useIsDark';
 
-const BRAND   = 'var(--color-brand-primary)';
 const SURFACE = 'var(--color-terminal-surface)';
 const BORDER  = 'var(--color-terminal-border-raw)';
 const TEXT    = 'var(--color-text-primary)';
@@ -20,14 +20,36 @@ function formatDate(iso) {
 function getTheme(prediction) {
     const s = (prediction || '').toUpperCase();
     if (s === 'AUTHENTIC' || s === 'GÜVENİLİR' || s === 'REAL' || s === 'TRUE')
-        return { label: 'GÜVENİLİR', Icon: ShieldCheck, hex: '#22c55e', rgb: '34,197,94', dark: '#3fff8b', cls: 'text-green-700 dark:text-emerald-400' };
+        return {
+            label:    'GÜVENİLİR',
+            Icon:     ShieldCheck,
+            hex:      '#3fff8b',
+            lightHex: '#16a34a',
+            rgb:      '63,255,139',
+            lightRgb: '22,163,74',
+        };
     if (s === 'FAKE' || s === 'YANILTICI' || s === 'FALSE')
-        return { label: 'SAHTE',     Icon: ShieldX,     hex: '#ef4444', rgb: '239,68,68',  dark: '#ff7351', cls: 'text-red-600 dark:text-red-400' };
-    return { label: 'BELİRSİZ',  Icon: Shield,      hex: '#f59e0b', rgb: '245,158,11', dark: '#f59e0b', cls: 'text-amber-600 dark:text-amber-400' };
+        return {
+            label:    'SAHTE',
+            Icon:     ShieldX,
+            hex:      '#ff7351',
+            lightHex: '#dc2626',
+            rgb:      '255,115,81',
+            lightRgb: '220,38,38',
+        };
+    return {
+        label:    'BELİRSİZ',
+        Icon:     Shield,
+        hex:      '#f59e0b',
+        lightHex: '#d97706',
+        rgb:      '245,158,11',
+        lightRgb: '217,119,6',
+    };
 }
 
 const SharedAnalysis = () => {
     const { articleId } = useParams();
+    const isDark        = useIsDark();
     const [data,    setData]    = useState(null);
     const [loading, setLoading] = useState(true);
     const [error,   setError]   = useState(null);
@@ -45,7 +67,7 @@ const SharedAnalysis = () => {
         <div className="min-h-screen flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
                 <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
-                     style={{ borderColor: `${BRAND} transparent transparent transparent` }} />
+                     style={{ borderColor: 'var(--color-brand-primary) transparent transparent transparent' }} />
                 <span className="font-mono text-xs" style={{ color: MUTED }}>// Analiz yükleniyor</span>
             </div>
         </div>
@@ -61,41 +83,43 @@ const SharedAnalysis = () => {
                 </div>
             </div>
             <Link to="/" className="flex items-center gap-2 font-mono text-xs px-4 py-2 transition-opacity hover:opacity-70"
-                  style={{ border: `1px solid ${BRAND}`, color: BRAND }}>
+                  style={{ border: '1px solid var(--color-brand-primary)', color: 'var(--color-brand-primary)' }}>
                 Ana Sayfaya Dön <ChevronRight className="w-3 h-3" />
             </Link>
         </div>
     );
 
-    const theme       = getTheme(data.prediction);
-    const { Icon }    = theme;
+    const theme         = getTheme(data.prediction);
+    const { Icon }      = theme;
+    const color         = isDark ? theme.hex      : theme.lightHex;
+    const rgb           = isDark ? theme.rgb      : theme.lightRgb;
     const confidencePct = Math.round((data.confidence ?? 0) * 100);
     const clickbaitPct  = data.clickbait_score != null ? Math.round(data.clickbait_score * 100) : null;
-    const sourceUrl     = data.source_url || data.url || null;
+    const sourceUrl     = data.source_url || null;
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+        <div className="min-h-screen flex flex-col items-center px-4 py-12">
 
             {/* Glow */}
             <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-                <div className="absolute left-1/2 top-0 -translate-x-1/2 w-[500px] h-[250px] blur-3xl opacity-20"
-                     style={{ background: `rgba(${theme.rgb},0.3)`, borderRadius: '50%' }} />
+                <div className="absolute left-1/2 top-0 -translate-x-1/2 w-[500px] h-[250px] blur-3xl opacity-15"
+                     style={{ background: `rgba(${rgb},0.3)`, borderRadius: '50%' }} />
             </div>
 
-            <div className="w-full max-w-lg relative overflow-hidden"
-                 style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderTop: `3px solid ${theme.hex}` }}>
+            <div className="w-full max-w-lg relative overflow-hidden mt-auto mb-auto"
+                 style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderTop: `3px solid ${color}` }}>
 
                 {/* Köşe aksanları */}
                 {['top-0 left-0 w-5 h-0.5','top-0 left-0 h-5 w-0.5',
                   'bottom-0 right-0 w-5 h-0.5','bottom-0 right-0 h-5 w-0.5'].map((cls, i) => (
-                    <div key={i} className={`absolute ${cls} pointer-events-none`} style={{ background: theme.hex }} />
+                    <div key={i} className={`absolute ${cls} pointer-events-none`} style={{ background: color }} />
                 ))}
 
                 {/* Header */}
                 <div className="px-6 py-4 flex items-center gap-3 border-b" style={{ borderColor: BORDER }}>
-                    <Icon className="w-4 h-4 shrink-0" style={{ color: theme.hex }} />
+                    <Icon className="w-4 h-4 shrink-0" style={{ color }} />
                     <span className="font-mono text-[11px] font-black uppercase tracking-[0.18em]"
-                          style={{ color: theme.hex }}>
+                          style={{ color }}>
                         // Analiz Sonucu
                     </span>
                     <span className="ml-auto font-mono text-[10px]" style={{ color: MUTED }}>
@@ -103,7 +127,7 @@ const SharedAnalysis = () => {
                     </span>
                 </div>
 
-                <div className="px-6 py-6 flex flex-col gap-6">
+                <div className="px-6 py-6 flex flex-col gap-5">
 
                     {/* Verdict + skor */}
                     <div className="flex items-center justify-between">
@@ -111,7 +135,7 @@ const SharedAnalysis = () => {
                             <span className="font-mono text-[10px] uppercase tracking-widest"
                                   style={{ color: MUTED }}>// Karar</span>
                             <span className="font-manrope text-4xl font-extrabold tracking-tight"
-                                  style={{ color: theme.hex }}>
+                                  style={{ color }}>
                                 {theme.label}
                             </span>
                         </div>
@@ -119,7 +143,7 @@ const SharedAnalysis = () => {
                             <span className="font-mono text-[10px] uppercase tracking-widest"
                                   style={{ color: MUTED }}>// Güven</span>
                             <span className="font-manrope text-4xl font-extrabold"
-                                  style={{ color: theme.hex }}>
+                                  style={{ color }}>
                                 %{confidencePct}
                             </span>
                         </div>
@@ -128,7 +152,7 @@ const SharedAnalysis = () => {
                     {/* Progress bar */}
                     <div className="h-1.5 w-full overflow-hidden" style={{ background: BORDER }}>
                         <div className="h-full transition-all duration-700"
-                             style={{ width: `${confidencePct}%`, background: theme.hex }} />
+                             style={{ width: `${confidencePct}%`, background: color }} />
                     </div>
 
                     {/* Başlık */}
@@ -138,6 +162,20 @@ const SharedAnalysis = () => {
                                style={{ color: MUTED }}>// Analiz Edilen Başlık</p>
                             <p className="font-mono text-sm leading-relaxed" style={{ color: TEXT }}>
                                 {data.title}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* AI Özeti */}
+                    {data.ai_summary && (
+                        <div className="p-4" style={{ border: `1px solid ${color}30`, background: `${color}0a` }}>
+                            <div className="flex items-center gap-2 mb-3">
+                                <MessageSquare className="w-3.5 h-3.5 shrink-0" style={{ color }} />
+                                <p className="font-mono text-[10px] uppercase tracking-widest"
+                                   style={{ color }}>// AI Değerlendirmesi</p>
+                            </div>
+                            <p className="font-mono text-xs leading-relaxed italic" style={{ color: TEXT }}>
+                                "{data.ai_summary}"
                             </p>
                         </div>
                     )}
@@ -169,10 +207,10 @@ const SharedAnalysis = () => {
                     {/* Haber linki */}
                     {sourceUrl && (
                         <a href={sourceUrl} target="_blank" rel="noopener noreferrer"
-                           className="flex items-center gap-2 px-3 py-2 transition-opacity hover:opacity-75"
-                           style={{ border: `1px solid ${theme.hex}44`, background: `${theme.hex}0d` }}>
-                            <ExternalLink className="w-3.5 h-3.5 shrink-0" style={{ color: theme.hex }} />
-                            <span className="font-mono text-[11px] truncate" style={{ color: theme.hex }}>
+                           className="inline-flex items-center gap-2 px-3 py-2 transition-opacity hover:opacity-75"
+                           style={{ border: `1px solid ${color}44`, background: `${color}0d` }}>
+                            <ExternalLink className="w-3.5 h-3.5 shrink-0" style={{ color }} />
+                            <span className="font-mono text-[11px] font-semibold truncate" style={{ color }}>
                                 ⇢ Haberi Görüntüle
                             </span>
                         </a>
@@ -187,7 +225,7 @@ const SharedAnalysis = () => {
                     {/* CTA */}
                     <Link to="/"
                           className="flex items-center justify-center gap-2 w-full py-3 font-mono text-xs font-bold transition-opacity hover:opacity-85"
-                          style={{ background: theme.hex, color: '#070f12' }}>
+                          style={{ background: color, color: isDark ? '#070f12' : '#ffffff' }}>
                         Kendi Haberini Analiz Et
                         <ArrowRight className="w-3.5 h-3.5" />
                     </Link>

@@ -11,15 +11,17 @@ import HighlightedText from './HighlightedText';
 import AICommentCard from './AICommentCard';
 import FalseClaimsCard from './FalseClaimsCard';
 import ForumSuggestion from '../forum/ForumSuggestion';
-import ShareDropdown from '../../components/ui/ShareDropdown';
+import ShareModal from '../../components/ui/ShareModal';
 import FullReportModal from './FullReportModal';
 import { getTheme, buildExplanation, RING_CIRC } from './analysisTheme';
+import { useIsDark } from '../../hooks/useIsDark';
 
 /* ─── Bileşen ──────────────────────────────────────────────────────── */
 const AnalysisResultCard = ({ result }) => {
     const navigate           = useNavigate();
     const { isAuthenticated } = useAuth();
 
+    const isDark = useIsDark();
     const [showModal, setShowModal] = useState(false);
     const [feedbackState,  setFeedbackState]  = useState('idle'); // idle | asking | sent
     const [feedbackReason, setFeedbackReason] = useState('');
@@ -62,6 +64,8 @@ const AnalysisResultCard = ({ result }) => {
     const scoreLabel  = isUrlAnalysis ? 'Doğruluk' : 'Güven';
 
     const theme      = getTheme(isAuthentic, isFake, isIddia);
+    const hex        = isDark ? theme.hex : (theme.lightHex || theme.hex);
+    const rgb        = isDark ? theme.glowRgb : (theme.lightRgb || theme.glowRgb);
     const signals    = result.signals || null;
     const aiComment  = result.ai_comment || null;
     const origText   = result.originalText || null;
@@ -88,10 +92,10 @@ const AnalysisResultCard = ({ result }) => {
             : `NLP modeli: ${aiComment.ml_status} → Gemini tarafından revize edildi`
         : null;
 
-    /* opacity helpers */
-    const hex15 = `${theme.hex}26`;
-    const hex30 = `${theme.hex}4d`;
-    const hex08 = `${theme.hex}14`;
+    /* opacity helpers — use light/dark-aware hex */
+    const hex15 = `${hex}26`;
+    const hex30 = `${hex}4d`;
+    const hex08 = `${hex}14`;
 
     return (
         <>
@@ -100,8 +104,8 @@ const AnalysisResultCard = ({ result }) => {
             style={{
                 background: 'var(--color-bg-surface)',
                 border: `1px solid ${hex30}`,
-                borderTop: `3px solid ${theme.hex}`,
-                boxShadow: `0 4px 32px rgba(${theme.glowRgb},0.10), 0 1px 4px rgba(0,0,0,0.08)`,
+                borderTop: `3px solid ${hex}`,
+                boxShadow: `0 4px 32px rgba(${rgb},0.10), 0 1px 4px rgba(0,0,0,0.08)`,
             }}
         >
             {/* ── Dekoratif arka plan ── */}
@@ -118,9 +122,9 @@ const AnalysisResultCard = ({ result }) => {
                          style={{ background: hex15 }}>
                         <theme.Icon className={`w-6 h-6 ${theme.statusCls}`} strokeWidth={2} />
                         <div className="absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-none"
-                             style={{ background: theme.hex }} />
+                             style={{ background: hex }} />
                         <div className="absolute bottom-0.5 right-0.5 w-1.5 h-1.5 rounded-none"
-                             style={{ background: theme.hex }} />
+                             style={{ background: hex }} />
                     </div>
                     <div className="min-w-0">
                         <span className={`${theme.statusCls} font-mono font-bold text-[10px] tracking-widest uppercase block mb-0.5`}>
@@ -149,7 +153,7 @@ const AnalysisResultCard = ({ result }) => {
                                     fill="transparent" stroke={hex15}
                                     strokeWidth="7" />
                             <circle cx="48" cy="48" r="42"
-                                    fill="transparent" stroke={theme.hex}
+                                    fill="transparent" stroke={hex}
                                     strokeWidth="7"
                                     strokeDasharray={RING_CIRC}
                                     strokeDashoffset={ringOffset}
@@ -168,11 +172,11 @@ const AnalysisResultCard = ({ result }) => {
                 ) : (
                     <div className="flex flex-col items-end shrink-0 self-center sm:self-auto">
                         <span className="font-manrope font-black text-3xl leading-none"
-                              style={{ color: theme.hex }}>
+                              style={{ color: hex }}>
                             %{displayScore}
                         </span>
                         <span className="font-mono text-[9px] tracking-widest uppercase mt-1"
-                              style={{ color: `${theme.hex}80` }}>
+                              style={{ color: `${hex}80` }}>
                             VERACITY_SCORE
                         </span>
                     </div>
@@ -200,13 +204,13 @@ const AnalysisResultCard = ({ result }) => {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 hover:opacity-80 transition-opacity"
                         style={{
-                            border: `1px solid ${theme.hex}44`,
-                            background: `${theme.hex}0d`,
+                            border: `1px solid ${hex}44`,
+                            background: `${hex}0d`,
                             borderRadius: 0,
                         }}
                     >
-                        <ExternalLink className="w-3 h-3 shrink-0" style={{ color: theme.hex }} />
-                        <span className="text-[11px] font-mono font-semibold truncate max-w-[260px]" style={{ color: theme.hex }}>
+                        <ExternalLink className="w-3 h-3 shrink-0" style={{ color: hex }} />
+                        <span className="text-[11px] font-mono font-semibold truncate max-w-[260px]" style={{ color: hex }}>
                             ⇢ Haber Linki
                         </span>
                     </a>
@@ -263,7 +267,7 @@ const AnalysisResultCard = ({ result }) => {
                 <div className="px-5 sm:px-7 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
                     {feedbackState === 'sent' ? (
                         <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                            <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: theme.hex }} />
+                            <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: hex }} />
                             <span>Geri bildirim alındı, teşekkürler.</span>
                         </div>
                     ) : feedbackState === 'asking' ? (
@@ -277,13 +281,13 @@ const AnalysisResultCard = ({ result }) => {
                                 rows={2}
                                 placeholder="Yazabilirsin..."
                                 className="w-full border text-sm p-2.5 resize-none focus:outline-none transition-colors rounded-none"
-                                style={{ background: 'var(--color-terminal-surface)', borderColor: `${theme.hex}30`, color: 'var(--color-text-primary)' }}
+                                style={{ background: 'var(--color-terminal-surface)', borderColor: `${hex}30`, color: 'var(--color-text-primary)' }}
                             />
                             <div className="flex justify-end">
                                 <button
                                     onClick={handleFeedbackSubmit}
                                     className="px-4 py-1.5 font-manrope font-bold text-[11px] uppercase tracking-wider border transition-all hover:opacity-85 rounded-xl"
-                                    style={{ borderColor: theme.hex, color: theme.hex, background: hex08 }}
+                                    style={{ borderColor: hex, color: hex, background: hex08 }}
                                 >
                                     Gönder
                                 </button>
@@ -314,7 +318,7 @@ const AnalysisResultCard = ({ result }) => {
                                                 px-6 py-2 rounded-xl ${theme.bgCls} ${theme.onBgCls}
                                                 font-manrope font-bold text-[11px] uppercase tracking-wider
                                                 hover:opacity-85 transition-opacity active:scale-95`}
-                                    style={{ boxShadow: `0 4px 16px rgba(${theme.glowRgb},0.25)` }}
+                                    style={{ boxShadow: `0 4px 16px rgba(${rgb},0.25)` }}
                                 >
                                     <ThumbsUp className="w-3.5 h-3.5" />
                                     Evet
@@ -341,9 +345,9 @@ const AnalysisResultCard = ({ result }) => {
                         </p>
                     )}
                     {articleId && (
-                        <ShareDropdown
+                        <ShareModal
                             url={`${window.location.origin}/analysis/share/${articleId}`}
-                            text={`${status === 'FAKE' ? 'SAHTE' : 'GÜVENİLİR'} (%${displayScore}) — ${(isUrlAnalysis ? (result.scraped_title || '') : (origText || '')).slice(0, 80)} | Sahte Haber Dedektifi`}
+                            hex={hex}
                         />
                     )}
                 </div>
