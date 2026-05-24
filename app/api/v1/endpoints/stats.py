@@ -7,7 +7,7 @@ from sqlalchemy import select, func, case, cast, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
-from app.models.models import AnalysisResult, User
+from app.models.models import AnalysisResult, Article, User
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -38,13 +38,15 @@ async def platform_stats(db: AsyncSession = Depends(get_db)):
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         week_start = today_start - timedelta(days=6)
 
-        # Bugünkü istatistikler
+        # Bugünkü istatistikler — yalnızca kullanıcı analizleri (task_id içerenler)
         today_rows = (await db.execute(
             select(
                 AnalysisResult.status,
                 func.count().label("cnt"),
             )
+            .join(Article, Article.id == AnalysisResult.article_id)
             .where(AnalysisResult.created_at >= today_start)
+            .where(Article.metadata_info.op("?")("task_id"))
             .group_by(AnalysisResult.status)
         )).all()
 
@@ -60,14 +62,16 @@ async def platform_stats(db: AsyncSession = Depends(get_db)):
             )
         )).scalar_one()
 
-        # 7 günlük heatmap
+        # 7 günlük heatmap — yalnızca kullanıcı analizleri
         heatmap_rows = (await db.execute(
             select(
                 cast(AnalysisResult.created_at, Date).label("day"),
                 func.count().label("total"),
                 func.sum(case((AnalysisResult.status == "FAKE", 1), else_=0)).label("fake_cnt"),
             )
+            .join(Article, Article.id == AnalysisResult.article_id)
             .where(AnalysisResult.created_at >= week_start)
+            .where(Article.metadata_info.op("?")("task_id"))
             .group_by(cast(AnalysisResult.created_at, Date))
             .order_by(cast(AnalysisResult.created_at, Date))
         )).all()
