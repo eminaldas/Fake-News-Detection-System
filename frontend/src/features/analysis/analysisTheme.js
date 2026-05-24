@@ -15,7 +15,7 @@ export function getTheme(isAuthentic, isFake, isIddia) {
         label:     'ANALİZ TAMAMLANDI',
         mainTitle: 'Güvenilir İçerik Tespit Edildi',
         glowRgb:   '63,255,139',
-        statusCls: 'text-es-primary',
+        statusCls: 'text-green-700 dark:text-es-primary',
         bgCls:     'bg-es-primary',
         onBgCls:   'text-[#004820]',
         borderVar: '#3fff8b',

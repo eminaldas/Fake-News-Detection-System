@@ -198,11 +198,16 @@ const AnalysisResultCard = ({ result }) => {
                         href={result.source_url || result.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 hover:opacity-80 transition-opacity"
+                        style={{
+                            border: `1px solid ${theme.hex}44`,
+                            background: `${theme.hex}0d`,
+                            borderRadius: 0,
+                        }}
                     >
-                        <ExternalLink className={`w-3 h-3 shrink-0 ${theme.statusCls}`} />
-                        <span className={`text-[11px] font-mono truncate ${theme.statusCls}`}>
-                            Haber Linki →
+                        <ExternalLink className="w-3 h-3 shrink-0" style={{ color: theme.hex }} />
+                        <span className="text-[11px] font-mono font-semibold truncate max-w-[260px]" style={{ color: theme.hex }}>
+                            ⇢ Haber Linki
                         </span>
                     </a>
                 )}
@@ -338,7 +343,7 @@ const AnalysisResultCard = ({ result }) => {
                     {articleId && (
                         <ShareDropdown
                             url={`${window.location.origin}/analysis/share/${articleId}`}
-                            text={`${status === 'FAKE' ? 'SAHTE' : 'GÜVENİLİR'} (%${displayScore}) — ${(origText || '').slice(0, 80)} | Sahte Haber Dedektifi`}
+                            text={`${status === 'FAKE' ? 'SAHTE' : 'GÜVENİLİR'} (%${displayScore}) — ${(isUrlAnalysis ? (result.scraped_title || '') : (origText || '')).slice(0, 80)} | Sahte Haber Dedektifi`}
                         />
                     )}
                 </div>
