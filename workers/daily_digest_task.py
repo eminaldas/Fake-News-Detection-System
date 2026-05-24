@@ -9,7 +9,6 @@ import json
 import logging
 from datetime import date, datetime, timezone
 
-from celery import Celery
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
@@ -17,21 +16,9 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 from app.models.models import DailySummary, NewsArticle
+from workers.tasks import celery_app
 
 logger = logging.getLogger(__name__)
-
-celery_app = Celery(
-    "daily_digest_worker",
-    broker=settings.REDIS_URL,
-    backend=settings.REDIS_URL,
-)
-celery_app.conf.update(
-    task_serializer="json",
-    accept_content=["json"],
-    result_serializer="json",
-    timezone="UTC",
-    enable_utc=True,
-)
 
 _gemini_client = None
 

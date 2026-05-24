@@ -51,7 +51,7 @@ services:
       - redis
       - db
       - embedding-service
-    command: celery -A workers.tasks worker --concurrency=1 --include=workers.link_analysis_task --loglevel=info -Q celery,deep_report
+    command: celery -A workers.tasks worker --concurrency=1 --include=workers.link_analysis_task,workers.daily_digest_task --loglevel=info -Q celery,deep_report
     mem_limit: 600m
     memswap_limit: 600m
 
