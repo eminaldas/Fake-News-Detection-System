@@ -425,6 +425,14 @@ async def get_thread(
     )
     flat_comments = comments_result.scalars().all()
 
+    # Shadow ban filtresi: başkalarının shadow-banned yorumlarını gizle.
+    # Ban'lı kullanıcı kendi yorumlarını normal görür.
+    viewer_id = current_user.id if current_user else None
+    flat_comments = [
+        c for c in flat_comments
+        if not (c.user and c.user.is_shadow_banned and c.user_id != viewer_id)
+    ]
+
     article_summary = None
     if thread.article_id:
         article = (await db.execute(

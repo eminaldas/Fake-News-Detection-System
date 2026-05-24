@@ -1,8 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { ShieldAlert, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  ShieldAlert, AlertTriangle, RefreshCw,
+  ChevronLeft, ChevronRight, Loader2,
+  Terminal, Circle,
+} from 'lucide-react';
 import axiosInstance from '../api/axios';
 import { useWebSocket } from '../contexts/WebSocketContext';
-import { A, pageWrap, tableWrap, thead, th, td, badge, ghostBtn, ANIM } from './adminTheme';
+import { A, pageWrap, tableWrap, thead, th, td, badge, ghostBtn, card, cardHead, ANIM } from './adminTheme';
 
 const SEVERITY_COLORS = {
   CRITICAL: { color: A.red,   dim: A.redDim   },
@@ -21,15 +25,90 @@ const EVENT_LABELS = {
 };
 
 const PAGE_SIZE = 50;
+const MAX_LIVE = 200;
 
+/* ── Canlı Terminal ──────────────────────────────────────────────────── */
+function LiveTerminal({ events }) {
+  const bottomRef = useRef(null);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+    if (isAtBottom) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [events]);
+
+  const sev2color = (sev) => {
+    if (sev === 'CRITICAL') return A.red;
+    if (sev === 'WARNING')  return A.amber;
+    return A.blue;
+  };
+
+  return (
+    <div style={{ ...card, marginBottom: 20 }}>
+      <div style={{ ...cardHead }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Terminal size={14} color={A.brand} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: A.text1 }}>Canlı Güvenlik Akışı</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: A.brand, marginLeft: 4 }}>
+            <Circle size={6} fill={A.brand} style={{ animation: 'dot-blink 1.5s ease-in-out infinite' }} />
+            Canlı
+          </span>
+        </div>
+        <span style={{ fontSize: 12, color: A.text3 }}>{events.length} event (son {MAX_LIVE})</span>
+      </div>
+      <div
+        ref={containerRef}
+        style={{
+          height:     260,
+          overflowY:  'auto',
+          background: '#0a1014',
+          padding:    '10px 14px',
+          fontFamily: 'JetBrains Mono, Consolas, monospace',
+          fontSize:   12,
+          lineHeight: 1.7,
+        }}
+      >
+        {events.length === 0 ? (
+          <span style={{ color: A.text3 }}>
+            {'>'} Bağlantı bekleniyor — WARNING/CRITICAL eventler burada görünür…
+          </span>
+        ) : events.map((e, i) => {
+          const color = sev2color(e.severity);
+          const ts    = e.created_at
+            ? new Date(e.created_at).toLocaleTimeString('tr-TR')
+            : '—';
+          const label = EVENT_LABELS[e.event_name] || e.event_name;
+          const ip    = e.ip_hash ? e.ip_hash.slice(0, 12) + '…' : '—';
+          return (
+            <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
+              <span style={{ color: A.text3, flexShrink: 0, width: 54 }}>{ts}</span>
+              <span style={{ color, fontWeight: 700, flexShrink: 0, width: 68 }}>[{e.severity}]</span>
+              <span style={{ color: A.text1, flex: 1 }}>
+                {label}
+                {e.ip_hash && <span style={{ color: A.text3 }}> ip={ip}</span>}
+                {e.details?.count && <span style={{ color: A.amber }}> ×{e.details.count}</span>}
+              </span>
+            </div>
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
+    </div>
+  );
+}
+
+/* ── Ana Bileşen ─────────────────────────────────────────────────────── */
 export default function AdminSecurity() {
   const { subscribe } = useWebSocket();
-  const [events,   setEvents]   = useState([]);
-  const [alerts,   setAlerts]   = useState([]);
-  const [total,    setTotal]    = useState(0);
-  const [page,     setPage]     = useState(1);
-  const [severity, setSeverity] = useState('');
-  const [loading,  setLoading]  = useState(true);
+  const [events,    setEvents]    = useState([]);
+  const [alerts,    setAlerts]    = useState([]);
+  const [liveLog,   setLiveLog]   = useState([]);
+  const [total,     setTotal]     = useState(0);
+  const [page,      setPage]      = useState(1);
+  const [severity,  setSeverity]  = useState('');
+  const [loading,   setLoading]   = useState(true);
 
   const fetchAlerts = useCallback(async () => {
     try {
@@ -54,14 +133,26 @@ export default function AdminSecurity() {
   useEffect(() => { fetchAlerts(); }, [fetchAlerts]);
   useEffect(() => { fetchEvents(); }, [fetchEvents]);
 
+  /* Canlı WebSocket akışı — admin_alert (CRITICAL) */
   useEffect(() => {
     const unsub = subscribe('admin_alert', (payload) => {
-      setAlerts(prev => [{
-        event_name: 'admin_alert',
-        severity:   payload.severity || 'CRITICAL',
-        details:    { message: payload.message },
-        ...payload,
-      }, ...prev]);
+      const event = {
+        event_name: payload.event_name || 'admin_alert',
+        severity:   payload.severity  || 'CRITICAL',
+        ip_hash:    payload.ip_hash,
+        details:    payload.details || { message: payload.message },
+        created_at: payload.created_at || new Date().toISOString(),
+      };
+      setAlerts(prev => [event, ...prev]);
+      setLiveLog(prev => [event, ...prev].slice(0, MAX_LIVE));
+    });
+    return unsub;
+  }, [subscribe]);
+
+  /* Canlı WebSocket akışı — security_log (WARNING/CRITICAL) */
+  useEffect(() => {
+    const unsub = subscribe('security_log', (payload) => {
+      setLiveLog(prev => [payload, ...prev].slice(0, MAX_LIVE));
     });
     return unsub;
   }, [subscribe]);
@@ -107,9 +198,11 @@ export default function AdminSecurity() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {alerts.slice(0, 3).map((a, i) => (
               <div key={i} style={{ fontSize: 12, color: A.text2 }}>
-                <span style={{ color: A.red, fontWeight: 600 }}>{EVENT_LABELS[a.event_name] || a.event_name}</span>
-                {a.ip_hash && ` — IP: ${a.ip_hash.slice(0, 14)}...`}
-                {a.details?.subnet_hash && ` (subnet: ${a.details.subnet_hash.slice(0, 8)}...)`}
+                <span style={{ color: A.red, fontWeight: 600 }}>
+                  {EVENT_LABELS[a.event_name] || a.event_name}
+                </span>
+                {a.ip_hash && ` — IP: ${a.ip_hash.slice(0, 14)}…`}
+                {a.details?.subnet_hash && ` (subnet: ${a.details.subnet_hash.slice(0, 8)}…)`}
               </div>
             ))}
             {alerts.length > 3 && (
@@ -118,6 +211,9 @@ export default function AdminSecurity() {
           </div>
         </div>
       )}
+
+      {/* Live terminal */}
+      <LiveTerminal events={liveLog} />
 
       {/* Filters */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
@@ -129,18 +225,13 @@ export default function AdminSecurity() {
               key={s}
               onClick={() => { setSeverity(s); setPage(1); }}
               style={{
-                padding:      '6px 14px',
+                padding:    '6px 14px',
                 borderRadius: 8,
-                border:       active
-                  ? `1px solid ${sc ? sc.color : A.brand}`
-                  : `1px solid ${A.border}`,
-                background:   active ? (sc ? sc.dim : A.brandDim) : 'transparent',
-                color:        active ? (sc ? sc.color : A.brand) : A.text3,
-                fontSize:     12,
-                fontWeight:   600,
-                cursor:       'pointer',
-                fontFamily:   'inherit',
-                transition:   'all 0.12s',
+                border:     `1px solid ${active ? (sc?.color ?? A.brand) : A.border}`,
+                background: active ? (sc?.dim ?? A.brandDim) : 'transparent',
+                color:      active ? (sc?.color ?? A.brand) : A.text3,
+                fontSize:   12, fontWeight: 600, cursor: 'pointer',
+                fontFamily: 'inherit', transition: 'all 0.12s',
               }}
             >
               {s || 'Tümü'}

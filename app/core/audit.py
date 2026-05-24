@@ -67,6 +67,14 @@ async def audit_log(
             pipe.zadd(ALERTS_KEY, {event_json: time.time()})
             pipe.zremrangebyrank(ALERTS_KEY, 0, -101)  # max 100 aktif alert
 
+        # Admin canlı terminal: SECURITY WARNING/CRITICAL eventleri yayınla
+        if event_type == "SECURITY" and severity in ("WARNING", "CRITICAL"):
+            live_msg = json.dumps(
+                {"type": "security_log", "payload": event},
+                ensure_ascii=False,
+            )
+            pipe.publish("admin:events", live_msg)
+
         await pipe.execute()
     except Exception:
         pass  # Log pipeline asla ana akışı bloklamaz
