@@ -23,6 +23,7 @@ const ProfileLayout      = lazy(() => import('./features/profile/ProfileLayout')
 const ProfileOverview    = lazy(() => import('./features/profile/ProfileOverview'));
 const ProfileBookmarks   = lazy(() => import('./features/profile/ProfileBookmarks'));
 const ProfileThreads     = lazy(() => import('./features/profile/ProfileThreads'));
+const AdminDashboard     = lazy(() => import('./pages/AdminDashboard'));
 const AdminUsers         = lazy(() => import('./pages/AdminUsers'));
 const AdminSecurity      = lazy(() => import('./pages/AdminSecurity'));
 const AdminAnalytics     = lazy(() => import('./pages/AdminAnalytics'));
@@ -162,7 +163,7 @@ function App() {
                           path="admin"
                           element={<RequireAdmin><AdminLayout /></RequireAdmin>}
                         >
-                          <Route index                element={<Dashboard />}      />
+                          <Route index                element={<AdminDashboard />} />
                           <Route path="users"         element={<AdminUsers />}     />
                           <Route path="security"      element={<AdminSecurity />}  />
                           <Route path="analytics"     element={<AdminAnalytics />} />

@@ -17,8 +17,8 @@ from app.api.deps import require_admin
 from app.core.audit import ALERTS_KEY
 from app.db.redis import get_redis
 from app.db.session import get_db
-from app.models.models import AuditLog, AnalysisRequest, User, ModelFeedback, ModelTrainingRun
-from app.schemas.schemas import FeedbackStatsResponse, TrainingRunResponse
+from app.models.models import AuditLog, AnalysisRequest, AnalysisResult, Article, User, ModelFeedback, ModelTrainingRun, UserReport, ReportStatus
+from app.schemas.schemas import AdminStatsOverviewResponse, FeedbackStatsResponse, TrainingRunResponse
 from app.core.config import settings
 
 router = APIRouter()
@@ -26,6 +26,52 @@ router = APIRouter()
 
 def _since(hours: int) -> datetime:
     return datetime.now(timezone.utc) - timedelta(hours=hours)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Güvenlik Logları
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/stats/overview", response_model=AdminStatsOverviewResponse)
+async def get_stats_overview(
+    _admin: User         = Depends(require_admin),
+    db: AsyncSession     = Depends(get_db),
+    redis: Redis         = Depends(get_redis),
+):
+    """Dashboard ana metrikleri: 24s analiz, sahtelik oranı, bekleyen ihbar, kritik uyarı."""
+    since_24h = _since(24)
+
+    total_analyses = (await db.execute(
+        select(func.count()).select_from(AnalysisRequest)
+        .where(AnalysisRequest.created_at >= since_24h)
+    )).scalar_one()
+
+    fake_count = (await db.execute(
+        select(func.count()).select_from(AnalysisResult)
+        .join(Article, Article.id == AnalysisResult.article_id)
+        .where(
+            AnalysisResult.status == "FAKE",
+            Article.created_at >= since_24h,
+        )
+    )).scalar_one()
+
+    pending_reports = (await db.execute(
+        select(func.count()).select_from(UserReport)
+        .where(UserReport.status == ReportStatus.open)
+    )).scalar_one()
+
+    raw_alerts   = await redis.zrevrange(ALERTS_KEY, 0, -1, withscores=False)
+    critical_alerts = len(raw_alerts)
+
+    fake_rate = round(fake_count / total_analyses, 3) if total_analyses > 0 else 0.0
+
+    return AdminStatsOverviewResponse(
+        total_analyses_24h=total_analyses,
+        fake_count_24h=fake_count,
+        fake_rate_24h=fake_rate,
+        pending_reports=pending_reports,
+        critical_alerts=critical_alerts,
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────

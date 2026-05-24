@@ -179,6 +179,49 @@ class PaginatedUserResponse(BaseModel):
     items: List[UserResponse]
 
 
+class AdminUserResponse(BaseModel):
+    id:               UUID
+    email:            str
+    username:         str
+    role:             UserRole
+    is_active:        bool
+    is_shadow_banned: bool          = False
+    created_at:       datetime
+    last_login_at:    Optional[datetime] = None
+    deleted_at:       Optional[datetime] = None
+    avatar_url:       Optional[str]      = None
+    forum_trust_score: float             = 0.0
+    forum_trust_tier:  str               = "yeni_uye"
+    total_xp:          int               = 0
+    level:             int               = 1
+
+    class Config:
+        from_attributes = True
+
+
+class PaginatedAdminUserResponse(BaseModel):
+    total: int
+    page:  int
+    size:  int
+    items: List[AdminUserResponse]
+
+
+class ShadowBanRequest(BaseModel):
+    ban: bool
+
+
+class XPDeltaRequest(BaseModel):
+    delta: int = Field(..., description="Pozitif = ekle, negatif = çıkar")
+
+
+class AdminStatsOverviewResponse(BaseModel):
+    total_analyses_24h: int
+    fake_count_24h:     int
+    fake_rate_24h:      float
+    pending_reports:    int
+    critical_alerts:    int
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Analiz Geçmişi
 # ─────────────────────────────────────────────────────────────────────────────

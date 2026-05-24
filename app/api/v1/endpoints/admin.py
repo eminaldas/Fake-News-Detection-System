@@ -13,29 +13,40 @@ from app.db.redis import get_redis
 from app.db.session import get_db
 from app.models.models import Article, User, UserRole, ForumComment, ForumReport, ForumThread
 from app.schemas.schemas import (
-    AdminUpdateUserRequest, ModerationQueueItem, ModerationQueueResponse,
-    PaginatedUserResponse, UserResponse, ArticleResponse,
+    AdminUpdateUserRequest, AdminUserResponse, ModerationQueueItem, ModerationQueueResponse,
+    PaginatedAdminUserResponse, PaginatedUserResponse, ShadowBanRequest, UserResponse,
+    XPDeltaRequest, ArticleResponse,
 )
 
 router = APIRouter()
 log    = get_logger(__name__)
 
 
-@router.get("/users", response_model=PaginatedUserResponse)
+@router.get("/users", response_model=PaginatedAdminUserResponse)
 async def list_users(
-    page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
-    admin: User = Depends(require_admin),
-    db: AsyncSession = Depends(get_db),
+    page: int           = Query(1, ge=1),
+    size: int           = Query(20, ge=1, le=100),
+    q:    str           = Query(None, description="username veya email ara"),
+    admin: User         = Depends(require_admin),
+    db: AsyncSession    = Depends(get_db),
 ):
-    offset = (page - 1) * size
+    offset  = (page - 1) * size
+    filters = []
+    if q:
+        like = f"%{q}%"
+        from sqlalchemy import or_
+        filters.append(or_(User.username.ilike(like), User.email.ilike(like)))
 
-    total = (await db.execute(select(func.count()).select_from(User))).scalar_one()
+    base = select(User)
+    if filters:
+        base = base.where(*filters)
+
+    total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
     items = (
-        await db.execute(select(User).order_by(User.created_at.desc()).offset(offset).limit(size))
+        await db.execute(base.order_by(User.created_at.desc()).offset(offset).limit(size))
     ).scalars().all()
 
-    return PaginatedUserResponse(total=total, page=page, size=size, items=items)
+    return PaginatedAdminUserResponse(total=total, page=page, size=size, items=items)
 
 
 @router.patch("/users/{user_id}", response_model=UserResponse)
@@ -155,6 +166,88 @@ async def restore_user(
         ip=request.client.host if request.client else "unknown",
         user_id=str(admin.id), severity="INFO",
         details={"action": "restore_user", "target_user_id": str(user_id)},
+    )
+    return user
+
+
+@router.patch("/users/{user_id}/shadow-ban", response_model=AdminUserResponse)
+async def toggle_shadow_ban(
+    user_id: UUID,
+    body:    ShadowBanRequest,
+    request: Request,
+    admin:   User         = Depends(require_admin),
+    db:      AsyncSession = Depends(get_db),
+    redis    = Depends(get_redis),
+):
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    if user.id == admin.id:
+        raise HTTPException(status_code=400, detail="Kendi hesabınıza shadow ban uygulayamazsınız")
+
+    user.is_shadow_banned = body.ban
+    await db.commit()
+    await db.refresh(user)
+    log.info("user.shadow_ban_toggled", user_id=str(user_id), ban=body.ban, by_admin_id=str(admin.id))
+    await audit_log(
+        redis, "USER_ACTION", "admin.shadow_ban",
+        ip=request.client.host if request.client else "unknown",
+        user_id=str(admin.id), severity="WARNING",
+        details={"action": "shadow_ban", "target_user_id": str(user_id), "ban": body.ban},
+    )
+    return user
+
+
+@router.post("/users/{user_id}/sessions/terminate", status_code=status.HTTP_200_OK)
+async def terminate_sessions(
+    user_id: UUID,
+    request: Request,
+    admin:   User         = Depends(require_admin),
+    db:      AsyncSession = Depends(get_db),
+    redis    = Depends(get_redis),
+):
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    if user.id == admin.id:
+        raise HTTPException(status_code=400, detail="Kendi oturumlarınızı bu yolla sonlandıramazsınız")
+
+    # Tüm aktif token'ları geçersiz kıl — 30dk TTL (JWT expiry ile eşleşir)
+    await redis.setex(f"blacklist:user:{user_id}", 1800, "1")
+
+    log.info("user.sessions_terminated", user_id=str(user_id), by_admin_id=str(admin.id))
+    await audit_log(
+        redis, "USER_ACTION", "admin.force_logout",
+        ip=request.client.host if request.client else "unknown",
+        user_id=str(admin.id), severity="WARNING",
+        details={"action": "terminate_sessions", "target_user_id": str(user_id)},
+    )
+    return {"message": "Tüm oturumlar sonlandırıldı."}
+
+
+@router.patch("/users/{user_id}/xp", response_model=AdminUserResponse)
+async def adjust_xp(
+    user_id: UUID,
+    body:    XPDeltaRequest,
+    request: Request,
+    admin:   User         = Depends(require_admin),
+    db:      AsyncSession = Depends(get_db),
+    redis    = Depends(get_redis),
+):
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+
+    old_xp        = user.total_xp
+    user.total_xp = max(0, user.total_xp + body.delta)
+    await db.commit()
+    await db.refresh(user)
+    log.info("user.xp_adjusted", user_id=str(user_id), delta=body.delta, new_xp=user.total_xp, by_admin_id=str(admin.id))
+    await audit_log(
+        redis, "USER_ACTION", "admin.adjust_xp",
+        ip=request.client.host if request.client else "unknown",
+        user_id=str(admin.id), severity="INFO",
+        details={"action": "adjust_xp", "target_user_id": str(user_id), "delta": body.delta, "old_xp": old_xp, "new_xp": user.total_xp},
     )
     return user
 

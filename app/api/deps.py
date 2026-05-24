@@ -26,6 +26,10 @@ async def _is_blacklisted(token: str, redis) -> bool:
     return bool(await redis.get(f"blacklist:{token_hash}"))
 
 
+async def _is_user_blacklisted(user_id: str, redis) -> bool:
+    return bool(await redis.get(f"blacklist:user:{user_id}"))
+
+
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
@@ -36,6 +40,12 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token geçersiz kılındı",
+            headers={"WWW-Authenticate": "Bearer", "X-Auth-Error": "token_revoked"},
+        )
+    if await _is_user_blacklisted(token_data.user_id, redis):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Oturum sonlandırıldı",
             headers={"WWW-Authenticate": "Bearer", "X-Auth-Error": "token_revoked"},
         )
     user = await _get_user_by_id(token_data.user_id, db)

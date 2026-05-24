@@ -51,10 +51,11 @@ class User(Base):
     forum_trust_tier     = Column(String(20), nullable=False, server_default="yeni_uye")
     forum_trust_category = Column(String(50), nullable=True)
 
-    total_xp        = Column(Integer, nullable=False, server_default="0", default=0)
-    level           = Column(Integer, nullable=False, server_default="1", default=1)
-    current_streak  = Column(Integer, nullable=False, server_default="0", default=0)
-    last_login_date = Column(Date, nullable=True)
+    total_xp         = Column(Integer, nullable=False, server_default="0", default=0)
+    level            = Column(Integer, nullable=False, server_default="1", default=1)
+    current_streak   = Column(Integer, nullable=False, server_default="0", default=0)
+    last_login_date  = Column(Date, nullable=True)
+    is_shadow_banned = Column(Boolean, nullable=False, server_default="false", default=False)
 
     __table_args__ = (
         CheckConstraint(
@@ -294,6 +295,7 @@ class ModelFeedback(Base):
     article_id      = Column(UUID(as_uuid=True), ForeignKey("articles.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id         = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     submitted_label = Column(String(20), nullable=False)   # 'FAKE' | 'AUTHENTIC'
+    is_ground_truth = Column(Boolean, nullable=False, server_default="false", default=False)
     created_at      = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
@@ -363,6 +365,15 @@ class AbVariantAssignment(Base):
             name="ck_ab_assignment_variant",
         ),
     )
+
+
+class SystemConfig(Base):
+    __tablename__ = "system_config"
+
+    key        = Column(String(100), primary_key=True)
+    value      = Column(JSONB, nullable=False)
+    updated_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
 
 class ForumThread(Base):
