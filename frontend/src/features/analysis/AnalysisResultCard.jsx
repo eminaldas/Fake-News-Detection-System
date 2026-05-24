@@ -337,7 +337,7 @@ const AnalysisResultCard = ({ result }) => {
                     )}
                     {articleId && (
                         <ShareDropdown
-                            url={`${window.location.origin}/s/analysis/${articleId}`}
+                            url={`${window.location.origin}/analysis/share/${articleId}`}
                             text={`${status === 'FAKE' ? 'SAHTE' : 'GÜVENİLİR'} (%${displayScore}) — ${(origText || '').slice(0, 80)} | Sahte Haber Dedektifi`}
                         />
                     )}

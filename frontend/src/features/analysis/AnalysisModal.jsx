@@ -189,7 +189,7 @@ export default function AnalysisModal({ result, onClose }) {
                 >
                     {articleId ? (
                         <ShareDropdown
-                            url={`${window.location.origin}/s/analysis/${articleId}`}
+                            url={`${window.location.origin}/analysis/share/${articleId}`}
                             text={`${status === 'FAKE' ? 'SAHTE' : 'GÜVENİLİR'} (%${displayScore}) | Sahte Haber Dedektifi`}
                         />
                     ) : <span />}
