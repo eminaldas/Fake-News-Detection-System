@@ -235,18 +235,16 @@ async def google_auth(
     if not settings.GOOGLE_CLIENT_ID:
         raise HTTPException(status_code=501, detail="Google OAuth yapılandırılmamış")
 
-    import asyncio
     try:
-        from google.oauth2 import id_token as _google_id_token
-        from google.auth.transport import requests as _google_requests
-        payload = await asyncio.to_thread(
-            _google_id_token.verify_oauth2_token,
-            body.credential,
-            _google_requests.Request(),
-            settings.GOOGLE_CLIENT_ID,
-        )
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {body.credential}"},
+            )
+        if resp.status_code != 200:
+            raise ValueError(f"Google userinfo {resp.status_code}: {resp.text[:200]}")
+        payload = resp.json()
     except Exception as e:
-        log = get_logger(__name__)
         log.warning("google_auth.token_verify_failed", error=str(e))
         raise HTTPException(status_code=400, detail="Geçersiz Google token")
 
