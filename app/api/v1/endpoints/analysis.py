@@ -707,7 +707,7 @@ async def get_shared_analysis(
         confidence=result.confidence or 0.0,
         risk_score=signals.get("risk_score"),
         clickbait_score=signals.get("clickbait_score"),
-        source_url=article.source_url or None,
+        source_url=(article.metadata_info or {}).get('url') or (article.metadata_info or {}).get('source_url') or None,
         ai_summary=ai_summary,
         created_at=result.created_at.isoformat() if result.created_at else None,
     )
