@@ -11,12 +11,12 @@ const SIGNAL_WEIGHT_ORDER = [
 export function getTheme(isAuthentic, isFake, isIddia) {
     if (isAuthentic) return {
         hex:       '#3fff8b',
-        lightHex:  '#16a34a',
+        lightHex:  '#2d7549',
         Icon:      ShieldCheck,
         label:     'ANALİZ TAMAMLANDI',
         mainTitle: 'Güvenilir İçerik Tespit Edildi',
         glowRgb:   '63,255,139',
-        lightRgb:  '22,163,74',
+        lightRgb:  '45,117,73',
         statusCls: 'text-green-700 dark:text-es-primary',
         bgCls:     'dark:bg-es-primary bg-green-600',
         onBgCls:   'text-white dark:text-[#004820]',
