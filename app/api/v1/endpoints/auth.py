@@ -245,7 +245,9 @@ async def google_auth(
             _google_requests.Request(),
             settings.GOOGLE_CLIENT_ID,
         )
-    except Exception:
+    except Exception as e:
+        log = get_logger(__name__)
+        log.warning("google_auth.token_verify_failed", error=str(e))
         raise HTTPException(status_code=400, detail="Geçersiz Google token")
 
     google_id  = payload.get("sub", "")
