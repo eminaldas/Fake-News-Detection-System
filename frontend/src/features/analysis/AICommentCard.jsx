@@ -3,8 +3,10 @@ import {
     Sparkles, Search, Clock, AlertTriangle,
     FileText, CheckCircle2,
 } from 'lucide-react';
+import { useIsDark } from '../../hooks/useIsDark';
 
 const AICommentCard = ({ aiComment, theme, sourceBiasSummary = null, temporalAnalysis = null }) => {
+    const isDark = useIsDark();
     const hex08 = `${theme.hex}14`;
     const hex15 = `${theme.hex}26`;
     const hex30 = `${theme.hex}4d`;
@@ -88,7 +90,7 @@ const AICommentCard = ({ aiComment, theme, sourceBiasSummary = null, temporalAna
                                     // Doğrulama_Yorumu
                                 </span>
                             </div>
-                            <p className="text-sm leading-relaxed italic" style={{ color: theme.hex }}>
+                            <p className="text-sm leading-relaxed italic" style={{ color: isDark ? theme.hex : '#2d7549' }}>
                                 "{aiComment.summary}"
                             </p>
                         </div>

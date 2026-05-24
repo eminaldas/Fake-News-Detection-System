@@ -24,9 +24,9 @@ function getTheme(prediction) {
             label:    'GÜVENİLİR',
             Icon:     ShieldCheck,
             hex:      '#3fff8b',
-            lightHex: '#2d7549',
+            lightHex: '#16a34a',
             rgb:      '63,255,139',
-            lightRgb: '45,117,73',
+            lightRgb: '22,163,74',
         };
     if (s === 'FAKE' || s === 'YANILTICI' || s === 'FALSE')
         return {
