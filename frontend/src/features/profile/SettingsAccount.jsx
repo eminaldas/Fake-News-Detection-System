@@ -6,6 +6,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import axiosInstance from '../../api/axios';
+import toast from '../../services/toast';
 import SettingsPanelShell from './SettingsPanelShell';
 
 /* ── Renkler — CSS değişkeni tabanlı, light/dark otomatik ── */
@@ -410,6 +411,10 @@ export default function SettingsAccount() {
   /* ── Kaydet ── */
   const handleSave = async () => {
     if (usernameStatus === 'taken') return;
+    if (username !== original?.username && !/^[a-zA-Z0-9_ğüşıöçĞÜŞİÖÇ]+$/.test(username)) {
+      toast.error('Kullanıcı adı yalnızca harf, rakam ve _ içerebilir. Boşluk kullanılamaz.');
+      return;
+    }
     setSaving(true);
     setSaveError('');
     try {
@@ -421,7 +426,12 @@ export default function SettingsAccount() {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
-      setSaveError(err?.response?.data?.detail || 'Kayıt başarısız.');
+      const detail = err?.response?.data?.detail;
+      const msg = Array.isArray(detail)
+        ? detail[0]?.msg?.replace(/^Value error,\s*/i, '') ?? 'Kayıt başarısız.'
+        : (typeof detail === 'string' ? detail : 'Kayıt başarısız.');
+      setSaveError(msg);
+      toast.error(msg);
     } finally { setSaving(false); }
   };
 

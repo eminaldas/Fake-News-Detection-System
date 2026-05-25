@@ -41,8 +41,8 @@ export default function Toast({ item, onRemove }) {
         display:     'flex',
         alignItems:  'flex-start',
         gap:          8,
-        boxShadow:   '0 2px 12px rgba(0,0,0,0.35)',
-        width:        300,
+        boxShadow:   '0 2px 16px rgba(0,0,0,0.45)',
+        width:        400,
         position:    'relative',
         overflow:    'hidden',
         opacity:      exiting ? 0 : 1,
@@ -55,11 +55,11 @@ export default function Toast({ item, onRemove }) {
 
       {/* İçerik */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#eef2f7', lineHeight: 1.4 }}>
+        <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#eef2f7', lineHeight: 1.5 }}>
           {item.title}
         </div>
         {item.sub && (
-          <div style={{ fontSize: '0.68rem', color: '#8b949e', marginTop: 2 }}>
+          <div style={{ fontSize: '0.73rem', color: '#8b949e', marginTop: 3 }}>
             {item.sub}
           </div>
         )}
