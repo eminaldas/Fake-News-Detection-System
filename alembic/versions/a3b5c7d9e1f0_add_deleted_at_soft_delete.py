@@ -16,9 +16,8 @@ depends_on:    Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        'users',
-        sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
+    op.execute(
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE"
     )
 
 
