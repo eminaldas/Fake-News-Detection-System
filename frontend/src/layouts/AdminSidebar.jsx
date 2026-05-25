@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, ShieldAlert, BarChart2,
-  MessageSquare, Flag, Database, LogOut,
-  ChevronLeft, ChevronRight, FlaskConical, Activity,
+  LayoutDashboard, Users, ShieldAlert, BrainCircuit,
+  Flag, LogOut, ChevronLeft, ChevronRight, Activity, UsersRound,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import axiosInstance from '../api/axios';
@@ -30,24 +29,17 @@ const SECTIONS = [
   {
     label: 'Genel',
     items: [
-      { to: '/admin',           end: true,  icon: LayoutDashboard, label: 'Ana Panel'      },
-      { to: '/admin/users',                 icon: Users,           label: 'Kullanıcılar', badgeKey: 'users'    },
-      { to: '/admin/analytics',             icon: BarChart2,       label: 'Analitik'       },
+      { to: '/admin',          end: true, icon: LayoutDashboard, label: 'Ana Panel'    },
+      { to: '/admin/users',               icon: Users,           label: 'Kullanıcılar' },
     ],
   },
   {
-    label: 'İçerik & Moderasyon',
+    label: 'Yönetim',
     items: [
-      { to: '/admin/moderation', icon: Flag,         label: 'Moderasyon',  badgeKey: 'reports'  },
-      { to: '/admin/forum',      icon: MessageSquare,label: 'Forum',       badgeKey: 'forum'    },
-      { to: '/admin/dataset',    icon: Database,     label: 'Dataset'      },
-    ],
-  },
-  {
-    label: 'Sistem',
-    items: [
-      { to: '/admin/security',   icon: ShieldAlert,  label: 'Güvenlik',   badgeKey: 'alerts'   },
-      { to: '/admin/ab-test',    icon: FlaskConical, label: 'A/B Test'    },
+      { to: '/admin/content',   icon: Flag,        label: 'İçerik',   badgeKey: 'reports' },
+      { to: '/admin/community', icon: UsersRound,  label: 'Topluluk', badgeKey: 'forum'   },
+      { to: '/admin/ai-control',icon: BrainCircuit,label: 'AI Kontrol'                    },
+      { to: '/admin/security',  icon: ShieldAlert, label: 'Güvenlik', badgeKey: 'alerts'  },
     ],
   },
 ];

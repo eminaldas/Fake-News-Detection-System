@@ -8,6 +8,7 @@ httpx
 sqlalchemy[asyncio]
 asyncpg
 pgvector
+alembic
 
 # Config & auth
 pydantic-settings
@@ -50,3 +51,6 @@ imagehash
 
 # Market data
 yfinance>=0.2.40
+
+# Email
+aiosmtplib>=3.0

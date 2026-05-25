@@ -322,3 +322,108 @@ async def get_feedback_stats(
         consensus_ready=consensus_ready,
         last_training_run=TrainingRunResponse.model_validate(last_run) if last_run else None,
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# IP Tehdit Listesi
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/security/ip-threats")
+async def get_ip_threats(
+    hours:    int = Query(24,  ge=1, le=168),
+    limit:    int = Query(50,  ge=1, le=200),
+    min_events: int = Query(3, ge=1),
+    _admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Son N saatte en çok olaya karışan şüpheli IP hash'lerini döner.
+    Sadece SECURITY event tipindeki kayıtlar kullanılır.
+    """
+    since = _since(hours)
+
+    # ip_hash başına: olay sayısı, en yüksek severity, en son olay zamanı, event türleri
+    rows = (await db.execute(
+        select(
+            AuditLog.ip_hash,
+            func.count().label("event_count"),
+            func.max(AuditLog.created_at).label("last_seen"),
+            func.array_agg(func.distinct(AuditLog.event_name)).label("event_types"),
+            func.bool_or(AuditLog.severity == "CRITICAL").label("has_critical"),
+            func.bool_or(AuditLog.severity == "WARNING").label("has_warning"),
+        )
+        .where(
+            AuditLog.event_type == "SECURITY",
+            AuditLog.created_at >= since,
+            AuditLog.ip_hash.isnot(None),
+        )
+        .group_by(AuditLog.ip_hash)
+        .having(func.count() >= min_events)
+        .order_by(func.count().desc())
+        .limit(limit)
+    )).all()
+
+    def _threat_level(has_critical, has_warning, count):
+        if has_critical:
+            return "CRITICAL"
+        if has_warning or count >= 10:
+            return "WARNING"
+        return "INFO"
+
+    return {
+        "items": [
+            {
+                "ip_hash":      r.ip_hash,
+                "event_count":  r.event_count,
+                "last_seen":    r.last_seen.isoformat() if r.last_seen else None,
+                "event_types":  r.event_types or [],
+                "threat_level": _threat_level(r.has_critical, r.has_warning, r.event_count),
+            }
+            for r in rows
+            if r.ip_hash
+        ]
+    }
+
+
+@router.get("/security/ip-threats/{ip_hash}/events")
+async def get_ip_events(
+    ip_hash:  str,
+    hours:    int = Query(72, ge=1, le=168),
+    page:     int = Query(1,  ge=1),
+    size:     int = Query(50, ge=1, le=100),
+    _admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Belirli bir IP hash'inin tüm güvenlik eventlerini döner."""
+    since = _since(hours)
+    cond  = and_(
+        AuditLog.ip_hash == ip_hash,
+        AuditLog.event_type == "SECURITY",
+        AuditLog.created_at >= since,
+    )
+
+    total = (await db.execute(select(func.count()).select_from(AuditLog).where(cond))).scalar_one()
+    rows  = (await db.execute(
+        select(AuditLog).where(cond)
+        .order_by(AuditLog.created_at.desc())
+        .offset((page - 1) * size).limit(size)
+    )).scalars().all()
+
+    return {
+        "total":   total,
+        "page":    page,
+        "size":    size,
+        "ip_hash": ip_hash,
+        "items":   [
+            {
+                "id":         str(r.id),
+                "event_name": r.event_name,
+                "severity":   r.severity,
+                "user_id":    str(r.user_id) if r.user_id else None,
+                "path":       r.path,
+                "details":    r.details,
+                "created_at": r.created_at.isoformat(),
+            }
+            for r in rows
+        ],
+    }

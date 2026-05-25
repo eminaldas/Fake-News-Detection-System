@@ -14,6 +14,7 @@ from app.api.v1.endpoints import (
     forum, gamification, insights, interactions, market, messages,
     news, notifications, proxy as proxy_endpoint, recommendations, reports,
     sources, stats, users, weather as weather_endpoint, ws as ws_endpoint,
+    punishments,
 )
 from app.api.v1.endpoints import share as share_router
 from app.api.v1.endpoints import news_summary
@@ -123,7 +124,8 @@ app.include_router(articles.router, prefix="/api/v1/articles",tags=["Articles"])
 app.include_router(users.router,    prefix="/api/v1/users",   tags=["Users"])
 app.include_router(admin.router,    prefix="/api/v1/admin",   tags=["Admin"])
 app.include_router(ab_endpoint.router, prefix="/api/v1/admin/ab", tags=["AB Testing"])
-app.include_router(admin_logs.router, prefix="/api/v1/admin", tags=["Admin Logs"])
+app.include_router(admin_logs.router,    prefix="/api/v1/admin",        tags=["Admin Logs"])
+app.include_router(punishments.router,  prefix="/api/v1/admin",        tags=["Punishments"])
 app.include_router(market.router,   prefix="/api/v1/market",  tags=["Market"])
 app.include_router(news.router,     prefix="/api/v1/news",    tags=["News"])
 app.include_router(news_summary.router, prefix="/api/v1/news", tags=["News"])

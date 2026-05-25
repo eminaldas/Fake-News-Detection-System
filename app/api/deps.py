@@ -75,15 +75,54 @@ async def get_optional_user(
         return None
 
 
+_ADMIN_ROLES    = {UserRole.admin, UserRole.superadmin}
+_MOD_ROLES      = {UserRole.admin, UserRole.superadmin, UserRole.moderator}
+_ANALYST_ROLES  = {UserRole.admin, UserRole.superadmin, UserRole.analyst}
+_PANEL_ROLES    = {UserRole.admin, UserRole.superadmin, UserRole.moderator, UserRole.analyst}
+
+
 async def require_admin(
     current_user: User = Depends(get_current_user),
 ) -> User:
-    if current_user.role != UserRole.admin:
+    if current_user.role not in _ADMIN_ROLES:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin yetkisi gerekli")
     return current_user
 
 
 async def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.role != UserRole.admin:
+    if current_user.role not in _ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Bu işlem için yönetici yetkisi gerekli")
+    return current_user
+
+
+async def require_superadmin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if current_user.role not in {UserRole.superadmin}:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Süper admin yetkisi gerekli")
+    return current_user
+
+
+async def require_moderator(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if current_user.role not in _MOD_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Moderatör yetkisi gerekli")
+    return current_user
+
+
+async def require_analyst(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if current_user.role not in _ANALYST_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Analist yetkisi gerekli")
+    return current_user
+
+
+async def require_panel(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """Admin paneline erişim — tüm yetkili roller."""
+    if current_user.role not in _PANEL_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Yönetim paneli yetkisi gerekli")
     return current_user

@@ -23,14 +23,18 @@ const ProfileLayout      = lazy(() => import('./features/profile/ProfileLayout')
 const ProfileOverview    = lazy(() => import('./features/profile/ProfileOverview'));
 const ProfileBookmarks   = lazy(() => import('./features/profile/ProfileBookmarks'));
 const ProfileThreads     = lazy(() => import('./features/profile/ProfileThreads'));
-const AdminDashboard     = lazy(() => import('./pages/AdminDashboard'));
-const AdminUsers         = lazy(() => import('./pages/AdminUsers'));
-const AdminSecurity      = lazy(() => import('./pages/AdminSecurity'));
-const AdminAnalytics     = lazy(() => import('./pages/AdminAnalytics'));
-const AdminForum         = lazy(() => import('./pages/AdminForum'));
-const AdminABTest        = lazy(() => import('./pages/AdminABTest'));
-const AdminModeration    = lazy(() => import('./pages/AdminModeration'));
-const AdminDataset       = lazy(() => import('./pages/AdminDataset'));
+const AdminDashboard  = lazy(() => import('./pages/AdminDashboard'));
+const AdminUsers      = lazy(() => import('./pages/AdminUsers'));
+const AdminSecurity   = lazy(() => import('./pages/AdminSecurity'));
+const AdminContent    = lazy(() => import('./pages/AdminContent'));
+const AdminCommunity  = lazy(() => import('./pages/AdminCommunity'));
+const AdminAIControl  = lazy(() => import('./pages/AdminAIControl'));
+// Eski sayfalar — geriye uyumluluk
+const AdminAnalytics  = lazy(() => import('./pages/AdminAnalytics'));
+const AdminForum      = lazy(() => import('./pages/AdminForum'));
+const AdminABTest     = lazy(() => import('./pages/AdminABTest'));
+const AdminModeration = lazy(() => import('./pages/AdminModeration'));
+const AdminDataset    = lazy(() => import('./pages/AdminDataset'));
 const Dashboard          = lazy(() => import('./pages/Dashboard'));
 const NotFound           = lazy(() => import('./pages/NotFound'));
 const About              = lazy(() => import('./pages/About'));
@@ -163,14 +167,18 @@ function App() {
                           path="admin"
                           element={<RequireAdmin><AdminLayout /></RequireAdmin>}
                         >
-                          <Route index                element={<AdminDashboard />} />
-                          <Route path="users"         element={<AdminUsers />}     />
-                          <Route path="security"      element={<AdminSecurity />}  />
-                          <Route path="analytics"     element={<AdminAnalytics />} />
-                          <Route path="forum"         element={<AdminForum />}     />
-                          <Route path="ab-test"       element={<AdminABTest />}    />
-                          <Route path="moderation"    element={<AdminModeration />}/>
-                          <Route path="dataset"       element={<AdminDataset />}   />
+                          <Route index                  element={<AdminDashboard />}  />
+                          <Route path="users"           element={<AdminUsers />}      />
+                          <Route path="content"         element={<AdminContent />}    />
+                          <Route path="community"       element={<AdminCommunity />}  />
+                          <Route path="ai-control"      element={<AdminAIControl />}  />
+                          <Route path="security"        element={<AdminSecurity />}   />
+                          {/* Eski URL'ler — yönlendirme */}
+                          <Route path="analytics"       element={<AdminAnalytics />}  />
+                          <Route path="forum"           element={<AdminForum />}      />
+                          <Route path="ab-test"         element={<AdminABTest />}     />
+                          <Route path="moderation"      element={<AdminModeration />} />
+                          <Route path="dataset"         element={<AdminDataset />}    />
                         </Route>
                         <Route path="*" element={<NotFound />} />
                     </Routes>

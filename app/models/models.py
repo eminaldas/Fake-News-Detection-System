@@ -13,8 +13,11 @@ Base = declarative_base()
 
 
 class UserRole(str, enum.Enum):
-    admin = "admin"
-    user  = "user"
+    superadmin = "superadmin"
+    admin      = "admin"       # geriye uyumluluk için korundu
+    moderator  = "moderator"
+    analyst    = "analyst"
+    user       = "user"
 
 
 class AnalysisType(str, enum.Enum):
@@ -55,7 +58,11 @@ class User(Base):
     level            = Column(Integer, nullable=False, server_default="1", default=1)
     current_streak   = Column(Integer, nullable=False, server_default="0", default=0)
     last_login_date  = Column(Date, nullable=True)
-    is_shadow_banned = Column(Boolean, nullable=False, server_default="false", default=False)
+    is_shadow_banned     = Column(Boolean, nullable=False, server_default="false", default=False)
+    can_comment          = Column(Boolean, nullable=False, server_default="true",  default=True)
+    can_post_analysis    = Column(Boolean, nullable=False, server_default="true",  default=True)
+    can_create_thread    = Column(Boolean, nullable=False, server_default="true",  default=True)
+    restriction_reason   = Column(Text, nullable=True)
 
     __table_args__ = (
         CheckConstraint(
@@ -82,6 +89,30 @@ class AnalysisRequest(Base):
     created_at    = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="analysis_requests")
+
+
+class UserWarning(Base):
+    __tablename__ = "user_warnings"
+
+    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"),  nullable=False, index=True)
+    admin_id   = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    # warn | restrict | shadow_ban | ban
+    action     = Column(String(30), nullable=False)
+    reason     = Column(Text, nullable=False)
+    # restrict için hangi izinler kaldırıldı
+    restrictions = Column(JSONB, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user  = relationship("User", foreign_keys=[user_id],  backref="warnings")
+    admin = relationship("User", foreign_keys=[admin_id])
+
+    __table_args__ = (
+        CheckConstraint(
+            "action IN ('warn','restrict','shadow_ban','ban')",
+            name="ck_user_warnings_action",
+        ),
+    )
 
 
 class Source(Base):

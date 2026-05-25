@@ -140,6 +140,10 @@ async def analyze_content(
     Önce anlık semantik benzerlik kontrolü yapar;
     eşleşme yoksa derin analizi Celery kuyruğuna ekler.
     """
+    from fastapi import HTTPException as _HTTPException
+    if current_user and not current_user.can_post_analysis:
+        raise _HTTPException(status_code=403, detail="Hesabınızda analiz gönderme kısıtlaması bulunuyor")
+
     log = get_logger(__name__)
     ip = http_request.client.host if http_request.client else "unknown"
     await check_rate_limit(http_request, redis, current_user)

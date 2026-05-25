@@ -185,7 +185,11 @@ class AdminUserResponse(BaseModel):
     username:         str
     role:             UserRole
     is_active:        bool
-    is_shadow_banned: bool          = False
+    is_shadow_banned:   bool = False
+    can_comment:        bool = True
+    can_post_analysis:  bool = True
+    can_create_thread:  bool = True
+    restriction_reason: Optional[str] = None
     created_at:       datetime
     last_login_at:    Optional[datetime] = None
     deleted_at:       Optional[datetime] = None
@@ -212,6 +216,37 @@ class ShadowBanRequest(BaseModel):
 
 class XPDeltaRequest(BaseModel):
     delta: int = Field(..., description="Pozitif = ekle, negatif = çıkar")
+
+
+class RestrictionFlags(BaseModel):
+    can_comment:       bool = True
+    can_post_analysis: bool = True
+    can_create_thread: bool = True
+
+
+class PunishRequest(BaseModel):
+    action:       str           = Field(..., pattern=r"^(warn|restrict|shadow_ban|ban)$")
+    reason:       str           = Field(..., min_length=5, max_length=1000)
+    restrictions: Optional[RestrictionFlags] = None  # sadece action="restrict" için gerekli
+
+
+class LiftRequest(BaseModel):
+    lift_ban:         bool = False
+    lift_shadow_ban:  bool = False
+    lift_restrictions: bool = False
+
+
+class WarningResponse(BaseModel):
+    id:           UUID
+    user_id:      UUID
+    admin_id:     Optional[UUID]
+    action:       str
+    reason:       str
+    restrictions: Optional[dict] = None
+    created_at:   datetime
+
+    class Config:
+        from_attributes = True
 
 
 class AdminStatsOverviewResponse(BaseModel):

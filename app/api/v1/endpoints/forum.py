@@ -218,6 +218,9 @@ async def create_thread(
     current_user: User   = Depends(get_current_user),
     db: AsyncSession     = Depends(get_db),
 ):
+    if not current_user.can_create_thread:
+        raise HTTPException(status_code=403, detail="Hesabınızda başlık açma kısıtlaması bulunuyor")
+
     article = None
     if body.article_id:
         article = (await db.execute(
@@ -968,6 +971,9 @@ async def add_comment(
     current_user: User         = Depends(get_current_user),
     db: AsyncSession           = Depends(get_db),
 ):
+    if not current_user.can_comment:
+        raise HTTPException(status_code=403, detail="Hesabınızda yorum yapma kısıtlaması bulunuyor")
+
     thread = (await db.execute(
         select(ForumThread).where(ForumThread.id == thread_id)
     )).scalar_one_or_none()
