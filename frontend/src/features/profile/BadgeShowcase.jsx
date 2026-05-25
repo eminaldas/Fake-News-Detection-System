@@ -18,49 +18,47 @@ export default function BadgeShowcase({ showcase = [], isOwnProfile = false }) {
       .catch(() => {});
   }, []);
 
-  // Başkasının profilinde rozet yoksa hiç gösterme
   if (!isOwnProfile && showcase.length === 0) return null;
 
   const slots = Array.from({ length: SLOT_COUNT }, (_, i) => showcase[i] ?? null);
 
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      {slots.map((badge, i) =>
-        badge ? (
-          <Tooltip
-            key={badge.key}
-            content={descMap[badge.key] ?? badge.name}
-            side="top"
-            maxWidth={220}
-          >
-            <div
-              className="badge-slot relative flex items-center gap-1.5 px-2.5 py-1 border overflow-hidden cursor-default select-none"
-              style={{ borderColor: badge.color, color: badge.color }}
+    <div>
+      <p className="font-mono text-[9px] uppercase tracking-widest mb-3"
+         style={{ color: 'var(--color-text-muted)' }}>// rozetler</p>
+      <div className="flex items-start gap-3 flex-wrap">
+        {slots.map((badge, i) =>
+          badge ? (
+            <Tooltip key={badge.key} content={descMap[badge.key] ?? badge.name} side="top" maxWidth={220}>
+              <div
+                className="badge-slot relative flex flex-col items-center justify-center border overflow-hidden cursor-default select-none transition-transform hover:scale-105"
+                style={{ width: 76, height: 76, borderColor: badge.color, background: badge.color + '12' }}
+              >
+                <div className="badge-shine-layer" />
+                <span className="font-mono text-2xl font-black leading-none relative z-10"
+                      style={{ color: badge.color }}>
+                  {badge.name[0]}
+                </span>
+                <span className="font-mono text-[9px] font-bold mt-1.5 text-center px-1 leading-tight relative z-10 w-full truncate"
+                      style={{ color: badge.color }}>
+                  {badge.name}
+                </span>
+              </div>
+            </Tooltip>
+          ) : isOwnProfile ? (
+            <Link
+              key={`empty-${i}`}
+              to="/badges"
+              className="flex flex-col items-center justify-center border border-dashed transition-all hover:border-solid hover:scale-105"
+              style={{ width: 76, height: 76, borderColor: 'var(--color-brand-primary)',
+                       color: 'var(--color-brand-primary)', opacity: 0.5 }}
             >
-              <div className="badge-shine-layer" />
-              <span className="font-mono text-[11px] font-black relative z-10">
-                {badge.name[0]}
-              </span>
-              <span className="font-mono text-[11px] relative z-10">
-                {badge.name}
-              </span>
-            </div>
-          </Tooltip>
-        ) : isOwnProfile ? (
-          <Link
-            key={`empty-${i}`}
-            to="/badges"
-            className="flex items-center px-2.5 py-1 border border-dashed transition-all hover:border-solid"
-            style={{
-              borderColor: 'var(--color-brand-primary)',
-              color: 'var(--color-brand-primary)',
-              opacity: 0.6,
-            }}
-          >
-            <span className="font-mono text-[11px] font-bold">+ Rozet</span>
-          </Link>
-        ) : null
-      )}
+              <span className="font-mono text-2xl font-bold leading-none">+</span>
+              <span className="font-mono text-[9px] mt-1.5">Rozet</span>
+            </Link>
+          ) : null
+        )}
+      </div>
     </div>
   );
 }

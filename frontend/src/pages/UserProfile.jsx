@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import BadgeShowcase from '../features/profile/BadgeShowcase';
-import XPRing from '../features/profile/XPRing';
 import PopularThreadsWidget from '../features/profile/PopularThreadsWidget';
 import RecommendedUsersWidget from '../features/profile/RecommendedUsersWidget';
 import {
@@ -235,6 +234,7 @@ export default function UserProfile() {
 
     const [activeTab, setActiveTab] = useState('overview');
     const [followModal, setFollowModal] = useState(null); // 'followers' | 'following' | null
+    const [lightbox, setLightbox] = useState(false);
 
     const TH_SIZE = 10, H_SIZE = 10;
 
@@ -352,7 +352,13 @@ export default function UserProfile() {
                 <Corner />
                 <div className="p-6 md:p-8 flex flex-col sm:flex-row gap-6 items-start">
 
-                    <Avatar user={profile} size={88} />
+                    <button onClick={() => setLightbox(true)} className="shrink-0 cursor-zoom-in group relative">
+                        <Avatar user={profile} size={96} />
+                        <div className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                             style={{ background: 'rgba(0,0,0,0.40)' }}>
+                            <Search className="w-5 h-5 text-white" />
+                        </div>
+                    </button>
 
                     <div className="flex-1 min-w-0">
                         {/* İsim + Trust */}
@@ -363,10 +369,7 @@ export default function UserProfile() {
                                     {profile.username}
                                 </h1>
                                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                    <span className="font-mono text-sm font-bold" style={{ color: tierColor }}>
-                                        {'★'.repeat(stars)}{'☆'.repeat(Math.max(0, 5 - stars))}
-                                    </span>
-                                    <span className="font-mono text-xs px-2.5 py-1 border font-bold"
+                                    <span className="font-mono text-xs px-2.5 py-0.5 border font-bold"
                                           style={{ color: tierColor, borderColor: tierColor + '60' }}>
                                         {profile.trust_label}
                                     </span>
@@ -421,10 +424,14 @@ export default function UserProfile() {
 
                         {/* Bio */}
                         {profile.bio && (
-                            <p className="font-mono text-sm mt-3 leading-relaxed"
-                               style={{ color: 'var(--color-text-primary)', opacity: 0.75 }}>
-                                {profile.bio}
-                            </p>
+                            <div className="flex gap-2.5 mt-3">
+                                <div className="w-0.5 shrink-0 mt-0.5 rounded-full"
+                                     style={{ background: 'var(--color-brand-primary)', opacity: 0.45 }} />
+                                <p className="font-mono text-sm leading-relaxed"
+                                   style={{ color: 'var(--color-text-primary)', opacity: 0.82 }}>
+                                    {profile.bio}
+                                </p>
+                            </div>
                         )}
 
                         {/* Sosyal bağlantılar */}
@@ -469,27 +476,44 @@ export default function UserProfile() {
                     )}
                 </div>
 
-                {/* XP Bar */}
+                {/* Seviye / XP / Hijyen stat grid */}
                 {xpStats && (
-                  <div className="px-5 pb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-mono text-xs font-bold" style={{ color: 'var(--color-brand-primary)' }}>
-                        SEVİYE {xpStats.level}
-                      </span>
-                      <span className="font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                        {xpStats.total_xp} XP
-                      </span>
+                  <div className="grid border-t"
+                       style={{
+                         gridTemplateColumns: (isOwnProfile && stats?.hygiene_score != null) ? 'repeat(3,1fr)' : 'repeat(2,1fr)',
+                         borderColor: 'var(--color-terminal-border-raw)',
+                       }}>
+                    <div className="p-4 text-center">
+                      <p className="font-mono text-[9px] uppercase tracking-widest mb-1.5"
+                         style={{ color: 'var(--color-text-muted)' }}>SEVİYE</p>
+                      <p className="font-mono text-3xl font-black leading-none"
+                         style={{ color: 'var(--color-brand-primary)' }}>
+                        {xpStats.level}
+                      </p>
+                      {xpStats.xp_to_next_level > 0 && (
+                        <p className="font-mono text-[9px] mt-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                          {xpStats.xp_to_next_level} XP kaldı
+                        </p>
+                      )}
                     </div>
-                    <div className="w-full h-2 rounded-full overflow-hidden"
-                         style={{ background: 'var(--color-terminal-border-raw)' }}>
-                      <motion.div
-                        className="h-full rounded-full"
-                        style={{ background: 'linear-gradient(90deg, var(--color-brand-primary), #34d399)' }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${xpStats.xp_progress_pct}%` }}
-                        transition={{ type: 'spring', damping: 22, stiffness: 60, delay: 0.35 }}
-                      />
+                    <div className="p-4 text-center border-l" style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
+                      <p className="font-mono text-[9px] uppercase tracking-widest mb-1.5"
+                         style={{ color: 'var(--color-text-muted)' }}>TOPLAM XP</p>
+                      <p className="font-mono text-3xl font-black leading-none"
+                         style={{ color: 'var(--color-text-primary)' }}>
+                        {xpStats.total_xp.toLocaleString('tr-TR')}
+                      </p>
                     </div>
+                    {isOwnProfile && stats?.hygiene_score != null && (
+                      <div className="p-4 text-center border-l" style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
+                        <p className="font-mono text-[9px] uppercase tracking-widest mb-1.5"
+                           style={{ color: 'var(--color-text-muted)' }}>HİJYEN</p>
+                        <p className="font-mono text-3xl font-black leading-none"
+                           style={{ color: stats.hygiene_score >= 70 ? 'var(--color-brand-primary)' : stats.hygiene_score >= 40 ? 'var(--color-accent-amber)' : '#ff7351' }}>
+                          {Math.round(stats.hygiene_score)}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -560,11 +584,6 @@ export default function UserProfile() {
                         </div>
                     )}
 
-                    {isOwnProfile && stats && stats.hygiene_score != null && (
-                      <div className="flex justify-center py-2">
-                        <XPRing score={stats.hygiene_score} />
-                      </div>
-                    )}
 
                     {/* Son tartışmalar */}
                     {threads.length > 0 && (
@@ -736,6 +755,35 @@ export default function UserProfile() {
           </div>{/* /grid */}
 
           {/* Modals */}
+          {/* Avatar lightbox */}
+          {lightbox && (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center"
+                 style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
+                 onClick={() => setLightbox(false)}>
+              <div className="relative" onClick={e => e.stopPropagation()}>
+                <div className="overflow-hidden"
+                     style={{ width: 260, height: 260, borderRadius: '50%',
+                              border: `4px solid ${TIER_COLOR[profile.trust_tier] ?? 'var(--color-brand-primary)'}` }}>
+                  {profile.avatar_url
+                    ? <img src={profile.avatar_url} alt={profile.username}
+                           className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    : <div className="w-full h-full flex items-center justify-center font-black"
+                           style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--color-brand-primary)', fontSize: 90 }}>
+                        {profile.username?.[0]?.toUpperCase() ?? 'U'}
+                      </div>
+                  }
+                </div>
+                <button onClick={() => setLightbox(false)}
+                        className="absolute -top-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center border"
+                        style={{ background: 'var(--color-bg-surface)', borderColor: 'var(--color-terminal-border-raw)' }}>
+                  <X className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} />
+                </button>
+                <p className="font-mono text-sm font-bold text-center mt-4"
+                   style={{ color: 'var(--color-text-primary)' }}>{profile.username}</p>
+              </div>
+            </div>
+          )}
+
           {followModal && (
             <FollowModal userId={userId} mode={followModal} onClose={() => setFollowModal(null)} />
           )}
