@@ -574,6 +574,11 @@ const Navbar = () => {
                 </div>
             </div>
 
+            {/* Boru animasyonu — overflow:hidden wrapper dropdown'ları kesmez */}
+            <div aria-hidden="true" className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: 2, overflow: 'hidden', zIndex: 1 }}>
+                <div className="navbar-pipe-bead" />
+            </div>
+
             {/* ── Gündem Kategori Barı ── */}
             {isGundem && (
                 <CategoryBar

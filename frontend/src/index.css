@@ -238,6 +238,33 @@
   100% { top: 110%;  }
 }
 
+@keyframes pipe-bead {
+  0%         { left: -28%; opacity: 0; }
+  6%         { opacity: 1; }
+  44%        { left: 112%; opacity: 1; }
+  45%, 100%  { left: 112%; opacity: 0; }
+}
+
+.navbar-pipe-bead {
+  position: absolute;
+  top: 0;
+  left: -28%;
+  width: 28%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent                                                   0%,
+    color-mix(in srgb, var(--color-brand-primary) 18%, transparent) 20%,
+    var(--color-brand-primary)                                   44%,
+    color-mix(in srgb, var(--color-brand-primary) 60%, white)    50%,
+    var(--color-brand-primary)                                   56%,
+    color-mix(in srgb, var(--color-brand-primary) 18%, transparent) 80%,
+    transparent                                                  100%
+  );
+  filter: blur(0.4px);
+  animation: pipe-bead 5.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    @theme — CSS token → Tailwind utility class eşlemesi
    ═══════════════════════════════════════════════════════════════════ */
