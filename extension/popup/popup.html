@@ -5,32 +5,117 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <!-- Login state -->
+
+  <!-- ── Header — her zaman görünür ── -->
+  <div class="hdr">
+    <div class="logo">
+      <div class="logo-icon">SH</div>
+      <div class="logo-text"><em>Sahte</em> Haber Dedektifi</div>
+    </div>
+    <div class="conn" id="conn">
+      <div class="dot dot-off" id="conn-dot"></div>
+      <span id="conn-lbl">—</span>
+    </div>
+  </div>
+
+  <!-- ── View: Giriş ── -->
   <div id="view-login" class="view">
-    <h1>Sahte Haber<br>Dedektifi</h1>
-    <input id="username" type="email" placeholder="E-posta" autocomplete="email">
-    <input id="password" type="password" placeholder="Şifre" autocomplete="current-password">
-    <button id="btn-login">Giriş Yap</button>
-    <p id="login-error" class="error hidden"></p>
+    <div class="login-title">Hoş geldiniz</div>
+    <div class="login-sub">Haberleri analiz etmek için giriş yapın</div>
+    <label class="lbl" for="username">E-posta</label>
+    <input id="username" class="field" type="email"
+           placeholder="kullanici@example.com" autocomplete="email">
+    <label class="lbl" for="password">Şifre</label>
+    <input id="password" class="field" type="password"
+           placeholder="••••••••" autocomplete="current-password">
+    <div class="btn-row">
+      <button id="btn-login" class="btn btn-primary btn-full">Giriş Yap</button>
+    </div>
+    <div id="login-err" class="err hidden"></div>
   </div>
 
-  <!-- Analyze state -->
+  <!-- ── View: Analiz hazır (Layer 1) ── -->
   <div id="view-analyze" class="view hidden">
-    <div id="badge-preview" class="badge-preview hidden"></div>
-    <p id="current-url" class="url-label"></p>
-    <button id="btn-analyze">Detaylı Analiz Et</button>
-    <p id="analyze-status" class="status hidden"></p>
-    <button id="btn-logout" class="secondary">Çıkış</button>
+    <div class="url-bar">
+      <span class="url-ico">⬡</span>
+      <span class="url-host" id="a-host"></span>
+      <span class="url-path" id="a-path"></span>
+    </div>
+    <div id="l1-card" class="hidden"></div>
+    <div class="btn-row">
+      <button id="btn-analyze" class="btn btn-primary btn-full">Detaylı Analiz Et</button>
+    </div>
+    <div class="btn-row" style="margin-top:4px">
+      <button id="btn-logout" class="btn btn-ghost btn-full">Çıkış Yap</button>
+    </div>
   </div>
 
-  <!-- Result state -->
-  <div id="view-result" class="view hidden">
-    <div id="result-label" class="result-label"></div>
-    <div id="result-score" class="result-score"></div>
-    <p id="result-desc" class="result-desc"></p>
-    <button id="btn-reanalyze">Yeniden Analiz Et</button>
-    <button id="btn-logout2" class="secondary">Çıkış</button>
+  <!-- ── View: Yükleniyor (Layer 2) ── -->
+  <div id="view-loading" class="view hidden">
+    <div class="url-bar">
+      <span class="url-ico">⬡</span>
+      <span class="url-host" id="l-host"></span>
+      <span class="url-path" id="l-path"></span>
+    </div>
+    <div class="prog-wrap">
+      <div class="prog-fill" id="prog" style="width:5%"></div>
+    </div>
+    <div class="mono-lbl" style="margin-bottom:10px">Analiz Devam Ediyor</div>
+    <div class="step-list" id="step-list"></div>
+    <div class="tip-box">
+      <div class="tip-scan"></div>
+      <div class="tip-text" id="tip-txt"></div>
+    </div>
   </div>
+
+  <!-- ── View: Sonuç ── -->
+  <div id="view-result" class="view hidden">
+    <div class="url-bar">
+      <span class="url-ico">⬡</span>
+      <span class="url-host" id="r-host"></span>
+      <span class="url-path" id="r-path"></span>
+    </div>
+    <div id="verdict" class="verdict-card v-warn">
+      <div class="verdict-inner">
+        <div class="ring-wrap">
+          <svg width="60" height="60" viewBox="0 0 60 60"
+               style="transform:rotate(-90deg)">
+            <circle id="ring-track" cx="30" cy="30" r="24"
+                    fill="transparent" stroke-width="4"/>
+            <circle id="ring-fill"  cx="30" cy="30" r="24"
+                    fill="transparent" stroke-width="4" stroke-linecap="round"
+                    style="stroke-dasharray:150.796;stroke-dashoffset:150.796;
+                           transition:stroke-dashoffset 1.4s cubic-bezier(0.22,1,0.36,1)"/>
+          </svg>
+          <div class="ring-overlay">
+            <span class="ring-pct" id="ring-pct">—</span>
+            <span class="ring-sub">güven</span>
+          </div>
+        </div>
+        <div class="verdict-info">
+          <span class="verdict-tag"   id="v-tag"></span>
+          <div  class="verdict-title" id="v-title"></div>
+          <div  class="verdict-meta"  id="v-meta"></div>
+        </div>
+      </div>
+    </div>
+    <div id="ai-box" class="ai-box v-warn hidden">
+      <div class="ai-lbl">✦ AI_Analiz_Sonucu</div>
+      <div class="ai-txt" id="ai-txt"></div>
+    </div>
+    <div id="signals" class="signals hidden">
+      <div class="mono-lbl">Tespit Edilen Sinyaller</div>
+      <div id="sig-rows"></div>
+    </div>
+    <div class="btn-row">
+      <button id="btn-report"    class="btn btn-primary hidden">Tam Rapor</button>
+      <button id="btn-reanalyze" class="btn btn-sec">Yeniden</button>
+      <button id="btn-logout2"   class="btn btn-ghost">Çıkış</button>
+    </div>
+  </div>
+
+
+<div class="footnote">nehaber.dev · v1.2</div>
 
   <script src="popup.js"></script>
 </body>
