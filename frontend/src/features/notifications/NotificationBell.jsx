@@ -37,7 +37,8 @@ function relativeTime(isoString) {
 
 function resolveLink(notif) {
     const p = notif.payload ?? {};
-    if (notif.type === 'dm' && p.sender_id) return `/messages/${p.sender_id}`;
+    if (notif.type === 'dm' && p.sender_id)         return `/messages/${p.sender_id}`;
+    if (notif.type === 'new_follower' && p.actor_id) return `/users/${p.actor_id}`;
     if (p.thread_id)  return `/forum/${p.thread_id}`;
     if (p.article_id) return `/archive/${p.article_id}`;
     return null;

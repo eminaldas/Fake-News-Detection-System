@@ -10,8 +10,9 @@ import Tooltip from '../ui/Tooltip';
 
 function UnreadBadge() {
     const [count, setCount] = React.useState(0);
-    const { subscribe }     = useWebSocket();
+    const { subscribe }       = useWebSocket();
     const { isAuthenticated } = useAuth();
+    const location            = useLocation();
 
     React.useEffect(() => {
         if (!isAuthenticated) return;
@@ -24,6 +25,11 @@ function UnreadBadge() {
         });
         return unsub;
     }, [subscribe]);
+
+    /* Mesajlar sayfasındayken badge sıfırla */
+    React.useEffect(() => {
+        if (location.pathname.startsWith('/messages')) setCount(0);
+    }, [location.pathname]);
 
     if (count === 0) return null;
     return (
