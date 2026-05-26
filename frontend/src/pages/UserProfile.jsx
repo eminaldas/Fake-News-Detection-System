@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import BadgeShowcase from '../features/profile/BadgeShowcase';
@@ -95,7 +96,7 @@ function FollowModal({ userId, mode, onClose }) {
             .finally(() => setLoading(false));
     }, [userId, mode]);
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center"
              style={{ background: 'rgba(0,0,0,0.80)' }}
              onClick={onClose}>
@@ -146,7 +147,8 @@ function FollowModal({ userId, mode, onClose }) {
                     ))}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 
@@ -754,9 +756,8 @@ export default function UserProfile() {
 
           </div>{/* /grid */}
 
-          {/* Modals */}
-          {/* Avatar lightbox */}
-          {lightbox && (
+          {/* Modals — createPortal ile body'e render edilir, navbar stacking context'inden kaçar */}
+          {lightbox && createPortal(
             <div className="fixed inset-0 z-[9999] flex items-center justify-center"
                  style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
                  onClick={() => setLightbox(false)}>
@@ -781,18 +782,20 @@ export default function UserProfile() {
                 <p className="font-mono text-sm font-bold text-center mt-4"
                    style={{ color: 'var(--color-text-primary)' }}>{profile.username}</p>
               </div>
-            </div>
+            </div>,
+            document.body
           )}
 
           {followModal && (
             <FollowModal userId={userId} mode={followModal} onClose={() => setFollowModal(null)} />
           )}
-          {selectedItem && (
+          {selectedItem && createPortal(
             <HistoryModal
               item={selectedItem}
               hasFullReport={fullReports.has(selectedItem.task_id)}
               onClose={() => setSelectedItem(null)}
-            />
+            />,
+            document.body
           )}
         </div>
     );
