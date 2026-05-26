@@ -13,10 +13,10 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_admin
 from app.core.config import settings
 from app.db.session import get_db
-from app.models.models import ReportStatus, ReportType, User, UserReport, UserRole
+from app.models.models import ReportStatus, ReportType, User, UserReport
 
 router = APIRouter()
 
@@ -222,16 +222,13 @@ async def create_report(
 
 @router.get("/admin")
 async def list_reports(
-    status:       Optional[str] = None,
-    report_type:  Optional[str] = None,
-    page:         int           = 1,
-    size:         int           = 20,
-    current_user: User          = Depends(get_current_user),
-    db:           AsyncSession  = Depends(get_db),
+    status:      Optional[str] = None,
+    report_type: Optional[str] = None,
+    page:        int           = 1,
+    size:        int           = 20,
+    _admin:      User          = Depends(require_admin),
+    db:          AsyncSession  = Depends(get_db),
 ):
-    """Tüm raporları listele (admin only)."""
-    if current_user.role != UserRole.admin:
-        raise HTTPException(status_code=403, detail="Yalnızca yöneticiler erişebilir.")
 
     q = select(UserReport).options(selectinload(UserReport.reporter)).order_by(UserReport.created_at.desc())
     if status:
@@ -267,13 +264,10 @@ async def list_reports(
 @router.post("/admin/{report_id}/reply")
 async def reply_report(
     report_id:    str,
-    body:         AdminReplyRequest,
-    current_user: User         = Depends(get_current_user),
-    db:           AsyncSession = Depends(get_db),
+    body:    AdminReplyRequest,
+    _admin:  User         = Depends(require_admin),
+    db:      AsyncSession = Depends(get_db),
 ):
-    """Admin yanıtı gönder + durum güncelle (admin only)."""
-    if current_user.role != UserRole.admin:
-        raise HTTPException(status_code=403, detail="Yalnızca yöneticiler erişebilir.")
 
     result = await db.execute(select(UserReport).where(UserReport.id == UUID(report_id)))
     report = result.scalar_one_or_none()

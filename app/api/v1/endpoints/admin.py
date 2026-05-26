@@ -1,5 +1,5 @@
 from uuid import UUID
-from typing import Literal
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select, func, desc
@@ -351,6 +351,48 @@ async def remove_comment(
     comment.moderation_status = "removed"
     await db.commit()
     return {"message": "Yorum kaldırıldı."}
+
+
+@router.get("/articles")
+async def list_articles(
+    page:   int           = Query(1, ge=1),
+    size:   int           = Query(20, ge=1, le=100),
+    status: Optional[str] = Query(None, description="AUTHENTIC | FAKE | pending"),
+    q:      Optional[str] = Query(None, description="Başlık veya kaynak ara"),
+    admin:  User          = Depends(require_admin),
+    db:     AsyncSession  = Depends(get_db),
+):
+    """Admin: makale listesi (sayfalı, filtreli)."""
+    from sqlalchemy import or_
+    filters = []
+    if status:
+        filters.append(Article.status == status.upper())
+    if q:
+        like = f"%{q}%"
+        filters.append(or_(Article.title.ilike(like), Article.source.ilike(like)))
+
+    base = select(Article)
+    if filters:
+        base = base.where(*filters)
+
+    total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
+    items = (await db.execute(
+        base.order_by(Article.created_at.desc()).offset((page - 1) * size).limit(size)
+    )).scalars().all()
+
+    return {
+        "total": total, "page": page, "size": size,
+        "items": [
+            {
+                "id":     str(a.id),
+                "title":  a.title,
+                "source": a.source,
+                "status": a.status,
+                "created_at": a.created_at.isoformat() if a.created_at else None,
+            }
+            for a in items
+        ],
+    }
 
 
 @router.patch("/articles/{article_id}/classify", response_model=ArticleResponse)

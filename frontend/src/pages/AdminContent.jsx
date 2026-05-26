@@ -14,10 +14,9 @@ const TABS = [
 ];
 
 const STATUS_COLORS = {
-  pending:   { color: A.amber, dim: A.amberDim, label: 'Bekliyor'  },
-  reviewed:  { color: A.blue,  dim: A.blueDim,  label: 'İncelendi' },
+  open:      { color: A.amber, dim: A.amberDim, label: 'Bekliyor'  },
+  in_review: { color: A.blue,  dim: A.blueDim,  label: 'İncelendi' },
   resolved:  { color: A.brand, dim: A.brandDim, label: 'Çözüldü'  },
-  dismissed: { color: A.text3, dim: A.card,      label: 'Reddedildi'},
 };
 
 const PAGE_SIZE = 20;
@@ -99,11 +98,14 @@ function ReportsTab() {
                         {r.reporter_username || '—'}
                       </td>
                       <td style={{ ...td, color: A.text3 }}>
-                        {r.target_type === 'thread' ? 'Tartışma' : r.target_type === 'comment' ? 'Yorum' : r.target_type}
+                        {r.type === 'article'    ? 'Makale'
+                        : r.type === 'forum'     ? 'Forum'
+                        : r.type === 'user'      ? 'Kullanıcı'
+                        : r.type || '—'}
                       </td>
                       <td style={{ ...td, color: A.text2, maxWidth: 220 }}>
                         <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {r.reason}
+                          {r.subject}
                         </span>
                       </td>
                       <td style={{ ...td }}>
@@ -113,7 +115,7 @@ function ReportsTab() {
                         {new Date(r.created_at).toLocaleString('tr-TR')}
                       </td>
                       <td style={{ ...td }}>
-                        {r.status === 'pending' && (
+                        {r.status === 'open' && (
                           <button
                             onClick={() => { setReplyId(r.id); setReplyText(''); setReplyStatus('resolved'); }}
                             style={{
@@ -168,8 +170,7 @@ function ReportsTab() {
               }}
             >
               <option value="resolved">Çözüldü</option>
-              <option value="dismissed">Reddedildi</option>
-              <option value="reviewed">İncelendi</option>
+              <option value="in_review">İnceleniyor</option>
             </select>
 
             <label style={{ fontSize: 12, color: A.text3, display: 'block', marginBottom: 4 }}>Yanıt Notu</label>

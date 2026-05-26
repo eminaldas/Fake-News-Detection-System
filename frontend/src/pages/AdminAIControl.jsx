@@ -119,13 +119,17 @@ function ModelTab() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
-                  ['Worker Durumu',   health.worker_status,    health.worker_status === 'ok' ? A.brand : A.red],
-                  ['Hata Oranı',      health.error_rate != null ? `${health.error_rate.toFixed(2)}%` : '—', A.text1],
-                  ['Ort. Analiz Süresi', health.avg_analysis_ms != null ? `${health.avg_analysis_ms.toFixed(0)}ms` : '—', A.text1],
-                  ['Kritik Alert',    health.critical_alerts ?? 0, health.critical_alerts > 0 ? A.red : A.brand],
-                ].map(([label, val, color]) => (
-                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: A.text3 }}>{label}</span>
+                  ['Son Heartbeat',   health.last_heartbeat
+                    ? new Date(health.last_heartbeat).toLocaleString('tr-TR')
+                    : 'Bilinmiyor',
+                    health.last_heartbeat ? A.brand : A.amber],
+                  ['1 Saatte Hata',   health.errors_last_1h ?? 0,
+                    (health.errors_last_1h ?? 0) > 0 ? A.red : A.brand],
+                  ['Kritik (1 saat)', health.critical_last_1h ?? 0,
+                    (health.critical_last_1h ?? 0) > 0 ? A.red : A.brand],
+                ].map(([lbl, val, color]) => (
+                  <div key={lbl} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: A.text3 }}>{lbl}</span>
                     <span style={{ color, fontWeight: 600 }}>{val}</span>
                   </div>
                 ))}
