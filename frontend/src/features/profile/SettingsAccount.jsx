@@ -370,7 +370,7 @@ export default function SettingsAccount() {
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
     img.onload = () => {
-      const SIZE = 120;
+      const SIZE = 400;
       const canvas = document.createElement('canvas');
       canvas.width  = SIZE;
       canvas.height = SIZE;
@@ -379,7 +379,7 @@ export default function SettingsAccount() {
       const sx  = (img.width  - min) / 2;
       const sy  = (img.height - min) / 2;
       ctx.drawImage(img, sx, sy, min, min, 0, 0, SIZE, SIZE);
-      setAvatarUrl(canvas.toDataURL('image/jpeg', 0.6));
+      setAvatarUrl(canvas.toDataURL('image/jpeg', 0.88));
       URL.revokeObjectURL(objectUrl);
     };
     img.src = objectUrl;
