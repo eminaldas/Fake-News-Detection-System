@@ -244,15 +244,29 @@ function DatasetTab() {
   const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
   const STATUS_PILL = {
-    AUTHENTIC: { color: A.brand, dim: A.brandDim },
-    FAKE:      { color: A.red,   dim: A.redDim   },
+    AUTHENTIC:          { color: A.brand, dim: A.brandDim },
+    FAKE:               { color: A.red,   dim: A.redDim   },
+    'Doğru':            { color: A.brand, dim: A.brandDim },
+    'Yanlış':           { color: A.red,   dim: A.redDim   },
+    completed:          { color: A.blue,  dim: A.blueDim  },
+    'Karma':            { color: A.amber, dim: A.amberDim },
+    'Sonuçlandırılamadı': { color: A.text3, dim: A.card   },
   };
+
+  const FILTER_OPTIONS = [
+    ['', 'Tümü'],
+    ['Doğru', 'Doğru'],
+    ['Yanlış', 'Yanlış'],
+    ['AUTHENTIC', 'AUTHENTIC'],
+    ['FAKE', 'FAKE'],
+    ['completed', 'Tamamlandı'],
+  ];
 
   return (
     <>
       {/* Filtre */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        {[['', 'Tümü'], ['AUTHENTIC', 'Doğru'], ['FAKE', 'Yanlış']].map(([v, l]) => (
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        {FILTER_OPTIONS.map(([v, l]) => (
           <button key={v} onClick={() => { setFilter(v); setPage(1); }}
             style={{
               padding: '6px 14px', borderRadius: 8, fontFamily: 'inherit',
@@ -279,7 +293,7 @@ function DatasetTab() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead style={{ ...thead }}>
                 <tr>
-                  {['Başlık', 'Kaynak', 'Mevcut Durum', 'Override'].map(h => (
+                  {['Başlık', 'Mevcut Durum', 'Override'].map(h => (
                     <th key={h} style={{ ...th }}>{h}</th>
                   ))}
                 </tr>
@@ -287,7 +301,7 @@ function DatasetTab() {
               <tbody>
                 {articles.length === 0 ? (
                   <tr>
-                    <td colSpan={4} style={{ padding: '40px 16px', textAlign: 'center', color: A.text3 }}>
+                    <td colSpan={3} style={{ padding: '40px 16px', textAlign: 'center', color: A.text3 }}>
                       Makale bulunamadı
                     </td>
                   </tr>
@@ -299,12 +313,11 @@ function DatasetTab() {
                       onMouseEnter={e => e.currentTarget.style.background = A.card}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
-                      <td style={{ ...td, color: A.text1, maxWidth: 300 }}>
+                      <td style={{ ...td, color: A.text1, maxWidth: 400 }}>
                         <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
                           {a.title}
                         </span>
                       </td>
-                      <td style={{ ...td, color: A.text3, fontSize: 12 }}>{a.source || '—'}</td>
                       <td style={{ ...td }}>
                         <span style={{ ...badge(sp.color, sp.dim) }}>{a.status || '—'}</span>
                       </td>

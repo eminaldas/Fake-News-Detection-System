@@ -357,19 +357,17 @@ async def remove_comment(
 async def list_articles(
     page:   int           = Query(1, ge=1),
     size:   int           = Query(20, ge=1, le=100),
-    status: Optional[str] = Query(None, description="AUTHENTIC | FAKE | pending"),
-    q:      Optional[str] = Query(None, description="Başlık veya kaynak ara"),
+    status: Optional[str] = Query(None, description="status filtresi"),
+    q:      Optional[str] = Query(None, description="Başlık ara"),
     admin:  User          = Depends(require_admin),
     db:     AsyncSession  = Depends(get_db),
 ):
     """Admin: makale listesi (sayfalı, filtreli)."""
-    from sqlalchemy import or_
     filters = []
     if status:
-        filters.append(Article.status == status.upper())
+        filters.append(Article.status == status)
     if q:
-        like = f"%{q}%"
-        filters.append(or_(Article.title.ilike(like), Article.source.ilike(like)))
+        filters.append(Article.title.ilike(f"%{q}%"))
 
     base = select(Article)
     if filters:
@@ -384,10 +382,9 @@ async def list_articles(
         "total": total, "page": page, "size": size,
         "items": [
             {
-                "id":     str(a.id),
-                "title":  a.title,
-                "source": a.source,
-                "status": a.status,
+                "id":         str(a.id),
+                "title":      a.title,
+                "status":     a.status,
                 "created_at": a.created_at.isoformat() if a.created_at else None,
             }
             for a in items
