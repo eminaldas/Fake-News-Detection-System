@@ -203,7 +203,7 @@ const Layout = () => {
             <MarketBand />
             <Navbar />
 
-            <main className={isSettings ? 'grow overflow-hidden' : 'grow pt-32 md:pt-36 pb-10 overflow-x-hidden'}>
+            <main className={isSettings ? 'grow overflow-hidden' : isMessages ? 'grow pt-32 md:pt-36 overflow-hidden' : 'grow pt-32 md:pt-36 pb-10 overflow-x-hidden'}>
                 <div key={pathname} className={pageClass}>
                     <Outlet />
                 </div>
