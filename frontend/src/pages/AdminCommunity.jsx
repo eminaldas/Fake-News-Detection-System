@@ -103,7 +103,7 @@ function QueueTab() {
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
                   <td style={{ ...td, color: A.text1, fontWeight: 600 }}>
-                    {item.author_username || '—'}
+                    {item.author || '—'}
                   </td>
                   <td style={{ ...td, color: A.text2, maxWidth: 240 }}>
                     <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
