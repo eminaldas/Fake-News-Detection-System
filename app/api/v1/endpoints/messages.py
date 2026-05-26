@@ -8,7 +8,7 @@ import uuid as _uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select, func, or_, and_, update, desc, text, case
+from sqlalchemy import select, func, or_, and_, update, desc, text, case, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -23,8 +23,16 @@ router = APIRouter()
 # ── Şemalar ─────────────────────────────────────────────────────────────────
 
 class SendMessageRequest(BaseModel):
-    content:  str      = Field(..., min_length=1, max_length=2000)
-    msg_type: str      = Field("text", pattern="^(text|gif|emoji)$")
+    content:     str            = Field(..., min_length=1, max_length=2000)
+    msg_type:    str            = Field("text", pattern="^(text|gif|emoji)$")
+    reply_to_id: Optional[str] = None
+
+
+class ReplyPreview(BaseModel):
+    id:        str
+    content:   str
+    msg_type:  str
+    sender_id: str
 
 
 class MessageOut(BaseModel):
@@ -34,10 +42,20 @@ class MessageOut(BaseModel):
     content:     str
     msg_type:    str
     is_read:     bool
+    reply_to_id: Optional[str]
+    reply_to:    Optional[ReplyPreview]
     created_at:  datetime
 
     @classmethod
     def from_orm(cls, m: DirectMessage) -> "MessageOut":
+        reply_preview = None
+        if m.reply_to:
+            reply_preview = ReplyPreview(
+                id=str(m.reply_to.id),
+                content=m.reply_to.content,
+                msg_type=m.reply_to.msg_type,
+                sender_id=str(m.reply_to.sender_id),
+            )
         return cls(
             id=str(m.id),
             sender_id=str(m.sender_id),
@@ -45,6 +63,8 @@ class MessageOut(BaseModel):
             content=m.content,
             msg_type=m.msg_type,
             is_read=m.is_read,
+            reply_to_id=str(m.reply_to_id) if m.reply_to_id else None,
+            reply_to=reply_preview,
             created_at=m.created_at,
         )
 
@@ -69,7 +89,6 @@ async def list_conversations(
     """Kullanıcının tüm konuşmaları — her kişiyle en son mesaj."""
     uid = current_user.id
 
-    # En son mesajları group by partner
     subq = (
         select(
             case(
@@ -94,7 +113,6 @@ async def list_conversations(
         if not partner:
             continue
 
-        # En son mesaj
         last_msg = (await db.execute(
             select(DirectMessage)
             .where(or_(
@@ -108,7 +126,6 @@ async def list_conversations(
         if not last_msg:
             continue
 
-        # Okunmamış sayısı
         unread = (await db.execute(
             select(func.count()).select_from(DirectMessage).where(
                 DirectMessage.sender_id == partner_id,
@@ -162,6 +179,7 @@ async def get_conversation(
 
     q = (
         select(DirectMessage)
+        .options(selectinload(DirectMessage.reply_to))
         .where(or_(
             and_(DirectMessage.sender_id == uid,        DirectMessage.receiver_id == partner_id),
             and_(DirectMessage.sender_id == partner_id, DirectMessage.receiver_id == uid),
@@ -183,14 +201,19 @@ async def get_conversation(
     )
     await db.commit()
 
+    partner_trust = getattr(partner, 'trust_tier', None)
+    partner_label = getattr(partner, 'trust_label', None)
+
     return {
         "messages": [MessageOut.from_orm(m).model_dump() for m in reversed(messages)],
         "total":    total,
         "page":     page,
         "partner":  {
-            "id":         str(partner.id),
-            "username":   partner.username,
-            "avatar_url": partner.avatar_url,
+            "id":          str(partner.id),
+            "username":    partner.username,
+            "avatar_url":  partner.avatar_url,
+            "trust_tier":  partner_trust,
+            "trust_label": partner_label,
         },
     }
 
@@ -210,17 +233,34 @@ async def send_message(
     if not partner:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
 
+    reply_to_id = None
+    reply_preview_data = None
+    if body.reply_to_id:
+        try:
+            reply_uuid = _uuid.UUID(body.reply_to_id)
+            replied = await db.get(DirectMessage, reply_uuid)
+            if replied:
+                reply_to_id = reply_uuid
+                reply_preview_data = {
+                    "id":        str(replied.id),
+                    "content":   replied.content,
+                    "msg_type":  replied.msg_type,
+                    "sender_id": str(replied.sender_id),
+                }
+        except ValueError:
+            pass
+
     msg = DirectMessage(
         sender_id=current_user.id,
         receiver_id=user_id,
         content=body.content.strip(),
         msg_type=body.msg_type,
+        reply_to_id=reply_to_id,
     )
     db.add(msg)
     await db.commit()
     await db.refresh(msg)
 
-    # WebSocket ile alıcıya ilet
     await publish_async(
         channel=f"user:{user_id}:events",
         msg_type="dm.new_message",
@@ -231,8 +271,31 @@ async def send_message(
             "sender_avatar": current_user.avatar_url,
             "content":      msg.content,
             "msg_type":     msg.msg_type,
+            "reply_to_id":  str(reply_to_id) if reply_to_id else None,
+            "reply_to":     reply_preview_data,
             "created_at":   msg.created_at.isoformat(),
         },
     )
 
-    return MessageOut.from_orm(msg).model_dump()
+    out = MessageOut.from_orm(msg)
+    # reply_to ilişkisi henüz yüklenmediyse manuel ekle
+    if reply_to_id and not out.reply_to and reply_preview_data:
+        out = out.model_copy(update={"reply_to": ReplyPreview(**reply_preview_data)})
+    return out.model_dump()
+
+
+@router.delete("/{message_id}", status_code=204)
+async def delete_message(
+    message_id:   _uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession   = Depends(get_db),
+):
+    """Mesajı sil — sadece gönderen silebilir."""
+    msg = await db.get(DirectMessage, message_id)
+    if not msg:
+        raise HTTPException(status_code=404, detail="Mesaj bulunamadı")
+    if msg.sender_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Bu mesajı silemezsiniz")
+
+    await db.delete(msg)
+    await db.commit()

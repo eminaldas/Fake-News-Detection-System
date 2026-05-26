@@ -209,7 +209,7 @@ const Layout = () => {
                 </div>
             </main>
 
-            {!isAuth && <NewsTicker />}
+            {!isAuth && !isMessages && <NewsTicker />}
 
             {/* ── Mini mesajlaşma (LinkedIn stili, sağ alt) ── */}
             {!isAuth && !isMessages && <MiniMessenger />}

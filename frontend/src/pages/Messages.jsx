@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-    Send, Search, Smile, ArrowLeft, Loader2, Check, CheckCheck, Plus, X,
+    Send, Search, Smile, ArrowLeft, Loader2, Check, CheckCheck,
+    Plus, X, Reply, Trash2, ExternalLink,
 } from 'lucide-react';
 import axiosInstance from '../api/axios';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,6 +25,15 @@ const EMOJIS = [
     '😎','🥳','😴','🤯','🫡','💀','👻','🫶','🧠','🕵️',
 ];
 
+/* ── Forum URL tespiti ────────────────────────────────────── */
+const FORUM_RE  = /https?:\/\/(?:www\.)?nehaber\.dev\/forum\/([0-9a-f-]{36})/i;
+const GENERAL_RE = /https?:\/\/[^\s<>"]+/gi;
+
+function extractForumId(text) {
+    const m = text.match(FORUM_RE);
+    return m ? m[1] : null;
+}
+
 function formatDateLabel(isoString) {
     if (!isoString) return '';
     const dt        = new Date(isoString);
@@ -41,6 +51,91 @@ function timeStr(d) {
     return new Date(d).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 }
 
+/* ── Metin içi URL'leri tıklanabilir yap ─────────────────── */
+function LinkedText({ text: txt }) {
+    const parts = [];
+    let last = 0;
+    let m;
+    const re = /https?:\/\/[^\s<>"]+/gi;
+    while ((m = re.exec(txt)) !== null) {
+        if (m.index > last) parts.push({ type: 'text', value: txt.slice(last, m.index) });
+        parts.push({ type: 'url', value: m[0] });
+        last = m.index + m[0].length;
+    }
+    if (last < txt.length) parts.push({ type: 'text', value: txt.slice(last) });
+    return (
+        <>
+            {parts.map((p, i) =>
+                p.type === 'url'
+                    ? <a key={i} href={p.value} target="_blank" rel="noopener noreferrer"
+                         className="underline break-all"
+                         style={{ color: 'inherit', opacity: 0.85 }}>
+                          {p.value}
+                      </a>
+                    : <React.Fragment key={i}>{p.value}</React.Fragment>
+            )}
+        </>
+    );
+}
+
+/* ── Forum Thread Kart Önizlemesi ─────────────────────────── */
+function ForumCard({ threadId, isMine }) {
+    const [thread, setThread] = useState(null);
+    const [err,    setErr]    = useState(false);
+
+    useEffect(() => {
+        axiosInstance.get(`/forum/threads/${threadId}`)
+            .then(r => setThread(r.data))
+            .catch(() => setErr(true));
+    }, [threadId]);
+
+    if (err) return null;
+    if (!thread) return (
+        <div className="mt-2 border p-3 flex items-center gap-2"
+             style={{ borderColor: isMine ? 'rgba(7,15,18,0.25)' : 'var(--color-terminal-border-raw)' }}>
+            <Loader2 className="w-3 h-3 animate-spin shrink-0"
+                     style={{ color: isMine ? '#070f12' : 'var(--color-brand-primary)' }} />
+            <span className="font-mono text-xs" style={{ color: isMine ? '#070f1280' : 'var(--color-text-muted)' }}>
+                // yükleniyor...
+            </span>
+        </div>
+    );
+
+    const bg  = isMine ? 'rgba(7,15,18,0.15)' : 'rgba(16,185,129,0.04)';
+    const bdC = isMine ? 'rgba(7,15,18,0.25)' : 'var(--color-brand-primary)';
+    const tc  = isMine ? '#070f12'            : 'var(--color-text-primary)';
+    const mc  = isMine ? '#070f1280'          : 'var(--color-text-muted)';
+    const bc  = isMine ? '#070f12'            : 'var(--color-brand-primary)';
+
+    return (
+        <Link to={`/forum/${threadId}`}
+              className="mt-2 block border-l-2 pl-3 pr-2 py-2 transition-opacity hover:opacity-80"
+              style={{ background: bg, borderColor: bdC }}>
+            <p className="font-mono text-[9px] uppercase tracking-widest mb-1" style={{ color: mc }}>
+                // FORUM POSTU
+            </p>
+            <p className="font-mono text-xs font-bold leading-snug line-clamp-2" style={{ color: tc }}>
+                {thread.title}
+            </p>
+            {thread.category && (
+                <p className="font-mono text-[10px] mt-1" style={{ color: bc }}>
+                    #{thread.category}
+                </p>
+            )}
+            <div className="flex items-center gap-3 mt-1.5">
+                <span className="font-mono text-[9px]" style={{ color: mc }}>
+                    ↑ {thread.upvote_count ?? 0}
+                </span>
+                <span className="font-mono text-[9px]" style={{ color: mc }}>
+                    💬 {thread.reply_count ?? 0}
+                </span>
+                <ExternalLink className="w-2.5 h-2.5 ml-auto" style={{ color: mc }} />
+            </div>
+        </Link>
+    );
+}
+
+/* ── Avatar ───────────────────────────────────────────────── */
 function Avatar({ user, size = 36 }) {
     const c = ['rgba(16,185,129,0.15)','rgba(59,130,246,0.15)','rgba(245,158,11,0.15)','rgba(239,68,68,0.15)'];
     const t = ['var(--color-brand-primary)','var(--color-accent-blue)','var(--color-accent-amber)','#ef4444'];
@@ -97,19 +192,60 @@ function DateSeparator({ label }) {
     );
 }
 
+/* ── Yanıt Önizleme (mesaj balonunda) ────────────────────── */
+function ReplyQuote({ replyTo, isMine, meId }) {
+    if (!replyTo) return null;
+    const isMyReply = replyTo.sender_id === meId;
+    const bg  = isMine ? 'rgba(7,15,18,0.18)' : 'rgba(16,185,129,0.07)';
+    const bc  = isMine ? 'rgba(7,15,18,0.35)' : 'var(--color-brand-primary)';
+    const tc  = isMine ? '#070f12'            : 'var(--color-text-secondary)';
+    return (
+        <div className="border-l-2 pl-2 pb-1.5 mb-2" style={{ borderColor: bc, background: bg }}>
+            <p className="font-mono text-[9px] uppercase tracking-widest mb-0.5"
+               style={{ color: isMine ? '#070f1260' : 'var(--color-text-muted)' }}>
+                {isMyReply ? 'Sen' : 'Karşı taraf'}
+            </p>
+            <p className="font-mono text-xs line-clamp-2" style={{ color: tc }}>
+                {replyTo.content}
+            </p>
+        </div>
+    );
+}
+
 /* ── Mesaj balonu ─────────────────────────────────────────── */
-function MessageBubble({ msg, isMine, isFirst, isLast }) {
+function MessageBubble({ msg, isMine, isFirst, isLast, onReply, onDelete, meId }) {
+    const [hover, setHover] = useState(false);
     const isGif   = msg.msg_type === 'gif';
     const isEmoji = msg.msg_type === 'emoji';
-
-    /* Grup içi boşluk: son mesajdan önce daha fazla boşluk */
+    const forumId = !isGif && !isEmoji ? extractForumId(msg.content) : null;
     const mb = isLast ? 'mb-3' : 'mb-0.5';
 
+    const actions = (
+        <div className={`absolute top-0 flex items-center gap-1 ${isMine ? 'right-full mr-2' : 'left-full ml-2'}`}
+             style={{ opacity: hover ? 1 : 0, transition: 'opacity 0.15s', pointerEvents: hover ? 'auto' : 'none' }}>
+            <button onClick={() => onReply(msg)} title="Yanıtla"
+                    className="p-1 transition-colors hover:bg-white/10"
+                    style={{ color: 'var(--color-text-muted)' }}>
+                <Reply className="w-3.5 h-3.5" />
+            </button>
+            {isMine && (
+                <button onClick={() => onDelete(msg.id)} title="Sil"
+                        className="p-1 transition-colors hover:bg-white/10"
+                        style={{ color: '#ef4444' }}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                </button>
+            )}
+        </div>
+    );
+
     return (
-        <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${mb} px-4`}>
+        <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${mb} px-4`}
+             onMouseEnter={() => setHover(true)}
+             onMouseLeave={() => setHover(false)}>
             {isGif ? (
-                <div className={`max-w-60 overflow-hidden ${isMine ? 'ml-16' : 'mr-16'}`}
+                <div className={`max-w-60 overflow-hidden relative ${isMine ? 'ml-16' : 'mr-16'}`}
                      style={{ border: '1px solid var(--color-terminal-border-raw)' }}>
+                    {actions}
                     <img src={msg.content} alt="gif" className="w-full" />
                     {isLast && (
                         <p className="font-mono text-[9px] px-2 py-1 text-right"
@@ -119,7 +255,8 @@ function MessageBubble({ msg, isMine, isFirst, isLast }) {
                     )}
                 </div>
             ) : isEmoji ? (
-                <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+                <div className={`flex flex-col relative ${isMine ? 'items-end' : 'items-start'}`}>
+                    {actions}
                     <span className="text-4xl leading-none">{msg.content}</span>
                     {isLast && (
                         <span className="font-mono text-[9px] mt-0.5"
@@ -129,19 +266,24 @@ function MessageBubble({ msg, isMine, isFirst, isLast }) {
                     )}
                 </div>
             ) : (
-                <div className={`max-w-[72%] ${isMine ? 'ml-16' : 'mr-16'}`}>
-                    <div className="px-3.5 py-2"
+                <div className={`max-w-[72%] relative ${isMine ? 'ml-16' : 'mr-16'}`}>
+                    {actions}
+                    <div className="px-3.5 py-2.5"
                          style={{
-                             background:    isMine ? 'var(--color-brand-primary)' : 'var(--color-bg-base)',
-                             border:        isMine ? 'none' : '1px solid var(--color-terminal-border-raw)',
-                             color:         isMine ? '#070f12' : 'var(--color-text-primary)',
-                             borderRadius:  isMine
+                             background:   isMine ? 'var(--color-brand-primary)' : 'var(--color-bg-base)',
+                             border:       isMine ? 'none' : '1px solid var(--color-terminal-border-raw)',
+                             color:        isMine ? '#070f12' : 'var(--color-text-primary)',
+                             borderRadius: isMine
                                  ? `${isFirst ? 8 : 2}px 8px 8px ${isLast ? 8 : 2}px`
                                  : `8px ${isFirst ? 8 : 2}px ${isLast ? 8 : 2}px 8px`,
                          }}>
+                        {msg.reply_to && (
+                            <ReplyQuote replyTo={msg.reply_to} isMine={isMine} meId={meId} />
+                        )}
                         <p className="font-mono text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">
-                            {msg.content}
+                            <LinkedText text={msg.content} />
                         </p>
+                        {forumId && <ForumCard threadId={forumId} isMine={isMine} />}
                     </div>
                     {isLast && (
                         <p className={`font-mono text-[9px] mt-1 flex items-center gap-0.5 ${isMine ? 'justify-end' : 'justify-start'}`}
@@ -232,7 +374,6 @@ function NewConversation({ onSelect, onClose }) {
                 <span className="font-mono text-xs tracking-widest uppercase flex-1"
                       style={{ color: 'var(--color-brand-primary)' }}>// YENİ MESAJ</span>
             </div>
-
             <div className="px-3 py-2 border-b" style={BD}>
                 <div className="flex items-center gap-2 border px-3 py-2"
                      style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'var(--color-bg-base)' }}>
@@ -249,20 +390,14 @@ function NewConversation({ onSelect, onClose }) {
                                         style={{ color: 'var(--color-brand-primary)' }} />}
                 </div>
             </div>
-
             <div className="flex-1 overflow-y-auto">
                 {results.length === 0 && query.trim() && !loading ? (
                     <p className="font-mono text-xs text-center pt-8"
-                       style={{ color: 'var(--color-text-muted)' }}>
-                        // kullanıcı bulunamadı
-                    </p>
+                       style={{ color: 'var(--color-text-muted)' }}>// kullanıcı bulunamadı</p>
                 ) : results.map(u => (
-                    <button
-                        key={u.id}
-                        onClick={() => onSelect(u)}
-                        className="w-full flex items-center gap-3 px-4 py-3 border-b text-left transition-colors hover:bg-white/5"
-                        style={BD}
-                    >
+                    <button key={u.id} onClick={() => onSelect(u)}
+                            className="w-full flex items-center gap-3 px-4 py-3 border-b text-left transition-colors hover:bg-white/5"
+                            style={BD}>
                         <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center font-mono font-black shrink-0"
                              style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid var(--color-brand-primary)',
                                       color: 'var(--color-brand-primary)', fontSize: 14 }}>
@@ -277,7 +412,7 @@ function NewConversation({ onSelect, onClose }) {
                                style={{ color: 'var(--color-text-primary)' }}>{u.username}</p>
                             <p className="font-mono text-[10px]"
                                style={{ color: TIER_COLOR[u.trust_tier] ?? 'var(--color-text-muted)' }}>
-                                {'★'.repeat(u.trust_stars)} {u.trust_label}
+                                {'★'.repeat(u.trust_stars ?? 0)} {u.trust_label}
                             </p>
                         </div>
                     </button>
@@ -305,6 +440,7 @@ export default function Messages() {
     const [showEmoji,     setShowEmoji]     = useState(false);
     const [showNewConv,   setShowNewConv]   = useState(false);
     const [convSearch,    setConvSearch]    = useState('');
+    const [replyTo,       setReplyTo]       = useState(null); // yanıt verilen mesaj
 
     const msgContainerRef = useRef(null);
     const inputRef        = useRef(null);
@@ -343,7 +479,7 @@ export default function Messages() {
 
     useEffect(() => {
         if (paramUserId && paramUserId !== activeId) setActiveId(paramUserId);
-    }, [paramUserId]);
+    }, [paramUserId, activeId]);
 
     /* Mesaj alanını alta scroll */
     useEffect(() => {
@@ -362,6 +498,8 @@ export default function Messages() {
                     content:     payload.content,
                     msg_type:    payload.msg_type,
                     is_read:     true,
+                    reply_to_id: payload.reply_to_id ?? null,
+                    reply_to:    payload.reply_to ?? null,
                     created_at:  payload.created_at,
                 }]);
             } else {
@@ -393,8 +531,9 @@ export default function Messages() {
         setSending(true);
         try {
             const { data } = await axiosInstance.post(`/messages/${activeId}`, {
-                content: content.trim(),
-                msg_type: type,
+                content:     content.trim(),
+                msg_type:    type,
+                reply_to_id: replyTo?.id ?? null,
             });
             setMessages(prev => [...prev, data]);
             setConversations(prev => {
@@ -417,7 +556,7 @@ export default function Messages() {
                 return updated;
             });
             setText('');
-            // Reset textarea height
+            setReplyTo(null);
             if (inputRef.current) inputRef.current.style.height = 'auto';
             inputRef.current?.focus();
             loadConversations(true);
@@ -425,14 +564,18 @@ export default function Messages() {
         finally { setSending(false); }
     };
 
+    /* Mesaj sil */
+    const handleDelete = useCallback(async (messageId) => {
+        try {
+            await axiosInstance.delete(`/messages/${messageId}`);
+            setMessages(prev => prev.filter(m => m.id !== messageId));
+        } catch { /* sessiz */ }
+    }, []);
+
     /* Emoji: imleç konumuna ekle */
     const handleEmojiInsert = useCallback((emoji) => {
         const ta = inputRef.current;
-        if (!ta) {
-            setText(prev => prev + emoji);
-            setShowEmoji(false);
-            return;
-        }
+        if (!ta) { setText(prev => prev + emoji); setShowEmoji(false); return; }
         const start   = ta.selectionStart ?? text.length;
         const end     = ta.selectionEnd   ?? text.length;
         const newText = text.slice(0, start) + emoji + text.slice(end);
@@ -449,9 +592,12 @@ export default function Messages() {
             e.preventDefault();
             handleSend(text, 'text');
         }
+        if (e.key === 'Escape' && replyTo) {
+            setReplyTo(null);
+        }
     };
 
-    /* Mesajları grupla + tarih ayırıcı ekle */
+    /* Mesajları grupla + tarih ayırıcı */
     const enrichedMessages = useMemo(() => {
         return messages.map((msg, idx) => {
             const prev    = messages[idx - 1];
@@ -470,14 +616,13 @@ export default function Messages() {
         c.partner_name.toLowerCase().includes(convSearch.toLowerCase())
     );
 
-    /* pt-32 = 8rem mobile, pt-36 = 9rem md+ */
     return (
         <>
-            <style>{`
-                .msg-textarea::-webkit-scrollbar { display: none; }
-            `}</style>
+            <style>{`.msg-textarea::-webkit-scrollbar { display: none; }`}</style>
+
+            {/* pt-32=8rem mobile, pt-36=9rem md+, NewsTicker gizli */}
             <div className="h-[calc(100dvh-8rem)] md:h-[calc(100dvh-9rem)]">
-                <div className="flex h-full gap-0 border overflow-hidden" style={S}>
+                <div className="flex h-full overflow-hidden border" style={S}>
 
                     {/* ── SOL: Konuşma listesi ── */}
                     <div className={`flex flex-col ${activeId ? 'hidden md:flex' : 'flex'} w-full md:w-72 shrink-0 relative`}
@@ -494,36 +639,27 @@ export default function Messages() {
                             />
                         )}
 
-                        {/* Başlık */}
                         <div className="px-4 py-3 border-b flex items-center justify-between shrink-0" style={BD}>
                             <span className="font-mono text-xs tracking-widest uppercase"
                                   style={{ color: 'var(--color-brand-primary)' }}>// MESAJLAR</span>
-                            <button
-                                onClick={() => setShowNewConv(true)}
-                                className="p-1.5 transition-opacity hover:opacity-70"
-                                style={{ color: 'var(--color-brand-primary)', border: '1px solid rgba(16,185,129,0.30)' }}
-                                title="Yeni mesaj"
-                            >
+                            <button onClick={() => setShowNewConv(true)}
+                                    className="p-1.5 transition-opacity hover:opacity-70"
+                                    style={{ color: 'var(--color-brand-primary)', border: '1px solid rgba(16,185,129,0.30)' }}>
                                 <Plus className="w-3.5 h-3.5" />
                             </button>
                         </div>
 
-                        {/* Arama */}
                         <div className="px-3 py-2 border-b shrink-0" style={BD}>
                             <div className="flex items-center gap-2 border px-3 py-2"
                                  style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'var(--color-bg-base)' }}>
                                 <Search className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-text-muted)' }} />
-                                <input
-                                    value={convSearch}
-                                    onChange={e => setConvSearch(e.target.value)}
-                                    placeholder="Kişi ara..."
-                                    className="flex-1 bg-transparent font-mono text-xs outline-none"
-                                    style={{ color: 'var(--color-text-primary)' }}
-                                />
+                                <input value={convSearch} onChange={e => setConvSearch(e.target.value)}
+                                       placeholder="Kişi ara..."
+                                       className="flex-1 bg-transparent font-mono text-xs outline-none"
+                                       style={{ color: 'var(--color-text-primary)' }} />
                             </div>
                         </div>
 
-                        {/* Liste */}
                         <div className="flex-1 overflow-y-auto min-h-0">
                             {convLoad ? (
                                 <div className="p-6 flex justify-center">
@@ -536,15 +672,11 @@ export default function Messages() {
                                     </p>
                                 </div>
                             ) : filteredConv.map(c => (
-                                <ConvItem
-                                    key={c.partner_id}
-                                    conv={c}
-                                    active={activeId === c.partner_id}
-                                    onClick={() => {
-                                        setActiveId(c.partner_id);
-                                        navigate(`/messages/${c.partner_id}`, { replace: true });
-                                    }}
-                                />
+                                <ConvItem key={c.partner_id} conv={c} active={activeId === c.partner_id}
+                                          onClick={() => {
+                                              setActiveId(c.partner_id);
+                                              navigate(`/messages/${c.partner_id}`, { replace: true });
+                                          }} />
                             ))}
                         </div>
                     </div>
@@ -553,13 +685,11 @@ export default function Messages() {
                     {activeId && partner ? (
                         <div className="flex-1 flex flex-col min-w-0">
 
-                            {/* Sohbet başlığı */}
+                            {/* Başlık */}
                             <div className="flex items-center gap-3 px-4 py-3 border-b shrink-0" style={BD}>
-                                <button
-                                    onClick={() => { setActiveId(null); navigate('/messages', { replace: true }); }}
-                                    className="md:hidden p-1 transition-opacity hover:opacity-60"
-                                    style={{ color: 'var(--color-text-muted)' }}
-                                >
+                                <button onClick={() => { setActiveId(null); navigate('/messages', { replace: true }); }}
+                                        className="md:hidden p-1 transition-opacity hover:opacity-60"
+                                        style={{ color: 'var(--color-text-muted)' }}>
                                     <ArrowLeft className="w-4 h-4" />
                                 </button>
                                 <Link to={`/users/${partner.id}`}>
@@ -567,7 +697,7 @@ export default function Messages() {
                                 </Link>
                                 <div className="flex-1 min-w-0">
                                     <Link to={`/users/${partner.id}`}
-                                          className="font-mono text-sm font-bold transition-colors hover:opacity-70 block truncate"
+                                          className="font-mono text-sm font-bold transition-opacity hover:opacity-70 block truncate"
                                           style={{ color: 'var(--color-text-primary)' }}>
                                         {partner.username}
                                     </Link>
@@ -596,14 +726,15 @@ export default function Messages() {
                                 ) : (
                                     enrichedMessages.map(msg => (
                                         <React.Fragment key={msg.id}>
-                                            {msg.showDateSep && (
-                                                <DateSeparator label={formatDateLabel(msg.created_at)} />
-                                            )}
+                                            {msg.showDateSep && <DateSeparator label={formatDateLabel(msg.created_at)} />}
                                             <MessageBubble
                                                 msg={msg}
                                                 isMine={msg.sender_id === me?.id}
                                                 isFirst={msg.isFirst}
                                                 isLast={msg.isLast}
+                                                onReply={setReplyTo}
+                                                onDelete={handleDelete}
+                                                meId={me?.id}
                                             />
                                         </React.Fragment>
                                     ))
@@ -611,56 +742,73 @@ export default function Messages() {
                             </div>
 
                             {/* Input alanı */}
-                            <div className="px-4 py-3 border-t relative shrink-0" style={BD}>
-                                {showEmoji && (
-                                    <EmojiPicker
-                                        onSelect={handleEmojiInsert}
-                                        onClose={() => setShowEmoji(false)}
-                                    />
+                            <div className="border-t shrink-0" style={BD}>
+                                {/* Yanıt şeridi */}
+                                {replyTo && (
+                                    <div className="px-4 pt-2 pb-1 flex items-start gap-2 border-b"
+                                         style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'rgba(16,185,129,0.04)' }}>
+                                        <Reply className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-mono text-[9px] uppercase tracking-widest"
+                                               style={{ color: 'var(--color-brand-primary)' }}>
+                                                {replyTo.sender_id === me?.id ? 'Kendine' : partner?.username + "'e"} yanıt
+                                            </p>
+                                            <p className="font-mono text-xs truncate"
+                                               style={{ color: 'var(--color-text-muted)' }}>
+                                                {replyTo.content}
+                                            </p>
+                                        </div>
+                                        <button onClick={() => setReplyTo(null)}
+                                                className="p-0.5 shrink-0 transition-opacity hover:opacity-60"
+                                                style={{ color: 'var(--color-text-muted)' }}>
+                                            <X className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
                                 )}
-                                <div className="flex items-end gap-2">
-                                    <button
-                                        onClick={() => setShowEmoji(v => !v)}
-                                        className="p-2 transition-opacity hover:opacity-70 shrink-0 mb-0.5"
-                                        style={{ color: showEmoji ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}
-                                        title="Emoji"
-                                    >
-                                        <Smile className="w-5 h-5" />
-                                    </button>
-                                    <textarea
-                                        ref={inputRef}
-                                        value={text}
-                                        onChange={e => setText(e.target.value)}
-                                        onKeyDown={handleKeyDown}
-                                        placeholder="Mesaj yaz... (Enter gönder, Shift+Enter yeni satır)"
-                                        rows={1}
-                                        className="msg-textarea flex-1 bg-transparent font-mono text-sm outline-none resize-none border px-3 py-2"
-                                        style={{
-                                            borderColor:     'var(--color-terminal-border-raw)',
-                                            color:           'var(--color-text-primary)',
-                                            maxHeight:       120,
-                                            lineHeight:      1.5,
-                                            background:      'var(--color-bg-base)',
-                                            overflowY:       'auto',
-                                            scrollbarWidth:  'none',
-                                            msOverflowStyle: 'none',
-                                        }}
-                                        onInput={e => {
-                                            e.target.style.height = 'auto';
-                                            e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-                                        }}
-                                    />
-                                    <button
-                                        onClick={() => handleSend(text, 'text')}
-                                        disabled={!text.trim() || sending}
-                                        className="p-2.5 transition-opacity hover:opacity-80 disabled:opacity-30 shrink-0 mb-0.5"
-                                        style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}
-                                    >
-                                        {sending
-                                            ? <Loader2 className="w-4 h-4 animate-spin" />
-                                            : <Send className="w-4 h-4" />
-                                        }
-                                    </button>
+
+                                <div className="px-4 py-3 relative">
+                                    {showEmoji && (
+                                        <EmojiPicker onSelect={handleEmojiInsert} onClose={() => setShowEmoji(false)} />
+                                    )}
+                                    <div className="flex items-end gap-2">
+                                        <button onClick={() => setShowEmoji(v => !v)}
+                                                className="p-2 transition-opacity hover:opacity-70 shrink-0 mb-0.5"
+                                                style={{ color: showEmoji ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}>
+                                            <Smile className="w-5 h-5" />
+                                        </button>
+                                        <textarea
+                                            ref={inputRef}
+                                            value={text}
+                                            onChange={e => setText(e.target.value)}
+                                            onKeyDown={handleKeyDown}
+                                            placeholder="Mesaj yaz... (Enter gönder, Shift+Enter satır)"
+                                            rows={1}
+                                            className="msg-textarea flex-1 bg-transparent font-mono text-sm outline-none resize-none border px-3 py-2"
+                                            style={{
+                                                borderColor:     'var(--color-terminal-border-raw)',
+                                                color:           'var(--color-text-primary)',
+                                                maxHeight:       120,
+                                                lineHeight:      1.5,
+                                                background:      'var(--color-bg-base)',
+                                                overflowY:       'auto',
+                                                scrollbarWidth:  'none',
+                                                msOverflowStyle: 'none',
+                                            }}
+                                            onInput={e => {
+                                                e.target.style.height = 'auto';
+                                                e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                                            }}
+                                        />
+                                        <button onClick={() => handleSend(text, 'text')}
+                                                disabled={!text.trim() || sending}
+                                                className="p-2.5 transition-opacity hover:opacity-80 disabled:opacity-30 shrink-0 mb-0.5"
+                                                style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
+                                            {sending
+                                                ? <Loader2 className="w-4 h-4 animate-spin" />
+                                                : <Send className="w-4 h-4" />
+                                            }
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -608,16 +608,18 @@ class ForumThreadReport(Base):
 class DirectMessage(Base):
     __tablename__ = "direct_messages"
 
-    id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    sender_id   = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    receiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    content     = Column(Text, nullable=False)
-    msg_type    = Column(String(10), nullable=False, server_default="text")
-    is_read     = Column(Boolean, nullable=False, default=False)
-    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+    id           = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    sender_id    = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    receiver_id  = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    content      = Column(Text, nullable=False)
+    msg_type     = Column(String(10), nullable=False, server_default="text")
+    is_read      = Column(Boolean, nullable=False, default=False)
+    reply_to_id  = Column(UUID(as_uuid=True), ForeignKey("direct_messages.id", ondelete="SET NULL"), nullable=True)
+    created_at   = Column(DateTime(timezone=True), server_default=func.now())
 
     sender   = relationship("User", foreign_keys=[sender_id])
     receiver = relationship("User", foreign_keys=[receiver_id])
+    reply_to = relationship("DirectMessage", foreign_keys=[reply_to_id], remote_side="DirectMessage.id")
 
     __table_args__ = (
         Index("idx_dm_receiver_unread", "receiver_id", "is_read"),
