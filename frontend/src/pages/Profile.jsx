@@ -95,8 +95,9 @@ export default function Profile() {
     const [aLoading,    setALoading]    = useState(false);
     const [following,   setFollowing]   = useState(false);
     const [fLoading,    setFLoading]    = useState(false);
-    const [activeTab,   setActiveTab]   = useState('overview');
-    const [error,       setError]       = useState(null);
+    const [activeTab,      setActiveTab]      = useState('overview');
+    const [analysisFilter, setAnalysisFilter] = useState(null);
+    const [error,          setError]          = useState(null);
 
     const SIZE = 10;
     const isOwnProfile = user?.id === userId;
@@ -177,7 +178,7 @@ export default function Profile() {
         <div className="max-w-6xl mx-auto px-4 pb-16">
 
             {/* ══ HERO SECTION ══════════════════════════════════════ */}
-            <div className="relative border overflow-hidden mb-8" style={S}>
+            <div className="relative border mb-8" style={S}>
                 <Corner />
 
                 {/* Cover alanı */}
@@ -197,7 +198,7 @@ export default function Profile() {
                 </div>
 
                 {/* Avatar + bilgiler */}
-                <div className="px-6 md:px-10 pb-6 -mt-14 flex flex-col md:flex-row gap-5 md:items-end justify-between">
+                <div className="relative z-10 px-6 md:px-10 pb-6 -mt-14 flex flex-col md:flex-row gap-5 md:items-end justify-between">
                     <div className="flex flex-col md:flex-row gap-5 items-start md:items-end flex-1 min-w-0">
                         <UserAvatar username={profile.username} avatarUrl={profile.avatar_url} />
 
@@ -302,14 +303,17 @@ export default function Profile() {
                 <div className="border-t px-6 py-4 flex flex-wrap gap-8"
                      style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'var(--color-bg-base)' }}>
                     {[
-                        { label: 'Tartışma',     value: profile.thread_count,    color: 'var(--color-text-primary)' },
-                        { label: 'Takipçi',      value: profile.follower_count,  color: 'var(--color-text-primary)' },
-                        { label: 'Takip',        value: profile.following_count, color: 'var(--color-text-primary)' },
-                        { label: 'Analiz',       value: profile.analysis_count,  color: 'var(--color-brand-primary)' },
-                        { label: 'Sahte Tespit', value: profile.fake_count,      color: 'var(--color-fake-fill)' },
-                    ].map(({ label, value, color }) => (
-                        <div key={label} className="text-center">
-                            <div className="text-xl font-manrope font-black" style={{ color }}>{value ?? 0}</div>
+                        { label: 'Tartışma',     value: profile.thread_count,    color: 'var(--color-text-primary)',  onClick: null },
+                        { label: 'Takipçi',      value: profile.follower_count,  color: 'var(--color-text-primary)',  onClick: null },
+                        { label: 'Takip',        value: profile.following_count, color: 'var(--color-text-primary)',  onClick: null },
+                        { label: 'Analiz',       value: profile.analysis_count,  color: 'var(--color-brand-primary)', onClick: () => { setActiveTab('analyses'); setAnalysisFilter(null); } },
+                        { label: 'Sahte Tespit', value: profile.fake_count,      color: 'var(--color-fake-fill)',     onClick: () => { setActiveTab('analyses'); setAnalysisFilter('FAKE'); } },
+                    ].map(({ label, value, color, onClick }) => (
+                        <div key={label}
+                             onClick={onClick ?? undefined}
+                             className={`text-center${onClick ? ' cursor-pointer group' : ''}`}>
+                            <div className="text-xl font-manrope font-black transition-opacity group-hover:opacity-75"
+                                 style={{ color }}>{value ?? 0}</div>
                             <div className="font-mono text-[10px] uppercase tracking-widest mt-0.5"
                                  style={{ color: 'var(--color-text-muted)' }}>{label}</div>
                         </div>
@@ -361,7 +365,7 @@ export default function Profile() {
 
                     {activeTab === 'overview'  && <OverviewTab  threads={threads} analyses={analyses} tLoading={tLoading} aLoading={aLoading} setActiveTab={setActiveTab} />}
                     {activeTab === 'threads'   && <ThreadsTab   threads={threads} loading={tLoading} page={threadPage}   totalPages={threadTotalPages}   load={loadThreads} />}
-                    {activeTab === 'analyses'  && <AnalysesTab  analyses={analyses} loading={aLoading} page={analysisPage} totalPages={analysisTotalPages} load={loadAnalyses} />}
+                    {activeTab === 'analyses'  && <AnalysesTab  analyses={analyses} loading={aLoading} page={analysisPage} totalPages={analysisTotalPages} load={loadAnalyses} filter={analysisFilter} clearFilter={() => setAnalysisFilter(null)} />}
                 </div>
 
                 {/* ── Sağ sütun ── */}
@@ -573,20 +577,37 @@ function ThreadsTab({ threads, loading, page, totalPages, load }) {
     );
 }
 
+const FILTER_LABEL = { FAKE: 'Sahte İçerik', AUTHENTIC: 'Doğrulandı', UNCERTAIN: 'Belirsiz' };
+const FILTER_COLOR = { FAKE: 'var(--color-fake-fill)', AUTHENTIC: 'var(--color-brand-primary)', UNCERTAIN: 'var(--color-accent-amber)' };
+
 /* ── Analizlerim Tab ── */
-function AnalysesTab({ analyses, loading, page, totalPages, load }) {
+function AnalysesTab({ analyses, loading, page, totalPages, load, filter, clearFilter }) {
+    const items = filter ? analyses.filter(a => a.prediction === filter) : analyses;
     return (
         <div className="flex flex-col gap-3">
-            {loading ? <Spinner /> : analyses.length === 0 ? (
+            {filter && (
+                <div className="flex items-center gap-3 px-1">
+                    <span className="font-mono text-[10px] px-2 py-1 border"
+                          style={{ color: FILTER_COLOR[filter], borderColor: FILTER_COLOR[filter] + '50' }}>
+                        {FILTER_LABEL[filter]} filtresi aktif
+                    </span>
+                    <button onClick={clearFilter}
+                            className="font-mono text-[10px] transition-opacity hover:opacity-60"
+                            style={{ color: 'var(--color-text-muted)' }}>
+                        × temizle
+                    </button>
+                </div>
+            )}
+            {loading ? <Spinner /> : items.length === 0 ? (
                 <div className="text-center py-20">
                     <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                        // henüz analiz yok
+                        {filter ? `// ${FILTER_LABEL[filter]} sonucu bulunamadı` : '// henüz analiz yok'}
                     </p>
                 </div>
             ) : (
                 <>
-                    {analyses.map((a, i) => <AnalysisCard key={a.id ?? i} item={a} />)}
-                    <Pagination page={page} totalPages={totalPages} load={load} />
+                    {items.map((a, i) => <AnalysisCard key={a.id ?? i} item={a} />)}
+                    {!filter && <Pagination page={page} totalPages={totalPages} load={load} />}
                 </>
             )}
         </div>
