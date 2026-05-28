@@ -501,11 +501,25 @@ async def get_user_profile(
         select(func.count()).select_from(ForumThread).where(ForumThread.user_id == user_id)
     )).scalar_one()
 
+    # Toplam analiz sayısı
+    analysis_count = (await db.execute(
+        select(func.count()).select_from(AnalysisRequest).where(AnalysisRequest.user_id == user_id)
+    )).scalar_one()
+
+    # FAKE sonuçlu analiz sayısı
+    fake_count = (await db.execute(
+        select(func.count())
+        .select_from(AnalysisRequest)
+        .join(Article, Article.metadata_info["task_id"].astext == AnalysisRequest.task_id)
+        .join(AnalysisResult, AnalysisResult.article_id == Article.id)
+        .where(AnalysisRequest.user_id == user_id, AnalysisResult.status == "FAKE")
+    )).scalar_one()
+
     is_following = False
     if current_user is not None:
         is_following = (await db.get(UserFollow, (current_user.id, user_id))) is not None
 
-    trust     = ForumTrustInfo.from_user(user)
+    trust = ForumTrustInfo.from_user(user)
     return UserProfileResponse(
         id=user.id,
         username=user.username,
@@ -521,6 +535,8 @@ async def get_user_profile(
         trust_score=trust.score,
         trust_stars=trust.stars,
         trust_label=trust.display_label,
+        analysis_count=analysis_count,
+        fake_count=fake_count,
     )
 
 
