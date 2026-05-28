@@ -640,6 +640,63 @@ async def get_user_threads(
     return ForumThreadListResponse(items=items, total=total, page=page, size=size)
 
 
+@router.get("/{user_id}/analyses")
+async def get_user_analyses(
+    user_id: _uuid.UUID,
+    page:    int = Query(1, ge=1),
+    size:    int = Query(10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+):
+    """Kullanıcının herkese açık analiz geçmişi."""
+    target = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if not target:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+
+    offset = (page - 1) * size
+
+    total = (await db.execute(
+        select(func.count()).select_from(AnalysisRequest)
+        .where(AnalysisRequest.user_id == user_id)
+    )).scalar_one()
+
+    raw_items = (await db.execute(
+        select(AnalysisRequest)
+        .where(AnalysisRequest.user_id == user_id)
+        .order_by(AnalysisRequest.created_at.desc())
+        .offset(offset)
+        .limit(size)
+    )).scalars().all()
+
+    enriched = []
+    for req in raw_items:
+        item = {
+            "id":            str(req.id),
+            "analysis_type": req.analysis_type.value if hasattr(req.analysis_type, "value") else req.analysis_type,
+            "task_id":       req.task_id,
+            "created_at":    req.created_at.isoformat(),
+            "title":         None,
+            "prediction":    None,
+            "confidence":    None,
+        }
+        if req.task_id:
+            try:
+                row = (await db.execute(
+                    select(Article.title, AnalysisResult.status, AnalysisResult.confidence)
+                    .join(AnalysisResult, AnalysisResult.article_id == Article.id)
+                    .where(Article.metadata_info.op("->>")(  "task_id") == req.task_id)
+                    .limit(1)
+                )).first()
+                if row:
+                    item["title"]      = row.title
+                    item["prediction"] = row.status
+                    item["confidence"] = row.confidence
+            except Exception:
+                pass
+        enriched.append(item)
+
+    return {"total": total, "page": page, "size": size, "items": enriched}
+
+
 @router.get("/me/following-feed", response_model=ForumThreadListResponse)
 async def following_feed(
     page:         int  = Query(1, ge=1),
