@@ -812,9 +812,20 @@ export default function Messages() {
                                 </div>
                             </div>
                         </div>
-                    ) : activeId && !partner && !msgLoad ? (
+                    ) : activeId && msgLoad ? (
                         <div className="flex-1 flex items-center justify-center">
                             <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--color-brand-primary)' }} />
+                        </div>
+                    ) : activeId && !partner ? (
+                        <div className="flex-1 flex flex-col items-center justify-center gap-3 px-4">
+                            <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                                // konuşma yüklenemedi
+                            </p>
+                            <button onClick={() => loadConversation(activeId)}
+                                    className="font-mono text-xs border px-3 py-1.5 transition-opacity hover:opacity-70"
+                                    style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)' }}>
+                                tekrar dene
+                            </button>
                         </div>
                     ) : (
                         <div className="flex-1 hidden md:flex flex-col items-center justify-center gap-4">
