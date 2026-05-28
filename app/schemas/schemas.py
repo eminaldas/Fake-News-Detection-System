@@ -999,6 +999,8 @@ class UserProfileResponse(BaseModel):
     trust_score:       float          = 0.0
     trust_stars:       int            = 0
     trust_label:       str            = "Yeni Üye"
+    analysis_count:    int            = 0
+    fake_count:        int            = 0
     model_config = ConfigDict(from_attributes=True)
 
 
