@@ -141,7 +141,7 @@ function App() {
                             </Route>
 
                             {/* Kullanıcı profili */}
-                            <Route path="users/:userId" element={<UserProfile />} />
+                            <Route path="users/:userId" element={<Profile />} />
 
                             {/* Kaydedilenler */}
                             <Route path="bookmarks" element={<RequireAuth><Bookmarks /></RequireAuth>} />
