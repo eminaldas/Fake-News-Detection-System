@@ -4,7 +4,7 @@ import { Calendar, MessageSquare, Link2, Settings } from 'lucide-react';
 import axiosInstance from '../api/axios';
 import { useAuth } from '../contexts/AuthContext';
 import GamificationService from '../services/gamification.service';
-import { TypeBadge, PredictionBadge } from '../components/common/AnalysisBadges';
+import { TypeBadge } from '../components/common/AnalysisBadges';
 import RecommendedUsersWidget from '../features/profile/RecommendedUsersWidget';
 import PopularThreadsWidget from '../features/profile/PopularThreadsWidget';
 
