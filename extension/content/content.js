@@ -49,90 +49,91 @@ function injectPanelStyles() {
     style.textContent = `
         #__nhb_panel__ {
             position: fixed; top: 16px; right: 16px; z-index: 2147483647;
-            width: 300px; background: rgba(11,21,24,0.97);
-            border: 1px solid #2d343d; border-radius: 12px;
+            width: 320px; background: rgba(11,21,24,0.98);
+            border: 1px solid #2a3840; border-radius: 14px;
             font-family: 'Segoe UI', system-ui, sans-serif;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-            backdrop-filter: blur(12px);
+            font-size: 14px; line-height: 1.5;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.65);
+            backdrop-filter: blur(14px);
             animation: nhbFadeIn 0.3s cubic-bezier(0.22,1,0.36,1);
             overflow: hidden;
         }
         @keyframes nhbFadeIn {
-            from { opacity:0; transform:translateY(-8px) scale(0.97) }
+            from { opacity:0; transform:translateY(-10px) scale(0.96) }
             to   { opacity:1; transform:none }
         }
         .nhb-header {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 10px 14px 8px; border-bottom: 1px solid #1e2d35;
-            background: rgba(16,185,129,0.06);
+            padding: 11px 16px 10px; border-bottom: 1px solid rgba(16,185,129,0.18);
+            background: rgba(16,185,129,0.05);
         }
         .nhb-logo {
-            font-size: 12px; font-weight: 800; color: #10b981;
-            letter-spacing: 0.04em;
+            font-size: 13px; font-weight: 800; color: #10b981;
+            letter-spacing: 0.03em;
         }
         .nhb-user-btn {
-            font-size: 10px; font-weight: 700; color: #7d8896;
-            background: none; border: 1px solid #2d343d; border-radius: 4px;
-            padding: 3px 8px; cursor: pointer; transition: all 0.2s;
+            font-size: 11px; font-weight: 700; color: #6b7a87;
+            background: none; border: 1px solid #2a3840; border-radius: 5px;
+            padding: 4px 10px; cursor: pointer; transition: all 0.2s;
         }
         .nhb-user-btn:hover { color: #10b981; border-color: #10b981; }
         .nhb-verdict {
-            padding: 12px 14px 8px;
-            display: flex; align-items: center; gap: 8px;
+            padding: 14px 16px 10px;
+            display: flex; align-items: center; gap: 10px;
         }
-        .nhb-verdict-icon { font-size: 16px; }
-        .nhb-verdict-label { font-size: 13px; font-weight: 700; flex: 1; }
+        .nhb-verdict-icon { font-size: 18px; flex-shrink: 0; }
+        .nhb-verdict-label { font-size: 15px; font-weight: 800; flex: 1; letter-spacing: -0.01em; }
         .nhb-verdict-pct {
-            font-size: 18px; font-weight: 800;
-            font-variant-numeric: tabular-nums;
+            font-size: 22px; font-weight: 900;
+            font-variant-numeric: tabular-nums; font-family: monospace;
         }
-        .nhb-signals { padding: 0 14px 10px; }
-        .nhb-sig-row { margin-bottom: 7px; }
+        .nhb-signals { padding: 0 16px 12px; }
+        .nhb-sig-row { margin-bottom: 9px; }
         .nhb-sig-top { display: flex; justify-content: space-between;
-            font-size: 10px; margin-bottom: 3px; }
-        .nhb-sig-name { color: #eef2f7; font-weight: 600; }
-        .nhb-sig-val { font-family: monospace; }
+            margin-bottom: 4px; }
+        .nhb-sig-name { font-size: 12px; color: #b8c4ce; font-weight: 600; }
+        .nhb-sig-val { font-family: monospace; font-size: 12px; font-weight: 700; }
         .nhb-sig-track {
-            height: 4px; background: #1e2d35; border-radius: 2px; overflow: hidden;
+            height: 5px; background: #16252a; border-radius: 3px; overflow: hidden;
         }
         .nhb-sig-fill {
-            height: 100%; border-radius: 2px; width: 0%;
+            height: 100%; border-radius: 3px; width: 0%;
             transition: width 0.8s cubic-bezier(0.22,1,0.36,1);
         }
         .nhb-actions {
-            padding: 8px 14px 10px; display: flex; gap: 8px;
+            padding: 10px 16px 12px; display: flex; gap: 8px;
             border-top: 1px solid #1e2d35;
         }
         .nhb-btn {
-            flex: 1; padding: 8px 0; border-radius: 6px; border: none;
-            font-size: 11px; font-weight: 700; cursor: pointer;
-            transition: all 0.2s; letter-spacing: 0.02em;
+            flex: 1; padding: 10px 0; border-radius: 7px; border: none;
+            font-size: 12px; font-weight: 700; cursor: pointer;
+            transition: all 0.2s; letter-spacing: 0.01em;
         }
-        .nhb-btn-primary { background: #10b981; color: #fff; }
+        .nhb-btn-primary { background: #10b981; color: #011a0a; }
         .nhb-btn-primary:hover { background: #0ea572; }
         .nhb-btn-sec {
             background: rgba(16,185,129,0.08); color: #10b981;
             border: 1px solid rgba(16,185,129,0.25);
         }
-        .nhb-btn-sec:hover { background: rgba(16,185,129,0.15); }
+        .nhb-btn-sec:hover { background: rgba(16,185,129,0.14); }
         .nhb-btn:disabled {
             opacity: 0.35; cursor: not-allowed;
-            background: #1e2d35; color: #7d8896; border: none;
+            background: #16252a; color: #6b7a87; border: none;
         }
         .nhb-limit-bar {
-            padding: 8px 14px; background: rgba(245,158,11,0.12);
+            padding: 10px 16px; background: rgba(245,158,11,0.10);
             border-top: 1px solid rgba(245,158,11,0.25);
-            font-size: 10px; color: #f59e0b; text-align: center;
-            display: none;
+            font-size: 12px; color: #f59e0b; text-align: center;
+            line-height: 1.5; display: none;
         }
         .nhb-limit-bar a {
-            color: #f59e0b; text-decoration: underline; cursor: pointer;
+            color: #f59e0b; text-decoration: underline; cursor: pointer; font-weight: 700;
         }
         .nhb-summary-box {
-            margin: 0 14px 10px; padding: 10px 12px;
+            margin: 0 16px 12px; padding: 11px 13px;
             background: rgba(16,185,129,0.06); border-radius: 8px;
             border-left: 3px solid #10b981;
-            font-size: 11px; line-height: 1.6; color: #aab8c2;
+            font-size: 12px; line-height: 1.65; color: #b8c4ce;
             display: none;
         }
         .nhb-summary-box.visible { display: block; }
