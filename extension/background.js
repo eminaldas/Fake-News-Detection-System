@@ -1,6 +1,5 @@
 // ── API URL ───────────────────────────────────────────────────────────────
 const API_ROOT = 'https://nehaber.dev/api/v1';
-async function getApiRoot() { return API_ROOT; }
 
 // ── Token yönetimi ────────────────────────────────────────────────────────
 async function getToken() {
@@ -10,10 +9,20 @@ async function getToken() {
 async function saveToken(token) { await chrome.storage.local.set({ token }); }
 async function clearToken()     { await chrome.storage.local.remove('token'); }
 
+// ── Ücretsiz hak sayacı ───────────────────────────────────────────────────
+async function getFreeCount() {
+    const { freeCount } = await chrome.storage.local.get('freeCount');
+    return freeCount || 0;
+}
+async function incrementFreeCount() {
+    const count = await getFreeCount();
+    await chrome.storage.local.set({ freeCount: count + 1 });
+    return count + 1;
+}
+
 // ── API çağrıları ─────────────────────────────────────────────────────────
 async function apiLogin(username, password) {
-    const root = await getApiRoot();
-    const res  = await fetch(`${root}/auth/login`, {
+    const res = await fetch(`${API_ROOT}/auth/login`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body:    new URLSearchParams({ username, password }),
@@ -25,18 +34,16 @@ async function apiLogin(username, password) {
 }
 
 async function apiSignals(text) {
-    const token = await getToken();
-    if (!token) throw new Error('TOKEN_MISSING');
-    const root  = await getApiRoot();
-    const res   = await fetch(`${root}/analysis/analyze/signals`, {
-        method:  'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type':  'application/json',
-        },
+    const token  = await getToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_ROOT}/analysis/analyze/signals`, {
+        method: 'POST',
+        headers,
         body: JSON.stringify({ text: text.slice(0, 1000) }),
     });
-    if (res.status === 401) { await clearToken(); throw new Error('TOKEN_EXPIRED'); }
+    if (res.status === 401 && token) { await clearToken(); }
     if (!res.ok) throw new Error('Sinyal analizi başarısız');
     return res.json();
 }
@@ -44,9 +51,8 @@ async function apiSignals(text) {
 async function apiAnalyzeUrl(url) {
     const token = await getToken();
     if (!token) throw new Error('TOKEN_MISSING');
-    const root  = await getApiRoot();
 
-    const res = await fetch(`${root}/analysis/analyze/url`, {
+    const res = await fetch(`${API_ROOT}/analysis/analyze/url`, {
         method:  'POST',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -58,10 +64,9 @@ async function apiAnalyzeUrl(url) {
     if (!res.ok) throw new Error('Analiz başlatılamadı');
     const { task_id } = await res.json();
 
-    // Polling — max 60s
     for (let i = 0; i < 30; i++) {
         await new Promise(r => setTimeout(r, 2000));
-        const poll = await fetch(`${root}/analysis/status/${task_id}`, {
+        const poll = await fetch(`${API_ROOT}/analysis/status/${task_id}`, {
             headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!poll.ok) continue;
@@ -71,7 +76,24 @@ async function apiAnalyzeUrl(url) {
     throw new Error('Zaman aşımı');
 }
 
-// ── Context menu — kurulum ────────────────────────────────────────────────
+async function apiSummarize(text) {
+    const token = await getToken();
+    if (!token) throw new Error('TOKEN_MISSING');
+
+    const res = await fetch(`${API_ROOT}/analysis/summarize`, {
+        method:  'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type':  'application/json',
+        },
+        body: JSON.stringify({ text: text.slice(0, 3000) }),
+    });
+    if (res.status === 401) { await clearToken(); throw new Error('TOKEN_EXPIRED'); }
+    if (!res.ok) throw new Error('Özetleme başarısız');
+    return res.json();
+}
+
+// ── Context menu kurulum ──────────────────────────────────────────────────
 chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
         id:       'shd-analyze',
@@ -82,13 +104,10 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     if (info.menuItemId !== 'shd-analyze' || !info.selectionText) return;
-
     const text = info.selectionText.trim();
     if (!tab?.id) return;
 
-    // Hemen "analiz ediliyor" bildirimi gönder
     chrome.tabs.sendMessage(tab.id, { type: 'CONTEXT_LOADING' }).catch(() => {});
-
     try {
         const data = await apiSignals(text);
         chrome.tabs.sendMessage(tab.id, { type: 'CONTEXT_RESULT', data }).catch(() => {});
@@ -96,7 +115,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         chrome.tabs.sendMessage(tab.id, {
             type:  'CONTEXT_RESULT',
             error: err.message === 'TOKEN_MISSING' || err.message === 'TOKEN_EXPIRED'
-                ? 'Önce giriş yapın — araç çubuğu ikonuna tıklayın'
+                ? 'Önce giriş yapın — toolbar ikonuna tıklayın'
                 : err.message,
         }).catch(() => {});
     }
@@ -118,6 +137,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
                 const token = await getToken();
                 sendResponse({ token });
 
+            } else if (msg.type === 'GET_FREE_COUNT') {
+                const count = await getFreeCount();
+                sendResponse({ count });
+
             } else if (msg.type === 'SIGNALS') {
                 const data = await apiSignals(msg.text);
                 const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -127,12 +150,23 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
                 sendResponse({ ok: true, data });
 
             } else if (msg.type === 'ANALYZE_URL') {
+                const token = await getToken();
+                const count = await getFreeCount();
+                if (!token && count >= 5) {
+                    sendResponse({ ok: false, error: 'LIMIT_REACHED' });
+                    return;
+                }
+                if (!token) await incrementFreeCount();
                 const data = await apiAnalyzeUrl(msg.url);
                 const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
                 if (tab?.id) {
                     chrome.tabs.sendMessage(tab.id, { type: 'ANALYSIS_RESULT', data }).catch(() => {});
                 }
                 sendResponse({ ok: true, data });
+
+            } else if (msg.type === 'SUMMARIZE') {
+                const data = await apiSummarize(msg.text);
+                sendResponse({ ok: true, summary: data.summary });
 
             } else if (msg.type === 'GET_API_URL') {
                 sendResponse({ apiUrl: 'https://nehaber.dev' });
