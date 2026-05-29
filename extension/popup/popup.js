@@ -1,6 +1,6 @@
 const $    = id => document.getElementById(id);
-const show = id => $(id).classList.remove('hidden');
-const hide = id => $(id).classList.add('hidden');
+const show = id => { const el = $(id); if (el) el.classList.remove('hidden'); };
+const hide = id => { const el = $(id); if (el) el.classList.add('hidden'); };
 
 function msg(type, payload = {}) {
     return new Promise(resolve =>
