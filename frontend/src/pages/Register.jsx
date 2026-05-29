@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import LegalModal from '../components/ui/LegalModal';
 import { PASSWORD_RULES } from '../utils/passwordRules';
+import toast from '../services/toast';
 
 function LoadingOverlay({ title, subtitle }) {
     return createPortal(
@@ -91,7 +92,8 @@ const Register = () => {
     const [loading,         setLoading]         = useState(false);
     const [registerLoading, setRegisterLoading] = useState(false);
     const [googleLoading,   setGoogleLoading]   = useState(false);
-    const [error,           setError]           = useState('');
+    const [emailError,      setEmailError]      = useState('');
+    const [usernameError,   setUsernameError]   = useState('');
     const [success,         setSuccess]         = useState(false);
     const [pwTouched,       setPwTouched]       = useState(false);
     const [step,            setStep]            = useState(1);
@@ -112,26 +114,26 @@ const Register = () => {
     const handleGoogleRegister = useGoogleLogin({
         flow: 'implicit',
         onSuccess: async (tokenResponse) => {
-            if (!consent) { setError('Gizlilik Politikası ve Kullanım Koşulları\'nı kabul etmeniz gerekiyor.'); return; }
+            if (!consent) { setLegalTab('privacy'); setShowLegal(true); return; }
             setGoogleLoading(true);
-            setError('');
             const result = await googleLogin(tokenResponse.access_token);
             if (result.success) {
                 navigate(result.needsOnboarding ? '/onboarding' : '/', { replace: true });
             } else {
-                setError(result.error || 'Google ile kayıt başarısız.');
+                toast.error(result.error || 'Google ile kayıt başarısız.');
                 setGoogleLoading(false);
             }
         },
-        onError: () => { setError('Google ile kayıt başarısız.'); setGoogleLoading(false); },
+        onError: () => { toast.error('Google ile kayıt başarısız.'); setGoogleLoading(false); },
     });
 
     const handleStep1 = (e) => {
         e.preventDefault();
-        setError('');
-        if (!consent)             { setError('Gizlilik Politikası ve Kullanım Koşulları\'nı kabul etmeniz gerekiyor.'); return; }
-        if (!allPassed)           { setError('Şifre gereksinimlerini karşılamıyor.'); return; }
-        if (password !== confirm) { setError('Şifreler eşleşmiyor.'); return; }
+        setEmailError('');
+        setUsernameError('');
+        if (!consent)             { toast.error('Gizlilik Politikası ve Kullanım Koşulları\'nı kabul etmeniz gerekiyor.'); return; }
+        if (!allPassed)           { toast.error('Şifre gereksinimlerini karşılamıyor.'); return; }
+        if (password !== confirm) { toast.error('Şifreler eşleşmiyor.'); return; }
         handleRegister(e);
     };
 
@@ -139,6 +141,8 @@ const Register = () => {
         e.preventDefault();
         setLoading(true);
         setRegisterLoading(true);
+        setEmailError('');
+        setUsernameError('');
         const result = await register(email, username, password, consent);
         if (result.success) {
             if (result.needsVerification) {
@@ -147,7 +151,14 @@ const Register = () => {
                 navigate('/onboarding', { replace: true });
             }
         } else {
-            setError(result.error || 'Kayıt sırasında bir hata oluştu.');
+            const raw = result.error || 'Kayıt sırasında bir hata oluştu.';
+            if (raw.startsWith('email:')) {
+                setEmailError(raw.slice(6));
+            } else if (raw.startsWith('username:')) {
+                setUsernameError(raw.slice(9));
+            } else {
+                toast.error(raw);
+            }
             setStep(1);
             setLoading(false);
             setRegisterLoading(false);
@@ -250,15 +261,6 @@ const Register = () => {
                             <div className="absolute top-0 left-0 w-5 h-[2px] pointer-events-none" style={{ background: 'var(--color-brand-primary)', opacity: 0.5 }} />
                             <div className="absolute top-0 left-0 h-5 w-[2px] pointer-events-none" style={{ background: 'var(--color-brand-primary)', opacity: 0.5 }} />
 
-                            {/* Sticky hata mesajı — her zaman kart içinde görünür */}
-                            {error && (
-                                <div className="flex items-start gap-2.5 p-3 text-sm mb-4 animate-fade-up"
-                                     role="alert"
-                                     style={{ border: '1px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.08)', color: '#ef4444' }}>
-                                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                                    <span className="text-xs">{error}</span>
-                                </div>
-                            )}
 
                             <div className="p-8 md:p-9">
                             <p className="text-[10px] font-manrope font-black uppercase tracking-[0.22em] mb-4"
@@ -295,33 +297,52 @@ const Register = () => {
                                     <div className="space-y-2">
                                         <label className="block text-xs font-bold uppercase tracking-widest"
                                                style={{ color: 'var(--color-text-primary)' }}>Email</label>
-                                        <InputWrap>
+                                        <InputWrap hasError={!!emailError}>
                                             <Mail className="absolute left-4 w-4 h-4 pointer-events-none"
-                                                  style={{ color: 'var(--color-brand-primary)', opacity: 0.7 }} />
+                                                  style={{ color: emailError ? '#ef4444' : 'var(--color-brand-primary)', opacity: 0.7 }} />
                                             <input id="email" name="email" type="email" autoComplete="email"
-                                                   value={email} onChange={e => setEmail(e.target.value)}
+                                                   value={email} onChange={e => { setEmail(e.target.value); setEmailError(''); }}
                                                    placeholder="ornek@email.com" required
                                                    className="w-full bg-transparent border-none outline-none ring-0 py-3.5 pl-11 pr-4 text-sm"
                                                    style={{ color: 'var(--color-text-primary)' }} />
                                         </InputWrap>
+                                        {emailError && (
+                                            <div className="flex items-center gap-1.5 animate-fade-up">
+                                                <AlertCircle className="w-3 h-3 shrink-0" style={{ color: '#ef4444' }} />
+                                                <p className="text-[11px]" style={{ color: '#ef4444' }}>
+                                                    {emailError}{' '}
+                                                    <Link to="/login" className="underline underline-offset-2 font-bold hover:opacity-80"
+                                                          style={{ color: '#ef4444' }}>
+                                                        Giriş yapın →
+                                                    </Link>
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="space-y-2">
                                         <label className="block text-xs font-bold uppercase tracking-widest"
                                                style={{ color: 'var(--color-text-primary)' }}>Kullanıcı Adı</label>
-                                        <InputWrap>
+                                        <InputWrap hasError={!!usernameError}>
                                             <User className="absolute left-4 w-4 h-4 pointer-events-none"
-                                                  style={{ color: 'var(--color-brand-primary)', opacity: 0.7 }} />
+                                                  style={{ color: usernameError ? '#ef4444' : 'var(--color-brand-primary)', opacity: 0.7 }} />
                                             <input id="username" name="username" type="text" autoComplete="username"
-                                                   value={username} onChange={e => setUsername(e.target.value)}
+                                                   value={username} onChange={e => { setUsername(e.target.value); setUsernameError(''); }}
                                                    placeholder="kullanici_adi" required minLength={3} maxLength={50}
                                                    pattern="[a-zA-Z0-9_]+" title="Yalnızca harf, rakam ve _"
                                                    className="w-full bg-transparent border-none outline-none ring-0 py-3.5 pl-11 pr-4 text-sm"
                                                    style={{ color: 'var(--color-text-primary)' }} />
                                         </InputWrap>
-                                        <p className="text-[11px] pl-1" style={{ color: 'var(--color-text-primary)', opacity: 0.45 }}>
-                                            3-50 karakter · harf, rakam, alt çizgi
-                                        </p>
+                                        {usernameError ? (
+                                            <div className="flex items-center gap-1.5 animate-fade-up">
+                                                <AlertCircle className="w-3 h-3 shrink-0" style={{ color: '#ef4444' }} />
+                                                <p className="text-[11px]" style={{ color: '#ef4444' }}>{usernameError}</p>
+                                            </div>
+                                        ) : (
+                                            <p className="text-[11px] pl-1" style={{ color: 'var(--color-text-primary)', opacity: 0.45 }}>
+                                                3-50 karakter · harf, rakam, alt çizgi
+                                            </p>
+                                        )}
                                     </div>
 
                                     <div className="space-y-2">
@@ -490,7 +511,7 @@ const Register = () => {
         {showLegal && (
             <LegalModal
                 initialTab={legalTab}
-                onAccept={() => { setConsent(true); setShowLegal(false); setError(''); }}
+                onAccept={() => { setConsent(true); setShowLegal(false); }}
                 onClose={() => setShowLegal(false)}
             />
         )}

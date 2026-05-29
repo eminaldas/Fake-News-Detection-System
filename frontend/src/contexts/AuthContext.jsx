@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import AuthService from '../services/auth.service';
+import axiosInstance from '../api/axios';
 
 const AuthContext = createContext(null);
 
@@ -86,11 +87,18 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = async () => {
-        await AuthService.serverLogout();
+    const logout = useCallback(() => {
+        const token = AuthService.getToken();   // token'ı temizlemeden önce yakala
+        AuthService.logout();                   // storage'ı hemen temizle
         setUser(null);
         setIsAuthenticated(false);
-    };
+        // Server blacklist fire-and-forget — token artık storage'da yok, header'ı elle ekle
+        if (token) {
+            axiosInstance.post('/auth/logout', null, {
+                headers: { Authorization: `Bearer ${token}` },
+            }).catch(() => {});
+        }
+    }, []);
 
     const value = {
         user,

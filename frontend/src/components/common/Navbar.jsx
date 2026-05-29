@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Moon, Sun, Menu, X, ChevronDown, User, Settings, Shield, BarChart2, LogOut, Users, MessageSquare, Award } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -293,6 +293,7 @@ function TrustProgress({ trust }) {
 
 const Navbar = () => {
     const location              = useLocation();
+    const navigate              = useNavigate();
     const { isDarkMode, toggleTheme } = useTheme();
     const { isAuthenticated, user, isAdmin, logout } = useAuth();
     const [menuOpen,    setMenuOpen]    = useState(false);
@@ -557,7 +558,7 @@ const Navbar = () => {
 
                                     <div className="border-t py-1" style={BD}>
                                         <button
-                                            onClick={() => { logout(); setShowProfile(false); }}
+                                            onClick={() => { navigate('/'); logout(); setShowProfile(false); }}
                                             className="flex items-center gap-3 px-4 py-2.5 font-mono text-sm w-full text-left transition-colors hover:bg-brand/5"
                                             style={{ color: '#ff7351' }}
                                         >
@@ -618,7 +619,7 @@ const Navbar = () => {
 
                         {isAuthenticated ? (
                             <button
-                                onClick={() => { logout(); setMenuOpen(false); }}
+                                onClick={() => { navigate('/'); logout(); setMenuOpen(false); }}
                                 className="mt-2 px-3 py-2.5 font-mono text-sm font-bold tracking-widest uppercase text-left border-l-2 border-transparent transition-colors"
                                 style={{ color: '#ff7351' }}
                             >

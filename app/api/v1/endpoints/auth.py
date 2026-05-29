@@ -178,17 +178,17 @@ async def register(
 
     if existing_email:
         if existing_email.is_email_verified:
-            raise HTTPException(status_code=422, detail="Bu bilgilerle kayıt yapılamadı.")
+            raise HTTPException(status_code=422, detail="email:Bu e-posta adresi zaten kayıtlı.")
         # Doğrulanmamış hesap — silinip yeniden oluşturulacak
         if existing_uname and existing_uname.id != existing_email.id:
-            raise HTTPException(status_code=422, detail="Bu bilgilerle kayıt yapılamadı.")
+            raise HTTPException(status_code=422, detail="username:Bu kullanıcı adı zaten kullanılıyor.")
         # analysis_requests'te ondelete yok, önce null'la
         from sqlalchemy import update as sa_update
         await db.execute(sa_update(AnalysisRequest).where(AnalysisRequest.user_id == existing_email.id).values(user_id=None))
         await db.delete(existing_email)
         await db.commit()
     elif existing_uname:
-        raise HTTPException(status_code=422, detail="Bu bilgilerle kayıt yapılamadı.")
+        raise HTTPException(status_code=422, detail="username:Bu kullanıcı adı zaten kullanılıyor.")
 
     email_configured = bool(settings.BREVO_API_KEY)
 

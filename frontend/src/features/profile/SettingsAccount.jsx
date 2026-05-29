@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Check, X, Globe, Twitter, Instagram, Github, Linkedin,
   AlertTriangle, Loader2, Camera, Plus, Trash2, Link2, ExternalLink,
@@ -277,6 +278,7 @@ function linksToObj(links) {
 ════════════════════════════════════════════════════════ */
 export default function SettingsAccount() {
   const { user: authUser, logout } = useAuth();
+  const navigate = useNavigate();
 
   const [username,  setUsername]  = useState('');
   const [bio,       setBio]       = useState('');
@@ -663,6 +665,7 @@ export default function SettingsAccount() {
                         await axiosInstance.delete('/auth/me', { data: { password: deletePassword } });
                         setDeleteModal(false);
                         logout();
+                        navigate('/login');
                       } catch (err) {
                         setDeleteError(err.message || 'Bir hata oluştu.');
                       } finally {
