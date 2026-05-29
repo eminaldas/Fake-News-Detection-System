@@ -1,5 +1,5 @@
 from uuid import UUID
-from typing import Literal, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select, func, desc
@@ -551,10 +551,14 @@ async def list_analysis_results(
 @router.patch("/articles/{article_id}/classify", response_model=ArticleResponse)
 async def classify_article(
     article_id: UUID,
-    status: Literal["authentic", "fake"] = Body(..., embed=True),
+    status: str = Body(..., embed=True),
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    normalized = status.upper()
+    if normalized not in ("AUTHENTIC", "FAKE"):
+        raise HTTPException(status_code=422, detail="Geçerli değerler: AUTHENTIC, FAKE")
+
     article = (await db.execute(
         select(Article).where(Article.id == article_id)
     )).scalar_one_or_none()
@@ -562,7 +566,7 @@ async def classify_article(
     if article is None:
         raise HTTPException(status_code=404, detail="Makale bulunamadı.")
 
-    article.status = status
+    article.status = normalized
     await db.commit()
     await db.refresh(article)
     return article
