@@ -1050,3 +1050,10 @@ class SimilarReportResponse(BaseModel):
     task_id:     Optional[str]   = None
     similarity:  Optional[float] = None   # 0-100 arası
     title:       Optional[str]   = None
+
+
+class SummarizeRequest(BaseModel):
+    text: str = Field(..., min_length=50, max_length=5000)
+
+class SummarizeResponse(BaseModel):
+    summary: str

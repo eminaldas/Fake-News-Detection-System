@@ -34,6 +34,8 @@ from app.schemas.schemas import (
     SimilarNewsItem,
     SimilarNewsResponse,
     SimilarReportResponse,
+    SummarizeRequest,
+    SummarizeResponse,
     TaskStatusResponse,
     UrlAnalysisRequest,
 )
@@ -678,6 +680,29 @@ async def analyze_signals(
         risk_score=risk,
         label="suspicious" if risk > 0.30 else "clean",
     )
+
+
+@router.post("/summarize", response_model=SummarizeResponse, status_code=status.HTTP_200_OK)
+async def summarize_article(
+    body: SummarizeRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Makale metnini Gemini ile özetler. Auth zorunlu."""
+    import google.generativeai as genai
+    from app.core.config import settings as cfg
+
+    genai.configure(api_key=cfg.GEMINI_API_KEY)
+    model = genai.GenerativeModel("gemini-2.0-flash")
+
+    prompt = (
+        "Aşağıdaki haber metnini Türkçe olarak 3-4 cümleyle özetle. "
+        "Sadece özeti yaz, başlık veya giriş cümlesi ekleme.\n\n"
+        f"{body.text[:3000]}"
+    )
+
+    response = model.generate_content(prompt)
+    summary = response.text.strip()
+    return SummarizeResponse(summary=summary)
 
 
 @router.get("/share/{article_id}", response_model=SharedAnalysisResponse, status_code=status.HTTP_200_OK)
