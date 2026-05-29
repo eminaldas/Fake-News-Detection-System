@@ -13,12 +13,14 @@ export const AuthProvider = ({ children }) => {
             const me = await AuthService.getMe();
             setUser(me);
             setIsAuthenticated(true);
+            return me;
         } catch (error) {
             setUser(null);
             setIsAuthenticated(false);
             if (error.status === 401 || error.status === 403) {
                 AuthService.logout();
             }
+            return null;
         }
     }, []);
 
@@ -38,9 +40,9 @@ export const AuthProvider = ({ children }) => {
     const login = async (username, password, rememberMe = false) => {
         try {
             await AuthService.login(username, password, rememberMe);
-            await fetchUser();
+            const me = await fetchUser();
             setLoading(false);
-            return { success: true };
+            return { success: true, needsVerification: me ? !me.is_email_verified : false };
         } catch (error) {
             setLoading(false);
             return { success: false, error: error.message };

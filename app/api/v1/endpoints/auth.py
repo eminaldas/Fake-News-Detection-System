@@ -30,7 +30,7 @@ from app.db.session import get_db
 from app.models.gamification import XPActionType as _XPAction
 from app.services.xp_service import award_xp as _award_xp
 from app.api.deps import get_current_user
-from app.models.models import User, UserRole
+from app.models.models import AnalysisRequest, User, UserRole
 from app.schemas.schemas import (
     DeleteAccountRequest,
     EmailVerifyRequest,
@@ -170,15 +170,27 @@ async def login(
 async def register(
     request: Request,
     body: RegisterRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     redis=Depends(get_redis),
 ):
     ip = request.client.host if request.client else "unknown"
 
-    existing = await db.execute(
-        select(User).where((User.email == body.email) | (User.username == body.username))
-    )
-    if existing.scalar_one_or_none() is not None:
+    existing_email = (await db.execute(select(User).where(User.email == body.email))).scalar_one_or_none()
+    existing_uname = (await db.execute(select(User).where(User.username == body.username))).scalar_one_or_none()
+
+    if existing_email:
+        if existing_email.is_email_verified:
+            raise HTTPException(status_code=422, detail="Bu bilgilerle kayıt yapılamadı.")
+        # Doğrulanmamış hesap — silinip yeniden oluşturulacak
+        if existing_uname and existing_uname.id != existing_email.id:
+            raise HTTPException(status_code=422, detail="Bu bilgilerle kayıt yapılamadı.")
+        # analysis_requests'te ondelete yok, önce null'la
+        from sqlalchemy import update as sa_update
+        await db.execute(sa_update(AnalysisRequest).where(AnalysisRequest.user_id == existing_email.id).values(user_id=None))
+        await db.delete(existing_email)
+        await db.commit()
+    elif existing_uname:
         raise HTTPException(status_code=422, detail="Bu bilgilerle kayıt yapılamadı.")
 
     smtp_configured = bool(settings.SMTP_HOST and settings.SMTP_USER)
@@ -203,7 +215,7 @@ async def register(
     if smtp_configured:
         token = secrets.token_urlsafe(32)
         await redis.setex(f"email_verify:{token}", 86400, str(user.id))
-        _send_verification_email(user.email, token, username=body.username)
+        background_tasks.add_task(_send_verification_email, user.email, token, username=body.username)
 
     log.info("user.register", username=body.username, ip_hash=hash_ip(ip))
 

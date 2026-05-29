@@ -115,7 +115,11 @@ const Login = () => {
         setError('');
         const result = await login(username, password, rememberMe);
         if (result.success) {
-            navigate(location.state?.from?.pathname || '/', { replace: true });
+            if (result.needsVerification) {
+                navigate('/email-verification', { replace: true });
+            } else {
+                navigate(location.state?.from?.pathname || '/', { replace: true });
+            }
         } else {
             setError(result.error || 'Geçersiz kimlik bilgileri.');
             setLoading(false);
