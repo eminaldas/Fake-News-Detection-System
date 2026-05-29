@@ -272,8 +272,50 @@ function ReportsTab() {
   );
 }
 
-/* ── Dataset Override ────────────────────────────────────────────────────── */
-function DatasetTab() {
+const STATUS_PILL = {
+  AUTHENTIC:            { color: A.brand, dim: A.brandDim },
+  FAKE:                 { color: A.red,   dim: A.redDim   },
+  'Doğru':              { color: A.brand, dim: A.brandDim },
+  'Yanlış':             { color: A.red,   dim: A.redDim   },
+  completed:            { color: A.blue,  dim: A.blueDim  },
+  'Karma':              { color: A.amber, dim: A.amberDim },
+  'Sonuçlandırılamadı': { color: A.text3, dim: A.card     },
+};
+
+function ClassifyBtns({ articleId, currentStatus, onClassify, acting }) {
+  return (
+    <div style={{ display: 'flex', gap: 6 }}>
+      {[['AUTHENTIC', 'Doğru', A.brand, A.brandDim], ['FAKE', 'Yanlış', A.red, A.redDim]].map(([s, lbl, col, dim]) => {
+        const isCurrent = currentStatus === s;
+        const key = `${articleId}_${s}`;
+        return (
+          <button key={s}
+            onClick={() => !isCurrent && onClassify(articleId, s)}
+            disabled={isCurrent || acting === key}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '4px 10px', borderRadius: 6, border: 'none',
+              background: isCurrent ? dim : A.card,
+              color: isCurrent ? col : A.text3,
+              fontSize: 11, fontWeight: 700,
+              cursor: isCurrent ? 'default' : 'pointer',
+              fontFamily: 'inherit', opacity: acting === key ? 0.5 : 1,
+              transition: 'all 0.1s',
+            }}
+            onMouseEnter={e => { if (!isCurrent) { e.currentTarget.style.background = dim; e.currentTarget.style.color = col; } }}
+            onMouseLeave={e => { if (!isCurrent) { e.currentTarget.style.background = A.card; e.currentTarget.style.color = A.text3; } }}
+          >
+            {s === 'AUTHENTIC' ? <CheckCircle size={11} /> : <XCircle size={11} />}
+            {lbl}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── Bilgi Tabanı ────────────────────────────────────────────────────────── */
+function KnowledgeBaseTab() {
   const [articles, setArticles] = useState([]);
   const [total,    setTotal]    = useState(0);
   const [page,     setPage]     = useState(1);
@@ -286,6 +328,7 @@ function DatasetTab() {
     try {
       const params = new URLSearchParams({ page, size: PAGE_SIZE });
       if (filter) params.set('status', filter);
+      else params.set('exclude_status', 'completed');
       const res = await axiosInstance.get(`/admin/articles?${params}`);
       setArticles(res.data.items || []);
       setTotal(res.data.total || 0);
@@ -295,27 +338,13 @@ function DatasetTab() {
   useEffect(() => { load(); }, [load]);
 
   const classify = async (articleId, newStatus) => {
-    const key = `${articleId}_${newStatus}`;
-    setActing(key);
+    setActing(`${articleId}_${newStatus}`);
     try {
       await axiosInstance.patch(`/admin/articles/${articleId}/classify`, { status: newStatus });
       toast.success('Etiket güncellendi');
       load();
-    } catch (e) {
-      toast.error('Güncelleme başarısız', { sub: e.message });
-    } finally { setActing(null); }
-  };
-
-  const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
-
-  const STATUS_PILL = {
-    AUTHENTIC:            { color: A.brand, dim: A.brandDim },
-    FAKE:                 { color: A.red,   dim: A.redDim   },
-    'Doğru':              { color: A.brand, dim: A.brandDim },
-    'Yanlış':             { color: A.red,   dim: A.redDim   },
-    completed:            { color: A.blue,  dim: A.blueDim  },
-    'Karma':              { color: A.amber, dim: A.amberDim },
-    'Sonuçlandırılamadı': { color: A.text3, dim: A.card     },
+    } catch (e) { toast.error('Güncelleme başarısız', { sub: e.message }); }
+    finally { setActing(null); }
   };
 
   const FILTER_OPTIONS = [
@@ -324,24 +353,13 @@ function DatasetTab() {
     ['Yanlış', 'Yanlış'],
     ['AUTHENTIC', 'AUTHENTIC'],
     ['FAKE', 'FAKE'],
-    ['completed', 'Tamamlandı'],
+    ['Karma', 'Karma'],
   ];
+
+  const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
   return (
     <>
-      {/* Açıklama kartı */}
-      <div style={{
-        padding: '12px 16px', borderRadius: 10, marginBottom: 16,
-        background: A.blueDim, border: `1px solid ${A.blue}22`,
-        fontSize: 13, color: A.text2, lineHeight: 1.6,
-      }}>
-        <strong style={{ color: A.blue }}>Dataset Override</strong> — Bilgi tabanındaki makalelerin etiketini elle düzeltir.
-        {' '}<strong style={{ color: A.brand }}>Doğru</strong>/<strong style={{ color: A.red }}>Yanlış</strong>: Teyit/Hoax kaynağından.
-        {' '}<strong style={{ color: A.blue }}>Tamamlandı</strong>: AI analiz sonucu — <em>AI Kararı</em> sütununda AI'ın verdiği verdict görünür.
-        {' '}<strong style={{ color: A.amber }}>AUTHENTIC/FAKE olarak işaretlediğiniz haberler bir sonraki model eğitimine doğrudan girer.</strong>
-      </div>
-
-      {/* Filtreler */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         {FILTER_OPTIONS.map(([v, l]) => (
           <button key={v} onClick={() => { setFilter(v); setPage(1); }}
@@ -351,13 +369,9 @@ function DatasetTab() {
               background: filter === v ? A.brandDim : 'transparent',
               color: filter === v ? A.brand : A.text3,
               fontSize: 12, fontWeight: 600, cursor: 'pointer',
-            }}>
-            {l}
-          </button>
+            }}>{l}</button>
         ))}
-        <span style={{ marginLeft: 'auto', fontSize: 12, color: A.text3 }}>
-          {total} makale
-        </span>
+        <span style={{ marginLeft: 'auto', fontSize: 12, color: A.text3 }}>{total} makale</span>
       </div>
 
       <div style={{ ...tableWrap }}>
@@ -369,77 +383,23 @@ function DatasetTab() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead style={{ ...thead }}>
-                <tr>
-                  {['Başlık', 'Mevcut Etiket', 'AI Kararı', 'Override'].map(h => (
-                    <th key={h} style={{ ...th }}>{h}</th>
-                  ))}
-                </tr>
+                <tr>{['Başlık', 'Mevcut Etiket', 'Override'].map(h => <th key={h} style={{ ...th }}>{h}</th>)}</tr>
               </thead>
               <tbody>
                 {articles.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} style={{ padding: '40px 16px', textAlign: 'center', color: A.text3 }}>
-                      Makale bulunamadı
-                    </td>
-                  </tr>
+                  <tr><td colSpan={3} style={{ padding: '40px 16px', textAlign: 'center', color: A.text3 }}>Makale bulunamadı</td></tr>
                 ) : articles.map(a => {
-                  const sp  = STATUS_PILL[a.status] || { color: A.text3, dim: A.card };
-                  const aip = a.ai_verdict ? (STATUS_PILL[a.ai_verdict] || { color: A.text3, dim: A.card }) : null;
+                  const sp = STATUS_PILL[a.status] || { color: A.text3, dim: A.card };
                   return (
-                    <tr key={a.id}
-                      style={{ borderTop: `1px solid ${A.border}`, transition: 'background 0.1s' }}
+                    <tr key={a.id} style={{ borderTop: `1px solid ${A.border}`, transition: 'background 0.1s' }}
                       onMouseEnter={e => e.currentTarget.style.background = A.card}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <td style={{ ...td, color: A.text1, maxWidth: 420 }}>
-                        <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
-                          {a.title}
-                        </span>
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      <td style={{ ...td, maxWidth: 440 }}>
+                        <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600, color: A.text1 }}>{a.title}</span>
                       </td>
+                      <td style={{ ...td }}><span style={{ ...badge(sp.color, sp.dim) }}>{a.status || '—'}</span></td>
                       <td style={{ ...td }}>
-                        <span style={{ ...badge(sp.color, sp.dim) }}>{a.status || '—'}</span>
-                      </td>
-                      {/* AI Kararı */}
-                      <td style={{ ...td }}>
-                        {aip ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <span style={{ ...badge(aip.color, aip.dim) }}>{a.ai_verdict}</span>
-                            {a.confidence && (
-                              <span style={{ fontSize: 10, color: A.text3 }}>%{Math.round(a.confidence * 100)}</span>
-                            )}
-                          </div>
-                        ) : (
-                          <span style={{ color: A.text3, fontSize: 12 }}>—</span>
-                        )}
-                      </td>
-                      <td style={{ ...td }}>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          {[['AUTHENTIC', 'Doğru', A.brand, A.brandDim], ['FAKE', 'Yanlış', A.red, A.redDim]].map(([s, lbl, col, dim]) => {
-                            const isCurrent = a.status === s;
-                            const key = `${a.id}_${s}`;
-                            return (
-                              <button key={s}
-                                onClick={() => !isCurrent && classify(a.id, s)}
-                                disabled={isCurrent || acting === key}
-                                style={{
-                                  display: 'flex', alignItems: 'center', gap: 4,
-                                  padding: '4px 10px', borderRadius: 6, border: 'none',
-                                  background: isCurrent ? dim : A.card,
-                                  color: isCurrent ? col : A.text3,
-                                  fontSize: 11, fontWeight: 700,
-                                  cursor: isCurrent ? 'default' : 'pointer',
-                                  fontFamily: 'inherit', opacity: acting === key ? 0.5 : 1,
-                                  transition: 'all 0.1s',
-                                }}
-                                onMouseEnter={e => { if (!isCurrent) { e.currentTarget.style.background = dim; e.currentTarget.style.color = col; } }}
-                                onMouseLeave={e => { if (!isCurrent) { e.currentTarget.style.background = A.card; e.currentTarget.style.color = A.text3; } }}
-                              >
-                                {s === 'AUTHENTIC' ? <CheckCircle size={11} /> : <XCircle size={11} />}
-                                {lbl}
-                              </button>
-                            );
-                          })}
-                        </div>
+                        <ClassifyBtns articleId={a.id} currentStatus={a.status} onClassify={classify} acting={acting} />
                       </td>
                     </tr>
                   );
@@ -448,19 +408,171 @@ function DatasetTab() {
             </table>
           </div>
         )}
-
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderTop: `1px solid ${A.border}` }}>
-          <button disabled={page === 1} onClick={() => setPage(p => p - 1)}
-            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: page === 1 ? 'not-allowed' : 'pointer', color: page === 1 ? A.border : A.text2, fontSize: 13, fontFamily: 'inherit', opacity: page === 1 ? 0.4 : 1 }}>
+          <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: page === 1 ? 'not-allowed' : 'pointer', color: page === 1 ? A.border : A.text2, fontSize: 13, fontFamily: 'inherit', opacity: page === 1 ? 0.4 : 1 }}>
             <ChevronLeft size={14} /> Önceki
           </button>
           <span style={{ fontSize: 12, color: A.text3 }}>{page} / {totalPages}</span>
-          <button disabled={page * PAGE_SIZE >= total} onClick={() => setPage(p => p + 1)}
-            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: page * PAGE_SIZE >= total ? 'not-allowed' : 'pointer', color: page * PAGE_SIZE >= total ? A.border : A.text2, fontSize: 13, fontFamily: 'inherit', opacity: page * PAGE_SIZE >= total ? 0.4 : 1 }}>
+          <button disabled={page * PAGE_SIZE >= total} onClick={() => setPage(p => p + 1)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: page * PAGE_SIZE >= total ? 'not-allowed' : 'pointer', color: page * PAGE_SIZE >= total ? A.border : A.text2, fontSize: 13, fontFamily: 'inherit', opacity: page * PAGE_SIZE >= total ? 0.4 : 1 }}>
             Sonraki <ChevronRight size={14} />
           </button>
         </div>
       </div>
+    </>
+  );
+}
+
+/* ── Analizler ───────────────────────────────────────────────────────────── */
+function AnalysesTab() {
+  const [items,   setItems]   = useState([]);
+  const [total,   setTotal]   = useState(0);
+  const [page,    setPage]    = useState(1);
+  const [filter,  setFilter]  = useState('');
+  const [loading, setLoading] = useState(true);
+  const [acting,  setActing]  = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page, size: PAGE_SIZE });
+      if (filter) params.set('verdict', filter);
+      const res = await axiosInstance.get(`/admin/analysis-results?${params}`);
+      setItems(res.data.items || []);
+      setTotal(res.data.total || 0);
+    } catch { /* sessiz */ } finally { setLoading(false); }
+  }, [page, filter]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const classify = async (articleId, newStatus) => {
+    setActing(`${articleId}_${newStatus}`);
+    try {
+      await axiosInstance.patch(`/admin/articles/${articleId}/classify`, { status: newStatus });
+      toast.success('Etiket güncellendi');
+      load();
+    } catch (e) { toast.error('Güncelleme başarısız', { sub: e.message }); }
+    finally { setActing(null); }
+  };
+
+  const TYPE_LABEL = { text: 'Metin', url: 'URL', image: 'Görsel' };
+  const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
+
+  return (
+    <>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+        {[['', 'Tümü'], ['FAKE', 'Sahte'], ['AUTHENTIC', 'Gerçek']].map(([v, l]) => (
+          <button key={v} onClick={() => { setFilter(v); setPage(1); }}
+            style={{
+              padding: '6px 14px', borderRadius: 8, fontFamily: 'inherit',
+              border: `1px solid ${filter === v ? A.brand : A.border}`,
+              background: filter === v ? A.brandDim : 'transparent',
+              color: filter === v ? A.brand : A.text3,
+              fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            }}>{l}</button>
+        ))}
+        <span style={{ marginLeft: 'auto', fontSize: 12, color: A.text3 }}>{total} analiz</span>
+      </div>
+
+      <div style={{ ...tableWrap }}>
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
+            <Loader2 size={28} color={A.brand} style={{ animation: 'spin 1s linear infinite' }} />
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead style={{ ...thead }}>
+                <tr>{['Başlık', 'Kim Yaptı', 'Tür', 'AI Kararı', 'Mevcut Etiket', 'Override'].map(h => <th key={h} style={{ ...th }}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {items.length === 0 ? (
+                  <tr><td colSpan={6} style={{ padding: '40px 16px', textAlign: 'center', color: A.text3 }}>Analiz bulunamadı</td></tr>
+                ) : items.map(a => {
+                  const aiv = STATUS_PILL[a.ai_verdict] || { color: A.text3, dim: A.card };
+                  const asp = STATUS_PILL[a.article_status] || { color: A.text3, dim: A.card };
+                  return (
+                    <tr key={a.id} style={{ borderTop: `1px solid ${A.border}`, transition: 'background 0.1s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = A.card}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+
+                      <td style={{ ...td, maxWidth: 280 }}>
+                        <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600, color: A.text1 }}>{a.title}</span>
+                        <span style={{ fontSize: 11, color: A.text3 }}>{new Date(a.requested_at).toLocaleString('tr-TR')}</span>
+                      </td>
+
+                      <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                        {a.requester_username
+                          ? <span style={{ color: A.text1, fontWeight: 600 }}>{a.requester_username}</span>
+                          : <span style={{ color: A.text3, fontSize: 11 }}>Anonim</span>}
+                      </td>
+
+                      <td style={{ ...td }}>
+                        <span style={{ fontSize: 11, color: A.text3 }}>{TYPE_LABEL[a.analysis_type] || a.analysis_type || '—'}</span>
+                      </td>
+
+                      <td style={{ ...td }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <span style={{ ...badge(aiv.color, aiv.dim) }}>{a.ai_verdict}</span>
+                          {a.confidence && <span style={{ fontSize: 10, color: A.text3 }}>%{Math.round(a.confidence * 100)}</span>}
+                        </div>
+                      </td>
+
+                      <td style={{ ...td }}>
+                        <span style={{ ...badge(asp.color, asp.dim) }}>{a.article_status || '—'}</span>
+                      </td>
+
+                      <td style={{ ...td }}>
+                        <ClassifyBtns articleId={a.article_id} currentStatus={a.article_status} onClassify={classify} acting={acting} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderTop: `1px solid ${A.border}` }}>
+          <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: page === 1 ? 'not-allowed' : 'pointer', color: page === 1 ? A.border : A.text2, fontSize: 13, fontFamily: 'inherit', opacity: page === 1 ? 0.4 : 1 }}>
+            <ChevronLeft size={14} /> Önceki
+          </button>
+          <span style={{ fontSize: 12, color: A.text3 }}>{page} / {totalPages}</span>
+          <button disabled={page * PAGE_SIZE >= total} onClick={() => setPage(p => p + 1)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: page * PAGE_SIZE >= total ? 'not-allowed' : 'pointer', color: page * PAGE_SIZE >= total ? A.border : A.text2, fontSize: 13, fontFamily: 'inherit', opacity: page * PAGE_SIZE >= total ? 0.4 : 1 }}>
+            Sonraki <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ── Dataset Override ana wrapper ────────────────────────────────────────── */
+function DatasetTab() {
+  const [sub, setSub] = useState('kb');
+  return (
+    <>
+      <div style={{
+        padding: '10px 14px', borderRadius: 8, marginBottom: 16,
+        background: A.blueDim, border: `1px solid ${A.blue}22`,
+        fontSize: 12, color: A.text2, lineHeight: 1.5,
+      }}>
+        <strong style={{ color: A.amber }}>AUTHENTIC/FAKE olarak işaretlediğiniz haberler bir sonraki model eğitimine girer.</strong>
+        {' '}Bilgi tabanı: Teyit/Hoax kaynağı. Analizler: kullanıcıların yaptığı AI analizleri.
+      </div>
+
+      <div style={{ display: 'flex', gap: 4, background: A.card, borderRadius: 8, padding: 3, border: `1px solid ${A.border}`, width: 'fit-content', marginBottom: 20 }}>
+        {[['kb', 'Bilgi Tabanı'], ['analyses', 'Analizler']].map(([v, l]) => (
+          <button key={v} onClick={() => setSub(v)}
+            style={{
+              padding: '6px 18px', borderRadius: 6, border: 'none', fontFamily: 'inherit',
+              background: sub === v ? A.brand : 'transparent',
+              color:      sub === v ? '#fff'   : A.text3,
+              fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all 0.12s',
+            }}>{l}</button>
+        ))}
+      </div>
+
+      {sub === 'kb'       && <KnowledgeBaseTab />}
+      {sub === 'analyses' && <AnalysesTab />}
     </>
   );
 }

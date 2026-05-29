@@ -440,8 +440,9 @@ async def remove_thread(
 async def list_articles(
     page:   int           = Query(1, ge=1),
     size:   int           = Query(20, ge=1, le=100),
-    status: Optional[str] = Query(None, description="status filtresi"),
-    q:      Optional[str] = Query(None, description="Başlık ara"),
+    status:         Optional[str] = Query(None),
+    exclude_status: Optional[str] = Query(None),
+    q:              Optional[str] = Query(None),
     admin:  User          = Depends(require_admin),
     db:     AsyncSession  = Depends(get_db),
 ):
@@ -449,6 +450,8 @@ async def list_articles(
     filters = []
     if status:
         filters.append(Article.status == status)
+    if exclude_status:
+        filters.append(Article.status != exclude_status)
     if q:
         filters.append(Article.title.ilike(f"%{q}%"))
 
@@ -477,6 +480,68 @@ async def list_articles(
                 "ai_verdict": r.ai_verdict,
                 "confidence": round(r.confidence, 2) if r.confidence else None,
                 "created_at": r.Article.created_at.isoformat() if r.Article.created_at else None,
+            }
+            for r in rows
+        ],
+    }
+
+
+@router.get("/analysis-results")
+async def list_analysis_results(
+    page:   int           = Query(1, ge=1),
+    size:   int           = Query(20, ge=1, le=100),
+    verdict: Optional[str] = Query(None, description="FAKE | AUTHENTIC"),
+    admin:  User          = Depends(require_admin),
+    db:     AsyncSession  = Depends(get_db),
+):
+    """Admin: AI analiz sonuçlarını listele — kim yaptı, AI ne dedi, override."""
+    from sqlalchemy import cast, String as SAString
+    from sqlalchemy.orm import aliased
+
+    Requester = aliased(User)
+
+    filters = [AnalysisResult.status.isnot(None)]
+    if verdict:
+        filters.append(AnalysisResult.status == verdict.upper())
+
+    base = (
+        select(
+            AnalysisResult,
+            Article.title,
+            Article.status.label("article_status"),
+            AnalysisRequest.user_id.label("requester_id"),
+            Requester.username.label("requester_username"),
+            AnalysisRequest.analysis_type,
+            AnalysisRequest.created_at.label("requested_at"),
+        )
+        .join(Article, Article.id == AnalysisResult.article_id)
+        .outerjoin(
+            AnalysisRequest,
+            AnalysisRequest.task_id == cast(AnalysisResult.article_id, SAString)
+        )
+        .outerjoin(Requester, Requester.id == AnalysisRequest.user_id)
+        .where(*filters)
+    )
+
+    total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
+    rows  = (await db.execute(
+        base.order_by(AnalysisResult.created_at.desc())
+        .offset((page - 1) * size).limit(size)
+    )).all()
+
+    return {
+        "total": total, "page": page, "size": size,
+        "items": [
+            {
+                "id":                 str(r.AnalysisResult.id),
+                "article_id":         str(r.AnalysisResult.article_id),
+                "title":              r.title,
+                "article_status":     r.article_status,
+                "ai_verdict":         r.AnalysisResult.status,
+                "confidence":         round(r.AnalysisResult.confidence, 2) if r.AnalysisResult.confidence else None,
+                "requester_username": r.requester_username,
+                "analysis_type":      r.analysis_type.value if r.analysis_type else None,
+                "requested_at":       r.requested_at.isoformat() if r.requested_at else r.AnalysisResult.created_at.isoformat(),
             }
             for r in rows
         ],
