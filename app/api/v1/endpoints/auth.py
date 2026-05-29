@@ -339,6 +339,7 @@ async def google_auth(
 
 @router.post("/send-verification", status_code=200)
 async def send_verification(
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     redis=Depends(get_redis),
 ):
@@ -349,7 +350,7 @@ async def send_verification(
     await redis.setex(f"email_verify:{token}", 86400, str(current_user.id))
 
     if bool(settings.SMTP_HOST and settings.SMTP_USER):
-        _send_verification_email(current_user.email, token)
+        background_tasks.add_task(_send_verification_email, current_user.email, token)
         return {"detail": "Doğrulama emaili gönderildi"}
     else:
         # Dev mode: token'ı döndür
