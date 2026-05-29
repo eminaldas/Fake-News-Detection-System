@@ -650,7 +650,7 @@ async def get_analysis_status(
 @router.post("/analyze/signals", response_model=SignalsResponse, status_code=status.HTTP_200_OK)
 async def analyze_signals(
     body:         SignalsRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_optional_user),
 ):
     """Başlık metnini NLP sinyallerine göre hızlıca değerlendirir. ML/BERT çalışmaz."""
     signals = cleaner.extract_manipulative_signals(body.text)
