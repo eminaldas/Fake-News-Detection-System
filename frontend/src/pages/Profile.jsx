@@ -4,19 +4,20 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
     Calendar, MessageSquare, Settings, UserPlus, UserMinus,
-    X, ChevronLeft, ChevronRight, Search, Loader2, ExternalLink,
+    X, ChevronLeft, ChevronRight, Loader2, Search,
     Twitter, Instagram, Github, Linkedin, Globe, Link2,
+    BarChart2, MessagesSquare, ShieldAlert, ArrowRight,
 } from 'lucide-react';
 import axiosInstance from '../api/axios';
 import { useAuth } from '../contexts/AuthContext';
 import GamificationService from '../services/gamification.service';
 import BadgeShowcase from '../features/profile/BadgeShowcase';
 import HistoryModal from '../features/profile/HistoryModal';
+import { TypeBadge } from '../components/common/AnalysisBadges';
 import RecommendedUsersWidget from '../features/profile/RecommendedUsersWidget';
 import PopularThreadsWidget from '../features/profile/PopularThreadsWidget';
-import { TypeBadge } from '../components/common/AnalysisBadges';
 
-/* ── Sabitler ─────────────────────────────────────────────────────── */
+/* ── Sabitler ──────────────────────────────────────────────────────── */
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 
@@ -35,19 +36,24 @@ const CAT_COLOR = {
     Teknoloji: '#06b6d4',
 };
 
-const PRED_C = {
+const PRED_ACCENT = {
     FAKE:      'var(--color-fake-fill)',
     AUTHENTIC: 'var(--color-brand-primary)',
     UNCERTAIN: 'var(--color-accent-amber)',
 };
 const PRED_L = { FAKE: 'Sahte İçerik', AUTHENTIC: 'Doğrulandı', UNCERTAIN: 'Belirsiz' };
-const PRED_STYLE = {
-    FAKE:      { color: 'var(--color-fake-text)',      borderColor: 'var(--color-fake-border)',      background: 'var(--color-fake-bg)' },
-    AUTHENTIC: { color: 'var(--color-authentic-text)', borderColor: 'var(--color-authentic-border)', background: 'var(--color-authentic-bg)' },
-    UNCERTAIN: { color: 'var(--color-iddia-text)',     borderColor: 'var(--color-iddia-border)',     background: 'var(--color-iddia-bg)' },
+const PRED_BADGE = {
+    FAKE:      { background: 'rgba(255,115,81,0.15)', color: 'var(--color-fake-text)',      border: '1px solid rgba(255,115,81,0.3)' },
+    AUTHENTIC: { background: 'rgba(16,185,129,0.15)', color: 'var(--color-authentic-text)', border: '1px solid rgba(16,185,129,0.3)' },
+    UNCERTAIN: { background: 'rgba(245,158,11,0.15)', color: 'var(--color-iddia-text)',      border: '1px solid rgba(245,158,11,0.3)' },
+};
+const FILTER_COLOR = {
+    FAKE:      'var(--color-fake-fill)',
+    AUTHENTIC: 'var(--color-brand-primary)',
+    UNCERTAIN: 'var(--color-accent-amber)',
 };
 
-/* ── Corner ───────────────────────────────────────────────────────── */
+/* ── Corner ────────────────────────────────────────────────────────── */
 function Corner() {
     return (
         <>
@@ -59,37 +65,35 @@ function Corner() {
     );
 }
 
-/* ── Avatar ───────────────────────────────────────────────────────── */
-const AVATAR_BG  = ['rgba(16,185,129,0.18)','rgba(59,130,246,0.18)','rgba(245,158,11,0.18)','rgba(239,68,68,0.18)','rgba(168,85,247,0.18)'];
-const AVATAR_CLR = ['var(--color-brand-primary)','var(--color-accent-blue)','var(--color-accent-amber)','#ef4444','#a855f7'];
+/* ── Avatar ────────────────────────────────────────────────────────── */
+const PAL_BG   = ['rgba(16,185,129,0.15)','rgba(59,130,246,0.15)','rgba(245,158,11,0.15)','rgba(239,68,68,0.15)','rgba(168,85,247,0.15)'];
+const PAL_TEXT = ['var(--color-brand-primary)','var(--color-accent-blue)','var(--color-accent-amber)','#ef4444','#a855f7'];
 
-function Avatar({ profile, size = 96, onClick }) {
-    const idx    = (profile?.username?.charCodeAt(0) ?? 0) % AVATAR_BG.length;
-    const border = TIER_COLOR[profile?.trust_tier ?? 'yeni_uye'];
-    const letter = (profile?.username?.[0] ?? 'U').toUpperCase();
+function UserAvatar({ username, avatarUrl, trustTier, onClick }) {
+    const idx    = (username?.charCodeAt(0) ?? 0) % PAL_BG.length;
+    const border = TIER_COLOR[trustTier ?? 'yeni_uye'];
     return (
         <button onClick={onClick} className="shrink-0 cursor-zoom-in group relative rounded-full"
-                style={{ width: size, height: size }}>
-            <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center font-black"
-                 style={{ border: `3px solid ${border}`, background: AVATAR_BG[idx],
-                          color: AVATAR_CLR[idx], fontSize: Math.round(size * 0.38) }}>
-                {profile?.avatar_url
-                    ? <img src={profile.avatar_url} alt={profile.username}
-                           className="w-full h-full object-cover" referrerPolicy="no-referrer"
+                style={{ width: 128, height: 128 }}>
+            <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center font-mono font-black text-5xl"
+                 style={{ background: PAL_BG[idx], color: PAL_TEXT[idx], border: `4px solid ${border}` }}>
+                {avatarUrl
+                    ? <img src={avatarUrl} alt={username} className="w-full h-full object-cover"
+                           referrerPolicy="no-referrer"
                            onError={e => { e.currentTarget.style.display = 'none'; }} />
-                    : letter}
+                    : (username ?? '?')[0].toUpperCase()}
             </div>
             <div className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                  style={{ background: 'rgba(0,0,0,0.45)' }}>
-                <Search className="w-5 h-5 text-white" />
+                <Search className="w-6 h-6 text-white" />
             </div>
         </button>
     );
 }
 
-/* ── Takipçi/Takip Modal ──────────────────────────────────────────── */
+/* ── FollowModal ────────────────────────────────────────────────────── */
 function FollowModal({ userId, mode, onClose }) {
-    const [items,   setItems]   = useState([]);
+    const [items, setItems]     = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -102,8 +106,7 @@ function FollowModal({ userId, mode, onClose }) {
 
     return createPortal(
         <div className="fixed inset-0 z-9999 flex items-center justify-center"
-             style={{ background: 'rgba(0,0,0,0.80)' }}
-             onClick={onClose}>
+             style={{ background: 'rgba(0,0,0,0.80)' }} onClick={onClose}>
             <div className="relative border w-80 max-h-[70vh] flex flex-col"
                  style={S} onClick={e => e.stopPropagation()}>
                 <Corner />
@@ -119,8 +122,8 @@ function FollowModal({ userId, mode, onClose }) {
                 </div>
                 <div className="overflow-y-auto flex-1">
                     {loading ? (
-                        <div className="p-6 text-center">
-                            <Loader2 className="w-5 h-5 animate-spin mx-auto" style={{ color: 'var(--color-brand-primary)' }} />
+                        <div className="p-6 flex justify-center">
+                            <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-brand-primary)' }} />
                         </div>
                     ) : items.length === 0 ? (
                         <div className="p-6 text-center font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
@@ -129,8 +132,10 @@ function FollowModal({ userId, mode, onClose }) {
                     ) : items.map(u => (
                         <button key={u.id}
                                 onClick={() => { navigate(`/users/${u.id}`); onClose(); }}
-                                className="flex items-center gap-3 w-full px-4 py-3 border-b transition-colors hover:bg-white/5 text-left"
-                                style={BD}>
+                                className="flex items-center gap-3 w-full px-4 py-3 border-b border-l-2 transition-all text-left"
+                                style={{ borderColor: 'var(--color-terminal-border-raw)', borderLeftColor: 'transparent' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderLeftColor = 'var(--color-brand-primary)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
                             <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center shrink-0 font-black text-sm"
                                  style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid var(--color-brand-primary)', color: 'var(--color-brand-primary)' }}>
                                 {u.avatar_url
@@ -154,7 +159,7 @@ function FollowModal({ userId, mode, onClose }) {
     );
 }
 
-/* ── Zaman formatı ────────────────────────────────────────────────── */
+/* ── Yardımcılar ────────────────────────────────────────────────────── */
 function timeAgo(d) {
     const s = (Date.now() - new Date(d).getTime()) / 1000;
     if (s < 60)     return `${Math.floor(s)}s`;
@@ -164,32 +169,54 @@ function timeAgo(d) {
     return new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
 }
 
-/* ── Sayfalama ────────────────────────────────────────────────────── */
 function Pagination({ page, totalPages, load }) {
     if (totalPages <= 1) return null;
     return (
-        <div className="px-4 py-3 border-t flex items-center justify-between" style={BD}>
-            <button onClick={() => load(page - 1)} disabled={page <= 1}
-                    className="p-1 transition-opacity disabled:opacity-20 hover:opacity-60">
-                <ChevronLeft className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
+        <div className="flex items-center justify-center gap-3 pt-4">
+            <button disabled={page <= 1} onClick={() => load(page - 1)}
+                    className="font-mono text-xs px-3 py-1.5 border transition-colors disabled:opacity-30"
+                    style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)' }}>
+                ← Önceki
             </button>
             <span className="font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
                 {page} / {totalPages}
             </span>
-            <button onClick={() => load(page + 1)} disabled={page >= totalPages}
-                    className="p-1 transition-opacity disabled:opacity-20 hover:opacity-60">
-                <ChevronRight className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
+            <button disabled={page >= totalPages} onClick={() => load(page + 1)}
+                    className="font-mono text-xs px-3 py-1.5 border transition-colors disabled:opacity-30"
+                    style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)' }}>
+                Sonraki →
             </button>
         </div>
     );
 }
 
-/* ══════════════════════════════════════════════════════════════════ */
+/* ── Bölüm başlığı ─────────────────────────────────────────────────── */
+function SectionHeader({ icon: Icon, label, onMore }) {
+    return (
+        <div className="flex items-center gap-2 mb-4">
+            <Icon className="w-4 h-4 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
+            <span className="font-manrope font-bold text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                {label}
+            </span>
+            <div className="grow h-px mx-1" style={{ background: 'var(--color-terminal-border-raw)', opacity: 0.4 }} />
+            {onMore && (
+                <button onClick={onMore}
+                        className="flex items-center gap-1 font-mono text-[10px] transition-opacity hover:opacity-70 shrink-0"
+                        style={{ color: 'var(--color-brand-primary)' }}>
+                    tümü <ArrowRight className="w-3 h-3" />
+                </button>
+            )}
+        </div>
+    );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ANA BİLEŞEN
+   ══════════════════════════════════════════════════════════════════════ */
 export default function Profile() {
-    const { userId }             = useParams();
-    const { user: currentUser }  = useAuth();
-    const navigate               = useNavigate();
-    const isOwnProfile           = currentUser?.id === userId;
+    const { userId }  = useParams();
+    const { user }    = useAuth();
+    const navigate    = useNavigate();
 
     const [profile,   setProfile]   = useState(null);
     const [xpStats,   setXpStats]   = useState(null);
@@ -200,11 +227,11 @@ export default function Profile() {
     const [analysisTotal, setAnalysisTotal] = useState(0);
     const [threadPage,    setThreadPage]    = useState(1);
     const [analysisPage,  setAnalysisPage]  = useState(1);
-    const [loading,  setLoading]  = useState(true);
-    const [tLoading, setTLoading] = useState(false);
-    const [aLoading, setALoading] = useState(false);
-    const [following,  setFollowing]  = useState(false);
-    const [fLoading,   setFLoading]   = useState(false);
+    const [loading,     setLoading]     = useState(true);
+    const [tLoading,    setTLoading]    = useState(false);
+    const [aLoading,    setALoading]    = useState(false);
+    const [following,   setFollowing]   = useState(false);
+    const [fLoading,    setFLoading]    = useState(false);
     const [activeTab,      setActiveTab]      = useState('overview');
     const [analysisFilter, setAnalysisFilter] = useState(null);
     const [followModal,    setFollowModal]    = useState(null);
@@ -213,8 +240,8 @@ export default function Profile() {
     const [error,          setError]          = useState(null);
 
     const SIZE = 10;
+    const isOwnProfile = user?.id === userId;
 
-    /* Profil + XP + Showcase */
     useEffect(() => {
         setLoading(true);
         Promise.all([
@@ -230,7 +257,6 @@ export default function Profile() {
           .finally(() => setLoading(false));
     }, [userId]);
 
-    /* Thread listesi */
     const loadThreads = useCallback((pg = 1) => {
         setTLoading(true);
         axiosInstance.get(`/users/${userId}/threads`, { params: { page: pg, size: SIZE } })
@@ -239,11 +265,10 @@ export default function Profile() {
             .finally(() => setTLoading(false));
     }, [userId]);
 
-    /* Analiz listesi — filter aktifken tüm sayfa yüklenir */
     const loadAnalyses = useCallback((pg = 1, bigLoad = false) => {
         setALoading(true);
-        const size = bigLoad ? 50 : SIZE;
-        axiosInstance.get(`/users/${userId}/analyses`, { params: { page: 1, size: bigLoad ? 50 : SIZE, ...(bigLoad ? {} : { page: pg }) } })
+        const params = bigLoad ? { page: 1, size: 50 } : { page: pg, size: SIZE };
+        axiosInstance.get(`/users/${userId}/analyses`, { params })
             .then(({ data }) => { setAnalyses(data.items ?? []); setAnalysisTotal(data.total ?? 0); setAnalysisPage(pg); })
             .catch(() => {})
             .finally(() => setALoading(false));
@@ -252,15 +277,13 @@ export default function Profile() {
     useEffect(() => { loadThreads(1); }, [loadThreads]);
     useEffect(() => { loadAnalyses(1); }, [loadAnalyses]);
 
-    /* Filter değişince tüm analizleri yükle */
     useEffect(() => {
         if (analysisFilter) loadAnalyses(1, true);
         else loadAnalyses(1, false);
     }, [analysisFilter]);
 
-    /* Takip toggle */
     const handleFollow = async () => {
-        if (!currentUser || fLoading) return;
+        if (!user || fLoading) return;
         setFLoading(true);
         try {
             await axiosInstance.post(`/users/${userId}/follow`);
@@ -269,14 +292,8 @@ export default function Profile() {
                 ...prev,
                 follower_count: prev.follower_count + (following ? -1 : 1),
             } : prev);
-        } catch { /* sessiz */ }
+        } catch { }
         finally { setFLoading(false); }
-    };
-
-    /* Stat'a tıklayınca analizlere filtreli git */
-    const goAnalyses = (filter = null) => {
-        setActiveTab('analyses');
-        setAnalysisFilter(filter);
     };
 
     if (loading) return (
@@ -286,262 +303,267 @@ export default function Profile() {
     );
     if (error || !profile) return (
         <div className="max-w-6xl mx-auto px-4 pt-10 text-center">
-            <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>{error ?? 'Kullanıcı bulunamadı.'}</p>
+            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{error ?? 'Profil bulunamadı.'}</p>
         </div>
     );
 
-    const tierColor = TIER_COLOR[profile.trust_tier] ?? 'var(--color-text-muted)';
-    const joined    = new Date(profile.created_at).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
+    const joinedDate = profile.created_at
+        ? new Date(profile.created_at).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' })
+        : null;
+    const tierColor = TIER_COLOR[profile.trust_tier ?? 'yeni_uye'];
+
     const threadTotalPages   = Math.ceil(threadTotal / SIZE);
     const analysisTotalPages = Math.ceil(analysisTotal / SIZE);
+
+    const SOCIAL_ICONS  = { twitter: Twitter, instagram: Instagram, github: Github, linkedin: Linkedin, website: Globe };
+    const SOCIAL_LABEL  = { twitter: 'X', instagram: 'Instagram', github: 'GitHub', linkedin: 'LinkedIn', website: 'Website' };
+    const socialEntries = profile.social_links
+        ? Object.entries(profile.social_links).filter(([, v]) => !!v)
+        : [];
 
     const filteredAnalyses = analysisFilter
         ? analyses.filter(a => a.prediction === analysisFilter)
         : analyses;
 
-    const SOCIAL_ICONS = { twitter: Twitter, instagram: Instagram, github: Github, linkedin: Linkedin, website: Globe };
-    const SOCIAL_LABEL = { twitter: 'X', instagram: 'Instagram', github: 'GitHub', linkedin: 'LinkedIn', website: 'Website' };
-
     return (
         <div className="max-w-6xl mx-auto px-4 pb-16">
 
-            {/* ══ HERO ════════════════════════════════════════════════ */}
+            {/* ══ HERO ════════════════════════════════════════════════════ */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ type: 'spring', damping: 22, stiffness: 100 }}
             >
-            <div className="relative border mb-6" style={S}>
+            <div className="relative border mb-8" style={S}>
                 <Corner />
 
-                {/* Cover — gradient + köşe aksanları, grid yok */}
-                <div className="h-40 w-full relative overflow-hidden"
-                     style={{ backgroundColor: 'var(--color-bg-base)' }}>
+                {/* Cover: arka planın grid'i görünsün diye saydam → koyu gradyan */}
+                <div className="h-48 w-full relative overflow-hidden"
+                     style={{
+                         backgroundImage: 'linear-gradient(to right, var(--color-terminal-border-raw) 1px, transparent 1px), linear-gradient(to bottom, var(--color-terminal-border-raw) 1px, transparent 1px)',
+                         backgroundSize: '40px 40px',
+                         backgroundColor: 'var(--color-bg-base)',
+                     }}>
                     <div className="absolute inset-0"
-                         style={{ background: 'linear-gradient(to top, var(--color-terminal-surface) 0%, transparent 70%)' }} />
-                    <div className="absolute top-3 left-3 w-6 h-0.5 bg-brand opacity-50" />
-                    <div className="absolute top-3 left-3 h-6 w-0.5 bg-brand opacity-50" />
-                    <div className="absolute top-3 right-3 w-6 h-0.5 bg-brand opacity-50" />
-                    <div className="absolute top-3 right-3 h-6 w-0.5 bg-brand opacity-50" />
+                         style={{ background: 'linear-gradient(to top, var(--color-terminal-surface) 10%, rgba(7,15,18,0.5) 60%, transparent 100%)' }} />
+                    <div className="absolute top-3 left-3 w-6 h-0.5 bg-brand opacity-60" />
+                    <div className="absolute top-3 left-3 h-6 w-0.5 bg-brand opacity-60" />
+                    <div className="absolute top-3 right-3 w-6 h-0.5 bg-brand opacity-60" />
+                    <div className="absolute top-3 right-3 h-6 w-0.5 bg-brand opacity-60" />
                 </div>
 
                 {/* Avatar + bilgiler */}
-                <div className="relative z-10 px-6 md:px-10 pb-6 -mt-12 flex flex-col sm:flex-row gap-5 items-start">
-                    <Avatar profile={profile} size={96} onClick={() => setLightbox(true)} />
+                <div className="relative z-10 px-6 md:px-10 pb-8 -mt-16 flex flex-col md:flex-row gap-6 md:items-end justify-between">
+                    <div className="flex flex-col md:flex-row gap-6 items-start md:items-end w-full">
+                        <UserAvatar
+                            username={profile.username}
+                            avatarUrl={profile.avatar_url}
+                            trustTier={profile.trust_tier}
+                            onClick={() => setLightbox(true)}
+                        />
 
-                    <div className="flex-1 min-w-0 pt-1">
-                        {/* İsim + trust + aksiyonlar */}
-                        <div className="flex items-start justify-between gap-4 flex-wrap mb-2">
-                            <div>
-                                <h1 className="font-manrope font-black text-3xl leading-tight"
+                        <div className="grow pb-2">
+                            <div className="flex items-center gap-3 mb-1 flex-wrap">
+                                <h1 className="text-3xl font-manrope font-black tracking-tight"
                                     style={{ color: 'var(--color-text-primary)' }}>
                                     {profile.username}
                                 </h1>
                                 {profile.trust_tier && profile.trust_tier !== 'yeni_uye' && (
-                                    <span className="inline-block font-mono text-xs px-2 py-0.5 border font-bold mt-1"
-                                          style={{ color: tierColor, borderColor: tierColor + '55' }}>
+                                    <span className="font-mono text-[10px] font-bold px-2 py-0.5 border uppercase tracking-wider"
+                                          style={{ color: tierColor, borderColor: tierColor + '55', background: tierColor + '14' }}>
                                         {profile.trust_label}
                                     </span>
                                 )}
                             </div>
 
-                            {/* Butonlar */}
-                            <div className="flex items-center gap-2 shrink-0">
-                                {isOwnProfile ? (
-                                    <Link to="/profile/settings"
-                                          className="flex items-center gap-2 px-4 py-2 font-mono text-xs font-bold border transition-all hover:border-brand hover:text-brand"
-                                          style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}>
-                                        <Settings className="w-3.5 h-3.5" /> Ayarlar
-                                    </Link>
-                                ) : currentUser && (
-                                    <>
-                                        <Link to={`/messages/${userId}`}
-                                              className="flex items-center gap-1.5 px-4 py-2 font-mono text-xs font-bold border transition-all hover:border-brand hover:text-brand"
-                                              style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}>
-                                            <MessageSquare className="w-3.5 h-3.5" /> Mesaj
-                                        </Link>
-                                        <button
-                                            onClick={handleFollow}
-                                            disabled={fLoading}
-                                            className="flex items-center gap-1.5 px-5 py-2 font-mono text-xs font-bold transition-all disabled:opacity-50"
-                                            style={following ? {
-                                                border: '1px solid var(--color-terminal-border-raw)',
-                                                color: 'var(--color-text-muted)',
-                                                background: 'transparent',
-                                            } : {
-                                                background: 'var(--color-brand-primary)',
-                                                border: '1px solid var(--color-brand-primary)',
-                                                color: '#070f12',
-                                                boxShadow: '0 0 14px rgba(16,185,129,0.30)',
-                                            }}
-                                            onMouseEnter={e => { if (!following) e.currentTarget.style.boxShadow = '0 0 24px rgba(16,185,129,0.50)'; }}
-                                            onMouseLeave={e => { if (!following) e.currentTarget.style.boxShadow = '0 0 14px rgba(16,185,129,0.30)'; }}
-                                        >
-                                            {fLoading
-                                                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                : following
-                                                    ? <><UserMinus className="w-3.5 h-3.5" /> Takibi Bırak</>
-                                                    : <><UserPlus className="w-3.5 h-3.5" /> Takip Et</>
-                                            }
-                                        </button>
-                                    </>
-                                )}
-                            </div>
-                        </div>
+                            <p className="font-mono text-sm mb-2" style={{ color: 'var(--color-text-muted)' }}>
+                                @{profile.username}
+                            </p>
 
-                        {/* Bio */}
-                        {profile.bio && (
-                            <div className="flex gap-2.5 mb-2">
-                                <div className="w-0.5 shrink-0 mt-0.5 rounded-full self-stretch"
-                                     style={{ background: 'var(--color-brand-primary)', opacity: 0.4 }} />
-                                <p className="text-sm leading-relaxed"
+                            {profile.bio && (
+                                <p className="text-sm leading-relaxed max-w-2xl mb-3"
                                    style={{ color: 'var(--color-text-primary)', opacity: 0.88 }}>
                                     {profile.bio}
                                 </p>
-                            </div>
-                        )}
+                            )}
 
-                        {/* Sosyal linkler */}
-                        {profile.social_links && Object.keys(profile.social_links).length > 0 && (
-                            <div className="flex items-center gap-2 flex-wrap mb-2">
-                                {Object.entries(profile.social_links).map(([key, url]) => {
-                                    if (!url) return null;
+                            <div className="flex items-center gap-4 flex-wrap text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                                {joinedDate && (
+                                    <span className="flex items-center gap-1 font-mono">
+                                        <Calendar className="w-3.5 h-3.5" />
+                                        {joinedDate} tarihinden beri üye
+                                    </span>
+                                )}
+                                {socialEntries.map(([key, url]) => {
                                     const Icon  = SOCIAL_ICONS[key] ?? Link2;
                                     const label = SOCIAL_LABEL[key] ?? key;
                                     return (
-                                        <a key={key} href={url.startsWith('http') ? url : `https://${url}`}
+                                        <a key={key}
+                                           href={url.startsWith('http') ? url : `https://${url}`}
                                            target="_blank" rel="noopener noreferrer"
-                                           className="flex items-center gap-1.5 px-2.5 py-1 border font-mono text-xs font-bold transition-all hover:opacity-75"
-                                           style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-brand-primary)', background: 'rgba(16,185,129,0.06)' }}>
-                                            <Icon className="w-3 h-3 shrink-0" /> {label}
+                                           className="flex items-center gap-1 font-mono transition-opacity hover:opacity-70"
+                                           style={{ color: 'var(--color-brand-primary)' }}>
+                                            <Icon className="w-3.5 h-3.5" /> {label}
                                         </a>
                                     );
                                 })}
                             </div>
-                        )}
+                        </div>
+                    </div>
 
-                        {/* Join date */}
-                        <p className="flex items-center gap-1.5 font-mono text-xs"
-                           style={{ color: 'var(--color-text-muted)' }}>
-                            <Calendar className="w-3.5 h-3.5 shrink-0" /> {joined} tarihinden beri üye
-                        </p>
+                    {/* Aksiyon butonları */}
+                    <div className="flex gap-3 shrink-0 pb-2">
+                        {isOwnProfile ? (
+                            <Link to="/profile/settings"
+                                  className="flex items-center gap-2 px-4 py-2 font-mono text-sm font-bold border transition-colors"
+                                  style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}
+                                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-brand-primary)'; e.currentTarget.style.color = 'var(--color-brand-primary)'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-terminal-border-raw)'; e.currentTarget.style.color = 'var(--color-text-primary)'; }}>
+                                <Settings className="w-4 h-4" /> Ayarlar
+                            </Link>
+                        ) : user && (
+                            <>
+                                <Link to={`/messages/${userId}`}
+                                      className="flex items-center gap-2 px-4 py-2 font-mono text-sm font-bold border transition-colors"
+                                      style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}
+                                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-brand-primary)'; e.currentTarget.style.color = 'var(--color-brand-primary)'; }}
+                                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-terminal-border-raw)'; e.currentTarget.style.color = 'var(--color-text-primary)'; }}>
+                                    <MessageSquare className="w-4 h-4" /> Mesaj
+                                </Link>
+                                <button
+                                    onClick={handleFollow}
+                                    disabled={fLoading}
+                                    className="flex items-center gap-2 px-6 py-2 font-mono text-sm font-bold transition-all disabled:opacity-50"
+                                    style={following ? {
+                                        background: 'transparent',
+                                        border: '1px solid var(--color-terminal-border-raw)',
+                                        color: 'var(--color-text-primary)',
+                                    } : {
+                                        background: 'linear-gradient(135deg, var(--color-brand-primary) 0%, rgba(16,185,129,0.80) 100%)',
+                                        border: 'none',
+                                        color: '#070f12',
+                                        boxShadow: '0 0 15px rgba(16,185,129,0.30)',
+                                    }}
+                                    onMouseEnter={e => { if (!following) e.currentTarget.style.boxShadow = '0 0 28px rgba(16,185,129,0.55)'; }}
+                                    onMouseLeave={e => { if (!following) e.currentTarget.style.boxShadow = '0 0 15px rgba(16,185,129,0.30)'; }}
+                                >
+                                    {fLoading
+                                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                                        : following
+                                            ? <><UserMinus className="w-4 h-4" /> Takipte</>
+                                            : <><UserPlus className="w-4 h-4" /> Takip Et</>
+                                    }
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
 
-                {/* Stats şeridi */}
-                <div className="flex border-t flex-wrap" style={BD}>
+                {/* Stats strip */}
+                <div className="border-t px-6 py-4 flex flex-wrap gap-8 justify-start md:justify-around text-center"
+                     style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'var(--color-bg-base)' }}>
                     {[
                         { label: 'Tartışma',     value: profile.thread_count,    color: 'var(--color-text-primary)',  onClick: null },
                         { label: 'Takipçi',      value: profile.follower_count,  color: 'var(--color-text-primary)',  onClick: () => setFollowModal('followers') },
                         { label: 'Takip',        value: profile.following_count, color: 'var(--color-text-primary)',  onClick: () => setFollowModal('following') },
-                        { label: 'Analiz',       value: profile.analysis_count,  color: 'var(--color-brand-primary)', onClick: () => goAnalyses(null) },
-                        { label: 'Sahte Tespit', value: profile.fake_count,      color: 'var(--color-fake-fill)',     onClick: () => goAnalyses('FAKE') },
+                        { label: 'Analiz',       value: profile.analysis_count,  color: 'var(--color-brand-primary)', onClick: () => { setActiveTab('analyses'); setAnalysisFilter(null); } },
+                        { label: 'Sahte Tespit', value: profile.fake_count,      color: 'var(--color-fake-fill)',     onClick: () => { setActiveTab('analyses'); setAnalysisFilter('FAKE'); } },
                     ].map(({ label, value, color, onClick }) => (
-                        <button key={label}
-                                onClick={onClick ?? undefined}
-                                disabled={!onClick}
-                                className="flex flex-col items-center px-5 py-3 transition-colors disabled:cursor-default hover:enabled:bg-white/5"
-                                style={{ borderRight: '1px solid var(--color-terminal-border-raw)' }}>
-                            <span className="font-manrope font-black text-xl" style={{ color }}>{value ?? 0}</span>
-                            <span className="font-mono text-[10px] uppercase tracking-widest mt-0.5"
-                                  style={{ color: 'var(--color-text-muted)' }}>{label}</span>
-                        </button>
+                        <div key={label} onClick={onClick ?? undefined}
+                             className={`text-center${onClick ? ' cursor-pointer group' : ''}`}>
+                            <div className="text-2xl font-manrope font-bold transition-opacity group-hover:opacity-75"
+                                 style={{ color }}>{value ?? 0}</div>
+                            <div className="font-mono text-[10px] uppercase tracking-widest mt-0.5 font-semibold"
+                                 style={{ color: 'var(--color-text-muted)' }}>{label}</div>
+                        </div>
                     ))}
 
                     {xpStats && (
-                        <div className="flex flex-col items-center px-5 py-3">
-                            <span className="font-manrope font-black text-xl" style={{ color: 'var(--color-text-primary)' }}>
+                        <div className="border-l pl-8 text-center" style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
+                            <div className="text-2xl font-manrope font-bold"
+                                 style={{ color: 'var(--color-text-primary)' }}>
                                 Seviye <span style={{ color: 'var(--color-brand-primary)' }}>{xpStats.level}</span>
-                            </span>
-                            <span className="font-mono text-[10px] uppercase tracking-widest mt-0.5"
-                                  style={{ color: 'var(--color-text-muted)' }}>{xpStats.total_xp} XP</span>
+                            </div>
+                            <div className="font-mono text-[10px] uppercase tracking-widest mt-0.5 font-semibold"
+                                 style={{ color: 'var(--color-text-muted)' }}>
+                                Toplam XP: {xpStats.total_xp}
+                            </div>
                         </div>
                     )}
-                </div>
-
-                {/* Rozet vitrini */}
-                <div className="px-6 pb-5 pt-4 border-t" style={BD}>
-                    <BadgeShowcase showcase={showcase} isOwnProfile={isOwnProfile} />
                 </div>
             </div>
             </motion.div>
 
-            {/* ══ İKİ SÜTUN ══════════════════════════════════════════ */}
-            <div className="flex flex-col lg:flex-row gap-6">
+            {/* ══ İKİ SÜTUN ════════════════════════════════════════════════ */}
+            <div className="flex flex-col lg:flex-row gap-8">
 
-                {/* Sol sütun */}
-                <div className="flex-1 min-w-0">
+                {/* Sol sütun — 2/3 */}
+                <div className="w-full lg:w-2/3 flex flex-col gap-6">
                     {/* Tab çubuğu */}
-                    <div className="flex border-b overflow-x-auto mb-5" style={BD}>
+                    <div className="flex gap-6 border-b overflow-x-auto" style={BD}>
                         {[
                             { key: 'overview',  label: 'Genel Bakış' },
                             { key: 'threads',   label: `Tartışmalar (${threadTotal})` },
                             { key: 'analyses',  label: `Analizlerim (${analysisTotal})` },
                         ].map(tab => (
-                            <button key={tab.key}
-                                    onClick={() => setActiveTab(tab.key)}
-                                    className="relative pb-3 px-1 mr-6 font-mono text-xs font-bold uppercase tracking-wider transition-colors whitespace-nowrap"
-                                    style={{ color: activeTab === tab.key ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}>
+                            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                                    className="pb-3 font-mono text-xs font-bold uppercase tracking-wider border-b-2 transition-colors whitespace-nowrap"
+                                    style={activeTab === tab.key ? {
+                                        borderColor: 'var(--color-brand-primary)',
+                                        color: 'var(--color-brand-primary)',
+                                    } : {
+                                        borderColor: 'transparent',
+                                        color: 'var(--color-text-muted)',
+                                    }}>
                                 {tab.label}
-                                {activeTab === tab.key && (
-                                    <motion.div layoutId="profile-tab-line"
-                                                className="absolute bottom-0 left-0 right-0 h-0.5"
-                                                style={{ background: 'var(--color-brand-primary)' }}
-                                                transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
-                                )}
                             </button>
                         ))}
                     </div>
 
-                    {/* Tab içeriği */}
                     {activeTab === 'overview' && (
-                        <motion.div className="flex flex-col gap-5"
-                            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.22 }}>
-                            <OverviewTab threads={threads} analyses={analyses} tLoading={tLoading} aLoading={aLoading}
-                                         setActiveTab={setActiveTab} setSelectedItem={setSelectedItem} />
-                        </motion.div>
+                        <OverviewTab threads={threads} analyses={analyses} tLoading={tLoading} aLoading={aLoading}
+                                     setActiveTab={setActiveTab} setSelectedItem={setSelectedItem} />
                     )}
                     {activeTab === 'threads' && (
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
-                            <ThreadsTab threads={threads} loading={tLoading} page={threadPage} totalPages={threadTotalPages} load={loadThreads} />
-                        </motion.div>
+                        <ThreadsTab threads={threads} loading={tLoading} page={threadPage}
+                                    totalPages={threadTotalPages} load={loadThreads} />
                     )}
                     {activeTab === 'analyses' && (
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
-                            <AnalysesTab analyses={filteredAnalyses} loading={aLoading} page={analysisPage}
-                                         totalPages={analysisTotalPages} load={loadAnalyses}
-                                         filter={analysisFilter} clearFilter={() => setAnalysisFilter(null)}
-                                         setSelectedItem={setSelectedItem} />
-                        </motion.div>
+                        <AnalysesTab analyses={filteredAnalyses} loading={aLoading} page={analysisPage}
+                                     totalPages={analysisTotalPages} load={loadAnalyses}
+                                     filter={analysisFilter} clearFilter={() => setAnalysisFilter(null)}
+                                     setSelectedItem={setSelectedItem} />
                     )}
                 </div>
 
-                {/* Sağ sütun */}
-                <div className="w-full lg:w-72 shrink-0 flex flex-col gap-5">
+                {/* Sağ sütun — 1/3 */}
+                <div className="w-full lg:w-1/3 flex flex-col gap-6">
+                    <BadgeShowcase showcase={showcase} isOwnProfile={isOwnProfile} />
+                    <RecommendedUsersWidget profileUserId={userId} currentUserId={user?.id} />
                     <PopularThreadsWidget />
-                    <RecommendedUsersWidget profileUserId={userId} currentUserId={currentUser?.id} />
                 </div>
             </div>
 
-            {/* ══ MODALS (createPortal → navbar stacking context'inin dışına çıkar) ══ */}
+            {/* ══ MODALS ══════════════════════════════════════════════════ */}
+
             {lightbox && createPortal(
                 <div className="fixed inset-0 z-9999 flex items-center justify-center"
                      style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)' }}
                      onClick={() => setLightbox(false)}>
                     <div className="relative" onClick={e => e.stopPropagation()}>
                         <div className="overflow-hidden"
-                             style={{ width: 260, height: 260, borderRadius: '50%',
-                                      border: `4px solid ${tierColor}` }}>
+                             style={{ width: 260, height: 260, borderRadius: '50%', border: `4px solid ${tierColor}` }}>
                             {profile.avatar_url
                                 ? <img src={profile.avatar_url} alt={profile.username}
                                        className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                 : <div className="w-full h-full flex items-center justify-center font-black"
-                                       style={{ background: AVATAR_BG[(profile.username?.charCodeAt(0) ?? 0) % AVATAR_BG.length],
-                                                color: 'var(--color-brand-primary)', fontSize: 90 }}>
+                                       style={{
+                                           background: PAL_BG[(profile.username?.charCodeAt(0) ?? 0) % PAL_BG.length],
+                                           color: PAL_TEXT[(profile.username?.charCodeAt(0) ?? 0) % PAL_TEXT.length],
+                                           fontSize: 90
+                                       }}>
                                     {profile.username?.[0]?.toUpperCase()}
-                                  </div>
-                            }
+                                  </div>}
                         </div>
                         <button onClick={() => setLightbox(false)}
                                 className="absolute -top-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center border"
@@ -559,13 +581,12 @@ export default function Profile() {
                 <FollowModal userId={userId} mode={followModal} onClose={() => setFollowModal(null)} />
             )}
 
-            {selectedItem && createPortal(
+            {selectedItem && (
                 <HistoryModal
                     item={selectedItem}
                     hasFullReport={!!selectedItem.task_id}
                     onClose={() => setSelectedItem(null)}
-                />,
-                document.body
+                />
             )}
         </div>
     );
@@ -575,120 +596,140 @@ export default function Profile() {
 function ThreadCard({ thread }) {
     const catColor = CAT_COLOR[thread.category] ?? 'var(--color-accent-blue)';
     return (
-        <article className="relative border transition-colors group cursor-pointer mb-3"
+        <article className="border transition-colors cursor-pointer group"
                  style={S}
-                 onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-surface)'}
-                 onMouseLeave={e => e.currentTarget.style.background = 'var(--color-terminal-surface)'}>
-            <Corner />
-            <div className="flex items-center gap-3 px-4 py-3 border-b" style={BD}>
-                {thread.category && (
-                    <span className="font-mono text-[10px] font-bold px-2 py-0.5 border shrink-0"
-                          style={{ color: catColor, borderColor: catColor + '40', background: catColor + '0d' }}>
-                        {thread.category}
+                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg-surface)'; }}
+                 onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-terminal-surface)'; }}>
+            <div className="p-5">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                    {thread.category && (
+                        <span className="font-mono text-[10px] font-bold px-2 py-0.5 border shrink-0"
+                              style={{ color: catColor, borderColor: catColor + '40', background: catColor + '10' }}>
+                            {thread.category}
+                        </span>
+                    )}
+                    <span className="font-mono text-[11px] shrink-0 ml-auto"
+                          style={{ color: 'var(--color-text-muted)' }}>
+                        {timeAgo(thread.created_at)}
                     </span>
-                )}
-                <span className="ml-auto font-mono text-[11px] shrink-0"
-                      style={{ color: 'var(--color-text-muted)' }}>{timeAgo(thread.created_at)}</span>
-            </div>
-            <div className="px-4 py-3">
+                </div>
+
                 <Link to={`/forum/${thread.id}`}>
-                    <h3 className="font-manrope font-bold text-base leading-snug line-clamp-2 mb-2 transition-colors group-hover:text-brand"
+                    <h3 className="font-manrope font-semibold text-base leading-snug line-clamp-2 mb-2 transition-colors group-hover:text-brand"
                         style={{ color: 'var(--color-text-primary)' }}>
                         {thread.title}
                     </h3>
                 </Link>
+
                 {thread.body && (
-                    <p className="text-sm leading-relaxed line-clamp-2 mb-3"
+                    <p className="text-sm leading-relaxed line-clamp-2 mb-4"
                        style={{ color: 'var(--color-text-secondary)' }}>
                         {thread.body}
                     </p>
                 )}
-                <div className="flex items-center gap-1.5 font-mono text-xs"
-                     style={{ color: 'var(--color-text-muted)' }}>
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    {thread.comment_count ?? 0} yorum
+
+                <div className="flex items-center gap-4 pt-3 border-t font-mono text-xs"
+                     style={{ borderColor: 'rgba(65,73,77,0.2)', color: 'var(--color-text-muted)' }}>
+                    <span className="flex items-center gap-1 hover:text-brand transition-colors cursor-pointer">
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        {thread.comment_count ?? 0} Yorum
+                    </span>
                 </div>
             </div>
         </article>
     );
 }
 
-/* ── Analiz satır kartı ───────────────────────────────────────────── */
-function AnalysisRow({ item, setSelectedItem, idx, total }) {
-    const c = PRED_C[item.prediction] ?? 'transparent';
+/* ── Analiz kartı — tıklanabilir ──────────────────────────────────── */
+function AnalysisCard({ item, setSelectedItem }) {
+    const accentColor = PRED_ACCENT[item.prediction] ?? 'transparent';
     return (
-        <div onClick={() => setSelectedItem(item)}
-             className={`flex items-center gap-3 px-4 py-3 border-l-2 cursor-pointer transition-all hover:bg-white/5 ${idx < total - 1 ? 'border-b' : ''}`}
-             style={{ borderColor: 'var(--color-terminal-border-raw)', borderLeftColor: c + '50' }}
-             onMouseEnter={e => e.currentTarget.style.borderLeftColor = c}
-             onMouseLeave={e => e.currentTarget.style.borderLeftColor = c + '50'}>
-            <TypeBadge type={item.analysis_type} />
-            <p className="flex-1 font-mono text-sm truncate min-w-0"
-               style={{ color: 'var(--color-text-primary)' }}>
-                {item.title ?? item.task_id ?? '—'}
-            </p>
+        <article className="border overflow-hidden transition-colors cursor-pointer group relative"
+                 style={S}
+                 onClick={() => setSelectedItem(item)}
+                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg-surface)'; }}
+                 onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-terminal-surface)'; }}>
             {item.prediction && (
-                <span className="font-mono text-[10px] font-bold px-2 py-0.5 border shrink-0"
-                      style={PRED_STYLE[item.prediction] ?? { color: c, borderColor: c + '40' }}>
-                    {PRED_L[item.prediction] ?? item.prediction}
-                </span>
+                <div className="absolute right-0 top-0 bottom-0 w-1"
+                     style={{ background: `linear-gradient(to bottom, ${accentColor}, transparent)`, opacity: 0.55 }} />
             )}
-            <span className="font-mono text-[11px] shrink-0"
-                  style={{ color: 'var(--color-text-muted)' }}>
-                {new Date(item.created_at).toLocaleDateString('tr-TR')}
-            </span>
-        </div>
+
+            <div className="p-5">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <TypeBadge type={item.analysis_type} />
+                        <span className="font-mono text-[10px] px-2 py-0.5 border"
+                              style={{ color: 'var(--color-brand-primary)', borderColor: 'rgba(16,185,129,0.25)', background: 'rgba(16,185,129,0.06)' }}>
+                            Analiz Raporu
+                        </span>
+                    </div>
+                    <span className="font-mono text-[11px] shrink-0"
+                          style={{ color: 'var(--color-text-muted)' }}>
+                        {new Date(item.created_at).toLocaleDateString('tr-TR')}
+                    </span>
+                </div>
+
+                <h3 className="font-manrope font-semibold text-base leading-snug line-clamp-2 mb-4 transition-colors group-hover:text-brand"
+                    style={{ color: 'var(--color-text-primary)' }}>
+                    {item.title ?? item.task_id ?? '—'}
+                </h3>
+
+                {item.prediction && (
+                    <div className="flex items-center justify-between pt-3 border-t"
+                         style={{ borderColor: 'rgba(65,73,77,0.2)' }}>
+                        <span className="font-mono text-[10px] font-bold px-2.5 py-1 uppercase tracking-wider"
+                              style={PRED_BADGE[item.prediction] ?? {}}>
+                            {PRED_L[item.prediction] ?? item.prediction}
+                        </span>
+                        {item.confidence != null && (
+                            <span className="font-mono text-xs"
+                                  style={{ color: 'var(--color-text-muted)' }}>
+                                %{Math.round(item.confidence * 100)} Güvenilirlik
+                            </span>
+                        )}
+                    </div>
+                )}
+            </div>
+        </article>
     );
 }
 
 /* ── Genel Bakış ──────────────────────────────────────────────────── */
 function OverviewTab({ threads, analyses, tLoading, aLoading, setActiveTab, setSelectedItem }) {
     return (
-        <div className="flex flex-col gap-5">
-            {/* Son tartışmalar */}
-            <div className="relative border overflow-hidden" style={S}>
-                <Corner />
-                <div className="px-4 py-3 border-b flex items-center justify-between" style={BD}>
-                    <h2 className="font-manrope font-bold text-sm" style={{ color: 'var(--color-text-primary)' }}>
-                        Son Tartışmalar
-                    </h2>
-                    <button onClick={() => setActiveTab('threads')}
-                            className="flex items-center gap-1 font-mono text-[10px] transition-opacity hover:opacity-70"
-                            style={{ color: 'var(--color-brand-primary)' }}>
-                        tümü <ExternalLink className="w-3 h-3" />
-                    </button>
-                </div>
+        <div className="flex flex-col gap-6">
+            <div>
+                <SectionHeader icon={MessagesSquare} label="Son Paylaşımlar"
+                               onMore={() => setActiveTab('threads')} />
                 {tLoading ? (
-                    <div className="p-8 flex justify-center">
+                    <div className="py-12 flex justify-center">
                         <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-brand-primary)' }} />
                     </div>
                 ) : threads.length === 0 ? (
-                    <p className="px-4 py-6 font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>henüz tartışma yok</p>
-                ) : threads.slice(0, 3).map(t => <ThreadCard key={t.id} thread={t} />)}
+                    <p className="font-mono text-xs py-6" style={{ color: 'var(--color-text-muted)' }}>henüz tartışma yok</p>
+                ) : (
+                    <div className="flex flex-col gap-4">
+                        {threads.slice(0, 2).map(t => <ThreadCard key={t.id} thread={t} />)}
+                    </div>
+                )}
             </div>
 
-            {/* Son analizler */}
-            <div className="relative border overflow-hidden" style={S}>
-                <Corner />
-                <div className="px-4 py-3 border-b flex items-center justify-between" style={BD}>
-                    <h2 className="font-manrope font-bold text-sm" style={{ color: 'var(--color-text-primary)' }}>
-                        Son Analizler
-                    </h2>
-                    <button onClick={() => setActiveTab('analyses')}
-                            className="flex items-center gap-1 font-mono text-[10px] transition-opacity hover:opacity-70"
-                            style={{ color: 'var(--color-brand-primary)' }}>
-                        tümü <ExternalLink className="w-3 h-3" />
-                    </button>
-                </div>
+            <div>
+                <SectionHeader icon={BarChart2} label="Son Analizler"
+                               onMore={() => setActiveTab('analyses')} />
                 {aLoading ? (
-                    <div className="p-8 flex justify-center">
+                    <div className="py-12 flex justify-center">
                         <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-brand-primary)' }} />
                     </div>
                 ) : analyses.length === 0 ? (
-                    <p className="px-4 py-6 font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>henüz analiz yok</p>
-                ) : analyses.slice(0, 5).map((a, i) => (
-                    <AnalysisRow key={a.id ?? i} item={a} setSelectedItem={setSelectedItem} idx={i} total={Math.min(5, analyses.length)} />
-                ))}
+                    <p className="font-mono text-xs py-6" style={{ color: 'var(--color-text-muted)' }}>henüz analiz yok</p>
+                ) : (
+                    <div className="flex flex-col gap-4">
+                        {analyses.slice(0, 3).map((a, i) => (
+                            <AnalysisCard key={a.id ?? i} item={a} setSelectedItem={setSelectedItem} />
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -697,22 +738,20 @@ function OverviewTab({ threads, analyses, tLoading, aLoading, setActiveTab, setS
 /* ── Tartışmalar Tab ──────────────────────────────────────────────── */
 function ThreadsTab({ threads, loading, page, totalPages, load }) {
     return (
-        <div className="relative border overflow-hidden" style={S}>
-            <Corner />
-            <div className="px-4 py-3 border-b flex items-center justify-between" style={BD}>
-                <h2 className="font-manrope font-bold text-sm" style={{ color: 'var(--color-text-primary)' }}>Tartışmalar</h2>
-            </div>
+        <div className="flex flex-col gap-4">
             {loading ? (
-                <div className="p-8 flex justify-center">
+                <div className="py-20 flex justify-center">
                     <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-brand-primary)' }} />
                 </div>
             ) : threads.length === 0 ? (
-                <p className="px-4 py-8 text-center font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>henüz tartışma yok</p>
+                <div className="text-center py-20">
+                    <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-20"
+                                   style={{ color: 'var(--color-text-muted)' }} />
+                    <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>henüz tartışma yok</p>
+                </div>
             ) : (
                 <>
-                    <div className="p-4 flex flex-col gap-0">
-                        {threads.map(t => <ThreadCard key={t.id} thread={t} />)}
-                    </div>
+                    {threads.map(t => <ThreadCard key={t.id} thread={t} />)}
                     <Pagination page={page} totalPages={totalPages} load={load} />
                 </>
             )}
@@ -723,36 +762,36 @@ function ThreadsTab({ threads, loading, page, totalPages, load }) {
 /* ── Analizlerim Tab ──────────────────────────────────────────────── */
 function AnalysesTab({ analyses, loading, page, totalPages, load, filter, clearFilter, setSelectedItem }) {
     return (
-        <div className="relative border overflow-hidden" style={S}>
-            <Corner />
-            <div className="px-4 py-3 border-b flex items-center justify-between flex-wrap gap-2" style={BD}>
-                <h2 className="font-manrope font-bold text-sm" style={{ color: 'var(--color-text-primary)' }}>Analizlerim</h2>
-                {filter && (
-                    <div className="flex items-center gap-2">
-                        <span className="font-mono text-[10px] px-2 py-0.5 border"
-                              style={{ color: PRED_C[filter], borderColor: PRED_C[filter] + '50' }}>
-                            {PRED_L[filter]}
-                        </span>
-                        <button onClick={clearFilter}
-                                className="font-mono text-[10px] transition-opacity hover:opacity-70"
-                                style={{ color: 'var(--color-text-primary)' }}>
-                            × temizle
-                        </button>
-                    </div>
-                )}
-            </div>
+        <div className="flex flex-col gap-4">
+            {filter && (
+                <div className="flex items-center gap-3">
+                    <span className="font-mono text-[10px] px-2 py-1 border"
+                          style={{ color: FILTER_COLOR[filter], borderColor: FILTER_COLOR[filter] + '50' }}>
+                        {PRED_L[filter]} filtresi aktif
+                    </span>
+                    <button onClick={clearFilter}
+                            className="font-mono text-[10px] transition-opacity hover:opacity-60"
+                            style={{ color: 'var(--color-text-primary)' }}>
+                        × temizle
+                    </button>
+                </div>
+            )}
             {loading ? (
-                <div className="p-8 flex justify-center">
+                <div className="py-20 flex justify-center">
                     <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-brand-primary)' }} />
                 </div>
             ) : analyses.length === 0 ? (
-                <p className="px-4 py-8 text-center font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                    {filter ? `${PRED_L[filter]} sonucu bulunamadı` : 'henüz analiz yok'}
-                </p>
+                <div className="text-center py-20">
+                    <ShieldAlert className="w-10 h-10 mx-auto mb-3 opacity-20"
+                                 style={{ color: 'var(--color-text-muted)' }} />
+                    <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                        {filter ? `${PRED_L[filter]} sonucu bulunamadı` : 'henüz analiz yok'}
+                    </p>
+                </div>
             ) : (
                 <>
                     {analyses.map((a, i) => (
-                        <AnalysisRow key={a.id ?? i} item={a} setSelectedItem={setSelectedItem} idx={i} total={analyses.length} />
+                        <AnalysisCard key={a.id ?? i} item={a} setSelectedItem={setSelectedItem} />
                     ))}
                     {!filter && <Pagination page={page} totalPages={totalPages} load={load} />}
                 </>

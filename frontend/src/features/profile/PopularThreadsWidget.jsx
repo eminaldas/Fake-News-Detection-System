@@ -50,10 +50,11 @@ export default function PopularThreadsWidget() {
     <div className="relative border overflow-hidden" style={S}>
       <Corner />
 
-      <div className="px-4 py-3 border-b" style={BD}>
-        <span className="font-mono text-xs tracking-widest uppercase"
-              style={{ color: 'var(--color-brand-primary)' }}>
-          // FORUMDA POPÜLER
+      <div className="px-4 py-3 border-b flex items-center gap-2" style={BD}>
+        <Flame className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
+        <span className="font-manrope font-bold text-sm"
+              style={{ color: 'var(--color-text-primary)' }}>
+          Forumda Popüler
         </span>
       </div>
 
@@ -65,7 +66,7 @@ export default function PopularThreadsWidget() {
         </div>
       ) : error ? (
         <p className="p-4 font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
-          // veri alınamadı
+          veri alınamadı
         </p>
       ) : (
         <>
@@ -75,8 +76,10 @@ export default function PopularThreadsWidget() {
               <Link
                 to={`/forum/${t.id}`}
                 key={t.id}
-                className="flex flex-col gap-1 px-3 py-2.5 border-b transition-colors duration-150 hover:bg-white/10"
-                style={BD}
+                className="flex flex-col gap-1 px-3 py-2.5 border-b border-l-2 transition-all duration-150 hover:bg-white/5"
+                style={{ borderColor: 'var(--color-terminal-border-raw)', borderLeftColor: 'transparent' }}
+                onMouseEnter={e => { e.currentTarget.style.borderLeftColor = 'var(--color-brand-primary)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderLeftColor = 'transparent'; }}
               >
                 <div className="flex items-start gap-1.5">
                   {t.comment_count >= 10 && (
@@ -109,9 +112,9 @@ export default function PopularThreadsWidget() {
             );
           })}
 
-          <div className="px-3 py-2 border-t" style={BD}>
+          <div className="px-3 py-2.5 border-t" style={BD}>
             <Link to="/forum"
-                  className="font-mono text-[10px] transition-opacity hover:opacity-70"
+                  className="font-mono text-[10px] flex items-center gap-1 transition-opacity hover:opacity-70"
                   style={{ color: 'var(--color-brand-primary)' }}>
               tümünü gör →
             </Link>

@@ -97,10 +97,11 @@ export default function RecommendedUsersWidget({ profileUserId, currentUserId })
     <div className="relative border overflow-hidden" style={S}>
       <Corner />
 
-      <div className="px-4 py-3 border-b" style={BD}>
-        <span className="font-mono text-xs tracking-widest uppercase"
-              style={{ color: 'var(--color-brand-primary)' }}>
-          // ÖNERİLEN KİŞİLER
+      <div className="px-4 py-3 border-b flex items-center gap-2" style={BD}>
+        <UserPlus className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
+        <span className="font-manrope font-bold text-sm"
+              style={{ color: 'var(--color-text-primary)' }}>
+          Önerilen Kişiler
         </span>
       </div>
 
@@ -121,8 +122,10 @@ export default function RecommendedUsersWidget({ profileUserId, currentUserId })
           return (
             <div
               key={u.user_id}
-              className="flex items-center gap-3 px-3 py-2.5 border-b transition-all duration-150 hover:bg-white/5"
-              style={BD}
+              className="flex items-center gap-3 px-3 py-2.5 border-b border-l-2 transition-all duration-150 hover:bg-white/5"
+              style={{ borderColor: 'var(--color-terminal-border-raw)', borderLeftColor: 'transparent' }}
+              onMouseEnter={e => { e.currentTarget.style.borderLeftColor = 'var(--color-brand-primary)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderLeftColor = 'transparent'; }}
             >
               <button
                 onClick={() => navigate(`/users/${u.user_id}`)}
@@ -149,7 +152,7 @@ export default function RecommendedUsersWidget({ profileUserId, currentUserId })
                 <button
                   onClick={() => handleFollow(u.user_id)}
                   disabled={isPending}
-                  className="shrink-0 px-2.5 py-1 font-mono text-[10px] font-bold border transition-all duration-200 disabled:opacity-50 overflow-hidden min-w-[72px]"
+                  className="shrink-0 px-2.5 py-1 font-mono text-[10px] font-bold border transition-all duration-200 disabled:opacity-50 overflow-hidden min-w-18"
                   style={isFollowed ? {
                     borderColor: 'var(--color-terminal-border-raw)',
                     color:       'var(--color-text-muted)',
