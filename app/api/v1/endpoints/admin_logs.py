@@ -104,10 +104,12 @@ async def get_security_logs(
     )).scalar_one()
 
     rows = (await db.execute(
-        select(AuditLog).where(cond)
+        select(AuditLog, User.username, User.email)
+        .outerjoin(User, User.id == AuditLog.user_id)
+        .where(cond)
         .order_by(AuditLog.created_at.desc())
         .offset((page - 1) * size).limit(size)
-    )).scalars().all()
+    )).all()
 
     return {
         "total": total,
@@ -115,14 +117,16 @@ async def get_security_logs(
         "size":  size,
         "items": [
             {
-                "id":         str(r.id),
-                "event_name": r.event_name,
-                "severity":   r.severity,
-                "user_id":    str(r.user_id) if r.user_id else None,
-                "ip_hash":    r.ip_hash,
-                "path":       r.path,
-                "details":    r.details,
-                "created_at": r.created_at.isoformat(),
+                "id":         str(r.AuditLog.id),
+                "event_name": r.AuditLog.event_name,
+                "severity":   r.AuditLog.severity,
+                "user_id":    str(r.AuditLog.user_id) if r.AuditLog.user_id else None,
+                "username":   r.username,
+                "email":      r.email,
+                "ip_hash":    r.AuditLog.ip_hash,
+                "path":       r.AuditLog.path,
+                "details":    r.AuditLog.details,
+                "created_at": r.AuditLog.created_at.isoformat(),
             }
             for r in rows
         ],

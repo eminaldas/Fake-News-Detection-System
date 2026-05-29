@@ -276,6 +276,11 @@ async def reply_report(
 
     await db.refresh(report, ["reporter"])
 
+    # Commit öncesi al — refresh sonrası reporter detach olur
+    reporter_email    = report.reporter.email
+    reporter_username = report.reporter.username
+    report_subject    = report.subject
+
     report.status = body.status
     if body.reply.strip():
         report.admin_reply = body.reply.strip()
@@ -286,10 +291,10 @@ async def reply_report(
 
     if body.reply.strip():
         _send_reply_notification(
-            to_email  = report.reporter.email,
-            username  = report.reporter.username,
+            to_email  = reporter_email,
+            username  = reporter_username,
             report_id = str(report.id),
-            subject   = report.subject,
+            subject   = report_subject,
             reply     = body.reply.strip(),
         )
 

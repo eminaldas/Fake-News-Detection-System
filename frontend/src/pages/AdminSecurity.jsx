@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ShieldAlert, AlertTriangle, RefreshCw,
   ChevronLeft, ChevronRight, Loader2,
-  Terminal, Circle, Shield, X,
+  Terminal, Circle, Shield, X, ChevronDown, ChevronUp,
+  MapPin, User, Globe, Hash,
 } from 'lucide-react';
 import axiosInstance from '../api/axios';
 import { useWebSocket } from '../contexts/WebSocketContext';
@@ -302,14 +303,15 @@ function IPDetailModal({ ipHash, onClose }) {
 /* ── Ana Bileşen ─────────────────────────────────────────────────────────── */
 export default function AdminSecurity() {
   const { subscribe } = useWebSocket();
-  const [events,   setEvents]   = useState([]);
-  const [alerts,   setAlerts]   = useState([]);
-  const [liveLog,  setLiveLog]  = useState([]);
-  const [total,    setTotal]    = useState(0);
-  const [page,     setPage]     = useState(1);
-  const [severity, setSeverity] = useState('');
-  const [loading,  setLoading]  = useState(true);
+  const [events,     setEvents]     = useState([]);
+  const [alerts,     setAlerts]     = useState([]);
+  const [liveLog,    setLiveLog]    = useState([]);
+  const [total,      setTotal]      = useState(0);
+  const [page,       setPage]       = useState(1);
+  const [severity,   setSeverity]   = useState('');
+  const [loading,    setLoading]    = useState(true);
   const [selectedIP, setSelectedIP] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
 
   const fetchAlerts = useCallback(async () => {
     try {
@@ -445,7 +447,7 @@ export default function AdminSecurity() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead style={{ ...thead }}>
                 <tr>
-                  {['Olay', 'Önem', 'IP Hash', 'Kullanıcı', 'Detay', 'Zaman'].map(h => (
+                  {['', 'Olay', 'Önem', 'IP Hash', 'Kullanıcı', 'Zaman'].map(h => (
                     <th key={h} style={{ ...th }}>{h}</th>
                   ))}
                 </tr>
@@ -458,48 +460,152 @@ export default function AdminSecurity() {
                     </td>
                   </tr>
                 ) : events.map(e => {
-                  const sc = SEVERITY_COLORS[e.severity];
+                  const sc     = SEVERITY_COLORS[e.severity];
+                  const isOpen = expandedId === e.id;
+                  const det    = e.details || {};
+                  const hasLoc = det.country || det.city || det.latitude;
                   return (
-                    <tr key={e.id}
-                      style={{ borderTop: `1px solid ${A.border}`, transition: 'background 0.1s' }}
-                      onMouseEnter={el => el.currentTarget.style.background = A.card}
-                      onMouseLeave={el => el.currentTarget.style.background = 'transparent'}
-                    >
-                      <td style={{ ...td, fontWeight: 600, color: A.text1 }}>
-                        {EVENT_LABELS[e.event_name] || e.event_name}
-                      </td>
-                      <td style={{ ...td }}>
-                        <span style={{
-                          display: 'inline-block', padding: '3px 9px', borderRadius: 20,
-                          fontSize: 11, fontWeight: 700,
-                          background: sc?.dim  || A.brandDim,
-                          color:      sc?.color || A.brand,
-                        }}>
-                          {e.severity}
-                        </span>
-                      </td>
-                      <td style={{ ...td, color: A.text3, fontSize: 12, fontFamily: 'monospace' }}>
-                        <button
-                          onClick={() => e.ip_hash && setSelectedIP(e.ip_hash)}
-                          style={{ background: 'none', border: 'none', cursor: e.ip_hash ? 'pointer' : 'default', color: e.ip_hash ? A.brand : A.text3, fontFamily: 'monospace', fontSize: 12, padding: 0 }}
-                        >
-                          {e.ip_hash?.slice(0, 16)}…
-                        </button>
-                      </td>
-                      <td style={{ ...td, color: A.text3, fontSize: 12, fontFamily: 'monospace' }}>
-                        {e.user_id ? e.user_id.slice(0, 8) + '…' : '—'}
-                      </td>
-                      <td style={{ ...td, color: A.text3, fontSize: 12, maxWidth: 240 }}>
-                        <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {e.details && Object.keys(e.details).length > 0
-                            ? Object.entries(e.details).slice(0, 2).map(([k, v]) => `${k}: ${v}`).join(' · ')
-                            : '—'}
-                        </span>
-                      </td>
-                      <td style={{ ...td, color: A.text3, fontSize: 12, whiteSpace: 'nowrap' }}>
-                        {new Date(e.created_at).toLocaleString('tr-TR')}
-                      </td>
-                    </tr>
+                    <React.Fragment key={e.id}>
+                      <tr
+                        style={{ borderTop: `1px solid ${A.border}`, cursor: 'pointer', transition: 'background 0.1s' }}
+                        onClick={() => setExpandedId(isOpen ? null : e.id)}
+                        onMouseEnter={el => el.currentTarget.style.background = A.card}
+                        onMouseLeave={el => el.currentTarget.style.background = isOpen ? A.card : 'transparent'}
+                      >
+                        {/* expand */}
+                        <td style={{ ...td, width: 32, paddingRight: 0 }}>
+                          {isOpen
+                            ? <ChevronUp  size={13} color={A.brand} />
+                            : <ChevronDown size={13} color={A.text3} />}
+                        </td>
+                        <td style={{ ...td, fontWeight: 600, color: A.text1, whiteSpace: 'nowrap' }}>
+                          {EVENT_LABELS[e.event_name] || e.event_name}
+                        </td>
+                        <td style={{ ...td }}>
+                          <span style={{
+                            display: 'inline-block', padding: '3px 9px', borderRadius: 20,
+                            fontSize: 11, fontWeight: 700,
+                            background: sc?.dim  || A.brandDim,
+                            color:      sc?.color || A.brand,
+                          }}>
+                            {e.severity}
+                          </span>
+                        </td>
+                        <td style={{ ...td, fontSize: 12, fontFamily: 'monospace' }} onClick={ev => { ev.stopPropagation(); e.ip_hash && setSelectedIP(e.ip_hash); }}>
+                          <span style={{ color: e.ip_hash ? A.brand : A.text3, cursor: e.ip_hash ? 'pointer' : 'default' }}>
+                            {e.ip_hash ? e.ip_hash.slice(0, 20) + '…' : '—'}
+                          </span>
+                        </td>
+                        <td style={{ ...td, fontSize: 12 }}>
+                          {e.username
+                            ? <span style={{ color: A.text1, fontWeight: 600 }}>{e.username}</span>
+                            : e.user_id
+                              ? <span style={{ color: A.text3, fontFamily: 'monospace' }}>{e.user_id.slice(0, 8)}…</span>
+                              : <span style={{ color: A.text3 }}>—</span>}
+                        </td>
+                        <td style={{ ...td, color: A.text3, fontSize: 12, whiteSpace: 'nowrap' }}>
+                          {new Date(e.created_at).toLocaleString('tr-TR')}
+                        </td>
+                      </tr>
+
+                      {/* Detay satırı */}
+                      {isOpen && (
+                        <tr style={{ background: A.card }}>
+                          <td colSpan={6} style={{ padding: '14px 20px 18px 52px', borderTop: `1px solid ${A.border}` }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+
+                              {/* IP Bilgisi */}
+                              <div>
+                                <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: A.text3, marginBottom: 6 }}>
+                                  IP / Ağ
+                                </p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  {e.ip_hash && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <Hash size={11} color={A.text3} />
+                                      <span style={{ fontFamily: 'monospace', fontSize: 12, color: A.text1, wordBreak: 'break-all' }}>{e.ip_hash}</span>
+                                    </div>
+                                  )}
+                                  {det.subnet_hash && (
+                                    <div style={{ fontSize: 11, color: A.text3 }}>Subnet: {det.subnet_hash}</div>
+                                  )}
+                                  {e.path && (
+                                    <div style={{ fontSize: 11, color: A.text3 }}>Yol: {e.path}</div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Konum */}
+                              {hasLoc && (
+                                <div>
+                                  <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: A.text3, marginBottom: 6 }}>
+                                    Konum
+                                  </p>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <MapPin size={11} color={A.text3} />
+                                      <span style={{ fontSize: 12, color: A.text1 }}>
+                                        {[det.city, det.region, det.country].filter(Boolean).join(', ') || '—'}
+                                      </span>
+                                    </div>
+                                    {det.latitude && det.longitude && (
+                                      <span style={{ fontSize: 11, color: A.text3 }}>
+                                        {Number(det.latitude).toFixed(4)}, {Number(det.longitude).toFixed(4)}
+                                      </span>
+                                    )}
+                                    {det.timezone && (
+                                      <span style={{ fontSize: 11, color: A.text3 }}>TZ: {det.timezone}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Kullanıcı */}
+                              {(e.username || e.email || e.user_id) && (
+                                <div>
+                                  <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: A.text3, marginBottom: 6 }}>
+                                    Kullanıcı
+                                  </p>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    {e.username && (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <User size={11} color={A.text3} />
+                                        <span style={{ fontSize: 12, color: A.text1, fontWeight: 600 }}>{e.username}</span>
+                                      </div>
+                                    )}
+                                    {e.email && (
+                                      <span style={{ fontSize: 11, color: A.text3 }}>{e.email}</span>
+                                    )}
+                                    {e.user_id && (
+                                      <span style={{ fontFamily: 'monospace', fontSize: 11, color: A.text3 }}>{e.user_id}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Tüm detaylar */}
+                              {Object.keys(det).length > 0 && (
+                                <div style={{ gridColumn: hasLoc ? 'span 1' : 'span 2' }}>
+                                  <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: A.text3, marginBottom: 6 }}>
+                                    Detaylar
+                                  </p>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                    {Object.entries(det).map(([k, v]) => (
+                                      <div key={k} style={{ display: 'flex', gap: 8, fontSize: 12 }}>
+                                        <span style={{ color: A.text3, minWidth: 120, flexShrink: 0 }}>{k}</span>
+                                        <span style={{ color: A.text2, wordBreak: 'break-all' }}>
+                                          {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
