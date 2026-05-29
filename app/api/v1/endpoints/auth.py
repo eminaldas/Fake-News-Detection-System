@@ -227,7 +227,7 @@ async def register(
         token_type="bearer",
         expires_in=settings.REMEMBER_ME_EXPIRE_DAYS * 86400,
         user=user,
-        needs_verification=smtp_configured,
+        needs_verification=email_configured,
         needs_onboarding=True,
     )
 
