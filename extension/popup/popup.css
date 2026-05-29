@@ -47,7 +47,7 @@ body {
   width: 400px;
   background: var(--bg);
   color: var(--pri);
-  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Segoe UI', system-ui, sans-serif;
   font-size: 13px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
