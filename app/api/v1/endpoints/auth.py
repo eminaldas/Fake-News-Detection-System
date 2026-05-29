@@ -1,11 +1,8 @@
 import hashlib
 import re
 import secrets
-import smtplib
 import uuid
 from datetime import datetime, timedelta, timezone
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
@@ -193,7 +190,7 @@ async def register(
     elif existing_uname:
         raise HTTPException(status_code=422, detail="Bu bilgilerle kayıt yapılamadı.")
 
-    smtp_configured = bool(settings.SMTP_HOST and settings.SMTP_USER)
+    email_configured = bool(settings.BREVO_API_KEY)
 
     now_iso = datetime.now(timezone.utc).isoformat()
     user = User(
@@ -202,7 +199,7 @@ async def register(
         hashed_password=get_password_hash(body.password),
         role=UserRole.user,
         is_active=True,
-        is_email_verified=not smtp_configured,
+        is_email_verified=not email_configured,
         preferences={
             "terms_version": "v1.0" if body.terms_accepted else None,
             "terms_accepted_at": now_iso if body.terms_accepted else None,
@@ -212,7 +209,7 @@ async def register(
     await db.commit()
     await db.refresh(user)
 
-    if smtp_configured:
+    if email_configured:
         token = secrets.token_urlsafe(32)
         await redis.setex(f"email_verify:{token}", 86400, str(user.id))
         background_tasks.add_task(_send_verification_email, user.email, token, username=body.username)
@@ -349,7 +346,7 @@ async def send_verification(
     token = secrets.token_urlsafe(32)
     await redis.setex(f"email_verify:{token}", 86400, str(current_user.id))
 
-    if bool(settings.SMTP_HOST and settings.SMTP_USER):
+    if bool(settings.BREVO_API_KEY):
         background_tasks.add_task(_send_verification_email, current_user.email, token)
         return {"detail": "Doğrulama emaili gönderildi"}
     else:
@@ -539,37 +536,18 @@ async def _unique_username(display_name: str, db: AsyncSession) -> str:
 
 
 def _send_verification_email(to_email: str, token: str, username: str = "") -> None:
-    try:
-        verify_url = f"{settings.FRONTEND_URL}/verify-email?token={token}"
-        msg        = MIMEMultipart("alternative")
-        msg["Subject"] = "E-postanızı Doğrulayın — Ne Haber"
-        msg["From"]    = f"Ne Haber <{settings.SMTP_FROM}>"
-        msg["To"]      = to_email
-        msg.attach(MIMEText(_build_verify_html(username or to_email.split("@")[0], verify_url), "html"))
-        _smtp_send(msg, to_email)
-    except Exception:
-        pass
+    verify_url = f"{settings.FRONTEND_URL}/verify-email?token={token}"
+    _brevo_send(to_email, "E-postanızı Doğrulayın — Ne Haber",
+                _build_verify_html(username or to_email.split("@")[0], verify_url))
 
 
 def _send_welcome_email(to_email: str, username: str) -> None:
-    try:
-        msg            = MIMEMultipart("alternative")
-        msg["Subject"] = "Hoş Geldiniz — Ne Haber"
-        msg["From"]    = f"Ne Haber <{settings.SMTP_FROM}>"
-        msg["To"]      = to_email
-        msg.attach(MIMEText(_build_welcome_html(username), "html"))
-        _smtp_send(msg, to_email)
-    except Exception:
-        pass
+    _brevo_send(to_email, "Hoş Geldiniz — Ne Haber", _build_welcome_html(username))
 
 
 def _send_recovery_email(to_email: str, token: str, username: str = "") -> None:
     try:
         recover_url = f"{settings.FRONTEND_URL}/recover-account?token={token}"
-        msg            = MIMEMultipart("alternative")
-        msg["Subject"] = "Hesabınızı Geri Yükleyin — Ne Haber"
-        msg["From"]    = f"Ne Haber <{settings.SMTP_FROM}>"
-        msg["To"]      = to_email
         display_name = username or to_email.split("@")[0]
         body = f"""
           <p style="margin:0 0 6px;font-size:11px;color:#10b981;letter-spacing:2px;text-transform:uppercase;">
@@ -598,24 +576,17 @@ def _send_recovery_email(to_email: str, token: str, username: str = "") -> None:
             Geri yüklemek istemiyorsanız bu emaili dikkate almayın — hesabınız otomatik silinecektir.
           </p>
         """
-        msg.attach(MIMEText(_email_base().replace("{{BODY}}", body), "html"))
-        _smtp_send(msg, to_email)
+        _brevo_send(to_email, "Hesabınızı Geri Yükleyin — Ne Haber",
+                    _email_base().replace("{{BODY}}", body))
     except Exception:
         pass
 
 
 def _send_reset_email(to_email: str, token: str, username: str = "") -> None:
-    try:
-        reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
-        msg            = MIMEMultipart("alternative")
-        msg["Subject"] = "Şifrenizi Sıfırlayın — Ne Haber"
-        msg["From"]    = f"Ne Haber <{settings.SMTP_FROM}>"
-        msg["To"]      = to_email
-        display_name = username or to_email.split("@")[0]
-        msg.attach(MIMEText(_build_reset_html(display_name, reset_url), "html"))
-        _smtp_send(msg, to_email)
-    except Exception:
-        pass
+    reset_url    = f"{settings.FRONTEND_URL}/reset-password?token={token}"
+    display_name = username or to_email.split("@")[0]
+    _brevo_send(to_email, "Şifrenizi Sıfırlayın — Ne Haber",
+                _build_reset_html(display_name, reset_url))
 
 
 def _build_reset_html(username: str, reset_url: str) -> str:
@@ -672,15 +643,25 @@ def _build_reset_html(username: str, reset_url: str) -> str:
     return _email_base().replace("{{BODY}}", body)
 
 
-def _smtp_send(msg: MIMEMultipart, to_email: str) -> None:
+def _brevo_send(to_email: str, subject: str, html: str) -> None:
     try:
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as server:
-            server.starttls()
-            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-            server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
-        log.info("smtp.sent", to=to_email)
+        resp = httpx.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={"api-key": settings.BREVO_API_KEY, "Content-Type": "application/json"},
+            json={
+                "sender":      {"name": "Ne Haber", "email": settings.SMTP_FROM},
+                "to":          [{"email": to_email}],
+                "subject":     subject,
+                "htmlContent": html,
+            },
+            timeout=15,
+        )
+        if resp.status_code in (200, 201):
+            log.info("brevo.sent", to=to_email)
+        else:
+            log.error("brevo.failed", to=to_email, status=resp.status_code, body=resp.text[:200])
     except Exception as exc:
-        log.error("smtp.failed", to=to_email, error=str(exc))
+        log.error("brevo.failed", to=to_email, error=str(exc))
 
 
 def _email_base() -> str:

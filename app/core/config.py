@@ -49,12 +49,15 @@ class Settings(BaseSettings):
     RSS_INGEST_QUEUE:    str   = "rss"
     RSS_INGEST_BATCH:    int   = 50
 
-    # Email / SMTP (opsiyonel — boş bırakılırsa email devre dışı)
+    # Email — Brevo HTTP API (opsiyonel — boş bırakılırsa email devre dışı)
+    BREVO_API_KEY: str = ""
+    SMTP_FROM:     str = "noreply@fnds.local"
+
+    # SMTP — artık kullanılmıyor, geriye uyumluluk için korundu
     SMTP_HOST:     str = ""
     SMTP_PORT:     int = 587
     SMTP_USER:     str = ""
     SMTP_PASSWORD: str = ""
-    SMTP_FROM:     str = "noreply@fnds.local"
 
     # Frontend
     FRONTEND_URL: str = "http://localhost:5173"
