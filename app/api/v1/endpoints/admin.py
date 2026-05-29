@@ -2,16 +2,16 @@ from uuid import UUID
 from typing import Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
-from sqlalchemy import select, func, desc
+from sqlalchemy import cast, String, select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import aliased, selectinload
 
 from app.api.deps import get_current_user, require_admin
 from app.core.audit import audit_log
 from app.core.logging import get_logger
 from app.db.redis import get_redis
 from app.db.session import get_db
-from app.models.models import Article, AnalysisResult, User, UserRole, ForumComment, ForumReport, ForumThread
+from app.models.models import AnalysisRequest, Article, AnalysisResult, User, UserRole, ForumComment, ForumReport, ForumThread
 from app.schemas.schemas import (
     AdminUpdateUserRequest, AdminUserResponse, ModerationQueueItem, ModerationQueueResponse,
     PaginatedAdminUserResponse, PaginatedUserResponse, ShadowBanRequest, UserResponse,
@@ -455,19 +455,18 @@ async def list_articles(
     if q:
         filters.append(Article.title.ilike(f"%{q}%"))
 
-    base = select(Article)
-    if filters:
-        base = base.where(*filters)
-
-    count_base = select(func.count()).select_from(base.subquery())
-    total = (await db.execute(count_base)).scalar_one()
-
-    rows = (await db.execute(
+    count_q = select(func.count()).select_from(Article)
+    rows_q  = (
         select(Article, AnalysisResult.status.label("ai_verdict"), AnalysisResult.confidence)
         .outerjoin(AnalysisResult, AnalysisResult.article_id == Article.id)
-        .where(*filters)
-        .order_by(Article.created_at.desc())
-        .offset((page - 1) * size).limit(size)
+    )
+    if filters:
+        count_q = count_q.where(*filters)
+        rows_q  = rows_q.where(*filters)
+
+    total = (await db.execute(count_q)).scalar_one()
+    rows  = (await db.execute(
+        rows_q.order_by(Article.created_at.desc()).offset((page - 1) * size).limit(size)
     )).all()
 
     return {
@@ -488,44 +487,50 @@ async def list_articles(
 
 @router.get("/analysis-results")
 async def list_analysis_results(
-    page:   int           = Query(1, ge=1),
-    size:   int           = Query(20, ge=1, le=100),
+    page:    int           = Query(1, ge=1),
+    size:    int           = Query(20, ge=1, le=100),
     verdict: Optional[str] = Query(None, description="FAKE | AUTHENTIC"),
-    admin:  User          = Depends(require_admin),
-    db:     AsyncSession  = Depends(get_db),
+    admin:   User          = Depends(require_admin),
+    db:      AsyncSession  = Depends(get_db),
 ):
     """Admin: AI analiz sonuçlarını listele — kim yaptı, AI ne dedi, override."""
-    from sqlalchemy import cast, String as SAString
-    from sqlalchemy.orm import aliased
-
     Requester = aliased(User)
 
-    filters = [AnalysisResult.status.isnot(None)]
+    ar_filters = [AnalysisResult.status.isnot(None)]
     if verdict:
-        filters.append(AnalysisResult.status == verdict.upper())
+        ar_filters.append(AnalysisResult.status == verdict.upper())
 
-    base = (
+    # Count
+    total = (await db.execute(
+        select(func.count())
+        .select_from(AnalysisResult)
+        .join(Article, Article.id == AnalysisResult.article_id)
+        .where(*ar_filters)
+    )).scalar_one()
+
+    # Rows — task_id UUID string olarak saklanıyor, text cast ile karşılaştır
+    rows = (await db.execute(
         select(
-            AnalysisResult,
+            AnalysisResult.id,
+            AnalysisResult.article_id,
+            AnalysisResult.status.label("ai_verdict"),
+            AnalysisResult.confidence,
+            AnalysisResult.created_at,
             Article.title,
             Article.status.label("article_status"),
             AnalysisRequest.user_id.label("requester_id"),
-            Requester.username.label("requester_username"),
             AnalysisRequest.analysis_type,
             AnalysisRequest.created_at.label("requested_at"),
+            Requester.username.label("requester_username"),
         )
         .join(Article, Article.id == AnalysisResult.article_id)
         .outerjoin(
             AnalysisRequest,
-            AnalysisRequest.task_id == cast(AnalysisResult.article_id, SAString)
+            AnalysisRequest.task_id == cast(AnalysisResult.article_id, String)
         )
         .outerjoin(Requester, Requester.id == AnalysisRequest.user_id)
-        .where(*filters)
-    )
-
-    total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
-    rows  = (await db.execute(
-        base.order_by(AnalysisResult.created_at.desc())
+        .where(*ar_filters)
+        .order_by(AnalysisResult.created_at.desc())
         .offset((page - 1) * size).limit(size)
     )).all()
 
@@ -533,15 +538,15 @@ async def list_analysis_results(
         "total": total, "page": page, "size": size,
         "items": [
             {
-                "id":                 str(r.AnalysisResult.id),
-                "article_id":         str(r.AnalysisResult.article_id),
+                "id":                 str(r.id),
+                "article_id":         str(r.article_id),
                 "title":              r.title,
                 "article_status":     r.article_status,
-                "ai_verdict":         r.AnalysisResult.status,
-                "confidence":         round(r.AnalysisResult.confidence, 2) if r.AnalysisResult.confidence else None,
+                "ai_verdict":         r.ai_verdict,
+                "confidence":         round(r.confidence, 2) if r.confidence else None,
                 "requester_username": r.requester_username,
                 "analysis_type":      r.analysis_type.value if r.analysis_type else None,
-                "requested_at":       r.requested_at.isoformat() if r.requested_at else r.AnalysisResult.created_at.isoformat(),
+                "requested_at":       (r.requested_at or r.created_at).isoformat(),
             }
             for r in rows
         ],
