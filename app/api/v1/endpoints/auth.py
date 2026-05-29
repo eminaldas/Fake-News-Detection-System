@@ -487,6 +487,12 @@ async def complete_onboarding(
 ):
     from app.models.models import UserPreferenceProfile
 
+    if body.username and body.username != current_user.username:
+        conflict = (await db.execute(select(User).where(User.username == body.username))).scalar_one_or_none()
+        if conflict:
+            raise HTTPException(status_code=422, detail="Bu kullanıcı adı kullanımda")
+        current_user.username = body.username
+
     if body.avatar_url:
         current_user.avatar_url = body.avatar_url
     current_user.onboarding_completed = True

@@ -47,16 +47,17 @@ const SOURCES = [
     { id: 'diger',      label: 'Diğer',                icon: MoreHorizontal },
 ];
 
-const STEPS = ['Profil Fotoğrafı', 'İlgi Alanları', 'Sizi Tanıyalım'];
+const STEPS_GOOGLE = ['Kullanıcı Adı', 'Profil Fotoğrafı', 'İlgi Alanları', 'Sizi Tanıyalım'];
+const STEPS_NORMAL = ['Profil Fotoğrafı', 'İlgi Alanları', 'Sizi Tanıyalım'];
 const MIN_INTERESTS = 3;
 
 /* ── Tasarım sabitleri ────────────────────────────────────────────── */
 const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 
-function ProgressBar({ step }) {
+function ProgressBar({ step, steps }) {
     return (
         <div className="flex items-center gap-0 mb-10">
-            {STEPS.map((label, i) => (
+            {steps.map((label, i) => (
                 <React.Fragment key={i}>
                     <div className="flex flex-col items-center gap-2">
                         <div
@@ -80,7 +81,7 @@ function ProgressBar({ step }) {
                             {label}
                         </span>
                     </div>
-                    {i < STEPS.length - 1 && (
+                    {i < steps.length - 1 && (
                         <div
                             className="flex-1 h-[2px] mx-2 mb-5 transition-all duration-500"
                             style={{ background: i < step ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)', opacity: i >= step ? 0.3 : 1 }}
@@ -88,6 +89,93 @@ function ProgressBar({ step }) {
                     )}
                 </React.Fragment>
             ))}
+        </div>
+    );
+}
+
+/* ── Step 0 (Google): Kullanıcı Adı ──────────────────────────────── */
+function StepUsername({ currentUsername, username, setUsername, onNext }) {
+    const [localVal, setLocalVal] = React.useState(username || currentUsername || '');
+    const [error,    setError]    = React.useState('');
+
+    const validate = (val) => {
+        if (!val || val.length < 3)           return 'En az 3 karakter olmalı';
+        if (val.length > 30)                  return 'En fazla 30 karakter olmalı';
+        if (!/^[a-z0-9_]+$/.test(val))        return 'Sadece küçük harf, rakam ve _ kullanılabilir';
+        return '';
+    };
+
+    const handleChange = (e) => {
+        const val = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+        setLocalVal(val);
+        setError(validate(val));
+    };
+
+    const handleNext = () => {
+        const err = validate(localVal);
+        if (err) { setError(err); return; }
+        setUsername(localVal);
+        onNext();
+    };
+
+    const hasError = !!validate(localVal);
+
+    return (
+        <div className="flex flex-col gap-6 animate-fade-up">
+            <div>
+                <h2 className="text-3xl font-manrope font-extrabold mb-2"
+                    style={{ color: 'var(--color-text-primary)' }}>
+                    Kullanıcı Adınız
+                </h2>
+                <p className="text-base" style={{ color: 'var(--color-text-primary)', opacity: 0.6 }}>
+                    Platformda görünecek adınızı belirleyin.
+                </p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+                <div className="flex items-center border transition-colors"
+                     style={{
+                         borderColor: error ? '#ef4444' : 'var(--color-brand-primary)',
+                         background:  'rgba(16,185,129,0.04)',
+                     }}>
+                    <span className="px-3 font-mono text-sm select-none"
+                          style={{ color: 'var(--color-brand-primary)' }}>@</span>
+                    <input
+                        type="text"
+                        value={localVal}
+                        onChange={handleChange}
+                        maxLength={30}
+                        className="flex-1 bg-transparent py-3 pr-4 font-mono text-sm outline-none"
+                        style={{ color: 'var(--color-text-primary)' }}
+                        placeholder="kullanici_adi"
+                        autoFocus
+                    />
+                </div>
+                {error && (
+                    <p className="font-mono text-xs" style={{ color: '#ef4444' }}>{error}</p>
+                )}
+                {!error && localVal && (
+                    <p className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                        {'// nehaber.dev/profile/' + localVal}
+                    </p>
+                )}
+            </div>
+
+            <div className="flex gap-4">
+                <button
+                    onClick={() => { setUsername(currentUsername); onNext(); }}
+                    className="px-6 py-3 text-sm font-semibold transition-opacity hover:opacity-70"
+                    style={{ border: '1px solid var(--color-terminal-border-raw)', color: 'var(--color-text-primary)', opacity: 0.6 }}>
+                    Atla
+                </button>
+                <button
+                    onClick={handleNext}
+                    disabled={hasError}
+                    className="flex-1 py-3 font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed"
+                    style={{ background: 'var(--color-brand-primary)', color: '#070f12', boxShadow: hasError ? 'none' : '0 6px 20px rgba(16,185,129,0.25)' }}>
+                    Devam Et <ArrowRight className="w-4 h-4" />
+                </button>
+            </div>
         </div>
     );
 }
@@ -325,7 +413,17 @@ export default function Onboarding() {
     const { user, completeOnboarding } = useAuth();
     const navigate                     = useNavigate();
 
-    const [step,      setStep]      = useState(0);
+    const isGoogleUser = !!user?.google_id;
+    const STEPS        = isGoogleUser ? STEPS_GOOGLE : STEPS_NORMAL;
+
+    // Step indeksleri
+    const usernameStep  = 0;                     // sadece Google kullanıcıları
+    const avatarStep    = isGoogleUser ? 1 : 0;
+    const interestsStep = isGoogleUser ? 2 : 1;
+    const sourceStep    = isGoogleUser ? 3 : 2;
+
+    const [step,      setStep]      = useState(isGoogleUser ? usernameStep : avatarStep);
+    const [username,  setUsername]  = useState(user?.username || '');
     const [avatar,    setAvatar]    = useState(null);
     const [interests, setInterests] = useState([]);
     const [source,    setSource]    = useState('');
@@ -334,17 +432,22 @@ export default function Onboarding() {
 
     const handleAvatarNext = (val) => {
         setAvatar(val);
-        setStep(1);
+        setStep(interestsStep);
     };
 
     const handleFinish = async () => {
         setLoading(true);
         setError('');
-        const result = await completeOnboarding({
+        const payload = {
             avatar_url:       avatar || undefined,
             interests,
             marketing_source: source || undefined,
-        });
+        };
+        // Google kullanıcısı farklı bir kullanıcı adı seçtiyse gönder
+        if (isGoogleUser && username && username !== user?.username) {
+            payload.username = username;
+        }
+        const result = await completeOnboarding(payload);
         if (result.success) {
             navigate('/', { replace: true });
         } else {
@@ -368,7 +471,7 @@ export default function Onboarding() {
             </div>
 
             {/* Progress */}
-            <ProgressBar step={step} />
+            <ProgressBar step={step} steps={STEPS} />
 
             {/* Kart */}
             <div
@@ -391,7 +494,15 @@ export default function Onboarding() {
                     </div>
                 )}
 
-                {step === 0 && (
+                {isGoogleUser && step === usernameStep && (
+                    <StepUsername
+                        currentUsername={user?.username}
+                        username={username}
+                        setUsername={setUsername}
+                        onNext={() => setStep(avatarStep)}
+                    />
+                )}
+                {step === avatarStep && (
                     <StepAvatar
                         user={user}
                         avatar={avatar}
@@ -399,19 +510,19 @@ export default function Onboarding() {
                         onNext={handleAvatarNext}
                     />
                 )}
-                {step === 1 && (
+                {step === interestsStep && (
                     <StepInterests
                         selected={interests}
                         setSelected={setInterests}
-                        onBack={() => setStep(0)}
-                        onNext={() => setStep(2)}
+                        onBack={() => setStep(avatarStep)}
+                        onNext={() => setStep(sourceStep)}
                     />
                 )}
-                {step === 2 && (
+                {step === sourceStep && (
                     <StepSource
                         selected={source}
                         setSelected={setSource}
-                        onBack={() => setStep(1)}
+                        onBack={() => setStep(interestsStep)}
                         onFinish={handleFinish}
                         loading={loading}
                     />
@@ -419,7 +530,7 @@ export default function Onboarding() {
             </div>
 
             {/* Atla linki (sadece son adımda değil) */}
-            {step < 2 && (
+            {step < sourceStep && (
                 <div className="text-center mt-4">
                     <button
                         onClick={() => setStep(s => s + 1)}

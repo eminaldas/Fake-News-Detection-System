@@ -4,7 +4,7 @@ import {
     Search, Brain, Globe, Shield, Cpu, Database,
     Zap, Eye, Target, CheckCircle2, Clock, Circle,
     ArrowRight, Layers, Users, BarChart2, Timer,
-    Github, ExternalLink,
+    Github, ExternalLink, Mail,
 } from 'lucide-react';
 
 const BRAND   = 'var(--color-brand-primary)';
@@ -408,6 +408,35 @@ const About = () => (
                     Analiz Sayfasına Git
                     <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
+            </div>
+        </Reveal>
+
+        {/* ══ İLETİŞİM ══════════════════════════════════════ */}
+        <Reveal>
+            <div className="mt-6 relative border p-7 flex flex-col sm:flex-row items-start sm:items-center gap-5"
+                 style={{ background: SURFACE, borderColor: BORDER }}>
+                <Notch size={12} />
+                <div className="flex items-center gap-3 shrink-0">
+                    <div className="p-2.5 border" style={{ borderColor: BORDER }}>
+                        <Mail className="w-5 h-5" style={{ color: BRAND }} />
+                    </div>
+                </div>
+                <div className="flex-1">
+                    <p className="font-mono text-[10px] uppercase tracking-widest mb-1" style={{ color: BRAND }}>
+                        // İLETİŞİM
+                    </p>
+                    <p className="font-mono text-sm font-bold mb-0.5" style={{ color: 'var(--color-text-primary)' }}>
+                        Bize Ulaşın
+                    </p>
+                    <p className="font-mono text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+                        Öneri, iş birliği veya hata bildirimi için:
+                    </p>
+                </div>
+                <a href="mailto:iletisim@nehaber.dev"
+                   className="font-mono text-xs font-bold border px-4 py-2 transition-all hover:brightness-110 shrink-0"
+                   style={{ borderColor: BRAND, color: BRAND, background: 'rgba(16,185,129,0.06)' }}>
+                    iletisim@nehaber.dev
+                </a>
             </div>
         </Reveal>
 

@@ -138,6 +138,7 @@ class GoogleAuthResponse(BaseModel):
 
 
 class OnboardingRequest(BaseModel):
+    username:         Optional[str]  = None
     avatar_url:       Optional[str]  = None
     interests:        List[str]      = Field(default_factory=list)
     marketing_source: Optional[str]  = None
