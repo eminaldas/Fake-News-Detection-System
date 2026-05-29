@@ -6,11 +6,11 @@
 </head>
 <body>
 
-  <!-- ── Header — her zaman görünür ── -->
+  <!-- ── Header ── -->
   <div class="hdr">
     <div class="logo">
       <div class="logo-icon">SH</div>
-      <div class="logo-text"><em>Sahte</em> Haber Dedektifi</div>
+      <div class="logo-text"><em>nehaber</em> Dedektifi</div>
     </div>
     <div class="conn" id="conn">
       <div class="dot dot-off" id="conn-dot"></div>
@@ -18,39 +18,31 @@
     </div>
   </div>
 
-  <!-- ── View: Giriş ── -->
-  <div id="view-login" class="view">
-    <div class="login-title">Hoş geldiniz</div>
-    <div class="login-sub">Haberleri analiz etmek için giriş yapın</div>
-    <label class="lbl" for="username">E-posta</label>
-    <input id="username" class="field" type="email"
-           placeholder="kullanici@example.com" autocomplete="email">
-    <label class="lbl" for="password">Şifre</label>
-    <input id="password" class="field" type="password"
-           placeholder="••••••••" autocomplete="current-password">
-    <div class="btn-row">
-      <button id="btn-login" class="btn btn-primary btn-full">Giriş Yap</button>
-    </div>
-    <div id="login-err" class="err hidden"></div>
-  </div>
-
-  <!-- ── View: Analiz hazır (Layer 1) ── -->
-  <div id="view-analyze" class="view hidden">
+  <!-- ── View: Signals (NLP sonuçları) ── -->
+  <div id="view-signals" class="view hidden">
     <div class="url-bar">
       <span class="url-ico">⬡</span>
-      <span class="url-host" id="a-host"></span>
-      <span class="url-path" id="a-path"></span>
+      <span class="url-host" id="s-host"></span>
+      <span class="url-path" id="s-path"></span>
     </div>
-    <div id="l1-card" class="hidden"></div>
+    <div id="s-verdict" class="verdict-mini hidden"></div>
+    <div id="s-signals" class="signals-mini hidden">
+      <div class="mono-lbl" style="margin-bottom:6px">NLP Sinyalleri</div>
+      <div id="s-sig-rows"></div>
+    </div>
     <div class="btn-row">
-      <button id="btn-analyze" class="btn btn-primary btn-full">Detaylı Analiz Et</button>
+      <button id="btn-analyze" class="btn btn-primary btn-full">Analiz Et</button>
     </div>
     <div class="btn-row" style="margin-top:4px">
-      <button id="btn-logout" class="btn btn-ghost btn-full">Çıkış Yap</button>
+      <button id="btn-user" class="btn btn-ghost btn-full">👤 Giriş Yap / Hesabım</button>
+    </div>
+    <div id="limit-warn" class="limit-warn hidden">
+      5 ücretsiz analiz hakkın doldu —
+      <a id="btn-login-link">giriş yap</a>
     </div>
   </div>
 
-  <!-- ── View: Yükleniyor (Layer 2) ── -->
+  <!-- ── View: Yükleniyor ── -->
   <div id="view-loading" class="view hidden">
     <div class="url-bar">
       <span class="url-ico">⬡</span>
@@ -110,12 +102,10 @@
     <div class="btn-row">
       <button id="btn-report"    class="btn btn-primary hidden">Tam Rapor</button>
       <button id="btn-reanalyze" class="btn btn-sec">Yeniden</button>
-      <button id="btn-logout2"   class="btn btn-ghost">Çıkış</button>
     </div>
   </div>
 
-
-<div class="footnote">nehaber.dev · v1.2</div>
+  <div class="footnote">nehaber.dev · v2.0</div>
 
   <script src="popup.js"></script>
 </body>

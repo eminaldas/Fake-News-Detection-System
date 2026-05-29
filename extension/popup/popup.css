@@ -652,6 +652,48 @@ body {
 }
 .shortcut-desc { font-size: 10px; color: var(--mut); }
 
+/* ── Signals mini view ── */
+.verdict-mini {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.verdict-mini.v-fake { background: var(--fake-bg); color: var(--fake); border-color: var(--fake-brd); }
+.verdict-mini.v-warn { background: var(--warn-bg); color: var(--warn); border-color: var(--warn-brd); }
+.verdict-mini.v-auth { background: var(--auth-bg); color: var(--auth); border-color: var(--auth-brd); }
+
+.signals-mini .sig-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 7px;
+}
+.signals-mini .sig-name { font-size: 11px; color: var(--pri); width: 90px; flex-shrink: 0; }
+.signals-mini .sig-track {
+  flex: 1; height: 4px; background: var(--surface-2);
+  border-radius: 2px; overflow: hidden;
+}
+.signals-mini .sig-fill {
+  height: 100%; border-radius: 2px; width: 0%;
+  transition: width 0.8s cubic-bezier(0.22,1,0.36,1);
+}
+.signals-mini .sig-val {
+  font-size: 10px; font-family: monospace; width: 30px; text-align: right;
+}
+
+/* ── Limit uyarısı ── */
+.limit-warn {
+  margin-top: 8px; padding: 8px 12px;
+  background: rgba(245,158,11,0.10);
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: 6px; font-size: 10px; color: #f59e0b;
+  text-align: center;
+}
+.limit-warn a {
+  color: #f59e0b; text-decoration: underline; cursor: pointer;
+}
+
 /* ── Footnote ── */
 .footnote {
   padding: 6px 12px;
