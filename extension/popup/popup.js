@@ -12,7 +12,7 @@ function parseUrl(url) {
     try {
         const u    = new URL(url);
         const path = u.pathname.length > 1
-            ? u.pathname.slice(0, 36) + (u.pathname.length > 36 ? '…' : '')
+            ? u.pathname.slice(0, 40) + (u.pathname.length > 40 ? '…' : '')
             : '';
         return { host: u.hostname, path };
     } catch { return { host: (url || '').slice(0, 30), path: '' }; }
@@ -27,54 +27,78 @@ function fillUrlBar(hostId, pathId, url) {
 function setConn(state) {
     const dot = $('conn-dot');
     const lbl = $('conn-lbl');
-    dot.className = 'dot';
+    dot.className = 'conn-dot';
     if (state === 'online') {
-        dot.classList.add('dot-on');   lbl.textContent = 'bağlı';
+        dot.classList.add('on');   lbl.textContent = 'bağlı';
     } else if (state === 'analyzing') {
-        dot.classList.add('dot-busy'); lbl.textContent = 'analiz ediliyor';
+        dot.classList.add('busy'); lbl.textContent = 'analiz ediliyor';
     } else {
-        dot.classList.add('dot-off');  lbl.textContent = '—';
+        dot.classList.add('off');  lbl.textContent = '—';
     }
 }
 
 function getTheme(status) {
     const s = (status || '').toUpperCase().trim();
     if (['FAKE', 'YANLIŞ', 'YANLIS', 'FALSE'].includes(s))
-        return { cls: 'v-fake', hex: '#ff7351', tag: '[ RİSK TESPİT EDİLDİ ]', title: 'Yüksek Yanıltma Riski Mevcut' };
+        return { cls: 'v-fake', color: '#ff7351', badge: 'SAHTE HABER', title: 'Yüksek Yanıltma Riski Mevcut' };
     if (['AUTHENTIC', 'DOĞRU', 'DOGRU', 'TRUE', 'REAL'].includes(s))
-        return { cls: 'v-auth', hex: '#3fff8b', tag: '[ ANALİZ TAMAMLANDI ]', title: 'Güvenilir İçerik Tespit Edildi' };
-    return { cls: 'v-warn', hex: '#f59e0b', tag: '[ İDDİA / BELİRSİZ ]', title: 'Sonuç Doğrulanamadı' };
+        return { cls: 'v-auth', color: '#3fff8b', badge: 'GÜVENİLİR',  title: 'Güvenilir İçerik Tespit Edildi' };
+    return { cls: 'v-warn', color: '#f59e0b', badge: 'BELİRSİZ',  title: 'Sonuç Doğrulanamadı' };
 }
 
+// ── Signals (NLP) ────────────────────────────────────────────────────────
 const SIG_THRESH = 0.05;
 const SIG_CONFIG = [
-    { key: 'clickbait_score',   label: 'Clickbait',   color: '#ff7351' },
-    { key: 'caps_ratio',        label: 'Büyük Harf',  color: '#f59e0b' },
-    { key: 'exclamation_ratio', label: 'Ünlem',        color: '#f59e0b' },
-    { key: 'hedge_ratio',       label: 'Belirsiz Dil', color: '#f59e0b' },
-    { key: 'source_score',      label: 'Kaynak',       color: '#3fff8b' },
+    { key: 'clickbait_score',   label: 'Clickbait',    color: '#ff7351' },
+    { key: 'caps_ratio',        label: 'Büyük Harf',   color: '#f59e0b' },
+    { key: 'exclamation_ratio', label: 'Ünlem',         color: '#f59e0b' },
+    { key: 'hedge_ratio',       label: 'Belirsiz Dil',  color: '#f59e0b' },
+    { key: 'source_score',      label: 'Güvenilir Kaynak', color: '#3fff8b' },
 ];
 
-function renderSignalsMini(signals) {
-    const container = $('s-sig-rows');
+function renderSignalRows(containerId, signals, limit = 4) {
+    const container = $(containerId);
     container.innerHTML = '';
-    const visible = SIG_CONFIG.filter(s => (signals[s.key] || 0) > SIG_THRESH).slice(0, 4);
-    if (!visible.length) { hide('s-signals'); return; }
+    const visible = SIG_CONFIG.filter(s => (signals[s.key] || 0) > SIG_THRESH).slice(0, limit);
+    if (!visible.length) return false;
     visible.forEach(({ key, label, color }) => {
         const val = Math.min(Math.round((signals[key] || 0) * 100), 100);
         const row = document.createElement('div');
         row.className = 'sig-row';
         row.innerHTML = `
             <div class="sig-name">${label}</div>
-            <div class="sig-track">
-                <div class="sig-fill" style="width:0%;background:${color}"></div>
-            </div>
+            <div class="sig-track"><div class="sig-fill" style="width:0%;background:${color}"></div></div>
             <div class="sig-val" style="color:${color}">%${val}</div>
         `;
         container.appendChild(row);
-        setTimeout(() => row.querySelector('.sig-fill').style.width = `${val}%`, 80);
+        requestAnimationFrame(() => {
+            setTimeout(() => { row.querySelector('.sig-fill').style.width = `${val}%`; }, 60);
+        });
     });
-    show('s-signals');
+    return true;
+}
+
+function buildExplanation(signals) {
+    if (!signals) return null;
+    const tw    = signals.triggered_words || {};
+    const parts = [];
+    if ((signals.clickbait_score || 0) > 0.12) {
+        const w = (tw.clickbait || []).slice(0, 3);
+        parts.push(w.length ? `'${w.join("', '")}' gibi clickbait ifadeler` : 'clickbait dil yapısı');
+    }
+    if ((signals.exclamation_ratio || 0) > 0.12) parts.push('yüksek ünlem oranı');
+    if ((signals.caps_ratio        || 0) > 0.12) parts.push('anormal büyük harf kullanımı');
+    if ((signals.hedge_ratio       || 0) > 0.12) {
+        const w = (tw.hedge || []).slice(0, 2);
+        parts.push(w.length ? `'${w.join("', '")}' gibi belirsiz kaynak ifadeleri` : 'belirsiz kaynak dili');
+    }
+    if (!parts.length) {
+        if ((signals.source_score || 0) > 0.12) return 'İçerikte güvenilir kaynak referansları tespit edildi.';
+        return null;
+    }
+    let s = `Bu haber ${parts.join(', ')} içeriyor.`;
+    if ((signals.source_score || 0) > 0.12) s += ' Ancak güvenilir kaynak referansları da mevcut.';
+    return s;
 }
 
 // ── Loading ───────────────────────────────────────────────────────────────
@@ -86,7 +110,7 @@ const LOAD_STEPS = [
 ];
 const TIPS = [
     '"Şok", "Bomba", "Flaş" gibi kelimeler clickbait haberlerin en güçlü göstergesidir.',
-    'Anonim kaynaklı haberler gerçek olma ihtimalini azaltır.',
+    'Anonim kaynaklı haberler güvenilirliği azaltır.',
     'Eski haberler yeni gelişmeler gibi sunulabilir — tarihi kontrol edin.',
     'Resmi kaynaklara referans veren haberler daha güvenilir eğilimindedir.',
 ];
@@ -100,7 +124,7 @@ function _clearLoading() {
 
 function showLoading(url) {
     _clearLoading();
-    ALL_VIEWS.forEach(hide);
+    ALL_VIEWS.forEach(id => hide(id));
     if (url) fillUrlBar('l-host', 'l-path', url);
     $('prog').style.width = '5%';
     const list = $('step-list');
@@ -145,75 +169,13 @@ function showLoading(url) {
     setConn('analyzing');
 }
 
-// ── Ring animasyonu ───────────────────────────────────────────────────────
-const RING_CIRC = 2 * Math.PI * 24;
-
-function animateRing(pct, hex) {
-    const fill  = $('ring-fill');
-    const track = $('ring-track');
-    if (!fill) return;
-    fill.setAttribute('stroke', hex);
-    track.setAttribute('stroke', hex + '28');
-    fill.style.transition = 'none';
-    fill.style.strokeDashoffset = RING_CIRC;
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-        fill.style.transition = 'stroke-dashoffset 1.4s cubic-bezier(0.22,1,0.36,1)';
-        fill.style.strokeDashoffset = RING_CIRC * (1 - pct / 100);
-    }));
-}
-
-// ── Sinyal barları (result view) ──────────────────────────────────────────
-function renderSignals(signals, theme) {
-    const container = $('sig-rows');
-    container.innerHTML = '';
-    const visible = SIG_CONFIG.filter(s => (signals[s.key] || 0) > SIG_THRESH).slice(0, 4);
-    if (!visible.length) { hide('signals'); return; }
-    visible.forEach(({ key, label, color }) => {
-        const val = Math.min(Math.round((signals[key] || 0) * 100), 100);
-        const row = document.createElement('div');
-        row.className = 'sig-row';
-        row.innerHTML = `
-            <div class="sig-name">${label}</div>
-            <div class="sig-track">
-                <div class="sig-fill" style="width:0%;background:${color}"></div>
-            </div>
-            <div class="sig-val" style="color:${color}">%${val}</div>
-        `;
-        container.appendChild(row);
-        setTimeout(() => row.querySelector('.sig-fill').style.width = `${val}%`, 120);
-    });
-    show('signals');
-}
-
 // ── Result ────────────────────────────────────────────────────────────────
-function buildExplanation(signals) {
-    if (!signals) return null;
-    const tw    = signals.triggered_words || {};
-    const parts = [];
-    if ((signals.clickbait_score || 0) > 0.12) {
-        const w = (tw.clickbait || []).slice(0, 3);
-        parts.push(w.length ? `'${w.join("', '")}' gibi clickbait ifadeler` : 'clickbait dil yapısı');
-    }
-    if ((signals.exclamation_ratio || 0) > 0.12) parts.push('yüksek ünlem oranı');
-    if ((signals.caps_ratio        || 0) > 0.12) parts.push('anormal büyük harf kullanımı');
-    if ((signals.hedge_ratio       || 0) > 0.12) {
-        const w = (tw.hedge || []).slice(0, 2);
-        parts.push(w.length ? `'${w.join("', '")}' gibi belirsiz kaynak ifadeleri` : 'belirsiz kaynak dili');
-    }
-    if (!parts.length) {
-        if ((signals.source_score || 0) > 0.12) return 'Güvenilir kaynak referansı tespit edildi.';
-        return null;
-    }
-    let s = `Bu haber ${parts.join(', ')} içeriyor.`;
-    if ((signals.source_score || 0) > 0.12) s += ' Ancak güvenilir kaynak referansları da mevcut.';
-    return s;
-}
-
 function showResult(data, url) {
     _clearLoading();
-    ALL_VIEWS.forEach(hide);
+    ALL_VIEWS.forEach(id => hide(id));
     if (url) fillUrlBar('r-host', 'r-path', url);
-    $('prog').style.width = '100%';
+    $('prog') && ($('prog').style.width = '100%');
+
     const result     = data.result || data;
     const rawStatus  = result.status || result.prediction || 'UNKNOWN';
     const confidence = result.confidence ?? 0;
@@ -221,33 +183,105 @@ function showResult(data, url) {
     const signals    = result.signals || null;
     const aiComment  = result.ai_comment || null;
     const theme      = getTheme(rawStatus);
-    $('verdict').className    = `verdict-card ${theme.cls}`;
-    $('v-tag').textContent    = theme.tag;
-    $('v-title').textContent  = theme.title;
-    $('v-meta').textContent   = result.isDirectMatch
+
+    $('verdict').className   = `verdict-card ${theme.cls}`;
+    $('v-tag').textContent   = theme.badge;
+    $('v-title').textContent = theme.title;
+    $('v-meta').textContent  = result.isDirectMatch
         ? 'Veritabanı eşleşmesi'
         : (aiComment?.gemini_verdict ? 'Gemini AI kararı' : 'Yapay zeka sınıflandırması');
     $('ring-pct').textContent = `%${pct}`;
-    $('ring-pct').style.color = theme.hex;
-    animateRing(pct, theme.hex);
+
     const aiText = aiComment?.summary || aiComment?.news_summary
         || aiComment?.verdict_explanation || buildExplanation(signals);
     if (aiText) {
         $('ai-txt').textContent = aiText;
-        $('ai-box').className   = `ai-box ${theme.cls}`;
         show('ai-box');
     } else {
         hide('ai-box');
     }
-    if (signals) renderSignals(signals, theme); else hide('signals');
+
+    if (signals && renderSignalRows('sig-rows', signals)) show('signals');
+    else hide('signals');
+
     const articleId = result.direct_match_data?.db_article_id ?? result.db_article_id;
     if (articleId) show('btn-report'); else hide('btn-report');
+
+    // Badge'i temizle
+    chrome.action.setBadgeText({ text: '' }).catch(() => {});
+
     show('view-result');
     setConn('online');
 }
 
-// ── Views ─────────────────────────────────────────────────────────────────
-const ALL_VIEWS = ['view-signals', 'view-loading', 'view-result'];
+// ── History ───────────────────────────────────────────────────────────────
+function formatDate(ts) {
+    const d = new Date(ts);
+    return d.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' })
+        + ' ' + d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function verdictLabel(verdict) {
+    const v = (verdict || '').toUpperCase();
+    if (['FAKE', 'YANLIŞ', 'YANLIS', 'FALSE'].includes(v)) return { text: 'Sahte', cls: 'v-fake' };
+    if (['AUTHENTIC', 'DOĞRU', 'DOGRU', 'TRUE', 'REAL'].includes(v)) return { text: 'Güvenilir', cls: 'v-auth' };
+    return { text: 'Belirsiz', cls: 'v-warn' };
+}
+
+async function loadHistory() {
+    const { analysisHistory = [] } = await chrome.storage.local.get('analysisHistory');
+    const list  = $('history-list');
+    const empty = $('history-empty');
+    list.innerHTML = '';
+
+    if (!analysisHistory.length) { show('history-empty'); return; }
+    hide('history-empty');
+
+    analysisHistory.forEach(item => {
+        const vl   = verdictLabel(item.verdict);
+        const host = (() => { try { return new URL(item.url).hostname; } catch { return item.url; } })();
+        const el   = document.createElement('a');
+        el.className = `history-item ${vl.cls}`;
+        el.href = '#';
+        el.innerHTML = `
+            <div class="history-left">
+                <div class="history-host">${host}</div>
+                <div class="history-title">${item.url}</div>
+                <div class="history-date">${formatDate(item.ts)}</div>
+            </div>
+            <div class="history-badge ${vl.cls}">${vl.text}</div>
+        `;
+        el.addEventListener('click', (e) => {
+            e.preventDefault();
+            const target = item.articleId
+                ? `https://nehaber.dev/analysis/${item.articleId}`
+                : `https://nehaber.dev`;
+            chrome.tabs.create({ url: target });
+        });
+        list.appendChild(el);
+    });
+}
+
+// ── Nav tabs ─────────────────────────────────────────────────────────────
+const ALL_VIEWS = ['view-analyze', 'view-loading', 'view-result', 'view-history'];
+let _currentNav = 'analyze';
+
+function switchNav(to) {
+    _currentNav = to;
+    ['analyze', 'history'].forEach(n => {
+        $(`nav-${n}`).classList.toggle('active', n === to);
+    });
+    ALL_VIEWS.forEach(v => hide(v));
+    if (to === 'history') {
+        show('view-history');
+        loadHistory();
+    } else {
+        show('view-analyze');
+    }
+}
+
+$('nav-analyze').addEventListener('click', () => switchNav('analyze'));
+$('nav-history').addEventListener('click', () => switchNav('history'));
 
 // ── Init ──────────────────────────────────────────────────────────────────
 (async () => {
@@ -262,7 +296,7 @@ const ALL_VIEWS = ['view-signals', 'view-loading', 'view-result'];
 
     if (url) fillUrlBar('s-host', 's-path', url);
 
-    // Önceki analiz sonucu var mı? (tab değiştirince kaybolan sorunu çözer)
+    // Önceki analiz sonucu varsa direkt göster
     const { lastResult } = await chrome.storage.local.get('lastResult');
     const TEN_MIN = 10 * 60 * 1000;
     if (lastResult && lastResult.url === url && (Date.now() - lastResult.ts) < TEN_MIN) {
@@ -271,6 +305,7 @@ const ALL_VIEWS = ['view-signals', 'view-loading', 'view-result'];
         return;
     }
 
+    // NLP sinyallerini çek
     let signalsData = null;
     if (tab?.id) {
         const articleText = await new Promise(resolve => {
@@ -290,16 +325,14 @@ const ALL_VIEWS = ['view-signals', 'view-loading', 'view-result'];
         const isFake = risk >= 0.75;
         const isWarn = risk >= 0.50;
         const cls    = isFake ? 'v-fake' : isWarn ? 'v-warn' : 'v-auth';
-        const label  = isFake
-            ? `⚠ Şüpheli — Risk %${pct}`
-            : isWarn
-            ? `⚠ Dikkat — Risk %${pct}`
-            : `✓ Güvenilir — Risk %${pct}`;
-        const verdict = $('s-verdict');
-        verdict.textContent = label;
-        verdict.className   = `verdict-mini ${cls}`;
+        const label  = isFake ? `Yüksek Risk — %${pct}`
+                     : isWarn ? `Orta Risk — %${pct}`
+                     : `Düşük Risk — %${pct}`;
+        const vEl = $('s-verdict');
+        vEl.textContent = label;
+        vEl.className   = `nlp-verdict ${cls}`;
         show('s-verdict');
-        renderSignalsMini(signalsData);
+        if (renderSignalRows('s-sig-rows', signalsData)) show('s-signals');
     }
 
     if (limitReached) {
@@ -307,7 +340,7 @@ const ALL_VIEWS = ['view-signals', 'view-loading', 'view-result'];
         show('limit-warn');
     }
 
-    show('view-signals');
+    show('view-analyze');
     setConn('online');
 })();
 
@@ -320,15 +353,17 @@ $('btn-analyze').addEventListener('click', async () => {
     if (res?.ok) {
         showResult(res.data, tab.url);
     } else {
-        ALL_VIEWS.forEach(hide);
-        show('view-signals');
+        ALL_VIEWS.forEach(id => hide(id));
+        show('view-analyze');
         if (res?.error === 'LIMIT_REACHED') show('limit-warn');
     }
 });
 
 $('btn-reanalyze').addEventListener('click', () => {
-    ALL_VIEWS.forEach(hide);
-    show('view-signals');
+    chrome.storage.local.remove('lastResult');
+    ALL_VIEWS.forEach(id => hide(id));
+    show('view-analyze');
+    setConn('online');
 });
 
 $('btn-report').addEventListener('click', () => {
@@ -340,5 +375,9 @@ $('btn-user').addEventListener('click', () => {
 });
 
 $('btn-login-link').addEventListener('click', () => {
+    chrome.tabs.create({ url: 'https://nehaber.dev' });
+});
+
+$('btn-history-login').addEventListener('click', () => {
     chrome.tabs.create({ url: 'https://nehaber.dev' });
 });

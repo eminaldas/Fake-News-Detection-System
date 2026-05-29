@@ -158,10 +158,29 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
                 }
                 if (!token) await incrementFreeCount();
                 const data = await apiAnalyzeUrl(msg.url);
-                // Sonucu storage'a kaydet — popup kapanmış olsa bile açılınca okusun
+                // Sonucu cache'e kaydet — popup kapanmış olsa bile açılınca okusun
                 await chrome.storage.local.set({
                     lastResult: { url: msg.url, data, ts: Date.now() }
                 });
+
+                // Geçmişe ekle (max 5)
+                const { analysisHistory = [] } = await chrome.storage.local.get('analysisHistory');
+                const result  = data.result || data;
+                const histItem = {
+                    url:       msg.url,
+                    verdict:   result.status || result.prediction || 'UNKNOWN',
+                    confidence: result.confidence ?? 0,
+                    articleId: result.direct_match_data?.db_article_id ?? result.db_article_id ?? null,
+                    ts:        Date.now(),
+                };
+                analysisHistory.unshift(histItem);
+                if (analysisHistory.length > 5) analysisHistory.splice(5);
+                await chrome.storage.local.set({ analysisHistory });
+
+                // Badge bildirimi
+                chrome.action.setBadgeText({ text: '!' }).catch(() => {});
+                chrome.action.setBadgeBackgroundColor({ color: '#10b981' }).catch(() => {});
+
                 const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
                 if (tab?.id) {
                     chrome.tabs.sendMessage(tab.id, { type: 'ANALYSIS_RESULT', data }).catch(() => {});
