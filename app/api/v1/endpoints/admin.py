@@ -11,7 +11,7 @@ from app.core.audit import audit_log
 from app.core.logging import get_logger
 from app.db.redis import get_redis
 from app.db.session import get_db
-from app.models.models import Article, User, UserRole, ForumComment, ForumReport, ForumThread
+from app.models.models import Article, AnalysisResult, User, UserRole, ForumComment, ForumReport, ForumThread
 from app.schemas.schemas import (
     AdminUpdateUserRequest, AdminUserResponse, ModerationQueueItem, ModerationQueueResponse,
     PaginatedAdminUserResponse, PaginatedUserResponse, ShadowBanRequest, UserResponse,
@@ -456,21 +456,29 @@ async def list_articles(
     if filters:
         base = base.where(*filters)
 
-    total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
-    items = (await db.execute(
-        base.order_by(Article.created_at.desc()).offset((page - 1) * size).limit(size)
-    )).scalars().all()
+    count_base = select(func.count()).select_from(base.subquery())
+    total = (await db.execute(count_base)).scalar_one()
+
+    rows = (await db.execute(
+        select(Article, AnalysisResult.status.label("ai_verdict"), AnalysisResult.confidence)
+        .outerjoin(AnalysisResult, AnalysisResult.article_id == Article.id)
+        .where(*filters)
+        .order_by(Article.created_at.desc())
+        .offset((page - 1) * size).limit(size)
+    )).all()
 
     return {
         "total": total, "page": page, "size": size,
         "items": [
             {
-                "id":         str(a.id),
-                "title":      a.title,
-                "status":     a.status,
-                "created_at": a.created_at.isoformat() if a.created_at else None,
+                "id":         str(r.Article.id),
+                "title":      r.Article.title,
+                "status":     r.Article.status,
+                "ai_verdict": r.ai_verdict,
+                "confidence": round(r.confidence, 2) if r.confidence else None,
+                "created_at": r.Article.created_at.isoformat() if r.Article.created_at else None,
             }
-            for a in items
+            for r in rows
         ],
     }
 

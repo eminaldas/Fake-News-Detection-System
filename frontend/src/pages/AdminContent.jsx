@@ -335,10 +335,10 @@ function DatasetTab() {
         background: A.blueDim, border: `1px solid ${A.blue}22`,
         fontSize: 13, color: A.text2, lineHeight: 1.6,
       }}>
-        <strong style={{ color: A.blue }}>Dataset Override</strong> — Bilgi tabanındaki makalelerin mevcut etiketini elle düzeltir.
-        {' '}<strong style={{ color: A.brand }}>Doğru</strong> ve <strong style={{ color: A.red }}>Yanlış</strong> etiketleri Teyit/Hoax kaynağından gelir;
-        {' '}<strong style={{ color: A.blue }}>Tamamlandı</strong> etiketli makaleler AI analiziyle işlenmiş içeriklerdir.
-        Override, modelin bir sonraki eğitiminde eğitim verisi olarak kullanılır.
+        <strong style={{ color: A.blue }}>Dataset Override</strong> — Bilgi tabanındaki makalelerin etiketini elle düzeltir.
+        {' '}<strong style={{ color: A.brand }}>Doğru</strong>/<strong style={{ color: A.red }}>Yanlış</strong>: Teyit/Hoax kaynağından.
+        {' '}<strong style={{ color: A.blue }}>Tamamlandı</strong>: AI analiz sonucu — <em>AI Kararı</em> sütununda AI'ın verdiği verdict görünür.
+        {' '}<strong style={{ color: A.amber }}>AUTHENTIC/FAKE olarak işaretlediğiniz haberler bir sonraki model eğitimine doğrudan girer.</strong>
       </div>
 
       {/* Filtreler */}
@@ -370,7 +370,7 @@ function DatasetTab() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead style={{ ...thead }}>
                 <tr>
-                  {['Başlık', 'Mevcut Etiket', 'Override'].map(h => (
+                  {['Başlık', 'Mevcut Etiket', 'AI Kararı', 'Override'].map(h => (
                     <th key={h} style={{ ...th }}>{h}</th>
                   ))}
                 </tr>
@@ -378,12 +378,13 @@ function DatasetTab() {
               <tbody>
                 {articles.length === 0 ? (
                   <tr>
-                    <td colSpan={3} style={{ padding: '40px 16px', textAlign: 'center', color: A.text3 }}>
+                    <td colSpan={4} style={{ padding: '40px 16px', textAlign: 'center', color: A.text3 }}>
                       Makale bulunamadı
                     </td>
                   </tr>
                 ) : articles.map(a => {
-                  const sp = STATUS_PILL[a.status] || { color: A.text3, dim: A.card };
+                  const sp  = STATUS_PILL[a.status] || { color: A.text3, dim: A.card };
+                  const aip = a.ai_verdict ? (STATUS_PILL[a.ai_verdict] || { color: A.text3, dim: A.card }) : null;
                   return (
                     <tr key={a.id}
                       style={{ borderTop: `1px solid ${A.border}`, transition: 'background 0.1s' }}
@@ -397,6 +398,19 @@ function DatasetTab() {
                       </td>
                       <td style={{ ...td }}>
                         <span style={{ ...badge(sp.color, sp.dim) }}>{a.status || '—'}</span>
+                      </td>
+                      {/* AI Kararı */}
+                      <td style={{ ...td }}>
+                        {aip ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <span style={{ ...badge(aip.color, aip.dim) }}>{a.ai_verdict}</span>
+                            {a.confidence && (
+                              <span style={{ fontSize: 10, color: A.text3 }}>%{Math.round(a.confidence * 100)}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span style={{ color: A.text3, fontSize: 12 }}>—</span>
+                        )}
                       </td>
                       <td style={{ ...td }}>
                         <div style={{ display: 'flex', gap: 6 }}>

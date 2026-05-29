@@ -787,9 +787,14 @@ function PostsTab() {
                       <td style={{ ...td, maxWidth: 380 }}>
                         {type === 'thread' ? (
                           <>
-                            <div style={{ fontWeight: 600, color: A.text1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <a
+                              href={`/forum/${item.id}`} target="_blank" rel="noreferrer"
+                              style={{ fontWeight: 600, color: A.text1, textDecoration: 'none', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                              onMouseEnter={e => e.target.style.color = A.brand}
+                              onMouseLeave={e => e.target.style.color = A.text1}
+                            >
                               {item.title}
-                            </div>
+                            </a>
                             <div style={{ fontSize: 12, color: A.text3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
                               {item.body}
                             </div>
@@ -799,9 +804,14 @@ function PostsTab() {
                             <div style={{ color: A.text2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {item.body}
                             </div>
-                            <div style={{ fontSize: 11, color: A.text3, marginTop: 2 }}>
+                            <a
+                              href={`/forum/${item.thread_id}`} target="_blank" rel="noreferrer"
+                              style={{ fontSize: 11, color: A.text3, textDecoration: 'none', marginTop: 2, display: 'block' }}
+                              onMouseEnter={e => e.target.style.color = A.brand}
+                              onMouseLeave={e => e.target.style.color = A.text3}
+                            >
                               ↳ {item.title}
-                            </div>
+                            </a>
                           </>
                         )}
                       </td>
