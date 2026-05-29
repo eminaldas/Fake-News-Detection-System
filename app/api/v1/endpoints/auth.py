@@ -672,10 +672,14 @@ def _build_reset_html(username: str, reset_url: str) -> str:
 
 
 def _smtp_send(msg: MIMEMultipart, to_email: str) -> None:
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-        server.starttls()
-        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-        server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
+    try:
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as server:
+            server.starttls()
+            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
+        log.info("smtp.sent", to=to_email)
+    except Exception as exc:
+        log.error("smtp.failed", to=to_email, error=str(exc))
 
 
 def _email_base() -> str:
