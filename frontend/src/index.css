@@ -17,9 +17,10 @@
     --color-bg-surface-solid: #eaeef2;
 
     /* Metin */
-    --color-text-primary:     #24292f;
-    --color-text-secondary:   #3d4855;
-    --color-text-muted:       #505d6b;
+    --color-text-primary:     #0d2b1a;
+    --color-text-secondary:   #1a4028;
+    --color-text-muted:       #2e5c3a;
+    --color-avatar-border:    var(--color-brand-primary);
 
     /* Kenarlık */
     --color-border:           #d0d7de;
@@ -110,6 +111,7 @@
     --color-text-primary:     #eef2f7;
     --color-text-secondary:   #c9d1d9;
     --color-text-muted:       #7d8896;
+    --color-avatar-border:    #ffffff;
 
     /* Kenarlık */
     --color-border:           #2d343d;

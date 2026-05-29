@@ -163,8 +163,8 @@ export default function BadgeShowcase({ showcase = [], isOwnProfile = false }) {
       `}</style>
 
       <div>
-        <p className="font-mono text-[9px] uppercase tracking-widest mb-3"
-           style={{ color: 'var(--color-text-muted)' }}>// rozetler</p>
+        <p className="font-manrope font-bold text-sm mb-3"
+           style={{ color: 'var(--color-text-primary)' }}>Rozetler</p>
         <div className="flex items-end gap-3 flex-wrap">
           {slots.map((badge, i) => {
             if (!badge) {

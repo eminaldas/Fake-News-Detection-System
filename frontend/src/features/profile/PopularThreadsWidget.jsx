@@ -4,8 +4,8 @@ import { MessageSquare, Flame } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import Skeleton from '../../components/common/Skeleton';
 
-const BD = { borderColor: 'var(--color-terminal-border-raw)' };
-const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
+const BD = { borderColor: 'rgba(16,185,129,0.07)' };
+const S  = { background: 'var(--color-bg-base)', borderColor: 'rgba(16,185,129,0.07)' };
 
 const CAT_COLOR = {
   Siyaset:   'var(--color-accent-blue)',
@@ -77,7 +77,7 @@ export default function PopularThreadsWidget() {
                 to={`/forum/${t.id}`}
                 key={t.id}
                 className="flex flex-col gap-1 px-3 py-2.5 border-b border-l-2 transition-all duration-150 hover:bg-white/5"
-                style={{ borderColor: 'var(--color-terminal-border-raw)', borderLeftColor: 'transparent' }}
+                style={{ borderColor: 'rgba(16,185,129,0.07)', borderLeftColor: 'transparent' }}
                 onMouseEnter={e => { e.currentTarget.style.borderLeftColor = 'var(--color-brand-primary)'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderLeftColor = 'transparent'; }}
               >
@@ -86,7 +86,7 @@ export default function PopularThreadsWidget() {
                     <Flame className="w-3 h-3 shrink-0 mt-0.5"
                            style={{ color: 'var(--color-accent-amber)' }} />
                   )}
-                  <span className="font-mono text-xs leading-snug line-clamp-1 flex-1"
+                  <span className="font-mono text-sm leading-snug line-clamp-1 flex-1"
                         style={{ color: 'var(--color-text-primary)' }}>
                     {t.title}
                   </span>

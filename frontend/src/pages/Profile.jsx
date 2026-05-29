@@ -18,8 +18,8 @@ import RecommendedUsersWidget from '../features/profile/RecommendedUsersWidget';
 import PopularThreadsWidget from '../features/profile/PopularThreadsWidget';
 
 /* ── Sabitler ──────────────────────────────────────────────────────── */
-const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
-const BD = { borderColor: 'var(--color-terminal-border-raw)' };
+const S  = { background: 'rgba(16,185,129,0.07)', borderColor: 'rgba(16,185,129,0.07)' };
+const BD = { borderColor: 'rgba(16,185,129,0.07)' };
 
 const TIER_COLOR = {
     yeni_uye:    'var(--color-text-muted)',
@@ -57,10 +57,15 @@ const FILTER_COLOR = {
 function Corner() {
     return (
         <>
-            <div className="absolute top-0 left-0 w-4 h-0.5 bg-brand pointer-events-none" />
-            <div className="absolute top-0 left-0 h-4 w-0.5 bg-brand pointer-events-none" />
+            {/* Alt-sol */}
+            <div className="absolute bottom-0 left-0 w-4 h-0.5 bg-brand pointer-events-none" />
+            <div className="absolute bottom-0 left-0 h-4 w-0.5 bg-brand pointer-events-none" />
+            {/* Alt-sağ */}
             <div className="absolute bottom-0 right-0 w-4 h-0.5 bg-brand pointer-events-none" />
             <div className="absolute bottom-0 right-0 h-4 w-0.5 bg-brand pointer-events-none" />
+            {/* Aralarında hafif bottom border */}
+            <div className="absolute bottom-0 left-4 right-4 h-px pointer-events-none"
+                 style={{ background: 'var(--color-brand-primary)', opacity: 0.12 }} />
         </>
     );
 }
@@ -69,14 +74,13 @@ function Corner() {
 const PAL_BG   = ['rgba(16,185,129,0.15)','rgba(59,130,246,0.15)','rgba(245,158,11,0.15)','rgba(239,68,68,0.15)','rgba(168,85,247,0.15)'];
 const PAL_TEXT = ['var(--color-brand-primary)','var(--color-accent-blue)','var(--color-accent-amber)','#ef4444','#a855f7'];
 
-function UserAvatar({ username, avatarUrl, trustTier, onClick }) {
-    const idx    = (username?.charCodeAt(0) ?? 0) % PAL_BG.length;
-    const border = TIER_COLOR[trustTier ?? 'yeni_uye'];
+function UserAvatar({ username, avatarUrl, onClick }) {
+    const idx = (username?.charCodeAt(0) ?? 0) % PAL_BG.length;
     return (
         <button onClick={onClick} className="shrink-0 cursor-zoom-in group relative rounded-full"
                 style={{ width: 128, height: 128 }}>
             <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center font-mono font-black text-5xl"
-                 style={{ background: PAL_BG[idx], color: PAL_TEXT[idx], border: `4px solid ${border}` }}>
+                 style={{ background: PAL_BG[idx], color: PAL_TEXT[idx], border: '4px solid var(--color-avatar-border)' }}>
                 {avatarUrl
                     ? <img src={avatarUrl} alt={username} className="w-full h-full object-cover"
                            referrerPolicy="no-referrer"
@@ -201,9 +205,9 @@ function SectionHeader({ icon: Icon, label, onMore }) {
             <div className="grow h-px mx-1" style={{ background: 'var(--color-terminal-border-raw)', opacity: 0.4 }} />
             {onMore && (
                 <button onClick={onMore}
-                        className="flex items-center gap-1 font-mono text-[10px] transition-opacity hover:opacity-70 shrink-0"
+                        className="flex items-center gap-1 font-mono text-xs font-bold transition-opacity hover:opacity-70 shrink-0"
                         style={{ color: 'var(--color-brand-primary)' }}>
-                    tümü <ArrowRight className="w-3 h-3" />
+                    tümünü gör <ArrowRight className="w-3.5 h-3.5" />
                 </button>
             )}
         </div>
@@ -334,23 +338,15 @@ export default function Profile() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ type: 'spring', damping: 22, stiffness: 100 }}
             >
-            <div className="relative border mb-8" style={S}>
+            <div className="relative border mb-8"
+                 style={{
+                     borderColor: 'rgba(16,185,129,0.07)',
+                     background: 'rgba(16,185,129,0.07)',
+                 }}>
                 <Corner />
 
-                {/* Cover: arka planın grid'i görünsün diye saydam → koyu gradyan */}
-                <div className="h-48 w-full relative overflow-hidden"
-                     style={{
-                         backgroundImage: 'linear-gradient(to right, var(--color-terminal-border-raw) 1px, transparent 1px), linear-gradient(to bottom, var(--color-terminal-border-raw) 1px, transparent 1px)',
-                         backgroundSize: '40px 40px',
-                         backgroundColor: 'var(--color-bg-base)',
-                     }}>
-                    <div className="absolute inset-0"
-                         style={{ background: 'linear-gradient(to top, var(--color-terminal-surface) 10%, rgba(7,15,18,0.5) 60%, transparent 100%)' }} />
-                    <div className="absolute top-3 left-3 w-6 h-0.5 bg-brand opacity-60" />
-                    <div className="absolute top-3 left-3 h-6 w-0.5 bg-brand opacity-60" />
-                    <div className="absolute top-3 right-3 w-6 h-0.5 bg-brand opacity-60" />
-                    <div className="absolute top-3 right-3 h-6 w-0.5 bg-brand opacity-60" />
-                </div>
+                {/* Cover: sadece boş alan — arka plan kartın kendi gradyanından geliyor */}
+                <div className="h-48 w-full relative" />
 
                 {/* Avatar + bilgiler */}
                 <div className="relative z-10 px-6 md:px-10 pb-8 -mt-16 flex flex-col md:flex-row gap-6 md:items-end justify-between">
@@ -358,7 +354,6 @@ export default function Profile() {
                         <UserAvatar
                             username={profile.username}
                             avatarUrl={profile.avatar_url}
-                            trustTier={profile.trust_tier}
                             onClick={() => setLightbox(true)}
                         />
 
@@ -376,10 +371,6 @@ export default function Profile() {
                                 )}
                             </div>
 
-                            <p className="font-mono text-sm mb-2" style={{ color: 'var(--color-text-muted)' }}>
-                                @{profile.username}
-                            </p>
-
                             {profile.bio && (
                                 <p className="text-sm leading-relaxed max-w-2xl mb-3"
                                    style={{ color: 'var(--color-text-primary)', opacity: 0.88 }}>
@@ -387,7 +378,7 @@ export default function Profile() {
                                 </p>
                             )}
 
-                            <div className="flex items-center gap-4 flex-wrap text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                            <div className="flex items-center gap-4 flex-wrap text-xs" style={{ color: 'var(--color-brand-primary)' }}>
                                 {joinedDate && (
                                     <span className="flex items-center gap-1 font-mono">
                                         <Calendar className="w-3.5 h-3.5" />
@@ -415,10 +406,10 @@ export default function Profile() {
                     <div className="flex gap-3 shrink-0 pb-2">
                         {isOwnProfile ? (
                             <Link to="/profile/settings"
-                                  className="flex items-center gap-2 px-4 py-2 font-mono text-sm font-bold border transition-colors"
-                                  style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}
-                                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-brand-primary)'; e.currentTarget.style.color = 'var(--color-brand-primary)'; }}
-                                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-terminal-border-raw)'; e.currentTarget.style.color = 'var(--color-text-primary)'; }}>
+                                  className="flex items-center gap-2 px-4 py-2 font-mono text-sm font-bold transition-all"
+                                  style={{ background: 'rgba(16,185,129,0.37)', color: '#ffffff', boxShadow: '0 0 12px rgba(16,185,129,0.2)' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.55)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(16,185,129,0.4)'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.37)'; e.currentTarget.style.boxShadow = '0 0 12px rgba(16,185,129,0.2)'; }}>
                                 <Settings className="w-4 h-4" /> Ayarlar
                             </Link>
                         ) : user && (
@@ -460,8 +451,8 @@ export default function Profile() {
                 </div>
 
                 {/* Stats strip */}
-                <div className="border-t px-6 py-4 flex flex-wrap gap-8 justify-start md:justify-around text-center"
-                     style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'var(--color-bg-base)' }}>
+                <div className="border-b px-6 py-4 flex flex-wrap gap-8 justify-start md:justify-around text-center"
+                     style={{ borderColor: 'rgba(16,185,129,0.7)', background: 'var(--color-bg-base)' }}>
                     {[
                         { label: 'Tartışma',     value: profile.thread_count,    color: 'var(--color-text-primary)',  onClick: null },
                         { label: 'Takipçi',      value: profile.follower_count,  color: 'var(--color-text-primary)',  onClick: () => setFollowModal('followers') },
@@ -706,7 +697,7 @@ function OverviewTab({ threads, analyses, tLoading, aLoading, setActiveTab, setS
                         <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-brand-primary)' }} />
                     </div>
                 ) : threads.length === 0 ? (
-                    <p className="font-mono text-xs py-6" style={{ color: 'var(--color-text-muted)' }}>henüz tartışma yok</p>
+                    <p className="font-mono text-xs py-6" style={{ color: 'var(--color-text-primary)' }}>Henüz tartışma yok</p>
                 ) : (
                     <div className="flex flex-col gap-4">
                         {threads.slice(0, 2).map(t => <ThreadCard key={t.id} thread={t} />)}
@@ -722,7 +713,7 @@ function OverviewTab({ threads, analyses, tLoading, aLoading, setActiveTab, setS
                         <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-brand-primary)' }} />
                     </div>
                 ) : analyses.length === 0 ? (
-                    <p className="font-mono text-xs py-6" style={{ color: 'var(--color-text-muted)' }}>henüz analiz yok</p>
+                    <p className="font-mono text-xs py-6" style={{ color: 'var(--color-text-primary)' }}>Henüz analiz yok</p>
                 ) : (
                     <div className="flex flex-col gap-4">
                         {analyses.slice(0, 3).map((a, i) => (
@@ -745,9 +736,9 @@ function ThreadsTab({ threads, loading, page, totalPages, load }) {
                 </div>
             ) : threads.length === 0 ? (
                 <div className="text-center py-20">
-                    <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-20"
-                                   style={{ color: 'var(--color-text-muted)' }} />
-                    <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>henüz tartışma yok</p>
+                    <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30"
+                                   style={{ color: 'var(--color-text-primary)' }} />
+                    <p className="font-manrope font-bold text-base" style={{ color: 'var(--color-text-primary)' }}>Henüz tartışma yok</p>
                 </div>
             ) : (
                 <>
@@ -782,10 +773,10 @@ function AnalysesTab({ analyses, loading, page, totalPages, load, filter, clearF
                 </div>
             ) : analyses.length === 0 ? (
                 <div className="text-center py-20">
-                    <ShieldAlert className="w-10 h-10 mx-auto mb-3 opacity-20"
-                                 style={{ color: 'var(--color-text-muted)' }} />
-                    <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                        {filter ? `${PRED_L[filter]} sonucu bulunamadı` : 'henüz analiz yok'}
+                    <ShieldAlert className="w-10 h-10 mx-auto mb-3 opacity-30"
+                                 style={{ color: 'var(--color-text-primary)' }} />
+                    <p className="font-manrope font-bold text-base" style={{ color: 'var(--color-text-primary)' }}>
+                        {filter ? `${PRED_L[filter]} sonucu bulunamadı` : 'Henüz analiz yok'}
                     </p>
                 </div>
             ) : (

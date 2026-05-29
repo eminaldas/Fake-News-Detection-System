@@ -6,8 +6,8 @@ import axiosInstance from '../../api/axios';
 import GamificationService from '../../services/gamification.service';
 import Skeleton from '../../components/common/Skeleton';
 
-const BD = { borderColor: 'var(--color-terminal-border-raw)' };
-const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
+const BD = { borderColor: 'rgba(16,185,129,0.07)' };
+const S  = { background: 'var(--color-bg-base)', borderColor: 'rgba(16,185,129,0.07)' };
 
 const PAL_BG   = ['rgba(16,185,129,0.15)','rgba(59,130,246,0.15)','rgba(245,158,11,0.15)','rgba(239,68,68,0.15)','rgba(168,85,247,0.15)'];
 const PAL_TEXT = ['var(--color-brand-primary)','var(--color-accent-blue)','var(--color-accent-amber)','#ef4444','#a855f7'];
@@ -123,7 +123,7 @@ export default function RecommendedUsersWidget({ profileUserId, currentUserId })
             <div
               key={u.user_id}
               className="flex items-center gap-3 px-3 py-2.5 border-b border-l-2 transition-all duration-150 hover:bg-white/5"
-              style={{ borderColor: 'var(--color-terminal-border-raw)', borderLeftColor: 'transparent' }}
+              style={{ borderColor: 'rgba(16,185,129,0.07)', borderLeftColor: 'transparent' }}
               onMouseEnter={e => { e.currentTarget.style.borderLeftColor = 'var(--color-brand-primary)'; }}
               onMouseLeave={e => { e.currentTarget.style.borderLeftColor = 'transparent'; }}
             >
@@ -137,13 +137,13 @@ export default function RecommendedUsersWidget({ profileUserId, currentUserId })
               <div className="flex-1 min-w-0">
                 <button
                   onClick={() => navigate(`/users/${u.user_id}`)}
-                  className="font-mono text-xs font-bold truncate block text-left transition-opacity hover:opacity-70 w-full"
+                  className="font-mono text-sm font-bold truncate block text-left transition-opacity hover:opacity-70 w-full"
                   style={{ color: 'var(--color-text-primary)' }}
                 >
                   {u.username}
                 </button>
-                <span className="font-mono text-[9px]"
-                      style={{ color: 'var(--color-text-muted)' }}>
+                <span className="font-mono text-xs"
+                      style={{ color: 'rgba(238,242,247,0.65)' }}>
                   Seviye {u.level}
                 </span>
               </div>
