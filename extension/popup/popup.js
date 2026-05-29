@@ -262,6 +262,15 @@ const ALL_VIEWS = ['view-signals', 'view-loading', 'view-result'];
 
     if (url) fillUrlBar('s-host', 's-path', url);
 
+    // Önceki analiz sonucu var mı? (tab değiştirince kaybolan sorunu çözer)
+    const { lastResult } = await chrome.storage.local.get('lastResult');
+    const TEN_MIN = 10 * 60 * 1000;
+    if (lastResult && lastResult.url === url && (Date.now() - lastResult.ts) < TEN_MIN) {
+        showResult(lastResult.data, url);
+        setConn('online');
+        return;
+    }
+
     let signalsData = null;
     if (tab?.id) {
         const articleText = await new Promise(resolve => {

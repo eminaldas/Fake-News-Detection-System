@@ -158,6 +158,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
                 }
                 if (!token) await incrementFreeCount();
                 const data = await apiAnalyzeUrl(msg.url);
+                // Sonucu storage'a kaydet — popup kapanmış olsa bile açılınca okusun
+                await chrome.storage.local.set({
+                    lastResult: { url: msg.url, data, ts: Date.now() }
+                });
                 const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
                 if (tab?.id) {
                     chrome.tabs.sendMessage(tab.id, { type: 'ANALYSIS_RESULT', data }).catch(() => {});
