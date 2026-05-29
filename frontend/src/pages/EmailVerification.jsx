@@ -4,6 +4,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axiosInstance from '../api/axios';
 
+const COOLDOWN_KEY  = 'email_resend_cooldown_until';
+const COOLDOWN_SECS = 60;
+
 export default function EmailVerification() {
     const { user, refreshUser } = useAuth();
     const navigate              = useNavigate();
@@ -14,7 +17,27 @@ export default function EmailVerification() {
     const [resending,  setResending]  = useState(false);
     const [resent,     setResent]     = useState(false);
     const [devToken,   setDevToken]   = useState(null);
+    const [cooldown,   setCooldown]   = useState(0); // kalan saniye
     const intervalRef = useRef(null);
+
+    /* Sayfa yüklenince localStorage'dan cooldown'ı geri yükle */
+    useEffect(() => {
+        const until = parseInt(localStorage.getItem(COOLDOWN_KEY) || '0', 10);
+        const remaining = Math.ceil((until - Date.now()) / 1000);
+        if (remaining > 0) setCooldown(remaining);
+    }, []);
+
+    /* Geri sayım tick */
+    useEffect(() => {
+        if (cooldown <= 0) return;
+        const t = setTimeout(() => setCooldown(c => c - 1), 1000);
+        return () => clearTimeout(t);
+    }, [cooldown]);
+
+    const startCooldown = (secs = COOLDOWN_SECS) => {
+        localStorage.setItem(COOLDOWN_KEY, String(Date.now() + secs * 1000));
+        setCooldown(secs);
+    };
 
     /* Token URL'den geldiyse otomatik doğrula */
     useEffect(() => {
@@ -46,14 +69,20 @@ export default function EmailVerification() {
     }, [status, refreshUser]);
 
     const handleResend = async () => {
+        if (cooldown > 0 || resending) return;
         setResending(true);
         try {
             const data = await axiosInstance.post('/auth/send-verification').then(r => r.data);
             if (data.token) setDevToken(data.token); // dev mode
             setResent(true);
+            startCooldown();
             setTimeout(() => setResent(false), 4000);
-        } catch { /* sessiz */ }
-        finally { setResending(false); }
+        } catch (err) {
+            const retryAfter = err?.response?.data?.detail?.retry_after;
+            if (retryAfter) startCooldown(retryAfter);
+        } finally {
+            setResending(false);
+        }
     };
 
     return (
@@ -107,10 +136,14 @@ export default function EmailVerification() {
                                 <p className="text-sm mb-5" style={{ color: 'var(--color-text-primary)', opacity: 0.6 }}>
                                     Doğrulama bağlantısı süresi dolmuş veya hatalı.
                                 </p>
-                                <button onClick={handleResend} disabled={resending}
+                                <button onClick={handleResend} disabled={resending || cooldown > 0}
                                     className="px-6 py-3 font-bold text-sm transition-opacity hover:opacity-80 disabled:opacity-40"
                                     style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
-                                    {resending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Yeni Bağlantı Gönder'}
+                                    {resending
+                                        ? <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                                        : cooldown > 0
+                                            ? `${cooldown}sn sonra tekrar dene`
+                                            : 'Yeni Bağlantı Gönder'}
                                 </button>
                             </div>
                         </>
@@ -182,12 +215,12 @@ export default function EmailVerification() {
 
                             <button
                                 onClick={handleResend}
-                                disabled={resending}
+                                disabled={resending || cooldown > 0}
                                 className="flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-70 disabled:opacity-40"
-                                style={{ color: 'var(--color-text-primary)', opacity: 0.6 }}
+                                style={{ color: 'var(--color-text-primary)', opacity: cooldown > 0 ? 0.4 : 0.6 }}
                             >
                                 <RefreshCw className={`w-4 h-4 ${resending ? 'animate-spin' : ''}`} />
-                                Tekrar gönder
+                                {cooldown > 0 ? `${cooldown}sn sonra tekrar gönder` : 'Tekrar gönder'}
                             </button>
                         </>
                     )}

@@ -334,6 +334,8 @@ async def google_auth(
 
 # ── Email verification ────────────────────────────────────────────────────────
 
+_RESEND_COOLDOWN_SECS = 60
+
 @router.post("/send-verification", status_code=200)
 async def send_verification(
     background_tasks: BackgroundTasks,
@@ -343,8 +345,17 @@ async def send_verification(
     if current_user.is_email_verified:
         return {"detail": "Email zaten doğrulandı"}
 
+    cooldown_key = f"resend_cooldown:{current_user.id}"
+    ttl = await redis.ttl(cooldown_key)
+    if ttl > 0:
+        raise HTTPException(
+            status_code=429,
+            detail={"message": "Çok sık gönderim.", "retry_after": int(ttl)},
+        )
+
     token = secrets.token_urlsafe(32)
     await redis.setex(f"email_verify:{token}", 86400, str(current_user.id))
+    await redis.setex(cooldown_key, _RESEND_COOLDOWN_SECS, "1")
 
     if bool(settings.BREVO_API_KEY):
         background_tasks.add_task(_send_verification_email, current_user.email, token)
