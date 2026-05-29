@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Users, MessageSquare, CheckCircle, XCircle, AlertTriangle,
   ShieldBan, Shield, Loader2, ChevronLeft, ChevronRight, History,
+  FileText, Trash2, Search,
 } from 'lucide-react';
 import axiosInstance from '../api/axios';
 import popup from '../services/popup';
@@ -9,8 +10,9 @@ import toast from '../services/toast';
 import { A, pageWrap, tableWrap, thead, th, td, badge, ghostBtn, card, cardHead, ANIM } from './adminTheme';
 
 const TABS = [
-  { key: 'queue',      label: 'Moderasyon Kuyruğu', icon: MessageSquare },
-  { key: 'reputation', label: 'İtibar Yönetimi',     icon: Users },
+  { key: 'posts',      label: 'İçerikler',           icon: FileText     },
+  { key: 'queue',      label: 'Moderasyon Kuyruğu',  icon: MessageSquare },
+  { key: 'reputation', label: 'İtibar Yönetimi',      icon: Users        },
 ];
 
 const PAGE_SIZE = 20;
@@ -606,9 +608,348 @@ function ReputationTab() {
   );
 }
 
+/* ── İçerikler Sekmesi ───────────────────────────────────────────────────── */
+const ACTION_CONFIG_POSTS = {
+  warn:       { label: 'Uyar',        color: A.amber, dim: A.amberDim },
+  restrict:   { label: 'Kısıtla',     color: A.amber, dim: A.amberDim },
+  shadow_ban: { label: 'Gölge Yasak', color: A.red,   dim: A.redDim   },
+  ban:        { label: 'Kalıcı Ban',  color: A.red,   dim: A.redDim   },
+};
+
+const PAGE_SIZE_POSTS = 20;
+
+function PostsTab() {
+  const [type,    setType]    = useState('thread');
+  const [items,   setItems]   = useState([]);
+  const [total,   setTotal]   = useState(0);
+  const [page,    setPage]    = useState(1);
+  const [q,       setQ]       = useState('');
+  const [qInput,  setQInput]  = useState('');
+  const [loading, setLoading] = useState(true);
+  const [acting,  setActing]  = useState(null);
+
+  // Warn modal
+  const [warnTarget,   setWarnTarget]   = useState(null); // { id, username, postId, postType }
+  const [warnAction,   setWarnAction]   = useState('warn');
+  const [warnReason,   setWarnReason]   = useState('');
+  const [warnRestrict, setWarnRestrict] = useState({ can_comment: true, can_post_analysis: true, can_create_thread: true });
+  const [warnBusy,     setWarnBusy]     = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ type, page, size: PAGE_SIZE_POSTS });
+      if (q) params.set('q', q);
+      const res = await axiosInstance.get(`/admin/forum/posts?${params}`);
+      setItems(res.data.items || []);
+      setTotal(res.data.total || 0);
+    } catch { /* sessiz */ } finally { setLoading(false); }
+  }, [type, page, q]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const deletePost = (item) => {
+    popup.confirm({
+      title:        `${item.type === 'thread' ? 'Başlığı' : 'Yorumu'} sil`,
+      message:      `"${(item.title || item.body).slice(0, 60)}…" kalıcı olarak silinecek.`,
+      danger:       true,
+      confirmLabel: 'Sil',
+      onConfirm: async () => {
+        setActing(item.id + '_del');
+        try {
+          if (item.type === 'thread') {
+            await axiosInstance.delete(`/admin/forum/threads/${item.id}`);
+          } else {
+            await axiosInstance.post(`/admin/forum/comments/${item.id}/remove`);
+          }
+          toast.success('İçerik silindi');
+          load();
+        } catch (e) {
+          toast.error('Silme başarısız', { sub: e.response?.data?.detail || e.message });
+        } finally { setActing(null); }
+      },
+    });
+  };
+
+  const submitWarn = async () => {
+    if (!warnReason.trim() || !warnTarget) return;
+    setWarnBusy(true);
+    try {
+      const body = { action: warnAction, reason: warnReason };
+      if (warnAction === 'restrict') body.restrictions = warnRestrict;
+      await axiosInstance.post(`/admin/users/${warnTarget.userId}/punish`, body);
+      toast.success('İşlem uygulandı', { sub: `${ACTION_CONFIG_POSTS[warnAction].label} — ${warnTarget.username}` });
+      setWarnTarget(null);
+      setWarnReason('');
+    } catch (e) {
+      toast.error('İşlem başarısız', { sub: e.response?.data?.detail || e.message });
+    } finally { setWarnBusy(false); }
+  };
+
+  const totalPages = Math.ceil(total / PAGE_SIZE_POSTS) || 1;
+
+  const STATUS_BADGE = {
+    active:       { color: A.brand, dim: A.brandDim },
+    under_review: { color: A.amber, dim: A.amberDim },
+    resolved:     { color: A.blue,  dim: A.blueDim  },
+    flagged_ai:   { color: A.red,   dim: A.redDim   },
+    flagged_user: { color: A.red,   dim: A.redDim   },
+    removed:      { color: A.text3, dim: A.card      },
+    clean:        { color: A.brand, dim: A.brandDim  },
+  };
+
+  return (
+    <>
+      {/* Toolbar */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        {/* Tür toggle */}
+        <div style={{ display: 'flex', gap: 4, background: A.card, borderRadius: 8, padding: 3, border: `1px solid ${A.border}` }}>
+          {[['thread', 'Başlıklar'], ['comment', 'Yorumlar']].map(([v, l]) => (
+            <button key={v} onClick={() => { setType(v); setPage(1); }}
+              style={{
+                padding: '5px 14px', borderRadius: 6, border: 'none', fontFamily: 'inherit',
+                background: type === v ? A.brand : 'transparent',
+                color:      type === v ? '#fff'   : A.text3,
+                fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all 0.12s',
+              }}>
+              {l}
+            </button>
+          ))}
+        </div>
+
+        {/* Arama */}
+        <form onSubmit={e => { e.preventDefault(); setQ(qInput.trim()); setPage(1); }}
+          style={{ display: 'flex', gap: 6, flex: 1, maxWidth: 360 }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={13} color={A.text3} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              value={qInput} onChange={e => setQInput(e.target.value)}
+              placeholder={type === 'thread' ? 'Başlıkta ara…' : 'İçerikte ara…'}
+              style={{
+                width: '100%', padding: '7px 12px 7px 30px', borderRadius: 8,
+                border: `1px solid ${A.border}`, background: A.card, color: A.text1,
+                fontSize: 12, fontFamily: 'inherit', boxSizing: 'border-box',
+              }}
+            />
+          </div>
+          <button type="submit" style={{
+            padding: '7px 14px', borderRadius: 8, border: 'none',
+            background: A.brand, color: '#fff', fontSize: 12, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>Ara</button>
+          {q && (
+            <button type="button" onClick={() => { setQ(''); setQInput(''); setPage(1); }}
+              style={{ padding: '7px 12px', borderRadius: 8, border: `1px solid ${A.border}`, background: 'transparent', color: A.text3, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+              Temizle
+            </button>
+          )}
+        </form>
+
+        <span style={{ fontSize: 12, color: A.text3, marginLeft: 'auto' }}>{total} kayıt</span>
+      </div>
+
+      <div style={{ ...tableWrap }}>
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
+            <Loader2 size={28} color={A.brand} style={{ animation: 'spin 1s linear infinite' }} />
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead style={{ ...thead }}>
+                <tr>
+                  {['Yazar', type === 'thread' ? 'Başlık' : 'Yorum / Başlık', 'Durum', 'Tarih', 'İşlemler'].map(h => (
+                    <th key={h} style={{ ...th }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {items.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '40px 16px', textAlign: 'center', color: A.text3 }}>
+                      İçerik bulunamadı
+                    </td>
+                  </tr>
+                ) : items.map(item => {
+                  const sb = STATUS_BADGE[item.status] || { color: A.text3, dim: A.card };
+                  return (
+                    <tr key={item.id}
+                      style={{ borderTop: `1px solid ${A.border}`, transition: 'background 0.1s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = A.card}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      {/* Yazar */}
+                      <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                        <span style={{ fontWeight: 600, color: A.text1 }}>{item.author}</span>
+                      </td>
+
+                      {/* İçerik */}
+                      <td style={{ ...td, maxWidth: 380 }}>
+                        {type === 'thread' ? (
+                          <>
+                            <div style={{ fontWeight: 600, color: A.text1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {item.title}
+                            </div>
+                            <div style={{ fontSize: 12, color: A.text3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
+                              {item.body}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ color: A.text2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {item.body}
+                            </div>
+                            <div style={{ fontSize: 11, color: A.text3, marginTop: 2 }}>
+                              ↳ {item.title}
+                            </div>
+                          </>
+                        )}
+                      </td>
+
+                      {/* Durum */}
+                      <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                        <span style={{ ...badge(sb.color, sb.dim) }}>{item.status || '—'}</span>
+                      </td>
+
+                      {/* Tarih */}
+                      <td style={{ ...td, color: A.text3, fontSize: 12, whiteSpace: 'nowrap' }}>
+                        {new Date(item.created_at).toLocaleString('tr-TR')}
+                      </td>
+
+                      {/* İşlemler */}
+                      <td style={{ ...td }}>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          {/* Uyar butonu */}
+                          <button
+                            onClick={() => setWarnTarget({ userId: item.author_id, username: item.author })}
+                            title="Kullanıcıyı uyar"
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 4,
+                              padding: '4px 10px', borderRadius: 6, border: 'none',
+                              background: A.amberDim, color: A.amber,
+                              fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                            }}>
+                            <AlertTriangle size={11} /> Uyar
+                          </button>
+
+                          {/* Sil butonu */}
+                          <button
+                            onClick={() => deletePost(item)}
+                            disabled={acting === item.id + '_del'}
+                            title="İçeriği sil"
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 4,
+                              padding: '4px 10px', borderRadius: 6, border: 'none',
+                              background: A.redDim, color: A.red,
+                              fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                              opacity: acting === item.id + '_del' ? 0.5 : 1,
+                            }}>
+                            <Trash2 size={11} /> Sil
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Sayfalama */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderTop: `1px solid ${A.border}` }}>
+          <button disabled={page === 1} onClick={() => setPage(p => p - 1)}
+            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: page === 1 ? 'not-allowed' : 'pointer', color: page === 1 ? A.border : A.text2, fontSize: 13, fontFamily: 'inherit', opacity: page === 1 ? 0.4 : 1 }}>
+            <ChevronLeft size={14} /> Önceki
+          </button>
+          <span style={{ fontSize: 12, color: A.text3 }}>{page} / {totalPages}</span>
+          <button disabled={page * PAGE_SIZE_POSTS >= total} onClick={() => setPage(p => p + 1)}
+            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: page * PAGE_SIZE_POSTS >= total ? 'not-allowed' : 'pointer', color: page * PAGE_SIZE_POSTS >= total ? A.border : A.text2, fontSize: 13, fontFamily: 'inherit', opacity: page * PAGE_SIZE_POSTS >= total ? 0.4 : 1 }}>
+            Sonraki <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+
+      {/* Uyar Modal */}
+      {warnTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ ...card, width: 460, padding: 24 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: A.text1, marginBottom: 4 }}>İşlem Uygula</h3>
+            <p style={{ fontSize: 12, color: A.text3, marginBottom: 20 }}>
+              Hedef: <strong style={{ color: A.text1 }}>{warnTarget.username}</strong>
+              {' '}— İşlem sonrası kullanıcıya otomatik mail gönderilir.
+            </p>
+
+            <label style={{ fontSize: 12, color: A.text3, display: 'block', marginBottom: 6 }}>Aksiyon</label>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+              {Object.entries(ACTION_CONFIG_POSTS).map(([k, v]) => (
+                <button key={k} onClick={() => setWarnAction(k)}
+                  style={{
+                    padding: '6px 14px', borderRadius: 8,
+                    border: `1px solid ${warnAction === k ? v.color : A.border}`,
+                    background: warnAction === k ? v.dim : 'transparent',
+                    color: warnAction === k ? v.color : A.text3,
+                    fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  }}>
+                  {v.label}
+                </button>
+              ))}
+            </div>
+
+            {warnAction === 'restrict' && (
+              <div style={{ marginBottom: 16, padding: 12, background: A.card, borderRadius: 8 }}>
+                <p style={{ fontSize: 12, color: A.text3, marginBottom: 8 }}>Hangi işlemler kısıtlanacak?</p>
+                {[['can_comment', 'Yorum yapma'], ['can_post_analysis', 'Analiz gönderme'], ['can_create_thread', 'Başlık açma']].map(([key, label]) => (
+                  <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, cursor: 'pointer' }}>
+                    <input type="checkbox"
+                      checked={!warnRestrict[key]}
+                      onChange={e => setWarnRestrict(prev => ({ ...prev, [key]: !e.target.checked }))}
+                      style={{ accentColor: A.brand }}
+                    />
+                    <span style={{ fontSize: 13, color: A.text2 }}>{label} kısıtlansın</span>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            <label style={{ fontSize: 12, color: A.text3, display: 'block', marginBottom: 6 }}>
+              Sebep <span style={{ color: A.red }}>*</span>
+            </label>
+            <textarea
+              value={warnReason} onChange={e => setWarnReason(e.target.value)}
+              placeholder="Ceza sebebini açıklayın…" rows={3}
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: 8,
+                border: `1px solid ${A.border}`, background: A.card, color: A.text1,
+                fontSize: 13, fontFamily: 'inherit', resize: 'vertical',
+                boxSizing: 'border-box', marginBottom: 16,
+              }}
+            />
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => { setWarnTarget(null); setWarnReason(''); }}
+                style={{ ...ghostBtn, padding: '8px 16px' }}>İptal</button>
+              <button onClick={submitWarn} disabled={warnBusy || !warnReason.trim()}
+                style={{
+                  padding: '8px 20px', borderRadius: 8, border: 'none',
+                  background: warnAction === 'ban' || warnAction === 'shadow_ban' ? A.red : A.amber,
+                  color: '#fff', fontSize: 13, fontWeight: 700,
+                  cursor: warnBusy || !warnReason.trim() ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit', opacity: warnBusy || !warnReason.trim() ? 0.5 : 1,
+                }}>
+                {warnBusy ? 'Uygulanıyor…' : ACTION_CONFIG_POSTS[warnAction]?.label}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 /* ── Ana Bileşen ─────────────────────────────────────────────────────────── */
 export default function AdminCommunity() {
-  const [tab, setTab] = useState('queue');
+  const [tab, setTab] = useState('posts');
 
   return (
     <div style={{ ...pageWrap }}>
@@ -639,6 +980,7 @@ export default function AdminCommunity() {
         })}
       </div>
 
+      {tab === 'posts'      && <PostsTab />}
       {tab === 'queue'      && <QueueTab />}
       {tab === 'reputation' && <ReputationTab />}
 

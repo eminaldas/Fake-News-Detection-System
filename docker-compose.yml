@@ -165,6 +165,14 @@ services:
     mem_limit: 700m
     memswap_limit: 700m
 
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     ports:

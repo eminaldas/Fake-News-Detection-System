@@ -353,6 +353,89 @@ async def remove_comment(
     return {"message": "Yorum kaldırıldı."}
 
 
+# ── Tüm kullanıcı içerikleri ──────────────────────────────────────────────────
+
+@router.get("/forum/posts")
+async def list_forum_posts(
+    type:   str           = Query("thread", description="thread | comment"),
+    page:   int           = Query(1, ge=1),
+    size:   int           = Query(20, ge=1, le=100),
+    q:      Optional[str] = Query(None),
+    admin:  User          = Depends(require_admin),
+    db:     AsyncSession  = Depends(get_db),
+):
+    """Admin: tüm thread veya yorumları listele (silinmemiş)."""
+    offset = (page - 1) * size
+
+    if type == "thread":
+        base = (
+            select(ForumThread)
+            .options(selectinload(ForumThread.user))
+            .where(ForumThread.status != "removed")
+        )
+        if q:
+            base = base.where(ForumThread.title.ilike(f"%{q}%"))
+        total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
+        rows  = (await db.execute(base.order_by(desc(ForumThread.created_at)).offset(offset).limit(size))).scalars().all()
+        items = [
+            {
+                "id":         str(t.id),
+                "type":       "thread",
+                "author":     t.user.username if t.user else "?",
+                "author_id":  str(t.user_id),
+                "title":      t.title,
+                "body":       t.body[:300],
+                "category":   t.category,
+                "status":     t.status,
+                "comment_count": t.comment_count,
+                "created_at": t.created_at.isoformat(),
+            }
+            for t in rows
+        ]
+    else:
+        base = (
+            select(ForumComment)
+            .options(selectinload(ForumComment.user), selectinload(ForumComment.thread))
+            .where(ForumComment.moderation_status != "removed")
+        )
+        if q:
+            base = base.where(ForumComment.body.ilike(f"%{q}%"))
+        total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
+        rows  = (await db.execute(base.order_by(desc(ForumComment.created_at)).offset(offset).limit(size))).scalars().all()
+        items = [
+            {
+                "id":           str(c.id),
+                "type":         "comment",
+                "author":       c.user.username if c.user else "?",
+                "author_id":    str(c.user_id),
+                "title":        c.thread.title if c.thread else "?",
+                "thread_id":    str(c.thread_id),
+                "body":         c.body[:300],
+                "status":       c.moderation_status,
+                "created_at":   c.created_at.isoformat(),
+            }
+            for c in rows
+        ]
+
+    return {"total": total, "page": page, "size": size, "items": items}
+
+
+@router.delete("/forum/threads/{thread_id}", status_code=200)
+async def remove_thread(
+    thread_id: UUID,
+    admin:     User         = Depends(require_admin),
+    db:        AsyncSession = Depends(get_db),
+):
+    """Thread'i sil (soft delete — status=removed)."""
+    thread = (await db.execute(select(ForumThread).where(ForumThread.id == thread_id))).scalar_one_or_none()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread bulunamadı")
+    thread.status = "removed" if hasattr(thread, "removed") else "resolved"
+    await db.delete(thread)
+    await db.commit()
+    return {"message": "Thread silindi."}
+
+
 @router.get("/articles")
 async def list_articles(
     page:   int           = Query(1, ge=1),
