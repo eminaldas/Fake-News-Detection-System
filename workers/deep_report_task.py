@@ -58,9 +58,9 @@ SUB_SCORE_WEIGHTS = {
     "consistency_temporal":  0.20,
     "language_manipulation": 0.15,
 }
-SUB_SCORE_KEYS = tuple(SUB_SCORE_WEIGHTS.keys())  # gelecek adım (v3 validation) için
+SUB_SCORE_KEYS = tuple(SUB_SCORE_WEIGHTS.keys())
 
-VALID_DOMAINS = {  # gelecek adım (v3 validation) için
+VALID_DOMAINS = {
     "bilim", "sağlık", "politika", "ekonomi", "tarih",
     "afet", "teknoloji", "spor", "magazin", "genel",
 }
@@ -589,102 +589,78 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
     engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
-    async with Session() as session:
-        row = await session.execute(
-            select(
-                Article.id.label("article_id"),
-                Article.title,
-                Article.raw_content,
-                Article.content,
-                Article.metadata_info,
-                AnalysisResult.id.label("result_id"),
-                AnalysisResult.status,
-                AnalysisResult.confidence,
-                AnalysisResult.signals,
-                AnalysisResult.full_report,
-                AnalysisResult.source_bias_summary,
-                AnalysisResult.temporal_analysis,
+    try:
+        async with Session() as session:
+            row = await session.execute(
+                select(
+                    Article.id.label("article_id"),
+                    Article.title,
+                    Article.raw_content,
+                    Article.content,
+                    Article.metadata_info,
+                    AnalysisResult.id.label("result_id"),
+                    AnalysisResult.status,
+                    AnalysisResult.confidence,
+                    AnalysisResult.signals,
+                    AnalysisResult.full_report,
+                    AnalysisResult.source_bias_summary,
+                    AnalysisResult.temporal_analysis,
+                )
+                .join(AnalysisResult, AnalysisResult.article_id == Article.id)
+                .where(Article.metadata_info.op("->>")(  "task_id") == task_id)
+                .limit(1)
             )
-            .join(AnalysisResult, AnalysisResult.article_id == Article.id)
-            .where(Article.metadata_info.op("->>")(  "task_id") == task_id)
-            .limit(1)
+            data = row.first()
+
+        if not data:
+            logger.warning("deep_report: task_id bulunamadı: %s", task_id)
+            return {"error": "task_not_found"}
+
+        # Daha önce üretildiyse yeniden Gemini çağırma
+        if data.full_report:
+            return {"cached": True, "report": data.full_report}
+
+        text       = data.raw_content or data.content or ""
+        signals    = data.signals or {}
+        confidence = data.confidence or 0.0
+        today      = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+        # ── Aşama A: Triyaj & Plan ──
+        await _publish_user_event(user_id, "report_progress",
+                                  {"task_id": task_id, "stage": 1, "label": REPORT_STAGES[1]})
+        triage = _call_gemini_json(
+            _build_triage_prompt(text, data.status, confidence, signals, today, user_note),
+            use_search=False,
+        ) or {}
+
+        # ── Aşama B: Kanıt Toplama (grounded) ──
+        await _publish_user_event(user_id, "report_progress",
+                                  {"task_id": task_id, "stage": 2, "label": REPORT_STAGES[2]})
+        evidence = _call_gemini_json(
+            _build_evidence_prompt(text, triage, today),
+            use_search=True,
+        ) or {}
+
+        # ── Aşama C: Sentez & Skorlama ──
+        await _publish_user_event(user_id, "report_progress",
+                                  {"task_id": task_id, "stage": 3, "label": REPORT_STAGES[3]})
+        raw_report = _call_gemini_json(
+            _build_synthesis_prompt(text, triage, evidence, data.status, confidence,
+                                    signals, today, user_note),
+            use_search=False,
         )
-        data = row.first()
+        if raw_report is None:
+            return {"error": "gemini_failed"}
 
-    if not data:
-        logger.warning("deep_report: task_id bulunamadı: %s", task_id)
-        await engine.dispose()
-        return {"error": "task_not_found"}
+        # Kanıt aşamasının adaptif alanlarını sentez çıktısına taşı (Gemini atlamışsa)
+        for k in ("domain_context", "precedent_cases", "numeric_claims"):
+            if k not in raw_report and k in evidence:
+                raw_report[k] = evidence[k]
 
-    # Daha önce üretildiyse yeniden Gemini çağırma
-    if data.full_report:
-        await engine.dispose()
-        return {"cached": True, "report": data.full_report}
+        report = _validate_report_v3(raw_report, signals)
+        report["generated_at"] = datetime.now(timezone.utc).isoformat()
+        report["model"]        = settings.GEMINI_MODEL
 
-    text       = data.raw_content or data.content or ""
-    signals    = data.signals or {}
-    confidence = data.confidence or 0.0
-    today      = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-
-    # ── Aşama A: Triyaj & Plan ──
-    await _publish_user_event(user_id, "report_progress",
-                              {"task_id": task_id, "stage": 1, "label": REPORT_STAGES[1]})
-    triage = _call_gemini_json(
-        _build_triage_prompt(text, data.status, confidence, signals, today, user_note),
-        use_search=False,
-    ) or {}
-
-    # ── Aşama B: Kanıt Toplama (grounded) ──
-    await _publish_user_event(user_id, "report_progress",
-                              {"task_id": task_id, "stage": 2, "label": REPORT_STAGES[2]})
-    evidence = _call_gemini_json(
-        _build_evidence_prompt(text, triage, today),
-        use_search=True,
-    ) or {}
-
-    # ── Aşama C: Sentez & Skorlama ──
-    await _publish_user_event(user_id, "report_progress",
-                              {"task_id": task_id, "stage": 3, "label": REPORT_STAGES[3]})
-    raw_report = _call_gemini_json(
-        _build_synthesis_prompt(text, triage, evidence, data.status, confidence,
-                                signals, today, user_note),
-        use_search=False,
-    )
-    if raw_report is None:
-        await engine.dispose()
-        return {"error": "gemini_failed"}
-
-    # Kanıt aşamasının adaptif alanlarını sentez çıktısına taşı (Gemini atlamışsa)
-    for k in ("domain_context", "precedent_cases", "numeric_claims"):
-        if k not in raw_report and k in evidence:
-            raw_report[k] = evidence[k]
-
-    report = _validate_report_v3(raw_report, signals)
-    report["generated_at"] = datetime.now(timezone.utc).isoformat()
-    report["model"]        = settings.GEMINI_MODEL
-
-    async with Session() as session:
-        await session.execute(
-            update(AnalysisResult)
-            .where(AnalysisResult.id == data.result_id)
-            .values(full_report=report)
-        )
-        await session.commit()
-
-    # Forum thread ac
-    source_url = (data.metadata_info or {}).get("source_url")
-    async with Session() as session:
-        thread_id = await _create_report_thread(
-            session=session,
-            article_id=data.article_id,
-            user_id=user_id,
-            task_id=task_id,
-            title=data.title,
-            overall_assessment=report.get("overall_assessment", ""),
-            source_url=source_url,
-        )
-    if thread_id:
-        report["forum_thread_id"] = thread_id
         async with Session() as session:
             await session.execute(
                 update(AnalysisResult)
@@ -693,11 +669,34 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
             )
             await session.commit()
 
-    # WS: report_ready event
-    await _publish_user_event(user_id, "report_ready", {"task_id": task_id})
+        # Forum thread ac
+        source_url = (data.metadata_info or {}).get("source_url")
+        async with Session() as session:
+            thread_id = await _create_report_thread(
+                session=session,
+                article_id=data.article_id,
+                user_id=user_id,
+                task_id=task_id,
+                title=data.title,
+                overall_assessment=report.get("overall_assessment", ""),
+                source_url=source_url,
+            )
+        if thread_id:
+            report["forum_thread_id"] = thread_id
+            async with Session() as session:
+                await session.execute(
+                    update(AnalysisResult)
+                    .where(AnalysisResult.id == data.result_id)
+                    .values(full_report=report)
+                )
+                await session.commit()
 
-    await engine.dispose()
-    return {"success": True, "task_id": task_id}
+        # WS: report_ready event
+        await _publish_user_event(user_id, "report_ready", {"task_id": task_id})
+
+        return {"success": True, "task_id": task_id}
+    finally:
+        await engine.dispose()
 
 
 @celery_app.task(

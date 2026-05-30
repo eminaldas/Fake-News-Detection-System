@@ -161,6 +161,22 @@ def test_synthesis_prompt_embeds_triage_and_evidence():
     assert "decisive_factors" in p
 
 
+def test_v3_overall_raised_for_true_verdict():
+    # DOĞRU + düşük alt skorlar -> overall en az 75'e yükseltilir
+    raw = {
+        "verdict": {"decision": "DOĞRU", "domain": "bilim"},
+        "credibility_score": {"sub_scores": {
+            "evidence_strength":     {"score": 30},
+            "source_reliability":    {"score": 30},
+            "consistency_temporal":  {"score": 30},
+            "language_manipulation": {"score": 30},
+        }},
+        "linguistic": {"manipulation_density": 0.7},
+    }
+    out = _validate_report_v3(raw, {})
+    assert out["credibility_score"]["overall"] >= 75
+
+
 if __name__ == "__main__":
     import sys
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
