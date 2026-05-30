@@ -110,6 +110,18 @@ def test_v3_emits_legacy_verdict_explanation():
     assert "kanıt yok" in out["verdict_explanation"]["contradicting_evidence"]
 
 
+def test_triage_prompt_includes_user_note_and_date():
+    from workers.deep_report_task import _build_triage_prompt
+    p = _build_triage_prompt(
+        text="Bilim insanları suyu yakıt yaptı.",
+        ml_verdict="FAKE", confidence=0.7, signals={},
+        today="2026-05-30", user_note="Bilimsel boyutuna odaklan",
+    )
+    assert "2026-05-30" in p
+    assert "Bilimsel boyutuna odaklan" in p
+    assert "research_plan" in p
+
+
 if __name__ == "__main__":
     import sys
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
