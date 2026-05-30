@@ -778,26 +778,45 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
         await engine.dispose()
         return {"cached": True, "report": data.full_report}
 
-    text    = data.raw_content or data.content or ""
-    signals = data.signals or {}
-    today   = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    prompt  = _build_report_prompt(
-        text=text,
-        ml_verdict=data.status,
-        confidence=data.confidence or 0.0,
-        signals=signals,
-        today=today,
-        user_note=user_note,
-        source_bias_summary=data.source_bias_summary,
-        temporal_analysis=data.temporal_analysis,
-    )
+    text       = data.raw_content or data.content or ""
+    signals    = data.signals or {}
+    confidence = data.confidence or 0.0
+    today      = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    raw_report = _call_gemini_grounded(prompt)
+    # ── Aşama A: Triyaj & Plan ──
+    await _publish_user_event(user_id, "report_progress",
+                              {"task_id": task_id, "stage": 1, "label": REPORT_STAGES[1]})
+    triage = _call_gemini_json(
+        _build_triage_prompt(text, data.status, confidence, signals, today, user_note),
+        use_search=False,
+    ) or {}
+
+    # ── Aşama B: Kanıt Toplama (grounded) ──
+    await _publish_user_event(user_id, "report_progress",
+                              {"task_id": task_id, "stage": 2, "label": REPORT_STAGES[2]})
+    evidence = _call_gemini_json(
+        _build_evidence_prompt(text, triage, today),
+        use_search=True,
+    ) or {}
+
+    # ── Aşama C: Sentez & Skorlama ──
+    await _publish_user_event(user_id, "report_progress",
+                              {"task_id": task_id, "stage": 3, "label": REPORT_STAGES[3]})
+    raw_report = _call_gemini_json(
+        _build_synthesis_prompt(text, triage, evidence, data.status, confidence,
+                                signals, today, user_note),
+        use_search=False,
+    )
     if raw_report is None:
         await engine.dispose()
         return {"error": "gemini_failed"}
 
-    report = _validate_report(raw_report)
+    # Kanıt aşamasının adaptif alanlarını sentez çıktısına taşı (Gemini atlamışsa)
+    for k in ("domain_context", "precedent_cases", "numeric_claims"):
+        if k not in raw_report and k in evidence:
+            raw_report[k] = evidence[k]
+
+    report = _validate_report_v3(raw_report, signals)
     report["generated_at"] = datetime.now(timezone.utc).isoformat()
     report["model"]        = settings.GEMINI_MODEL
 
