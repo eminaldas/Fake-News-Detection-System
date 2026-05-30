@@ -147,6 +147,20 @@ def test_evidence_prompt_skips_non_dict_claims():
     assert "bozuk" not in p
 
 
+def test_synthesis_prompt_embeds_triage_and_evidence():
+    from workers.deep_report_task import _build_synthesis_prompt
+    p = _build_synthesis_prompt(
+        text="metin",
+        triage={"domain": "bilim", "key_claims": []},
+        evidence={"claim_findings": [{"claim": "X", "finding": "Reuters'a göre yanlış"}]},
+        ml_verdict="FAKE", confidence=0.7, signals={"risk_score": 0.5},
+        today="2026-05-30", user_note="",
+    )
+    assert "bilim" in p
+    assert "Reuters" in p
+    assert "decisive_factors" in p
+
+
 if __name__ == "__main__":
     import sys
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]

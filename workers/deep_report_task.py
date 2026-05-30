@@ -284,6 +284,79 @@ Yanıtı YALNIZCA geçerli JSON olarak ver. Markdown ekleme.
 {_EVIDENCE_SCHEMA}"""
 
 
+_SYNTHESIS_SCHEMA = """{
+  "verdict": {
+    "decision": "DOĞRU | BÜYÜK_ÖLÇÜDE_DOĞRU | KISMEN_DOĞRU | YANILTICI | BAĞLAMDAN_KOPARILMIŞ | SAHTE | KANIT_YETERSİZ",
+    "is_satire": false,
+    "domain": "triyajdaki alan",
+    "one_line": "Tek cümlelik karar özeti"
+  },
+  "decisive_factors": [
+    { "factor": "Kısa başlık", "direction": "supports_true | supports_fake", "weight": 0.0, "explanation": "Neden belirleyici" }
+  ],
+  "credibility_score": {
+    "sub_scores": {
+      "source_reliability":    { "score": 0, "rationale": "kısa gerekçe" },
+      "evidence_strength":     { "score": 0, "rationale": "kısa gerekçe" },
+      "language_manipulation": { "score": 0, "rationale": "kısa gerekçe (yüksek=temiz dil)" },
+      "consistency_temporal":  { "score": 0, "rationale": "kısa gerekçe" }
+    }
+  },
+  "overall_assessment": "2-3 cümlelik genel değerlendirme",
+  "fact_checks": [
+    { "claim": "iddia", "finding": "kaynak belirterek açıklama", "tone": "confirmed | refuted | mixed | uncertain" }
+  ],
+  "propaganda_techniques": [ { "technique": "ad", "explanation": "nasıl kullanıldığı" } ],
+  "source_credibility": "yayın organı hakkında bilgi veya null",
+  "linguistic": { "emotion_tone": "neutral | fear | anger | excitement | sadness", "readability": "academic | standard | sensational", "manipulation_density": 0.0 }
+}"""
+
+
+def _build_synthesis_prompt(text: str, triage: dict, evidence: dict,
+                            ml_verdict: str, confidence: float, signals: dict,
+                            today: str, user_note: str = "") -> str:
+    safe_text   = sanitize_for_prompt(text, max_len=1200)
+    triage_json = sanitize_for_prompt(json.dumps(triage, ensure_ascii=False)[:2500], max_len=2500)
+    evid_json   = sanitize_for_prompt(json.dumps(evidence, ensure_ascii=False)[:4000], max_len=4000)
+    user_note_block = (
+        f"\n[KULLANICI ÖZEL İSTEĞİ]\n{sanitize_for_prompt(user_note, max_len=400)}\n"
+        if user_note.strip() else ""
+    )
+    clickbait = signals.get("clickbait_score", 0)
+    risk      = signals.get("risk_score", 0)
+
+    return f"""[SİSTEM]
+Bugünün tarihi: {today}.
+Sen bir Türkçe haber doğrulama uzmanısın. Triyaj ve toplanan kanıtı kullanarak
+NİHAİ raporu üret. Kendi cümlelerinle yaz, yargı rozeti kullanma.
+
+<KULLANICI_İÇERİĞİ>
+{safe_text}
+</KULLANICI_İÇERİĞİ>
+
+[ÖN ANALİZ]
+Yerel model: {ml_verdict} (%{confidence*100:.0f}) | clickbait: {clickbait:.2f} | risk: {risk:.2f}
+
+[TRİYAJ]
+{triage_json}
+
+[TOPLANAN KANIT]
+{evid_json}
+{user_note_block}
+[GÖREV — KURALLAR]
+- verdict.decision: 7 değerden birini SEÇ. Kanıt zayıfsa KANIT_YETERSİZ.
+- decisive_factors: kararı belirleyen 2-6 EN GÜÇLÜ faktörü sırala. weight 0-1
+  (1 = en belirleyici). direction kanıtın yönünü gösterir.
+- credibility_score.sub_scores: her boyutu 0-100 puanla + kısa gerekçe.
+  language_manipulation: YÜKSEK = temiz/tarafsız dil, DÜŞÜK = manipülatif.
+- fact_checks: kanıttaki bulguları 2-5 maddede özetle, kaynak belirt.
+- overall skoru SEN hesaplama; sadece alt skorları ver.
+
+Yanıtı YALNIZCA geçerli JSON olarak ver. Markdown ekleme.
+
+{_SYNTHESIS_SCHEMA}"""
+
+
 def _build_report_prompt(
     text: str,
     ml_verdict: str,
