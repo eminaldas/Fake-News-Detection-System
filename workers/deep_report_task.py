@@ -245,9 +245,13 @@ def _build_evidence_prompt(text: str, triage: dict, today: str) -> str:
     claims = triage.get("key_claims", [])[:6]
     plan_lines = []
     for i, c in enumerate(claims, 1):
-        rp = c.get("research_plan", {}) if isinstance(c, dict) else {}
+        if not isinstance(c, dict):
+            continue
+        rp = c.get("research_plan") or {}
+        if not isinstance(rp, dict):
+            rp = {}
         queries = ", ".join((rp.get("queries") or [])[:3])
-        auth = rp.get("authoritative_sources", "")
+        auth = rp.get("authoritative_sources") or ""
         plan_lines.append(
             f"  {i}. İDDİA: {c.get('claim', '?')}\n"
             f"     Tür: {c.get('claim_type', '?')} | Otoriter kaynak: {auth}\n"

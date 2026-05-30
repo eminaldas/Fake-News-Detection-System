@@ -138,6 +138,15 @@ def test_evidence_prompt_renders_plan():
     assert "hakemli dergi" in p
 
 
+def test_evidence_prompt_skips_non_dict_claims():
+    from workers.deep_report_task import _build_evidence_prompt
+    # Gemini bozuk çıktı verirse (string/None claim) çökmeden atlamalı
+    triage = {"domain": "genel", "key_claims": ["bozuk", None, {"claim": "İyi iddia"}]}
+    p = _build_evidence_prompt("metin", triage, "2026-05-30")
+    assert "İyi iddia" in p
+    assert "bozuk" not in p
+
+
 if __name__ == "__main__":
     import sys
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
