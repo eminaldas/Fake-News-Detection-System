@@ -115,19 +115,26 @@ export function BackgroundJobsProvider({ children }) {
     return () => unsubs.forEach((u) => u && u());
   }, [subscribe, updateStage, completeJob, failJob]);
 
+  // Çalışan rapor işlerinin id kümesi — yalnızca KÜME değişince polling yeniden kurulur
+  // (her stage güncellemesinde değil; yoksa 20sn'lik güvenlik ağı sürekli sıfırlanır).
+  const runningReportKey = Object.values(jobs)
+    .filter((j) => j.kind === 'report' && j.status === 'running')
+    .map((j) => j.taskId)
+    .join(',');
+
   // Rapor işleri için fallback polling (WS kaçarsa güvenlik ağı)
   useEffect(() => {
-    const running = Object.values(jobs).filter((j) => j.kind === 'report' && j.status === 'running');
-    if (running.length === 0) return undefined;
+    if (!runningReportKey) return undefined;
+    const ids = runningReportKey.split(',');
     const iv = setInterval(() => {
-      running.forEach((job) => {
-        AnalysisService.getFullReport(job.taskId)
-          .then((data) => { if (data?.status === 'cached' && data.report) completeJob(job.taskId); })
+      ids.forEach((taskId) => {
+        AnalysisService.getFullReport(taskId)
+          .then((data) => { if (data?.status === 'cached' && data.report) completeJob(taskId); })
           .catch(() => { /* pending=200; gerçek 404 sessiz geç */ });
       });
     }, POLL_MS);
     return () => clearInterval(iv);
-  }, [jobs, completeJob]);
+  }, [runningReportKey, completeJob]);
 
   const value = useMemo(() => ({
     jobs, startReport, trackAnalysis, updateStage, completeJob, failJob, getJob, dismiss,
