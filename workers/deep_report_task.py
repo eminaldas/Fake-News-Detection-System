@@ -342,6 +342,119 @@ def _validate_report(raw: dict) -> dict:
     return raw
 
 
+def _validate_report_v3(raw: dict, signals: dict | None = None) -> dict:
+    """v3 şemasını garantile: verdict, decisive_factors, credibility_score.
+    overall skoru deterministik hesaplar + verdict ile tutarlı clamp uygular.
+    language_manipulation alt skorunu mevcut signals ile çapalar."""
+    signals = signals or {}
+    # Capture manipulation_density before _validate_report fills defaults
+    _orig_linguistic = raw.get("linguistic")
+    _orig_manip = _orig_linguistic.get("manipulation_density") if isinstance(_orig_linguistic, dict) else None
+    raw = _validate_report(raw)  # legacy ortak alanlar (overall_assessment, fact_checks, linguistic...)
+
+    # ── verdict ──
+    verdict = raw.get("verdict")
+    if not isinstance(verdict, dict):
+        verdict = {}
+    decision = verdict.get("decision")
+    if decision not in VALID_DECISIONS:
+        decision = "KANIT_YETERSİZ"
+    domain = verdict.get("domain")
+    if domain not in VALID_DOMAINS:
+        domain = "genel"
+    raw["verdict"] = {
+        "decision":  decision,
+        "is_satire": bool(verdict.get("is_satire", False)),
+        "domain":    domain,
+        "one_line":  str(verdict.get("one_line") or "")[:300],
+    }
+
+    # ── decisive_factors (ağırlığa göre azalan, max 6) ──
+    factors = raw.get("decisive_factors")
+    if not isinstance(factors, list):
+        factors = []
+    clean_factors = []
+    for f in factors:
+        if not isinstance(f, dict) or not f.get("factor"):
+            continue
+        direction = f.get("direction")
+        if direction not in {"supports_true", "supports_fake"}:
+            direction = "supports_fake"
+        try:
+            weight = max(0.0, min(1.0, float(f.get("weight", 0.0))))
+        except (TypeError, ValueError):
+            weight = 0.0
+        clean_factors.append({
+            "factor":      str(f["factor"])[:160],
+            "direction":   direction,
+            "weight":      round(weight, 3),
+            "explanation": str(f.get("explanation") or "")[:400],
+        })
+    clean_factors.sort(key=lambda x: x["weight"], reverse=True)
+    raw["decisive_factors"] = clean_factors[:6]
+
+    # ── credibility_score ──
+    cs = raw.get("credibility_score")
+    if not isinstance(cs, dict):
+        cs = {}
+    raw_subs = cs.get("sub_scores")
+    if not isinstance(raw_subs, dict):
+        raw_subs = {}
+    sub_scores = {}
+    for key in SUB_SCORE_KEYS:
+        node = raw_subs.get(key)
+        if not isinstance(node, dict):
+            node = {}
+        sub_scores[key] = {
+            "score":     _clamp_int(node.get("score", 0)),
+            "rationale": str(node.get("rationale") or "")[:300],
+        }
+
+    # language_manipulation'ı mevcut signal ile çapala (halüsinasyon önle):
+    # düşük manipülasyon = yüksek skor. linguistic.manipulation_density veya
+    # signals.risk_score'dan türet, Gemini değeriyle 50/50 harmanla.
+    manip = _orig_manip  # use original value before _validate_report defaulted it
+    if manip is None:
+        manip = signals.get("risk_score", 0.0)
+    try:
+        signal_based = _clamp_int((1.0 - float(manip)) * 100)
+    except (TypeError, ValueError):
+        signal_based = 50
+    lm = sub_scores["language_manipulation"]
+    lm["score"] = int(round(0.5 * lm["score"] + 0.5 * signal_based))
+
+    overall = compute_overall_score(sub_scores)
+    overall = apply_verdict_score_guard(decision, overall)
+    raw["credibility_score"] = {"overall": overall, "sub_scores": sub_scores}
+
+    # ── adaptif yeni alanlar ──
+    if not isinstance(raw.get("precedent_cases"), list):
+        raw["precedent_cases"] = []
+    raw["precedent_cases"] = raw["precedent_cases"][:5]
+    if not isinstance(raw.get("numeric_claims"), list):
+        raw["numeric_claims"] = []
+    raw["numeric_claims"] = raw["numeric_claims"][:8]
+    dc = raw.get("domain_context")
+    raw["domain_context"] = str(dc)[:1200] if dc else None
+
+    # ── geriye uyumluluk: eski UI verdict_explanation okuyor ──
+    raw["verdict_explanation"] = {
+        "decision": decision,
+        "primary_reason": raw["verdict"]["one_line"],
+        "supporting_points": [
+            f["explanation"] for f in raw["decisive_factors"]
+            if f["direction"] == "supports_true"
+        ][:5],
+        "contradicting_evidence": [
+            f["explanation"] for f in raw["decisive_factors"]
+            if f["direction"] == "supports_fake"
+        ][:5],
+    }
+
+    raw["schema_version"] = 3
+    return raw
+
+
 async def _create_report_thread(
     session: AsyncSession,
     article_id,
