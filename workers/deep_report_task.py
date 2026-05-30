@@ -715,6 +715,33 @@ async def _create_report_thread(
         return None
 
 
+async def _publish_user_event(user_id: str | None, event_type: str, payload: dict) -> None:
+    """Kullanıcının WS kanalına event yayınlar. Hata sessizce yutulur."""
+    if not user_id:
+        return
+    try:
+        import json as _j
+        from redis.asyncio import from_url as _rf
+        _r = await _rf(settings.REDIS_URL, encoding="utf-8", decode_responses=True)
+        try:
+            await _r.publish(
+                f"user:{user_id}:events",
+                _j.dumps({"type": event_type, "payload": payload}),
+            )
+        finally:
+            await _r.aclose()
+    except Exception as exc:
+        logger.warning("deep_report: WS publish hatası (%s): %s", event_type, exc)
+
+
+# Aşama etiketleri (frontend ilerleme göstergesi için sözleşme)
+REPORT_STAGES = {
+    1: "İddialar ayrıştırılıyor",
+    2: "Kaynaklar taranıyor",
+    3: "Rapor sentezleniyor",
+}
+
+
 async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "") -> dict:
     engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -805,20 +832,7 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
             await session.commit()
 
     # WS: report_ready event
-    if user_id:
-        try:
-            import json as _j
-            from redis.asyncio import from_url as _rf
-            _r = await _rf(settings.REDIS_URL, encoding="utf-8", decode_responses=True)
-            try:
-                await _r.publish(
-                    f"user:{user_id}:events",
-                    _j.dumps({"type": "report_ready", "payload": {"task_id": task_id}}),
-                )
-            finally:
-                await _r.aclose()
-        except Exception as exc:
-            logger.warning("deep_report: WS publish hatası: %s", exc)
+    await _publish_user_event(user_id, "report_ready", {"task_id": task_id})
 
     await engine.dispose()
     return {"success": True, "task_id": task_id}
