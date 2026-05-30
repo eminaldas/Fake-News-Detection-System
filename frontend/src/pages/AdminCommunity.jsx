@@ -220,6 +220,14 @@ function ReputationTab() {
     loadWarnings(u.id);
   };
 
+  const refreshSelected = async (userId) => {
+    try {
+      const res = await axiosInstance.get(`/admin/users?q=${encodeURIComponent('')}&page=1&size=100`);
+      const fresh = (res.data.items || []).find(u => u.id === userId);
+      if (fresh) setSelected(fresh);
+    } catch { /* sessiz */ }
+  };
+
   const submitPunish = async () => {
     if (!reason.trim() || !selected) return;
     setSubmitting(true);
@@ -227,11 +235,15 @@ function ReputationTab() {
       const body = { action, reason };
       if (action === 'restrict') body.restrictions = restrictions;
       await axiosInstance.post(`/admin/users/${selected.id}/punish`, body);
-      toast.success('İşlem uygulandı', { sub: `${ACTION_CONFIG[action].label} — mail gönderildi` });
+      const mailNote = action === 'shadow_ban' ? 'uygulandı' : 'uygulandı — mail gönderildi';
+      toast.success(`${ACTION_CONFIG[action].label} ${mailNote}`);
       setPunishOpen(false);
       setReason('');
-      loadWarnings(selected.id);
-      search();
+      await Promise.all([
+        loadWarnings(selected.id),
+        search(),
+        refreshSelected(selected.id),
+      ]);
     } catch (e) {
       toast.error('İşlem başarısız', { sub: e.response?.data?.detail || e.message });
     } finally { setSubmitting(false); }
@@ -250,10 +262,13 @@ function ReputationTab() {
         lift_shadow_ban: liftShadow,
         lift_restrictions: liftRestrict,
       });
-      toast.success('Kısıtlama kaldırıldı', { sub: 'Kullanıcıya mail gönderildi' });
+      toast.success('Kısıtlama kaldırıldı', { sub: 'Kullanıcıya bildirim gönderildi' });
       setLiftOpen(false);
-      loadWarnings(selected.id);
-      search();
+      await Promise.all([
+        loadWarnings(selected.id),
+        search(),
+        refreshSelected(selected.id),
+      ]);
     } catch (e) {
       toast.error('İşlem başarısız', { sub: e.response?.data?.detail || e.message });
     } finally { setSubmitting(false); }

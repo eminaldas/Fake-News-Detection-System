@@ -153,6 +153,8 @@ async def list_threads(
             selectinload(ForumThread.user),
             selectinload(ForumThread.tags),
         )
+        .join(User, User.id == ForumThread.user_id)
+        .where(User.is_shadow_banned == False)
     )
 
     if category:

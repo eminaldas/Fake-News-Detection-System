@@ -110,17 +110,18 @@ async def punish_user(
     db.add(warning)
     await db.commit()
 
-    # Mail gönder (arka planda — başarısız olsa bile işlem bozulmaz)
-    try:
-        await send_warning_mail(
-            to_email=target.email,
-            username=target.username,
-            reason=body.reason,
-            action=body.action,
-            restrictions=restr_dict,
-        )
-    except Exception:
-        pass
+    # Shadow ban gizli kalmalı — kullanıcıya mail gönderme
+    if body.action != "shadow_ban":
+        try:
+            await send_warning_mail(
+                to_email=target.email,
+                username=target.username,
+                reason=body.reason,
+                action=body.action,
+                restrictions=restr_dict,
+            )
+        except Exception:
+            pass
 
     await audit_log(
         redis,
