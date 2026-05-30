@@ -3,9 +3,11 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { X, FileSearch, AlertTriangle, Loader2 } from 'lucide-react';
 import AnalysisService from '../../services/analysis.service';
+import { useBackgroundJobs } from '../../contexts/BackgroundJobsContext';
 
 export default function FullReportModal({ taskId, onClose }) {
     const navigate = useNavigate();
+    const { startReport } = useBackgroundJobs();
     const [note,       setNote]       = useState('');
     const [similar,    setSimilar]    = useState(null);
     const [checking,   setChecking]   = useState(true);
@@ -22,7 +24,8 @@ export default function FullReportModal({ taskId, onClose }) {
         if (submitting) return;
         setSubmitting(true);
         try { await AnalysisService.requestFullReport(taskId, note); } catch { /* devam */ }
-        navigate(`/analysis/report/${taskId}`);
+        startReport(taskId);
+        onClose();
     };
 
     const goExisting = () => navigate(`/analysis/report/${similar.task_id}`);
