@@ -19,6 +19,7 @@ from sqlalchemy.pool import NullPool
 from app.core.config import settings
 from app.models.models import Article, AnalysisResult, ForumThread, Tag, ThreadTag
 from workers.evidence_gatherer import sanitize_for_prompt
+from app.core.notifications import send_notification
 
 logger = logging.getLogger(__name__)
 
@@ -650,6 +651,7 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
             use_search=False,
         )
         if raw_report is None:
+            await _publish_user_event(user_id, "report_failed", {"task_id": task_id})
             return {"error": "gemini_failed"}
 
         # Kanıt aşamasının adaptif alanlarını sentez çıktısına taşı (Gemini atlamışsa)
@@ -691,8 +693,22 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
                 )
                 await session.commit()
 
-        # WS: report_ready event
+        # WS: report_ready event (arkaplan yöneticisi için)
         await _publish_user_event(user_id, "report_ready", {"task_id": task_id})
+
+        # Kalıcı zil bildirimi (NotificationBell için)
+        if user_id:
+            try:
+                async with Session() as session:
+                    await send_notification(
+                        session,
+                        uuid.UUID(user_id),
+                        "report_ready",
+                        {"task_id": task_id, "title": data.title or "Haber Analizi"},
+                    )
+                    await session.commit()
+            except Exception as exc:
+                logger.warning("deep_report: bildirim oluşturulamadı: %s", exc)
 
         return {"success": True, "task_id": task_id}
     finally:
