@@ -63,6 +63,18 @@ export default function Toast({ item, onRemove }) {
             {item.sub}
           </div>
         )}
+        {item.action && (
+          <button
+            onClick={() => { item.action.onClick?.(); dismiss(); }}
+            style={{
+              marginTop: 6, background: 'none', border: `1px solid ${color}`,
+              color, fontSize: '0.72rem', fontWeight: 700, borderRadius: 4,
+              padding: '3px 10px', cursor: 'pointer',
+            }}
+          >
+            {item.action.label}
+          </button>
+        )}
       </div>
 
       {/* Kapat */}
