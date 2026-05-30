@@ -6,11 +6,13 @@ import HotAnalysisModal from './HotAnalysisModal';
 const STATUS_COLORS = {
     FAKE:      { border: '#ff7351', text: '#ff7351', bar: '#ff7351' },
     AUTHENTIC: { border: '#3fff8b', text: '#3fff8b', bar: '#3fff8b' },
+    UNCERTAIN: { border: '#f59e0b', text: '#f59e0b', bar: '#f59e0b' },
 };
 
 const STATUS_LABELS = {
     FAKE:      'Şüpheli',
     AUTHENTIC: 'Güvenilir',
+    UNCERTAIN: 'Belirsiz',
 };
 
 const cardStyle  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
@@ -94,10 +96,10 @@ export default function HotAnalysesCard() {
                     </div>
                 ) : (
                     items.map((item, idx) => {
-                        const colors = STATUS_COLORS[item.status] || STATUS_COLORS.AUTHENTIC;
+                        const colors = STATUS_COLORS[item.status] || STATUS_COLORS.UNCERTAIN;
                         const label  = STATUS_LABELS[item.status] || item.status;
                         const pct    = item.confidence != null ? Math.round(item.confidence * 100) : null;
-                        const barPct = item.status === 'AUTHENTIC' ? pct : (pct != null ? 100 - pct : null);
+                        const barPct = item.status === 'FAKE' ? (pct != null ? 100 - pct : null) : pct;
 
                         return (
                             <div
