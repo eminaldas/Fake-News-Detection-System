@@ -37,6 +37,57 @@ celery_app.conf.update(
 
 _gemini_client = None
 
+# ── v3 Skorlama ──────────────────────────────────────────────────────────
+# Verdict -> overall skor izin verilen aralık (tutarlılık guard'ı için clamp)
+VERDICT_SCORE_RANGES = {
+    "DOĞRU":                (75, 100),
+    "BÜYÜK_ÖLÇÜDE_DOĞRU":   (60, 85),
+    "KISMEN_DOĞRU":         (40, 65),
+    "KANIT_YETERSİZ":       (35, 60),
+    "YANILTICI":            (20, 50),
+    "BAĞLAMDAN_KOPARILMIŞ": (20, 50),
+    "SAHTE":                (0, 25),
+}
+VALID_DECISIONS = set(VERDICT_SCORE_RANGES.keys())
+
+# overall = ağırlıklı alt skor ortalaması (toplam = 1.0)
+SUB_SCORE_WEIGHTS = {
+    "evidence_strength":     0.35,
+    "source_reliability":    0.30,
+    "consistency_temporal":  0.20,
+    "language_manipulation": 0.15,
+}
+SUB_SCORE_KEYS = tuple(SUB_SCORE_WEIGHTS.keys())
+
+VALID_DOMAINS = {
+    "bilim", "sağlık", "politika", "ekonomi", "tarih",
+    "afet", "teknoloji", "spor", "magazin", "genel",
+}
+
+
+def _clamp_int(v, lo: int = 0, hi: int = 100) -> int:
+    """Değeri [lo, hi] tam sayı aralığına sıkıştırır."""
+    try:
+        return max(lo, min(hi, int(round(float(v)))))
+    except (TypeError, ValueError):
+        return lo
+
+
+def compute_overall_score(sub_scores: dict) -> int:
+    """Alt skorların ağırlıklı ortalaması. Gemini tek sayı uydurmaz; kodda hesaplanır."""
+    total = 0.0
+    for key, weight in SUB_SCORE_WEIGHTS.items():
+        node = sub_scores.get(key) or {}
+        total += _clamp_int(node.get("score", 0)) * weight
+    return int(round(total))
+
+
+def apply_verdict_score_guard(decision: str, overall: int) -> int:
+    """overall skoru verdict ile tutarlı aralığa clamp eder (SAHTE -> <=25 vb.)."""
+    lo, hi = VERDICT_SCORE_RANGES.get(decision, (0, 100))
+    return max(lo, min(hi, overall))
+
+
 def _get_gemini_client():
     global _gemini_client
     if _gemini_client is None:
