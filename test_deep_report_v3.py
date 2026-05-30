@@ -122,6 +122,22 @@ def test_triage_prompt_includes_user_note_and_date():
     assert "research_plan" in p
 
 
+def test_evidence_prompt_renders_plan():
+    from workers.deep_report_task import _build_evidence_prompt
+    triage = {
+        "domain": "bilim",
+        "key_claims": [
+            {"claim": "Su yakıt oldu", "claim_type": "bilimsel",
+             "research_plan": {"queries": ["su yakıt mümkün mü"], "authoritative_sources": "hakemli dergi"}},
+        ],
+    }
+    p = _build_evidence_prompt("metin", triage, "2026-05-30")
+    assert "bilim" in p
+    assert "Su yakıt oldu" in p
+    assert "su yakıt mümkün mü" in p
+    assert "hakemli dergi" in p
+
+
 if __name__ == "__main__":
     import sys
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]

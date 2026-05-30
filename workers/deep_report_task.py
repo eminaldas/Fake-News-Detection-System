@@ -218,6 +218,68 @@ def _call_gemini_json(prompt: str, use_search: bool = False) -> dict | None:
         return None
 
 
+_EVIDENCE_SCHEMA = """{
+  "claim_findings": [
+    {
+      "claim": "İlgili iddia",
+      "finding": "Google Search ile bulunan kaynak belirterek 1-3 cümle ('Reuters'a göre...')",
+      "tone": "confirmed | refuted | mixed | uncertain",
+      "sources": [
+        { "name": "Kaynak adı", "domain": "kaynak.com", "pub_date": "YYYY-MM-DD veya null", "stance": "confirms | refutes | neutral", "excerpt": "kısa alıntı" }
+      ]
+    }
+  ],
+  "domain_context": "Alana özel açıklama: bilimsel iddia ise bilimsel mekanizma/fizibilite, tarihsel ise bağlam. Yoksa null.",
+  "precedent_cases": [
+    { "title": "Benzer geçmiş vaka", "year": "YYYY veya null", "summary": "kısa özet", "url": "varsa" }
+  ],
+  "numeric_claims": [
+    { "claim": "Sayısal iddia", "stated_value": "haberdeki değer", "verified_value": "doğrulanan değer veya null", "tone": "confirmed | refuted | mixed | uncertain" }
+  ]
+}"""
+
+
+def _build_evidence_prompt(text: str, triage: dict, today: str) -> str:
+    safe_text = sanitize_for_prompt(text, max_len=1500)
+    domain = triage.get("domain", "genel")
+    claims = triage.get("key_claims", [])[:6]
+    plan_lines = []
+    for i, c in enumerate(claims, 1):
+        rp = c.get("research_plan", {}) if isinstance(c, dict) else {}
+        queries = ", ".join((rp.get("queries") or [])[:3])
+        auth = rp.get("authoritative_sources", "")
+        plan_lines.append(
+            f"  {i}. İDDİA: {c.get('claim', '?')}\n"
+            f"     Tür: {c.get('claim_type', '?')} | Otoriter kaynak: {auth}\n"
+            f"     Aramalar: {queries}"
+        )
+    plan_block = "\n".join(plan_lines) if plan_lines else "  (plan yok — metinden kritik iddiaları kendin seç)"
+
+    return f"""[SİSTEM]
+Bugünün tarihi: {today}. Alan: {domain}.
+Sen Google Search erişimi olan bir araştırmacısın. Aşağıdaki planı YÜRÜT:
+her iddia için MUTLAKA arama yap ve kaynak belirt.
+
+<KULLANICI_İÇERİĞİ>
+{safe_text}
+</KULLANICI_İÇERİĞİ>
+
+[ARAŞTIRMA PLANI]
+{plan_block}
+
+[GÖREV]
+- Her iddia için planındaki aramaları yap, bulguları kaynaklarıyla yaz.
+- domain_context: alana göre derinleştir. Bilim/sağlık ise mekanizmanın bilimsel
+  olarak mümkün olup olmadığını, daha önce denenip denenmediğini açıkla. Tarihsel
+  ise bağlamı ver. Alan uygun değilse null.
+- precedent_cases: benzer geçmiş olaylar/iddialar varsa ekle, yoksa [].
+- numeric_claims: sayısal/istatistik iddia varsa değerini doğrula, yoksa [].
+
+Yanıtı YALNIZCA geçerli JSON olarak ver. Markdown ekleme.
+
+{_EVIDENCE_SCHEMA}"""
+
+
 def _build_report_prompt(
     text: str,
     ml_verdict: str,
