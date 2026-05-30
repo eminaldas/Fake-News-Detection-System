@@ -12,6 +12,8 @@ import toast from '../services/toast';
 const LS_KEY = 'bg_jobs';
 const TTL_MS = 30 * 60 * 1000;   // 30 dk — zombi iş temizliği
 const POLL_MS = 20_000;          // rapor fallback polling
+const STALE_MS = 12 * 60 * 1000; // bu süre çalışan kalan iş "başarısız" sayılır (sert worker çökmesi)
+const PRUNE_MS = 60_000;         // stale tarama aralığı
 
 const Ctx = createContext(null);
 
@@ -95,7 +97,8 @@ export function BackgroundJobsProvider({ children }) {
     const job = jobsRef.current[taskId];
     if (!job || job.status === 'failed') return;
     upsert(taskId, { status: 'failed' });
-    toast.error('Rapor oluşturulamadı', { sub: job.title || undefined });
+    const msg = job.kind === 'report' ? 'Rapor oluşturulamadı' : 'Analiz tamamlanamadı';
+    toast.error(msg, { sub: job.title || undefined });
     setTimeout(() => dismiss(taskId), 6000);
   }, [upsert, dismiss]);
 
@@ -135,6 +138,20 @@ export function BackgroundJobsProvider({ children }) {
     }, POLL_MS);
     return () => clearInterval(iv);
   }, [runningReportKey, completeJob]);
+
+  // Stale temizliği — worker sert çökerse (report_failed gelmezse) çalışan kalan
+  // işi STALE_MS sonra başarısız say (zombi pill önleme).
+  useEffect(() => {
+    const iv = setInterval(() => {
+      const now = Date.now();
+      Object.values(jobsRef.current).forEach((job) => {
+        if (job.status === 'running' && now - (job.createdAt || 0) > STALE_MS) {
+          failJob(job.taskId);
+        }
+      });
+    }, PRUNE_MS);
+    return () => clearInterval(iv);
+  }, [failJob]);
 
   const value = useMemo(() => ({
     jobs, startReport, trackAnalysis, updateStage, completeJob, failJob, getJob, dismiss,
