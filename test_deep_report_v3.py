@@ -35,6 +35,12 @@ def test_verdict_guard_raises_true_low():
 
 
 def test_verdict_guard_unknown_decision_no_clamp():
+    # Tanınmayan verdict -> (0,100) fallback, clamp olmaz
+    assert apply_verdict_score_guard("BİLİNMEYEN", 55) == 55
+
+
+def test_verdict_guard_known_in_range_unchanged():
+    # Bilinen verdict, aralık içi değer -> değişmez
     assert apply_verdict_score_guard("KISMEN_DOĞRU", 55) == 55
 
 

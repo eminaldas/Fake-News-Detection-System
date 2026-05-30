@@ -39,6 +39,7 @@ _gemini_client = None
 
 # ── v3 Skorlama ──────────────────────────────────────────────────────────
 # Verdict -> overall skor izin verilen aralık (tutarlılık guard'ı için clamp)
+# Aralıklar bilinçli örtüşür: guard yalnızca uç değerleri kırpar, orta bölge serbest.
 VERDICT_SCORE_RANGES = {
     "DOĞRU":                (75, 100),
     "BÜYÜK_ÖLÇÜDE_DOĞRU":   (60, 85),
@@ -57,19 +58,19 @@ SUB_SCORE_WEIGHTS = {
     "consistency_temporal":  0.20,
     "language_manipulation": 0.15,
 }
-SUB_SCORE_KEYS = tuple(SUB_SCORE_WEIGHTS.keys())
+SUB_SCORE_KEYS = tuple(SUB_SCORE_WEIGHTS.keys())  # gelecek adım (v3 validation) için
 
-VALID_DOMAINS = {
+VALID_DOMAINS = {  # gelecek adım (v3 validation) için
     "bilim", "sağlık", "politika", "ekonomi", "tarih",
     "afet", "teknoloji", "spor", "magazin", "genel",
 }
 
 
-def _clamp_int(v, lo: int = 0, hi: int = 100) -> int:
+def _clamp_int(v: object, lo: int = 0, hi: int = 100) -> int:
     """Değeri [lo, hi] tam sayı aralığına sıkıştırır."""
     try:
         return max(lo, min(hi, int(round(float(v)))))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return lo
 
 
