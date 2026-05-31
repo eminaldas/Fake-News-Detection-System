@@ -549,23 +549,27 @@ async def _create_report_thread(
     title: str | None,
     overall_assessment: str,
     source_url: str | None,
+    report: dict | None = None,
 ) -> str | None:
     """Tam rapor için forum thread açar. Hata olursa None döner."""
     try:
         thread_title = (title or "Haber Analizi")[:200]
-        source_line  = f"\n\n🔗 **Kaynak:** {source_url}" if source_url else ""
+        report = report or {}
+        verdict = report.get("verdict") or {}
+        decision = verdict.get("decision", "")
+        score = (report.get("credibility_score") or {}).get("overall")
+        factors = [f for f in (report.get("decisive_factors") or [])[:2] if f.get("factor")]
+        factor_lines = "\n".join(f"- {f['factor']}" for f in factors)
+        verdict_line = f"\n🏷️ **Karar:** {decision.replace('_', ' ').title()}" if decision else ""
+        score_line   = f"\n📊 **Güvenilirlik:** {score}/100" if score is not None else ""
+        source_line  = f"\n🔗 **Kaynak:** {source_url}" if source_url else ""
         body = (
-            f"{overall_assessment[:800]}"
-            f"{source_line}"
-            f"\n\n📊 Rapor ID: `#{task_id[:8].upper()}`"
-            f"\n🤖 *Gemini AI + Google Search grounding ile oluşturuldu.*"
+            f"**{(title or 'Haber')[:200]}** — tam analiz raporu."
+            f"{verdict_line}{score_line}{source_line}"
+            + (f"\n\n**Belirleyici faktörler:**\n{factor_lines}" if factor_lines else "")
+            + f"\n\n🔗 **Tam raporu gör:** /analysis/report/{task_id}"
+            + f"\n\n🤖 *Gemini AI + Google Search ile oluşturuldu.*"
         )
-        tag_row = await session.execute(select(Tag).where(Tag.name == "#tam-rapor"))
-        tag = tag_row.scalar_one_or_none()
-        if tag is None:
-            tag = Tag(name="#tam-rapor")
-            session.add(tag)
-            await session.flush()
         thread = ForumThread(
             title=thread_title,
             body=body,
@@ -575,7 +579,26 @@ async def _create_report_thread(
         )
         session.add(thread)
         await session.flush()
-        session.add(ThreadTag(thread_id=thread.id, tag_id=tag.id))
+
+        tag_names = ["#tam-rapor"]
+        dom = verdict.get("domain")
+        if dom and dom != "genel":
+            tag_names.append(f"#{dom}")
+        verdict_tag_map = {
+            "SAHTE": "#sahte", "YANILTICI": "#yaniltici", "BAĞLAMDAN_KOPARILMIŞ": "#baglamdan-koparilmis",
+            "KISMEN_DOĞRU": "#kismen-dogru", "KANIT_YETERSİZ": "#kanit-yetersiz",
+            "DOĞRU": "#dogru", "BÜYÜK_ÖLÇÜDE_DOĞRU": "#buyuk-olcude-dogru",
+        }
+        if decision in verdict_tag_map:
+            tag_names.append(verdict_tag_map[decision])
+        for tag_name in tag_names:
+            tag_row = await session.execute(select(Tag).where(Tag.name == tag_name))
+            tag = tag_row.scalar_one_or_none()
+            if tag is None:
+                tag = Tag(name=tag_name)
+                session.add(tag)
+                await session.flush()
+            session.add(ThreadTag(thread_id=thread.id, tag_id=tag.id))
         await session.commit()
         return str(thread.id)
     except Exception as exc:
@@ -708,6 +731,7 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
                 title=data.title,
                 overall_assessment=report.get("overall_assessment", ""),
                 source_url=source_url,
+                report=report,
             )
         if thread_id:
             report["forum_thread_id"] = thread_id
