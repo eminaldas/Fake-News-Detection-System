@@ -75,14 +75,29 @@ async def _generate():
     )
 
     prompt = f"""Aşağıdaki haber başlıkları bugün Türkiye gündeminde öne çıkan haberlerin listesidir.
-Bunları tek tek özetleme. Bunun yerine: bugün genel gündem nasıldı, hangi konular öne çıktı,
-ülkede neler yaşandı — bunu 3-4 cümleyle anlat. Sonra 4-5 konu başlığı çıkar.
+Bu haberleri kategorilere bölerek Türkçe bir gündem özeti oluştur. BBC, Reuters ve TRT Haber tarzında
+profesyonel, bilgilendirici ve dengeli bir sunum yap.
+
+Kurallar:
+- Haberleri kategori başlıklarına göre grupla (örn: Siyaset, Ekonomi, Dünya, Spor, Toplum, Teknoloji...)
+- Sadece haberlerde gerçekten bulunan kategorileri kullan — yoksa ekleme
+- Spor veya tek bir alan aşırı baskın olsa bile diğer kategorileri öne çıkar; dengeyi koru
+- Her kategori için 2-4 cümlelik, o günün haberlerini somut şekilde anlatan bir metin yaz
+- Genel bir intro özeti de yaz (tüm günü 2-3 cümleyle özetler)
+- Kuru liste yapma; akıcı, gazetecilik diliyle yaz
 
 Başlıklar:
 {lines}
 
-Sadece JSON formatında yanıt ver, başka hiçbir şey yazma:
-{{"summary": "...", "topics": ["...", "..."]}}"""
+Sadece aşağıdaki JSON formatında yanıt ver, başka hiçbir şey yazma:
+{{
+  "summary": "Günün genel özeti 2-3 cümle",
+  "sections": [
+    {{"title": "Kategori Başlığı", "text": "Bu kategorinin 2-4 cümlelik özeti"}},
+    {{"title": "Kategori Başlığı", "text": "Bu kategorinin 2-4 cümlelik özeti"}}
+  ],
+  "topics": ["Konu etiketi 1", "Konu etiketi 2", "Konu etiketi 3", "Konu etiketi 4"]
+}}"""
 
     try:
         client = _get_gemini_client()
@@ -98,8 +113,12 @@ Sadece JSON formatında yanıt ver, başka hiçbir şey yazma:
                 raw = raw[4:]
         data = json.loads(raw)
         summary_text = data.get("summary", "").strip()
+        sections = data.get("sections", [])
         topics = data.get("topics", [])
-        if not summary_text:
+        # Geriye uyumluluk: sections yoksa summary'yi tek bölüm say
+        if not sections and summary_text:
+            sections = []
+        if not summary_text and not sections:
             logger.warning("daily_digest: boş özet geldi")
             return
     except Exception as exc:
@@ -118,15 +137,21 @@ Sadece JSON formatında yanıt ver, başka hiçbir şey yazma:
             )
         )).scalar_one_or_none()
 
+        # summary_text'e yapılandırılmış veriyi JSON olarak gömüyoruz
+        # (DB migration gerektirmeden sections desteği; frontend parse eder)
+        structured = json.dumps(
+            {"summary": summary_text, "sections": sections},
+            ensure_ascii=False,
+        )
         if existing:
-            existing.summary_text  = summary_text
+            existing.summary_text  = structured
             existing.topics        = topics
             existing.article_count = len(rows)
             existing.generated_at  = datetime.now(timezone.utc)
         else:
             db.add(DailySummary(
                 summary_date  = today,
-                summary_text  = summary_text,
+                summary_text  = structured,
                 topics        = topics,
                 article_count = len(rows),
                 slot          = slot,
