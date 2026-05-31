@@ -1,6 +1,6 @@
 /**
- * ActiveJobsPill — sol-altta sabit, çalışan arkaplan işlerini gösterir.
- * (Sağ-altı ToastContainer kullanır.) Tıklayınca ilgili sayfaya gider.
+ * ActiveJobsPill — sağ-altta sabit, çalışan arkaplan işlerini gösterir.
+ * (ToastContainer'ın üstünde, bottom: 96.) Tıklayınca ilgili sayfaya gider.
  */
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -15,7 +15,7 @@ export default function ActiveJobsPill() {
 
   return (
     <div style={{
-      position: 'fixed', bottom: 20, left: 20, zIndex: 8000,
+      position: 'fixed', bottom: 96, right: 20, zIndex: 8000,
       display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none',
     }}>
       {running.map((job) => {
@@ -25,25 +25,31 @@ export default function ActiveJobsPill() {
             key={job.taskId}
             onClick={() => navigate(isReport ? `/analysis/report/${job.taskId}` : '/')}
             style={{
-              pointerEvents: 'auto', cursor: 'pointer', background: '#1c2128',
-              borderLeft: '3px solid #10b981', borderRadius: 4, padding: '10px 12px',
+              pointerEvents: 'auto', cursor: 'pointer',
+              background: 'var(--color-terminal-surface)',
+              borderRight: '1px solid var(--color-terminal-border-raw)',
+              borderBottom: '1px solid var(--color-terminal-border-raw)',
+              borderTop: '2px solid #10b981',
+              borderLeft: '3px solid #10b981',
+              borderRadius: 0,
+              padding: '14px 16px',
               display: 'flex', alignItems: 'center', gap: 8,
-              boxShadow: '0 2px 16px rgba(0,0,0,0.45)', width: 300,
+              boxShadow: '0 2px 16px rgba(0,0,0,0.45)', width: 340,
             }}
           >
             <Loader2 size={15} color="#10b981" style={{ animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#eef2f7' }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
                 {isReport ? 'Tam rapor hazırlanıyor' : 'Analiz ediliyor'}
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#8b949e', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted-accent)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {job.label || '…'}
               </div>
             </div>
             <button
               onClick={(e) => { e.stopPropagation(); dismiss(job.taskId); }}
               aria-label="Kapat"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#484f58', padding: 0, flexShrink: 0 }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted-accent)', padding: 0, flexShrink: 0 }}
             >
               <X size={13} />
             </button>
