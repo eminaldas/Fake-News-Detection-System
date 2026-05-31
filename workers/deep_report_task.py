@@ -287,8 +287,10 @@ def _build_synthesis_prompt(text: str, triage: dict, evidence: dict,
 
     temporal_block = ""
     if temporal:
-        flag = temporal.get("freshness_flag")
-        temporal_block = f"\n[ZAMAN BAĞLAMI]\nGüncellik: {flag or 'bilinmiyor'} | En eski kaynak: {temporal.get('earliest_source_date', '?')} | En yeni: {temporal.get('latest_source_date', '?')}\n"
+        flag     = str(temporal.get("freshness_flag") or "bilinmiyor")[:40]
+        earliest = str(temporal.get("earliest_source_date") or "?")[:40]
+        latest   = str(temporal.get("latest_source_date") or "?")[:40]
+        temporal_block = f"\n[ZAMAN BAĞLAMI]\nGüncellik: {flag} | En eski kaynak: {earliest} | En yeni: {latest}\n"
 
     return f"""[SİSTEM]
 Bugünün tarihi: {today}.
@@ -433,7 +435,7 @@ def _validate_report_v3(raw: dict, signals: dict | None = None) -> dict:
                 if isinstance(s, dict) and (s.get("name") or s.get("domain")):
                     clean.append({"name": str(s.get("name") or "")[:120],
                                   "domain": str(s.get("domain") or "")[:120],
-                                  "url": (str(s.get("url"))[:300] if s.get("url") else None)})
+                                  "url": (str(s.get("url"))[:300] if s.get("url") and s.get("url") != "null" else None)})
             fc["sources"] = clean
 
     # ── verdict ──
