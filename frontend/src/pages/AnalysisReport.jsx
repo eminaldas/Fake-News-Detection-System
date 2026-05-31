@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-    ArrowLeft, Share2, ShieldCheck, ShieldX, Shield,
+    ArrowLeft,
     Radar, Copy, CheckCheck,
 } from 'lucide-react';
 import { useReport } from '../hooks/useReport';
@@ -10,20 +10,19 @@ import PropagandaSection        from '../features/analysis/report/PropagandaSect
 import SourceCredibilitySection from '../features/analysis/report/SourceCredibilitySection';
 import LinguisticSection        from '../features/analysis/report/LinguisticSection';
 import FeedbackSection          from '../features/analysis/report/FeedbackSection';
-import ReportSkeleton           from '../features/analysis/report/ReportSkeleton';
 import VerdictExplanationSection from '../features/analysis/report/VerdictExplanationSection';
 import SourceBiasSection         from '../features/analysis/report/SourceBiasSection';
+import VerdictHeader             from '../features/analysis/report/VerdictHeader';
+import CredibilityScore          from '../features/analysis/report/CredibilityScore';
+import DecisiveFactors           from '../features/analysis/report/DecisiveFactors';
+import DomainContextSection      from '../features/analysis/report/DomainContextSection';
+import NumericClaimsSection      from '../features/analysis/report/NumericClaimsSection';
+import PrecedentCasesSection     from '../features/analysis/report/PrecedentCasesSection';
+import ReportProgress            from '../features/analysis/report/ReportProgress';
 
 /* ── Tasarım sabitleri ── */
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
-
-/* Verdict teması */
-function getTheme(mlVerdict) {
-    if (mlVerdict === 'AUTHENTIC') return { hex: '#3fff8b', Icon: ShieldCheck, label: 'GÜVENİLİR İÇERİK' };
-    if (mlVerdict === 'FAKE')      return { hex: '#ff7351', Icon: ShieldX,    label: 'ŞÜPHELİ İÇERİK'  };
-    return                                { hex: '#f59e0b', Icon: Shield,      label: 'BELİRSİZ'         };
-}
 
 /* Section wrapper — başlık border'ı keser */
 function ReportBlock({ title, children }) {
@@ -108,7 +107,6 @@ export default function AnalysisReport() {
     };
 
     const shortId = taskId?.slice(0, 8).toUpperCase();
-    const theme   = getTheme(mlVerdict);
 
     return (
         <div className="w-full max-w-4xl mx-auto px-4 md:px-8 py-6 md:py-10 flex flex-col gap-5">
@@ -141,41 +139,10 @@ export default function AnalysisReport() {
             </div>
 
             {/* ── Başlık ── */}
-            <div className="relative border overflow-hidden" style={{ ...S, borderColor: theme.hex + '40', borderTop: `2px solid ${theme.hex}` }}>
-                {/* Köşe aksanları verdict renginde */}
-                <div className="absolute top-0 left-0 w-5 h-[2px] pointer-events-none" style={{ background: theme.hex }} />
-                <div className="absolute top-0 left-0 h-5 w-[2px] pointer-events-none" style={{ background: theme.hex }} />
-                <div className="absolute bottom-0 right-0 w-5 h-[2px] pointer-events-none" style={{ background: theme.hex }} />
-                <div className="absolute bottom-0 right-0 h-5 w-[2px] pointer-events-none" style={{ background: theme.hex }} />
-
-                <div className="px-6 py-5 flex items-center gap-5" style={{ background: theme.hex + '08' }}>
-                    <theme.Icon className="w-10 h-10 shrink-0" style={{ color: theme.hex }} />
-                    <div className="flex-1 min-w-0">
-                        <p className="font-mono text-[10px] tracking-widest uppercase mb-1" style={{ color: theme.hex, opacity: 0.8 }}>
-                            // TAM_ANALİZ_RAPORU
-                        </p>
-                        <p className="font-mono text-xl font-black" style={{ color: theme.hex }}>
-                            {theme.label}
-                        </p>
-                        <p className="font-mono text-xs mt-1" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>
-                            Gemini AI · Google Search grounding
-                            {report && ` · ${new Date(report.generated_at).toLocaleString('tr-TR')}`}
-                        </p>
-                    </div>
-                    {mlVerdict && (
-                        <div className="shrink-0 text-right hidden sm:block">
-                            <Share2
-                                className="w-4 h-4 cursor-pointer transition-opacity hover:opacity-60"
-                                style={{ color: theme.hex, opacity: 0.4 }}
-                                onClick={handleShare}
-                            />
-                        </div>
-                    )}
-                </div>
-            </div>
+            <VerdictHeader verdict={report?.verdict} mlVerdict={mlVerdict} report={report} />
 
             {/* ── Loading ── */}
-            {loading && <ReportSkeleton />}
+            {loading && !report && !error && <ReportProgress taskId={taskId} />}
 
             {/* ── Hata ── */}
             {!loading && error && (
@@ -186,20 +153,29 @@ export default function AnalysisReport() {
                 </div>
             )}
 
-            {!loading && !error && !report && <ReportSkeleton />}
+            {!loading && !error && !report && <ReportProgress taskId={taskId} />}
 
             {/* ── Rapor içeriği ── */}
             {report && (
                 <div className="flex flex-col gap-5">
 
-                    {/* Metrik barlar */}
-                    <MetricBar report={report} mlVerdict={mlVerdict} confidence={confidence} />
+                    {/* Skor — v3 çok boyutlu, yoksa legacy metrik */}
+                    {report.credibility_score
+                        ? <CredibilityScore credibilityScore={report.credibility_score} />
+                        : <MetricBar report={report} mlVerdict={mlVerdict} confidence={confidence} />}
 
                     {/* ── Oylama (ÜST KISIM) ── */}
                     <FeedbackSection
                         taskId={taskId}
                         forumThreadId={report.forum_thread_id ?? null}
                     />
+
+                    {/* Kararı belirleyen faktörler (v3) */}
+                    {report.decisive_factors?.length > 0 && (
+                        <ReportBlock title="// KARARI_BELİRLEYEN_FAKTÖRLER">
+                            <DecisiveFactors factors={report.decisive_factors} />
+                        </ReportBlock>
+                    )}
 
                     {/* Genel değerlendirme */}
                     {report.overall_assessment && (
@@ -210,8 +186,8 @@ export default function AnalysisReport() {
                         </ReportBlock>
                     )}
 
-                    {/* Karar gerekçesi */}
-                    {report.verdict_explanation && (
+                    {/* Karar gerekçesi — yalnızca legacy (v3'te DecisiveFactors var) */}
+                    {!report.decisive_factors?.length && report.verdict_explanation && (
                         <ReportBlock title="// KARAR_GEREKÇESİ">
                             <VerdictExplanationSection verdictExplanation={report.verdict_explanation} />
                         </ReportBlock>
@@ -221,6 +197,27 @@ export default function AnalysisReport() {
                     {report.fact_checks?.length > 0 && (
                         <ReportBlock title="// DOĞRULAMA_BULGULARI">
                             <FactChecksSection factChecks={report.fact_checks} />
+                        </ReportBlock>
+                    )}
+
+                    {/* Alana özel bağlam (v3) */}
+                    {report.domain_context && (
+                        <ReportBlock title="// ALANA_ÖZEL_BAĞLAM">
+                            <DomainContextSection text={report.domain_context} />
+                        </ReportBlock>
+                    )}
+
+                    {/* Sayısal iddialar (v3) */}
+                    {report.numeric_claims?.length > 0 && (
+                        <ReportBlock title="// SAYISAL_İDDİALAR">
+                            <NumericClaimsSection claims={report.numeric_claims} />
+                        </ReportBlock>
+                    )}
+
+                    {/* Emsal vakalar (v3) */}
+                    {report.precedent_cases?.length > 0 && (
+                        <ReportBlock title="// EMSAL_VAKALAR">
+                            <PrecedentCasesSection cases={report.precedent_cases} />
                         </ReportBlock>
                     )}
 
@@ -258,7 +255,7 @@ export default function AnalysisReport() {
                             // {report.model} · {new Date(report.generated_at).toLocaleString('tr-TR')}
                         </span>
                         <span className="font-mono text-[10px] tracking-widest opacity-30" style={{ color: 'var(--color-brand-primary)' }}>
-                            v2.4
+                            v3.0
                         </span>
                     </div>
                 </div>
