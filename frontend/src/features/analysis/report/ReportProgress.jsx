@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useWebSocket } from '../../../contexts/WebSocketContext';
+import StageStepper from './StageStepper';
 
 const STAGES = [
     { n: 1, label: 'İddialar ayrıştırılıyor' },
@@ -33,29 +34,7 @@ export default function ReportProgress({ taskId }) {
     return (
         <div className="relative border p-6" style={S}>
             {/* Stepper */}
-            <div className="flex items-center gap-2 mb-5">
-                {STAGES.map((st, i) => {
-                    const done = st.n < stage;
-                    const active = st.n === stage;
-                    const color = done ? '#3fff8b' : active ? '#f59e0b' : 'var(--color-terminal-border-raw)';
-                    return (
-                        <React.Fragment key={st.n}>
-                            <div className="flex items-center gap-1.5">
-                                <span className="font-mono text-sm" style={{ color }}>
-                                    {done ? '●' : active ? '◉' : '○'}
-                                </span>
-                                <span className="font-mono text-[10px] hidden sm:inline"
-                                      style={{ color: active ? 'var(--color-text-secondary)' : 'var(--color-text-muted-accent)' }}>
-                                    {st.label}
-                                </span>
-                            </div>
-                            {i < STAGES.length - 1 && (
-                                <span className="flex-1 border-t" style={{ borderColor: st.n < stage ? '#3fff8b55' : 'var(--color-terminal-border-raw)' }} />
-                            )}
-                        </React.Fragment>
-                    );
-                })}
-            </div>
+            <div className="mb-5"><StageStepper stage={stage} /></div>
 
             {/* Canlı log */}
             <div className="font-mono text-[11px] leading-loose p-3 border"

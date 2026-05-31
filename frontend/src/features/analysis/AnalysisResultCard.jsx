@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
     Brain, MessageSquare, CheckCircle2,
-    Link2, Info, ThumbsUp, ThumbsDown, FileSearch, ExternalLink,
+    Link2, Info, ThumbsUp, ThumbsDown, FileSearch, ExternalLink, Loader2,
 } from 'lucide-react';
+import { useBackgroundJobs } from '../../contexts/BackgroundJobsContext';
+import StageStepper from './report/StageStepper';
 import { trackInteraction } from '../../services/interaction.service';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -20,6 +22,7 @@ import { useIsDark } from '../../hooks/useIsDark';
 const AnalysisResultCard = ({ result }) => {
     const navigate           = useNavigate();
     const { isAuthenticated } = useAuth();
+    const { jobs } = useBackgroundJobs();
 
     const isDark = useIsDark();
     const [showModal, setShowModal] = useState(false);
@@ -71,6 +74,9 @@ const AnalysisResultCard = ({ result }) => {
     const origText   = result.originalText || null;
     const explanation = buildExplanation(signals);
     const articleId  = result.direct_match_data?.db_article_id ?? result.db_article_id ?? null;
+
+    const reportTaskId = result.task_id ?? result.content_id ?? null;
+    const reportJob = reportTaskId ? jobs[reportTaskId] : null;
 
     const hasGeminiVerdict = !!aiComment?.gemini_verdict;
     const badgeLabel = isUrlAnalysis
@@ -353,6 +359,29 @@ const AnalysisResultCard = ({ result }) => {
                 </div>
             </div>
         </div>
+        {reportJob && reportJob.status === 'running' && (
+            <div className="relative border mt-4" style={{ background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)', borderTop: '2px solid #10b981' }}>
+                <div className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                        <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#10b981' }} />
+                        <span className="font-bold text-sm" style={{ color: 'var(--color-text-primary)' }}>Tam rapor hazırlanıyor</span>
+                        <span className="ml-auto text-[11px]" style={{ color: 'var(--color-text-muted-accent)' }}>~45-90 sn</span>
+                    </div>
+                    <StageStepper stage={reportJob.stage || 1} />
+                    <div className="h-1 mt-3" style={{ background: 'var(--color-terminal-border-raw)' }}>
+                        <div className="h-full transition-all duration-500" style={{ width: `${Math.round(((reportJob.stage || 1) / 3) * 100)}%`, background: '#10b981' }} />
+                    </div>
+                    <p className="text-[12px] mt-3 leading-relaxed" style={{ color: 'var(--color-text-muted-accent)' }}>
+                        Derin analiz birden fazla kaynağı tarıyor — biraz sürebilir. <span style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>Beklemek zorunda değilsiniz, gezinmeye devam edin</span>; hazır olunca bildireceğiz.
+                    </p>
+                </div>
+            </div>
+        )}
+        {reportJob && reportJob.status === 'done' && (
+            <button onClick={() => navigate(`/analysis/report/${reportTaskId}`)} className="mt-4 w-full py-2.5 border font-bold text-sm" style={{ borderColor: '#3fff8b55', color: '#3fff8b', background: '#3fff8b10' }}>
+                Tam rapor hazır — Görüntüle
+            </button>
+        )}
         <ForumSuggestion articleId={articleId} />
         {showModal && (
             <FullReportModal
