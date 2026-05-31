@@ -112,22 +112,22 @@ export default function AnalysisReport() {
             <div className="flex items-center justify-between">
                 <button
                     onClick={() => navigate(-1)}
-                    className="flex items-center gap-2 font-mono text-sm transition-opacity hover:opacity-70"
-                    style={{ color: 'var(--color-text-muted)' }}
+                    className="flex items-center gap-2 text-sm font-medium transition-colors hover:opacity-80"
+                    style={{ color: 'var(--color-text-secondary)' }}
                 >
                     <ArrowLeft className="w-4 h-4" />
                     geri dön
                 </button>
                 <div className="flex items-center gap-3">
                     {shortId && (
-                        <span className="font-mono text-[10px] tracking-widest uppercase px-2 py-1 border" style={{ ...BD, color: 'var(--color-text-muted)', opacity: 0.6 }}>
+                        <span className="font-mono text-[10px] tracking-widest uppercase px-2 py-1 border" style={{ ...BD, color: 'var(--color-text-secondary)' }}>
                             RAPOR #{shortId}
                         </span>
                     )}
                     <button
                         onClick={handleShare}
-                        className="flex items-center gap-1.5 font-mono text-xs transition-opacity hover:opacity-70"
-                        style={{ color: 'var(--color-text-muted)' }}
+                        className="flex items-center gap-1.5 text-xs font-medium transition-colors hover:opacity-80"
+                        style={{ color: 'var(--color-text-secondary)' }}
                     >
                         {copied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                         {copied ? 'kopyalandı' : 'paylaş'}
@@ -257,10 +257,10 @@ export default function AnalysisReport() {
 
                     {/* Footer */}
                     <div className="flex items-center justify-between py-2">
-                        <span className="font-mono text-[10px] tracking-widest opacity-30" style={{ color: 'var(--color-text-muted)' }}>
-                            // {report.model} · {new Date(report.generated_at).toLocaleString('tr-TR')}
+                        <span className="font-mono text-[10px] tracking-widest" style={{ color: 'var(--color-text-muted-accent)' }}>
+                            {report.model} · {new Date(report.generated_at).toLocaleString('tr-TR')}
                         </span>
-                        <span className="font-mono text-[10px] tracking-widest opacity-30" style={{ color: 'var(--color-brand-primary)' }}>
+                        <span className="font-mono text-[10px] tracking-widest" style={{ color: 'var(--color-brand-primary)', opacity: 0.6 }}>
                             v3.0
                         </span>
                     </div>
