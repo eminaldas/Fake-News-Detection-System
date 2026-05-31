@@ -262,7 +262,8 @@ _SYNTHESIS_SCHEMA = """{
   },
   "overall_assessment": "2-3 cümlelik genel değerlendirme",
   "fact_checks": [
-    { "claim": "iddia", "finding": "kaynak belirterek açıklama", "tone": "confirmed | refuted | mixed | uncertain" }
+    { "claim": "iddia", "finding": "kaynak belirterek açıklama", "tone": "confirmed | refuted | mixed | uncertain",
+      "sources": [ { "name": "Kaynak adı", "domain": "kaynak.com", "url": "varsa link veya null" } ] }
   ],
   "propaganda_techniques": [ { "technique": "ad", "explanation": "nasıl kullanıldığı" } ],
   "source_credibility": "yayın organı hakkında bilgi veya null",
@@ -272,7 +273,8 @@ _SYNTHESIS_SCHEMA = """{
 
 def _build_synthesis_prompt(text: str, triage: dict, evidence: dict,
                             ml_verdict: str, confidence: float, signals: dict,
-                            today: str, user_note: str = "") -> str:
+                            today: str, user_note: str = "",
+                            temporal: dict | None = None) -> str:
     safe_text   = sanitize_for_prompt(text, max_len=1200)
     triage_json = sanitize_for_prompt(json.dumps(triage, ensure_ascii=False)[:2500], max_len=2500)
     evid_json   = sanitize_for_prompt(json.dumps(evidence, ensure_ascii=False)[:4000], max_len=4000)
@@ -282,6 +284,11 @@ def _build_synthesis_prompt(text: str, triage: dict, evidence: dict,
     )
     clickbait = signals.get("clickbait_score", 0)
     risk      = signals.get("risk_score", 0)
+
+    temporal_block = ""
+    if temporal:
+        flag = temporal.get("freshness_flag")
+        temporal_block = f"\n[ZAMAN BAĞLAMI]\nGüncellik: {flag or 'bilinmiyor'} | En eski kaynak: {temporal.get('earliest_source_date', '?')} | En yeni: {temporal.get('latest_source_date', '?')}\n"
 
     return f"""[SİSTEM]
 Bugünün tarihi: {today}.
@@ -297,7 +304,7 @@ Yerel model: {ml_verdict} (%{confidence*100:.0f}) | clickbait: {clickbait:.2f} |
 
 [TRİYAJ]
 {triage_json}
-
+{temporal_block}
 [TOPLANAN KANIT]
 {evid_json}
 {user_note_block}
@@ -308,6 +315,8 @@ Yerel model: {ml_verdict} (%{confidence*100:.0f}) | clickbait: {clickbait:.2f} |
 - credibility_score.sub_scores: her boyutu 0-100 puanla + kısa gerekçe.
   language_manipulation: YÜKSEK = temiz/tarafsız dil, DÜŞÜK = manipülatif.
 - fact_checks: kanıttaki bulguları 2-5 maddede özetle, kaynak belirt.
+- fact_checks: her bulguya kanıt aşamasındaki KAYNAKLARI bağla (sources: name/domain/url). Kaynaksız bulgu bırakma.
+- ZAMAN/GÜNCELLİK: Haber çok yeni (son 24-48 saat) ve birden fazla bağımsız kaynak paylaşmışsa, resmi teyit henüz gelmemiş olabilir — bunu KANIT_YETERSİZ saymak yerine "gelişen haber" olarak değerlendir, verdict'i BÜYÜK_ÖLÇÜDE_DOĞRU/KISMEN_DOĞRU'ya yaklaştır ve one_line'da "gelişen haber, resmi teyit bekleniyor" belirt. Haber ESKİ olduğu hâlde hâlâ resmi teyit yoksa daha şüpheci yaklaş. Bu kural resmi kaynak gerektiren haberlerde (ölüm, afet, resmi olay) geçerlidir.
 - overall skoru SEN hesaplama; sadece alt skorları ver.
 
 Yanıtı YALNIZCA geçerli JSON olarak ver. Markdown ekleme.
@@ -412,6 +421,20 @@ def _validate_report_v3(raw: dict, signals: dict | None = None) -> dict:
     _orig_linguistic = raw.get("linguistic")
     _orig_manip = _orig_linguistic.get("manipulation_density") if isinstance(_orig_linguistic, dict) else None
     raw = _validate_report(raw)  # legacy ortak alanlar (overall_assessment, fact_checks, linguistic...)
+
+    # ── fact_checks: sources normalizasyonu ──
+    for fc in raw.get("fact_checks", []):
+        srcs = fc.get("sources")
+        if not isinstance(srcs, list):
+            fc["sources"] = []
+        else:
+            clean = []
+            for s in srcs[:4]:
+                if isinstance(s, dict) and (s.get("name") or s.get("domain")):
+                    clean.append({"name": str(s.get("name") or "")[:120],
+                                  "domain": str(s.get("domain") or "")[:120],
+                                  "url": (str(s.get("url"))[:300] if s.get("url") else None)})
+            fc["sources"] = clean
 
     # ── verdict ──
     verdict = raw.get("verdict")
@@ -647,7 +670,8 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
                                   {"task_id": task_id, "stage": 3, "label": REPORT_STAGES[3]})
         raw_report = _call_gemini_json(
             _build_synthesis_prompt(text, triage, evidence, data.status, confidence,
-                                    signals, today, user_note),
+                                    signals, today, user_note,
+                                    temporal=data.temporal_analysis),
             use_search=False,
         )
         if raw_report is None:

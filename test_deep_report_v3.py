@@ -161,6 +161,22 @@ def test_synthesis_prompt_embeds_triage_and_evidence():
     assert "decisive_factors" in p
 
 
+def test_v3_fact_check_sources_normalized():
+    raw = {
+        "verdict": {"decision": "KISMEN_DOĞRU", "domain": "genel"},
+        "fact_checks": [
+            {"claim": "x", "finding": "Reuters'a göre", "tone": "confirmed",
+             "sources": [{"name": "Reuters", "domain": "reuters.com", "url": "https://r.com"},
+                         {"bad": 1}]},
+        ],
+    }
+    out = _validate_report_v3(raw, {})
+    fcs = out["fact_checks"]
+    assert len(fcs) == 1
+    assert fcs[0]["sources"][0]["name"] == "Reuters"
+    assert len(fcs[0]["sources"]) == 1
+
+
 def test_v3_overall_raised_for_true_verdict():
     # DOĞRU + düşük alt skorlar -> overall en az 75'e yükseltilir
     raw = {
