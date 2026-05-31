@@ -70,6 +70,8 @@ class Settings(BaseSettings):
     # Gemini AI
     GEMINI_API_KEY:         str   = ""
     GEMINI_MODEL:           str   = "gemini-2.5-flash"
+    # Primary 503/aşırı yük verirse düşülen yedek model
+    GEMINI_FALLBACK_MODEL:  str   = "gemini-2.5-flash"
     GEMINI_ESCALATION_LOW:  float = 0.40
     GEMINI_ESCALATION_HIGH: float = 0.65
 
