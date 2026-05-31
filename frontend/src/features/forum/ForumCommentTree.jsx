@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { ThumbsUp, MessageSquare, Flag, X, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import { useAuth } from '../../contexts/AuthContext';
+import popup from '../../services/popup';
 
 const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
@@ -60,8 +61,15 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
     };
 
     const handleDelete = async () => {
-        if (!window.confirm('Bu yorumu silmek istediğinizden emin misiniz?')) return;
-        try { await axiosInstance.delete(`/forum/comments/${comment.id}`); onNewComment?.(); } catch {}
+        popup.confirm({
+            title: 'Yorumu sil',
+            message: 'Bu yorumu silmek istediğinizden emin misiniz?',
+            confirmLabel: 'Sil',
+            cancelLabel: 'İptal',
+            onConfirm: async () => {
+                try { await axiosInstance.delete(`/forum/comments/${comment.id}`); onNewComment?.(); } catch {}
+            },
+        });
     };
 
     const handleVerify = async () => {
