@@ -6,6 +6,7 @@ import {
     ArrowLeft, ExternalLink,
 } from 'lucide-react';
 import axiosInstance from '../../api/axios';
+import popup from '../../services/popup';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 import { useAuth } from '../../contexts/AuthContext';
 import ForumCommentTree from './ForumCommentTree';
@@ -134,8 +135,15 @@ const ForumThread = () => {
     };
     const cancelReply   = () => { setParentId(null); setReplyTo(null); };
     const handleDelete  = async () => {
-        if (!window.confirm('Tartışmayı silmek istediğinizden emin misiniz?')) return;
-        try { await axiosInstance.delete(`/forum/threads/${threadId}`); navigate('/forum'); } catch {}
+        popup.confirm({
+            title: 'Tartışmayı sil',
+            message: 'Bu tartışmayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.',
+            confirmLabel: 'Sil',
+            cancelLabel: 'İptal',
+            onConfirm: async () => {
+                try { await axiosInstance.delete(`/forum/threads/${threadId}`); navigate('/forum'); } catch {}
+            },
+        });
     };
     const submitEdit    = async () => {
         try { await axiosInstance.put(`/forum/threads/${threadId}`, { title: editTitle, body: editBody }); setEditMode(false); await load(); } catch {}

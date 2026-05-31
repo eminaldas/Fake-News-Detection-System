@@ -101,25 +101,53 @@ const ForumLayout = () => {
                 {/* ══════ ORTA İÇERİK ══════ */}
                 <main className="min-w-0">
                     {!isSearchPage && (
-                        <div className="flex items-center gap-2 mb-4 flex-wrap">
-                            {SORT_OPTIONS.map(opt => {
-                                const active = currentSort === opt.key;
-                                return (
-                                    <button
-                                        key={opt.key}
-                                        onClick={() => setSort(opt.key)}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 font-mono text-xs font-bold border transition-all"
+                        <div className="flex flex-col gap-2 mb-4">
+                            {/* Sort + mobil arama yan yana */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                                {SORT_OPTIONS.map(opt => {
+                                    const active = currentSort === opt.key;
+                                    return (
+                                        <button
+                                            key={opt.key}
+                                            onClick={() => setSort(opt.key)}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 font-mono text-xs font-bold border transition-all"
+                                            style={{
+                                                background:  active ? 'var(--color-brand-primary)' : 'var(--color-terminal-surface)',
+                                                borderColor: active ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)',
+                                                color:       active ? '#070f12' : 'var(--color-text-primary)',
+                                            }}
+                                        >
+                                            <opt.Icon className="w-3.5 h-3.5" />
+                                            {opt.label}
+                                        </button>
+                                    );
+                                })}
+                                {/* Mobil arama — sadece lg altında görünür */}
+                                <form onSubmit={handleSearch} className="flex lg:hidden flex-1 min-w-[160px]">
+                                    <input
+                                        value={searchQuery}
+                                        onChange={e => setSearchQuery(e.target.value)}
+                                        placeholder="Tartışma ara…"
+                                        className="w-full px-3 py-1.5 text-xs border outline-none"
                                         style={{
-                                            background:  active ? 'var(--color-brand-primary)' : 'var(--color-terminal-surface)',
-                                            borderColor: active ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)',
-                                            color:       active ? '#070f12' : 'var(--color-text-primary)',
+                                            background:  'var(--color-terminal-surface)',
+                                            borderColor: 'var(--color-terminal-border-raw)',
+                                            color:       'var(--color-text-primary)',
+                                        }}
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="px-3 py-1.5 border-l-0 border"
+                                        style={{
+                                            background:  'var(--color-terminal-surface)',
+                                            borderColor: 'var(--color-terminal-border-raw)',
+                                            color:       'var(--color-brand-primary)',
                                         }}
                                     >
-                                        <opt.Icon className="w-3.5 h-3.5" />
-                                        {opt.label}
+                                        <Search className="w-3.5 h-3.5" />
                                     </button>
-                                );
-                            })}
+                                </form>
+                            </div>
                         </div>
                     )}
                     <Outlet />

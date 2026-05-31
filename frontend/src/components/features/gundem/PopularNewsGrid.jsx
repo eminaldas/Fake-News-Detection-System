@@ -366,14 +366,14 @@ function GridSkeleton() {
     return (
         <div>
             {/* Ana grid — featured + 2 küçük */}
-            <div className="grid grid-cols-2 gap-4 auto-rows-[260px] mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:auto-rows-[260px] mb-4">
                 <SkeletonCard className="col-span-1 row-span-2 relative" />
                 {[0, 1].map(i => (
                     <SkeletonCard key={i} className="relative" style={{ animationDelay: `${i * 0.15}s` }} />
                 ))}
             </div>
             {/* Alt grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-[260px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:auto-rows-[260px]">
                 {[0, 1, 2].map(i => (
                     <SkeletonCard key={i} className="relative" style={{ animationDelay: `${(i + 2) * 0.12}s` }} />
                 ))}
@@ -411,8 +411,8 @@ export default function PopularNewsGrid({ featured, articles, loading, loadingMo
 
     return (
         <div className="animate-fade-in">
-            {/* Ana grid: sol büyük (row-span-2) + sağda 2 kart */}
-            <div className="grid grid-cols-2 gap-4 auto-rows-[260px] mb-4">
+            {/* Ana grid: mobilde tek kolon, sm+ solda büyük + sağda 2 küçük */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:auto-rows-[260px] mb-4">
                 {featured && <FeaturedCard article={featured} />}
                 {rest.slice(0, 2).map((a, idx) => (
                     <div key={a.id}
@@ -425,7 +425,7 @@ export default function PopularNewsGrid({ featured, articles, loading, loadingMo
 
             {/* Kalan kartlar */}
             {rest.length > 2 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-[260px]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:auto-rows-[260px]">
                     {rest.slice(2).map((a, idx) => (
                         <div key={a.id}
                              className="animate-fade-up"
