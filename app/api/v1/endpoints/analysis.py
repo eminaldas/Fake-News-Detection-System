@@ -856,7 +856,7 @@ async def get_full_report(
 ):
     """Üretilmiş tam raporu getirir. Analiz yoksa 404, rapor henüz hazır değilse 200 pending."""
     row = await db.execute(
-        select(AnalysisResult.full_report, AnalysisResult.confidence, AnalysisResult.status)
+        select(AnalysisResult.full_report, AnalysisResult.confidence, AnalysisResult.status, Article.title)
         .join(Article, AnalysisResult.article_id == Article.id)
         .where(Article.metadata_info.op("->>")(  "task_id") == task_id)
         .limit(1)
@@ -872,11 +872,8 @@ async def get_full_report(
         return FullReportResponse(task_id=task_id, status="pending")
 
     return FullReportResponse(
-        task_id=task_id,
-        status="cached",
-        report=data.full_report,
-        confidence=data.confidence,
-        ml_verdict=data.status,
+        task_id=task_id, status="cached", report=data.full_report,
+        confidence=data.confidence, ml_verdict=data.status, title=data.title,
     )
 
 

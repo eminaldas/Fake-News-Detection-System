@@ -26,12 +26,12 @@ export default function CredibilityScore({ credibilityScore }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {/* Genel skor */}
             <div className="relative border p-5" style={S}>
-                <p className="font-mono text-[10px] tracking-widest uppercase mb-3" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>
-                    // GÜVENİLİRLİK_SKORU
+                <p className="text-[10px] font-bold tracking-widest uppercase mb-3" style={{ color: 'var(--color-text-muted-accent)' }}>
+                    Güvenilirlik Skoru
                 </p>
                 <div className="flex items-end gap-3 mb-3">
                     <span className="font-mono text-5xl font-black leading-none" style={{ color: oColor }}>{overall}</span>
-                    <span className="font-mono text-sm mb-1" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}>/ 100</span>
+                    <span className="font-mono text-sm mb-1" style={{ color: 'var(--color-text-muted-accent)' }}>/ 100</span>
                 </div>
                 <div className="flex gap-[3px]">
                     {Array.from({ length: SEGS }).map((_, i) => (
@@ -44,8 +44,8 @@ export default function CredibilityScore({ credibilityScore }) {
 
             {/* Alt skorlar */}
             <div className="relative border p-5 md:col-span-2 flex flex-col justify-center gap-3" style={S}>
-                <p className="font-mono text-[10px] tracking-widest uppercase mb-1" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>
-                    // ALT_BOYUTLAR
+                <p className="text-[10px] font-bold tracking-widest uppercase mb-1" style={{ color: 'var(--color-text-muted-accent)' }}>
+                    Alt Boyutlar
                 </p>
                 {SUB_META.map(({ key, label }) => {
                     const node = subs[key] || {};
@@ -61,7 +61,7 @@ export default function CredibilityScore({ credibilityScore }) {
                                 <div className="h-full" style={{ width: `${sc}%`, background: c }} />
                             </div>
                             {node.rationale && (
-                                <p className="font-mono text-[10px] mt-1 leading-relaxed" style={{ color: 'var(--color-text-muted)', opacity: 0.65 }}>
+                                <p className="font-mono text-[10px] mt-1 leading-relaxed" style={{ color: 'var(--color-text-muted-accent)' }}>
                                     {node.rationale}
                                 </p>
                             )}

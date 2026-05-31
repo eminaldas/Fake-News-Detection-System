@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
     Radar, Copy, CheckCheck,
+    FileText, Scale, Search, FlaskConical, Hash, History, Megaphone, Network, BookOpen, Type,
 } from 'lucide-react';
 import { useReport } from '../hooks/useReport';
 import FactChecksSection        from '../features/analysis/report/FactChecksSection';
@@ -19,22 +20,18 @@ import DomainContextSection      from '../features/analysis/report/DomainContext
 import NumericClaimsSection      from '../features/analysis/report/NumericClaimsSection';
 import PrecedentCasesSection     from '../features/analysis/report/PrecedentCasesSection';
 import ReportProgress            from '../features/analysis/report/ReportProgress';
+import SectionHeading           from '../features/analysis/report/SectionHeading';
 
 /* ── Tasarım sabitleri ── */
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 
-/* Section wrapper — başlık border'ı keser */
-function ReportBlock({ title, children }) {
+/* Section wrapper — ikonlu SectionHeading ile */
+function ReportBlock({ title, icon, subtitle, children }) {
     return (
         <div className="relative border" style={S}>
-            <span
-                className="absolute -top-px left-5 px-2 font-mono text-[11px] tracking-widest uppercase"
-                style={{ background: 'var(--color-terminal-surface)', color: 'var(--color-brand-primary)' }}
-            >
-                {title}
-            </span>
-            <div className="p-5 pt-6">
+            <div className="p-5">
+                <SectionHeading icon={icon} title={title} subtitle={subtitle} />
                 {children}
             </div>
         </div>
@@ -138,6 +135,15 @@ export default function AnalysisReport() {
                 </div>
             </div>
 
+            {/* ── Haber başlığı ── */}
+                    {(report?.title || mlVerdict) && (
+                        <p className="text-sm" style={{ color: 'var(--color-text-muted-accent)' }}>
+                            {report?.title
+                                ? <><span style={{ color: 'var(--color-text-primary)', fontWeight: 700 }}>{report.title}</span> haberinin tam raporu</>
+                                : 'Tam analiz raporu'}
+                        </p>
+                    )}
+
             {/* ── Başlık ── */}
             <VerdictHeader verdict={report?.verdict} mlVerdict={mlVerdict} report={report} />
 
@@ -164,22 +170,16 @@ export default function AnalysisReport() {
                         ? <CredibilityScore credibilityScore={report.credibility_score} />
                         : <MetricBar report={report} mlVerdict={mlVerdict} confidence={confidence} />}
 
-                    {/* ── Oylama (ÜST KISIM) ── */}
-                    <FeedbackSection
-                        taskId={taskId}
-                        forumThreadId={report.forum_thread_id ?? null}
-                    />
-
                     {/* Kararı belirleyen faktörler (v3) */}
                     {report.decisive_factors?.length > 0 && (
-                        <ReportBlock title="// KARARI_BELİRLEYEN_FAKTÖRLER">
+                        <ReportBlock title="Kararı Belirleyen Faktörler" icon={Scale}>
                             <DecisiveFactors factors={report.decisive_factors} />
                         </ReportBlock>
                     )}
 
                     {/* Genel değerlendirme */}
                     {report.overall_assessment && (
-                        <ReportBlock title="// GENEL_DEĞERLENDİRME">
+                        <ReportBlock title="Genel Değerlendirme" icon={FileText}>
                             <p className="font-mono text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
                                 {report.overall_assessment}
                             </p>
@@ -188,49 +188,49 @@ export default function AnalysisReport() {
 
                     {/* Karar gerekçesi — yalnızca legacy (v3'te DecisiveFactors var) */}
                     {!report.decisive_factors?.length && report.verdict_explanation && (
-                        <ReportBlock title="// KARAR_GEREKÇESİ">
+                        <ReportBlock title="Karar Gerekçesi" icon={Scale}>
                             <VerdictExplanationSection verdictExplanation={report.verdict_explanation} />
                         </ReportBlock>
                     )}
 
                     {/* Doğrulama bulguları */}
                     {report.fact_checks?.length > 0 && (
-                        <ReportBlock title="// DOĞRULAMA_BULGULARI">
+                        <ReportBlock title="Doğrulama Bulguları" icon={Search} subtitle="Haberdeki iddiaların kaynaklı tek tek doğrulaması">
                             <FactChecksSection factChecks={report.fact_checks} />
                         </ReportBlock>
                     )}
 
                     {/* Alana özel bağlam (v3) */}
                     {report.domain_context && (
-                        <ReportBlock title="// ALANA_ÖZEL_BAĞLAM">
+                        <ReportBlock title="Alana Özel Bağlam" icon={FlaskConical}>
                             <DomainContextSection text={report.domain_context} />
                         </ReportBlock>
                     )}
 
                     {/* Sayısal iddialar (v3) */}
                     {report.numeric_claims?.length > 0 && (
-                        <ReportBlock title="// SAYISAL_İDDİALAR">
+                        <ReportBlock title="Sayısal İddialar" icon={Hash}>
                             <NumericClaimsSection claims={report.numeric_claims} />
                         </ReportBlock>
                     )}
 
                     {/* Emsal vakalar (v3) */}
                     {report.precedent_cases?.length > 0 && (
-                        <ReportBlock title="// EMSAL_VAKALAR">
+                        <ReportBlock title="Emsal Vakalar" icon={History}>
                             <PrecedentCasesSection cases={report.precedent_cases} />
                         </ReportBlock>
                     )}
 
                     {/* Propaganda */}
-                    {report.propaganda_techniques && (
-                        <ReportBlock title="// PROPAGANDA_ANALİZİ">
+                    {report.propaganda_techniques?.length > 0 && (
+                        <ReportBlock title="Propaganda Analizi" icon={Megaphone}>
                             <PropagandaSection techniques={report.propaganda_techniques} />
                         </ReportBlock>
                     )}
 
                     {/* Kaynak bias */}
-                    {report.source_analysis && (
-                        <ReportBlock title="// KAYNAK_BIAS_ANALİZİ">
+                    {report.source_analysis?.sources_found?.length > 0 && (
+                        <ReportBlock title="Kaynak Yanlılığı" icon={Network}>
                             <SourceBiasSection sourceAnalysis={report.source_analysis} />
                         </ReportBlock>
                     )}
@@ -238,16 +238,22 @@ export default function AnalysisReport() {
                     {/* Kaynak & dilbilim */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         {report.source_credibility && (
-                            <ReportBlock title="// KAYNAK_GÜVENİLİRLİĞİ">
+                            <ReportBlock title="Kaynak Güvenilirliği" icon={BookOpen}>
                                 <SourceCredibilitySection text={report.source_credibility} />
                             </ReportBlock>
                         )}
                         {report.linguistic && (
-                            <ReportBlock title="// DİLBİLİM_ANALİZİ">
+                            <ReportBlock title="Dilbilimsel Analiz" icon={Type}>
                                 <LinguisticSection linguistic={report.linguistic} />
                             </ReportBlock>
                         )}
                     </div>
+
+                    {/* ── Oylama (ALT KISIM) ── */}
+                    <FeedbackSection
+                        taskId={taskId}
+                        forumThreadId={report.forum_thread_id ?? null}
+                    />
 
                     {/* Footer */}
                     <div className="flex items-center justify-between py-2">

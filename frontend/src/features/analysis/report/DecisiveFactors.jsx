@@ -29,14 +29,14 @@ export default function DecisiveFactors({ factors }) {
                         <div className="flex-1 min-w-0">
                             <p className="font-mono text-sm" style={{ color: 'var(--color-text-secondary)' }}>{f.factor}</p>
                             {f.explanation && (
-                                <p className="font-mono text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>
+                                <p className="font-mono text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--color-text-muted-accent)' }}>
                                     {f.explanation}
                                 </p>
                             )}
                         </div>
                         <div className="text-right shrink-0">
                             <SegBar weight={weight} color={color} />
-                            <p className="font-mono text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>
+                            <p className="font-mono text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted-accent)' }}>
                                 {dirLabel} · {weight.toFixed(2).replace(/^0/, '')}
                             </p>
                         </div>

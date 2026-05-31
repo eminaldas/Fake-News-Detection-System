@@ -12,7 +12,7 @@ export default function PrecedentCasesSection({ cases }) {
                         <span className="font-mono text-sm" style={{ color: 'var(--color-text-secondary)' }}>{c.title}</span>
                         {c.year && (
                             <span className="font-mono text-[10px] px-1.5 py-0.5 border"
-                                  style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-terminal-border-raw)' }}>{c.year}</span>
+                                  style={{ color: 'var(--color-text-muted-accent)', borderColor: 'var(--color-terminal-border-raw)' }}>{c.year}</span>
                         )}
                         {c.url && (
                             <a href={c.url} target="_blank" rel="noopener noreferrer"
@@ -22,7 +22,7 @@ export default function PrecedentCasesSection({ cases }) {
                         )}
                     </div>
                     {c.summary && (
-                        <p className="font-mono text-[11px] leading-relaxed" style={{ color: 'var(--color-text-muted)', opacity: 0.75 }}>
+                        <p className="font-mono text-[11px] leading-relaxed" style={{ color: 'var(--color-text-muted-accent)' }}>
                             {c.summary}
                         </p>
                     )}

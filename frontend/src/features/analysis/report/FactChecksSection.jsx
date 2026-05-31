@@ -33,14 +33,18 @@ function FactCheckCard({ fc }) {
                 {cfg.label}
             </span>
             {fc.sources?.length > 0 && (
-                <div className="flex flex-col gap-1 pt-1">
+                <div className="flex flex-col gap-1 pt-2 mt-1" style={{ borderTop: '1px solid var(--color-terminal-border-raw)' }}>
+                    <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted-accent)' }}>Kaynaklar</span>
                     {fc.sources.slice(0, 4).map((s, i) => (
-                        <div key={i} className="flex items-center gap-2 text-[10px] text-tx-secondary/70">
-                            <span className="font-semibold text-tx-secondary">{s.name || s.domain || 'kaynak'}</span>
-                            {s.domain && <span className="opacity-60">{s.domain}</span>}
-                            {s.stance && (
-                                <span className="ml-auto uppercase tracking-wide opacity-70">{s.stance}</span>
+                        <div key={i} className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+                            {s.url ? (
+                                <a href={s.url} target="_blank" rel="noopener noreferrer" className="font-semibold underline" style={{ color: 'var(--color-brand-primary)' }}>
+                                    {s.name || s.domain || 'kaynak'}
+                                </a>
+                            ) : (
+                                <span className="font-semibold">{s.name || s.domain || 'kaynak'}</span>
                             )}
+                            {s.domain && <span style={{ color: 'var(--color-text-muted-accent)' }}>{s.domain}</span>}
                         </div>
                     ))}
                 </div>
@@ -52,14 +56,10 @@ function FactCheckCard({ fc }) {
 export default function FactChecksSection({ factChecks }) {
     if (!factChecks?.length) return null;
 
-    const pairs  = factChecks.filter((_, i) => i % 2 === 0).map((_, i) => [factChecks[i * 2], factChecks[i * 2 + 1]]);
     const isOdd  = factChecks.length % 2 !== 0;
 
     return (
         <div className="flex flex-col gap-4">
-            <h2 className="font-manrope font-bold text-base text-tx-primary flex items-center gap-2">
-                Doğrulama Bulguları
-            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {factChecks.map((fc, i) => {
                     const isLast = i === factChecks.length - 1 && isOdd;
