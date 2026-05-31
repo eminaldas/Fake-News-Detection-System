@@ -162,10 +162,9 @@ def _call_gemini_json(prompt: str, use_search: bool = False) -> dict | None:
             config_kwargs["automatic_function_calling"] = types.AutomaticFunctionCallingConfig(
                 maximum_remote_calls=18,
             )
-        response = client.models.generate_content(
-            model=settings.GEMINI_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(**config_kwargs),
+        from workers.gemini_retry import generate_with_fallback
+        response = generate_with_fallback(
+            client, prompt, types.GenerateContentConfig(**config_kwargs),
         )
         raw = _extract_json_from_text(response.text)
         if raw is None:

@@ -458,11 +458,11 @@ def _call_gemini(prompt: str) -> dict | None:
     """Gemini API'yi Google Search grounding ile çağırır, JSON parse eder, validate eder."""
     try:
         from google.genai import types
+        from workers.gemini_retry import generate_with_fallback
         client = _get_gemini_client()
-        response = client.models.generate_content(
-            model=settings.GEMINI_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
+        response = generate_with_fallback(
+            client, prompt,
+            types.GenerateContentConfig(
                 tools=[types.Tool(google_search=types.GoogleSearch())],
                 automatic_function_calling=types.AutomaticFunctionCallingConfig(
                     maximum_remote_calls=3,
@@ -485,11 +485,11 @@ def _call_gemini_sources(prompt: str) -> list[dict]:
     """Gemini'den kaynak listesi alır (Step 1). Hata durumunda boş liste döner."""
     try:
         from google.genai import types
+        from workers.gemini_retry import generate_with_fallback
         client = _get_gemini_client()
-        response = client.models.generate_content(
-            model=settings.GEMINI_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
+        response = generate_with_fallback(
+            client, prompt,
+            types.GenerateContentConfig(
                 tools=[types.Tool(google_search=types.GoogleSearch())],
                 automatic_function_calling=types.AutomaticFunctionCallingConfig(
                     maximum_remote_calls=5,
