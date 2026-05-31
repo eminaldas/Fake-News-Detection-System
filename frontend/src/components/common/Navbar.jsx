@@ -85,7 +85,8 @@ function CategoryBar({ activeCategory, onSelect }) {
     return (
         <div style={{ borderTop: '1px solid var(--color-border)' }}>
             <div ref={containerRef}
-                 className="max-w-7xl mx-auto px-6 flex items-center justify-center overflow-x-auto relative">
+                 className="max-w-7xl mx-auto px-2 flex items-center overflow-x-auto relative scrollbar-none"
+                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 {/* Kayan indikatör çizgisi */}
                 {indicator.ready && (
                     <div
@@ -106,10 +107,10 @@ function CategoryBar({ activeCategory, onSelect }) {
                             key={refKey}
                             ref={el => { btnRefs.current[refKey] = el; }}
                             onClick={() => onSelect(item.value)}
-                            className="px-5 py-3 text-[11px] font-bold tracking-widest whitespace-nowrap transition-colors duration-200"
+                            className="px-4 py-3 text-[11px] font-bold tracking-widest whitespace-nowrap transition-colors duration-200 shrink-0"
                             style={{
                                 fontFamily: "'Open Sans', sans-serif",
-                                color:      isActive ? 'var(--color-brand-primary)' : 'var(--color-text-primary)',
+                                color:      isActive ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)',
                             }}
                         >
                             {item.label}
@@ -298,12 +299,13 @@ const Navbar = () => {
     const { isAuthenticated, user, isAdmin, logout } = useAuth();
     const [menuOpen,    setMenuOpen]    = useState(false);
     const [showProfile, setShowProfile] = useState(false);
-    const [trust,       setTrust]       = useState(null);
+    const [_trust,      setTrust]       = useState(null);
     const profileRef = useRef(null);
     const isActive   = (path) => location.pathname === path;
     const [gundemParams, setGundemParams] = useSearchParams();
     const isGundem       = location.pathname === '/gundem';
-    const activeCategory = isGundem ? gundemParams.get('category') : null;
+    // category param varsa onu kullan; forYou=1 veya parametre yoksa null (SİZİN İÇİN aktif)
+    const activeCategory = isGundem ? (gundemParams.get('category') ?? null) : null;
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { setMenuOpen(false); }, [location.pathname]);
@@ -590,7 +592,7 @@ const Navbar = () => {
             {isGundem && (
                 <CategoryBar
                     activeCategory={activeCategory}
-                    onSelect={(val) => val ? setGundemParams({ category: val }) : setGundemParams({ forYou: '1' })}
+                    onSelect={(val) => val ? setGundemParams({ category: val }) : setGundemParams({})}
                 />
             )}
 
