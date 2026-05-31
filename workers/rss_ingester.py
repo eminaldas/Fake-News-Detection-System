@@ -639,7 +639,13 @@ async def _run_ingest():
 
     if urls_to_warm:
         logger.info("image_cache_warm start count=%d", len(urls_to_warm))
-        await asyncio.gather(*[_warm_one(u) for u in urls_to_warm], return_exceptions=True)
+        # Toplu paralel yerine 10'ar gruplara böl — SIGKILL/OOM önleme
+        _CHUNK = 10
+        for i in range(0, len(urls_to_warm), _CHUNK):
+            await asyncio.gather(
+                *[_warm_one(u) for u in urls_to_warm[i:i + _CHUNK]],
+                return_exceptions=True,
+            )
         logger.info("image_cache_warm done")
 
 
