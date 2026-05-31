@@ -50,12 +50,13 @@ async def _generate():
     async with AsyncSessionLocal() as db:
         today = date.today()
 
-        # Top-25 bugünün haberleri — kaynak sayısına göre
+        # Top-25 bugünün haberleri — pub_date yerine created_at kullan
+        # (bazı feed'lerin pub_date'i yanlış parse edilebiliyor; created_at güvenilir)
         rows = (await db.execute(
             select(NewsArticle.title, NewsArticle.source_count)
             .where(
-                NewsArticle.pub_date >= datetime(today.year, today.month, today.day,
-                                                  tzinfo=timezone.utc),
+                NewsArticle.created_at >= datetime(today.year, today.month, today.day,
+                                                    tzinfo=timezone.utc),
                 NewsArticle.embedding.is_not(None),
                 NewsArticle.id == NewsArticle.cluster_id,
             )
