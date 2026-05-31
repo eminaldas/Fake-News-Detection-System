@@ -1,5 +1,46 @@
 {
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+  "functions": {
+    "api/og/**/*.js": {
+      "runtime": "edge"
+    }
+  },
+  "routes": [
+    {
+      "src": "/analysis/report/([^/]+)",
+      "dest": "/api/og/report/$1",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(whatsapp|telegram|snapchat|slack|discord|twitterbot|facebookexternalhit|linkedinbot|googlebot|bingbot).*"
+        }
+      ]
+    },
+    {
+      "src": "/forum/([^/]+)",
+      "dest": "/api/og/forum/$1",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(whatsapp|telegram|snapchat|slack|discord|twitterbot|facebookexternalhit|linkedinbot|googlebot|bingbot).*"
+        }
+      ]
+    },
+    {
+      "src": "/analysis/share/([^/]+)",
+      "dest": "/api/og/share/$1",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(whatsapp|telegram|snapchat|slack|discord|twitterbot|facebookexternalhit|linkedinbot|googlebot|bingbot).*"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
   ]
 }
