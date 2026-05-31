@@ -1,16 +1,16 @@
 // frontend/api/_og-helper.js
-// OG preview HTML şablonu — tüm edge function'lar bu helper'ı kullanır
-
-const SITE_URL  = 'https://www.nehaber.dev';
-const SITE_NAME = 'Ne Haber';
-const API_BASE  = process.env.VITE_API_BASE_URL || 'https://api.nehaber.dev/api/v1';
+const SITE_URL    = 'https://www.nehaber.dev';
+const SITE_NAME   = 'Ne Haber';
+const API_BASE    = process.env.VITE_API_BASE_URL || 'https://api.nehaber.dev/api/v1';
 const DEFAULT_IMG = `${SITE_URL}/og-image.png`;
 
+export const BOT_RE = /whatsapp|telegram|snapchat|slack|discord|twitterbot|facebookexternalhit|linkedinbot|googlebot|bingbot|curl|wget/i;
+
 export function ogHtml({ title, description, imageUrl, pageUrl }) {
-    const t   = escape(title       || `${SITE_NAME} | AI ile Haber Doğrulama`);
-    const d   = escape(description || 'Yapay zeka destekli haber doğrulama platformu.');
-    const img = escape(imageUrl    || DEFAULT_IMG);
-    const url = escape(pageUrl     || SITE_URL);
+    const t   = esc(title       || `${SITE_NAME} | AI ile Haber Doğrulama`);
+    const d   = esc(description || 'Yapay zeka destekli haber doğrulama platformu.');
+    const img = esc(imageUrl    || DEFAULT_IMG);
+    const url = esc(pageUrl     || SITE_URL);
 
     return `<!DOCTYPE html>
 <html lang="tr">
@@ -30,16 +30,23 @@ export function ogHtml({ title, description, imageUrl, pageUrl }) {
   <meta name="twitter:title"       content="${t}"/>
   <meta name="twitter:description" content="${d}"/>
   <meta name="twitter:image"       content="${img}"/>
-  <meta http-equiv="refresh" content="0;url=${url}"/>
 </head>
 <body>
-  <p>Yönlendiriliyor… <a href="${url}">${t}</a></p>
-  <script>window.location.replace(${JSON.stringify(pageUrl || SITE_URL)});</script>
+  <p><a href="${url}">${t}</a></p>
 </body>
 </html>`;
 }
 
-function escape(str) {
+/** Bot değilse Vercel'in index.html'ini döndür (SPA passthrough) */
+export async function spaPassthrough() {
+    const res = await fetch(`${SITE_URL}/index.html`);
+    const html = await res.text();
+    return new Response(html, {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
+}
+
+function esc(str) {
     return String(str)
         .replace(/&/g, '&amp;')
         .replace(/"/g, '&quot;')

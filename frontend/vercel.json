@@ -1,46 +1,8 @@
 {
-  "functions": {
-    "api/og/**/*.js": {
-      "runtime": "edge"
-    }
-  },
-  "routes": [
-    {
-      "src": "/analysis/report/([^/]+)",
-      "dest": "/api/og/report/$1",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": ".*(whatsapp|telegram|snapchat|slack|discord|twitterbot|facebookexternalhit|linkedinbot|googlebot|bingbot).*"
-        }
-      ]
-    },
-    {
-      "src": "/forum/([^/]+)",
-      "dest": "/api/og/forum/$1",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": ".*(whatsapp|telegram|snapchat|slack|discord|twitterbot|facebookexternalhit|linkedinbot|googlebot|bingbot).*"
-        }
-      ]
-    },
-    {
-      "src": "/analysis/share/([^/]+)",
-      "dest": "/api/og/share/$1",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": ".*(whatsapp|telegram|snapchat|slack|discord|twitterbot|facebookexternalhit|linkedinbot|googlebot|bingbot).*"
-        }
-      ]
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+  "rewrites": [
+    { "source": "/analysis/report/:taskId",   "destination": "/api/og/report/:taskId"   },
+    { "source": "/forum/:threadId",            "destination": "/api/og/forum/:threadId"   },
+    { "source": "/analysis/share/:articleId",  "destination": "/api/og/share/:articleId"  },
+    { "source": "/(.*)",                       "destination": "/index.html"               }
   ]
 }

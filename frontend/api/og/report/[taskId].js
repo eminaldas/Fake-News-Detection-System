@@ -1,6 +1,5 @@
 // frontend/api/og/report/[taskId].js
-// /analysis/report/:taskId sayfası için OG preview
-import { ogHtml, API_BASE, SITE_URL, DEFAULT_IMG } from '../../_og-helper.js';
+import { ogHtml, spaPassthrough, BOT_RE, API_BASE, SITE_URL, DEFAULT_IMG } from '../../_og-helper.js';
 
 export const config = { runtime: 'edge' };
 
@@ -17,27 +16,20 @@ const VERDICT_LABEL = {
 export default async function handler(req) {
     const url    = new URL(req.url);
     const taskId = url.pathname.split('/').pop();
-    if (!taskId) return new Response('Not found', { status: 404 });
 
-    // Crawler mı gerçek kullanıcı mı?
-    const ua = req.headers.get('user-agent') || '';
-    const isBot = /whatsapp|telegram|snapchat|slack|discord|twitterbot|facebookexternalhit|linkedinbot|googlebot|bingbot|curl|wget/i.test(ua);
+    const ua    = req.headers.get('user-agent') || '';
+    const isBot = BOT_RE.test(ua);
 
-    // Bot değilse direkt React SPA'ya bırak (Vercel rewrite halleder)
-    if (!isBot) {
-        return new Response(null, {
-            status: 302,
-            headers: { Location: `${SITE_URL}/analysis/report/${taskId}` },
-        });
-    }
+    // Gerçek kullanıcı → index.html (SPA) döndür
+    if (!isBot) return spaPassthrough();
 
     try {
-        const res  = await fetch(`${API_BASE}/analysis/analyze/full-report/${taskId}`, {
+        const res = await fetch(`${API_BASE}/analysis/analyze/full-report/${taskId}`, {
             headers: { 'Accept': 'application/json' },
             signal:  AbortSignal.timeout(5000),
         });
 
-        let title = 'Ne Haber — Tam Rapor';
+        let title       = 'Ne Haber — Tam Rapor';
         let description = 'Yapay zeka destekli derin haber doğrulama raporu.';
 
         if (res.ok) {
@@ -52,18 +44,12 @@ export default async function handler(req) {
             }
         }
 
-        const html = ogHtml({
-            title,
-            description,
+        return new Response(ogHtml({
+            title, description,
             imageUrl: DEFAULT_IMG,
-            pageUrl:  `${SITE_URL}/analysis/report/${taskId}`,
-        });
-
-        return new Response(html, {
-            headers: {
-                'Content-Type':  'text/html; charset=utf-8',
-                'Cache-Control': 'public, max-age=300, s-maxage=300',
-            },
+            pageUrl: `${SITE_URL}/analysis/report/${taskId}`,
+        }), {
+            headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300' },
         });
     } catch {
         return new Response(ogHtml({ pageUrl: `${SITE_URL}/analysis/report/${taskId}` }), {
