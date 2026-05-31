@@ -12,6 +12,7 @@ function _show(type, title, options = {}) {
     type,
     title,
     sub:      options.sub      ?? null,
+    action:   options.action   ?? null,
     duration: options.duration ?? 6000,
     id:       options.id       ?? `toast-${Date.now()}-${Math.random()}`,
   });

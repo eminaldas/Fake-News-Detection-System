@@ -32,6 +32,19 @@ function FactCheckCard({ fc }) {
             >
                 {cfg.label}
             </span>
+            {fc.sources?.length > 0 && (
+                <div className="flex flex-col gap-1 pt-1">
+                    {fc.sources.slice(0, 4).map((s, i) => (
+                        <div key={i} className="flex items-center gap-2 text-[10px] text-tx-secondary/70">
+                            <span className="font-semibold text-tx-secondary">{s.name || s.domain || 'kaynak'}</span>
+                            {s.domain && <span className="opacity-60">{s.domain}</span>}
+                            {s.stance && (
+                                <span className="ml-auto uppercase tracking-wide opacity-70">{s.stance}</span>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

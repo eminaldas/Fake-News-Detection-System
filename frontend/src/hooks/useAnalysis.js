@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import AnalysisService from '../services/analysis.service';
 import { useWebSocket } from '../contexts/WebSocketContext';
+import { useBackgroundJobs } from '../contexts/BackgroundJobsContext';
 import GamificationService from '../services/gamification.service';
 import toast from '../services/toast';
 
@@ -33,12 +34,16 @@ export const useAnalysis = () => {
     const [analysisStage, setAnalysisStage] = useState(null);
     const pendingTextRef = useRef(saved?.text || null);
     const { subscribe }  = useWebSocket();
+    const { trackAnalysis, updateStage, completeJob } = useBackgroundJobs();
 
     useEffect(() => {
         if (!pollingTaskId) return;
 
         const unsubProgress = subscribe('analysis_progress', (payload) => {
-            if (payload.stage) setAnalysisStage(payload.stage);
+            if (payload.stage) {
+                setAnalysisStage(payload.stage);
+                updateStage(pollingTaskId, 0, payload.stage);
+            }
         });
 
         const unsubComplete = subscribe('analysis_complete', (payload) => {
@@ -54,6 +59,7 @@ export const useAnalysis = () => {
                     setPollingTaskId(null);
                     setAnalysisStage(null);
                     GamificationService.checkAndShowXPGain('Analiz Tamamlandı');
+                    completeJob(pollingTaskId);
                 }
             }).catch(() => {});
         });
@@ -78,6 +84,7 @@ export const useAnalysis = () => {
                     setAnalysisStage(null);
                     clearInterval(interval);
                     GamificationService.checkAndShowXPGain('Analiz Tamamlandı');
+                    completeJob(pollingTaskId);
                 } else if (isFailed) {
                     const errorMsg = response.result?.error || 'Analiz başarısız.';
                     setError(errorMsg);
@@ -105,7 +112,7 @@ export const useAnalysis = () => {
             unsubProgress();
             unsubComplete();
         };
-    }, [pollingTaskId, subscribe]);
+    }, [pollingTaskId, subscribe, updateStage, completeJob]);
 
     const analyzeUrl = async (url) => {
         if (!url?.trim()) { setError('Lütfen geçerli bir URL girin.'); return; }
@@ -117,6 +124,7 @@ export const useAnalysis = () => {
                 pendingTextRef.current = url;
                 saveSession({ taskId: data.task_id, text: url });
                 setPollingTaskId(data.task_id);
+                trackAnalysis(data.task_id);
             } else { setError('Sunucudan beklenmeyen yanıt.'); setLoading(false); }
         } catch (err) {
             const errorMsg = err.message || 'URL analizi başlatılamadı.';
@@ -149,6 +157,7 @@ export const useAnalysis = () => {
                 pendingTextRef.current = text;
                 saveSession({ taskId: data.task_id, text });
                 setPollingTaskId(data.task_id);
+                trackAnalysis(data.task_id);
             } else {
                 setError('Sunucudan beklenmeyen yanıt.'); setLoading(false);
             }

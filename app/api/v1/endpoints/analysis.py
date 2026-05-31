@@ -854,7 +854,7 @@ async def get_full_report(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Üretilmiş tam raporu getirir. Henüz hazır değilse 404."""
+    """Üretilmiş tam raporu getirir. Analiz yoksa 404, rapor henüz hazır değilse 200 pending."""
     row = await db.execute(
         select(AnalysisResult.full_report, AnalysisResult.confidence, AnalysisResult.status)
         .join(Article, AnalysisResult.article_id == Article.id)
@@ -863,8 +863,13 @@ async def get_full_report(
     )
     data = row.first()
 
-    if not data or not data.full_report:
-        raise HTTPException(status_code=404, detail="Rapor henüz hazır değil.")
+    # Analiz hiç yoksa gerçek 404. Analiz var ama rapor henüz üretilmediyse 200 + pending
+    # (polling'in 404 spam'ini önler — bekleme normal bir durumdur).
+    if not data:
+        raise HTTPException(status_code=404, detail="Analiz bulunamadı.")
+
+    if not data.full_report:
+        return FullReportResponse(task_id=task_id, status="pending")
 
     return FullReportResponse(
         task_id=task_id,

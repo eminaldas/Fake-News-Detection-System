@@ -11,6 +11,7 @@ const TYPE_LABELS = {
     under_review:       'Tartışmanız inceleme altında',
     fact_check_started: 'Haber kontrolü başlatıldı',
     fact_check_done:    'Haber kontrolü tamamlandı',
+    report_ready:       'Tam rapor hazır',
     new_follower:       'Sizi takip eden biri var',
     dm:                 'size mesaj gönderdi',
 };
@@ -22,6 +23,7 @@ const TYPE_PREFIX = {
     under_review:       '🔍',
     fact_check_started: '📰',
     fact_check_done:    '✓',
+    report_ready:       '📄',
     new_follower:       '→',
     dm:                 '📩',
 };
@@ -37,6 +39,7 @@ function relativeTime(isoString) {
 
 function resolveLink(notif) {
     const p = notif.payload ?? {};
+    if (notif.type === 'report_ready' && p.task_id) return `/analysis/report/${p.task_id}`;
     if (notif.type === 'dm' && p.sender_id)         return `/messages/${p.sender_id}`;
     if (notif.type === 'new_follower' && p.actor_id) return `/users/${p.actor_id}`;
     if (p.thread_id)  return `/forum/${p.thread_id}`;

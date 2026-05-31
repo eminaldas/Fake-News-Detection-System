@@ -4,6 +4,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { WebSocketProvider } from './contexts/WebSocketContext';
 import { CookieProvider } from './contexts/CookieContext';
+import { BackgroundJobsProvider } from './contexts/BackgroundJobsContext';
+import ActiveJobsPill from './features/jobs/ActiveJobsPill';
 import { useAuth } from './contexts/AuthContext';
 import AuthService from './services/auth.service';
 import wsService from './services/websocket';
@@ -88,6 +90,8 @@ function App() {
                 <WebSocketProvider>
                 <WsLifecycle />
                 <BrowserRouter>
+                  <BackgroundJobsProvider>
+                    <ActiveJobsPill />
                     <Suspense fallback={
                         <div style={{
                             minHeight: '100vh',
@@ -183,6 +187,7 @@ function App() {
                         <Route path="*" element={<NotFound />} />
                     </Routes>
                     </Suspense>
+                  </BackgroundJobsProvider>
                 </BrowserRouter>
                 </WebSocketProvider>
                 </AuthProvider>
