@@ -165,78 +165,96 @@ export default function AnalysisReport() {
             {report && (
                 <div className="flex flex-col gap-5">
 
-                    {/* Skor — v3 çok boyutlu, yoksa legacy metrik */}
-                    {report.credibility_score
-                        ? <CredibilityScore credibilityScore={report.credibility_score} />
-                        : <MetricBar report={report} mlVerdict={mlVerdict} confidence={confidence} />}
+                    {/* Skor */}
+                    <div className="animate-fade-up" style={{ animationDelay: '60ms' }}>
+                        {report.credibility_score
+                            ? <CredibilityScore credibilityScore={report.credibility_score} />
+                            : <MetricBar report={report} mlVerdict={mlVerdict} confidence={confidence} />}
+                    </div>
 
-                    {/* Kararı belirleyen faktörler (v3) */}
+                    {/* Kararı belirleyen faktörler */}
                     {report.decisive_factors?.length > 0 && (
-                        <ReportBlock title="Kararı Belirleyen Faktörler" icon={Scale}>
-                            <DecisiveFactors factors={report.decisive_factors} />
-                        </ReportBlock>
+                        <div className="animate-fade-up" style={{ animationDelay: '130ms' }}>
+                            <ReportBlock title="Kararı Belirleyen Faktörler" icon={Scale}>
+                                <DecisiveFactors factors={report.decisive_factors} />
+                            </ReportBlock>
+                        </div>
                     )}
 
                     {/* Genel değerlendirme */}
                     {report.overall_assessment && (
-                        <ReportBlock title="Genel Değerlendirme" icon={FileText}>
-                            <p className="font-mono text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
-                                {report.overall_assessment}
-                            </p>
-                        </ReportBlock>
+                        <div className="animate-fade-up" style={{ animationDelay: '200ms' }}>
+                            <ReportBlock title="Genel Değerlendirme" icon={FileText}>
+                                <p className="font-mono text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                                    {report.overall_assessment}
+                                </p>
+                            </ReportBlock>
+                        </div>
                     )}
 
-                    {/* Karar gerekçesi — yalnızca legacy (v3'te DecisiveFactors var) */}
+                    {/* Karar gerekçesi — legacy */}
                     {!report.decisive_factors?.length && report.verdict_explanation && (
-                        <ReportBlock title="Karar Gerekçesi" icon={Scale}>
-                            <VerdictExplanationSection verdictExplanation={report.verdict_explanation} />
-                        </ReportBlock>
+                        <div className="animate-fade-up" style={{ animationDelay: '200ms' }}>
+                            <ReportBlock title="Karar Gerekçesi" icon={Scale}>
+                                <VerdictExplanationSection verdictExplanation={report.verdict_explanation} />
+                            </ReportBlock>
+                        </div>
                     )}
 
                     {/* Doğrulama bulguları */}
                     {report.fact_checks?.length > 0 && (
-                        <ReportBlock title="Doğrulama Bulguları" icon={Search} subtitle="Haberdeki iddiaların kaynaklı tek tek doğrulaması">
-                            <FactChecksSection factChecks={report.fact_checks} />
-                        </ReportBlock>
+                        <div className="animate-fade-up" style={{ animationDelay: '280ms' }}>
+                            <ReportBlock title="Doğrulama Bulguları" icon={Search} subtitle="Haberdeki iddiaların kaynaklı tek tek doğrulaması">
+                                <FactChecksSection factChecks={report.fact_checks} />
+                            </ReportBlock>
+                        </div>
                     )}
 
-                    {/* Alana özel bağlam (v3) */}
+                    {/* Adaptif bölümler */}
                     {report.domain_context && (
-                        <ReportBlock title="Alana Özel Bağlam" icon={FlaskConical}>
-                            <DomainContextSection text={report.domain_context} />
-                        </ReportBlock>
+                        <div className="animate-fade-up" style={{ animationDelay: '340ms' }}>
+                            <ReportBlock title="Alana Özel Bağlam" icon={FlaskConical}>
+                                <DomainContextSection text={report.domain_context} />
+                            </ReportBlock>
+                        </div>
                     )}
 
-                    {/* Sayısal iddialar (v3) */}
                     {report.numeric_claims?.length > 0 && (
-                        <ReportBlock title="Sayısal İddialar" icon={Hash}>
-                            <NumericClaimsSection claims={report.numeric_claims} />
-                        </ReportBlock>
+                        <div className="animate-fade-up" style={{ animationDelay: '370ms' }}>
+                            <ReportBlock title="Sayısal İddialar" icon={Hash}>
+                                <NumericClaimsSection claims={report.numeric_claims} />
+                            </ReportBlock>
+                        </div>
                     )}
 
-                    {/* Emsal vakalar (v3) */}
                     {report.precedent_cases?.length > 0 && (
-                        <ReportBlock title="Emsal Vakalar" icon={History}>
-                            <PrecedentCasesSection cases={report.precedent_cases} />
-                        </ReportBlock>
+                        <div className="animate-fade-up" style={{ animationDelay: '400ms' }}>
+                            <ReportBlock title="Emsal Vakalar" icon={History}>
+                                <PrecedentCasesSection cases={report.precedent_cases} />
+                            </ReportBlock>
+                        </div>
                     )}
 
                     {/* Propaganda */}
                     {report.propaganda_techniques?.length > 0 && (
-                        <ReportBlock title="Propaganda Analizi" icon={Megaphone}>
-                            <PropagandaSection techniques={report.propaganda_techniques} />
-                        </ReportBlock>
+                        <div className="animate-fade-up" style={{ animationDelay: '430ms' }}>
+                            <ReportBlock title="Propaganda Analizi" icon={Megaphone}>
+                                <PropagandaSection techniques={report.propaganda_techniques} />
+                            </ReportBlock>
+                        </div>
                     )}
 
                     {/* Kaynak bias */}
                     {report.source_analysis?.sources_found?.length > 0 && (
-                        <ReportBlock title="Kaynak Yanlılığı" icon={Network}>
-                            <SourceBiasSection sourceAnalysis={report.source_analysis} />
-                        </ReportBlock>
+                        <div className="animate-fade-up" style={{ animationDelay: '460ms' }}>
+                            <ReportBlock title="Kaynak Yanlılığı" icon={Network}>
+                                <SourceBiasSection sourceAnalysis={report.source_analysis} />
+                            </ReportBlock>
+                        </div>
                     )}
 
                     {/* Kaynak & dilbilim */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-fade-up" style={{ animationDelay: '500ms' }}>
                         {report.source_credibility && (
                             <ReportBlock title="Kaynak Güvenilirliği" icon={BookOpen}>
                                 <SourceCredibilitySection text={report.source_credibility} />
@@ -249,14 +267,16 @@ export default function AnalysisReport() {
                         )}
                     </div>
 
-                    {/* ── Oylama (ALT KISIM) ── */}
-                    <FeedbackSection
-                        taskId={taskId}
-                        forumThreadId={report.forum_thread_id ?? null}
-                    />
+                    {/* Oylama */}
+                    <div className="animate-fade-up" style={{ animationDelay: '560ms' }}>
+                        <FeedbackSection
+                            taskId={taskId}
+                            forumThreadId={report.forum_thread_id ?? null}
+                        />
+                    </div>
 
                     {/* Footer */}
-                    <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center justify-between py-2 animate-fade-up" style={{ animationDelay: '620ms' }}>
                         <span className="font-mono text-[10px] tracking-widest" style={{ color: 'var(--color-text-muted-accent)' }}>
                             {report.model} · {new Date(report.generated_at).toLocaleString('tr-TR')}
                         </span>
