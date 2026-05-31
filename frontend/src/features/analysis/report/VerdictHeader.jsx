@@ -53,7 +53,7 @@ export default function VerdictHeader({ verdict, mlVerdict, report }) {
                         )}
                         {isV3 && verdict.domain && (
                             <span className="font-mono text-[10px] tracking-wide px-2 py-0.5 border"
-                                  style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-terminal-border-raw)' }}>
+                                  style={{ color: 'var(--color-text-muted-accent)', borderColor: 'var(--color-terminal-border-raw)' }}>
                                 {verdict.domain}
                             </span>
                         )}
@@ -63,7 +63,7 @@ export default function VerdictHeader({ verdict, mlVerdict, report }) {
                             {verdict.one_line}
                         </p>
                     )}
-                    <p className="font-mono text-[10px] mt-2" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>
+                    <p className="font-mono text-[10px] mt-2" style={{ color: 'var(--color-text-muted-accent)' }}>
                         Gemini AI · Google Search grounding
                         {report?.generated_at && ` · ${new Date(report.generated_at).toLocaleString('tr-TR')}`}
                     </p>

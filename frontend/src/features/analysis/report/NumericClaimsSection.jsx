@@ -17,7 +17,7 @@ export default function NumericClaimsSection({ claims }) {
                     <div key={i} className="font-mono text-xs flex flex-col gap-1 py-2"
                          style={{ borderBottom: i < claims.length - 1 ? '1px solid var(--color-terminal-border-raw)' : 'none' }}>
                         <span style={{ color: 'var(--color-text-secondary)' }}>{c.claim}</span>
-                        <div className="flex items-center gap-3 flex-wrap" style={{ color: 'var(--color-text-muted)' }}>
+                        <div className="flex items-center gap-3 flex-wrap" style={{ color: 'var(--color-text-muted-accent)' }}>
                             <span>belirtilen: <span style={{ color: 'var(--color-text-secondary)' }}>{c.stated_value ?? '—'}</span></span>
                             <span>doğrulanan: <span style={{ color: 'var(--color-text-secondary)' }}>{c.verified_value ?? '—'}</span></span>
                             <span className="px-1.5 py-0.5 rounded-sm" style={{ color: t.color, background: `${t.color}1a` }}>{t.label}</span>

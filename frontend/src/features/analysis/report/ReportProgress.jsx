@@ -45,7 +45,7 @@ export default function ReportProgress({ taskId }) {
                                     {done ? '●' : active ? '◉' : '○'}
                                 </span>
                                 <span className="font-mono text-[10px] hidden sm:inline"
-                                      style={{ color: active ? 'var(--color-text-secondary)' : 'var(--color-text-muted)', opacity: active ? 1 : 0.6 }}>
+                                      style={{ color: active ? 'var(--color-text-secondary)' : 'var(--color-text-muted-accent)' }}>
                                     {st.label}
                                 </span>
                             </div>
@@ -59,13 +59,13 @@ export default function ReportProgress({ taskId }) {
 
             {/* Canlı log */}
             <div className="font-mono text-[11px] leading-loose p-3 border"
-                 style={{ background: 'rgba(0,0,0,0.25)', borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)' }}>
+                 style={{ background: 'rgba(0,0,0,0.25)', borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted-accent)' }}>
                 {STAGES.filter((st) => st.n <= stage).map((st) => (
                     <div key={st.n}>
                         <span style={{ color: st.n < stage ? '#3fff8b' : '#f59e0b' }}>›</span>{' '}
                         aşama {st.n}/3 — {st.label}{st.n < stage ? ' ✓' : ''}
                         {(STAGE_LINES[st.n] || []).map((line, j) => (
-                            <div key={j} style={{ paddingLeft: 14, opacity: 0.7 }}>{line}</div>
+                            <div key={j} style={{ paddingLeft: 14 }}>{line}</div>
                         ))}
                     </div>
                 ))}
@@ -76,7 +76,7 @@ export default function ReportProgress({ taskId }) {
             <div className="h-[3px] mt-4" style={{ background: 'var(--color-terminal-border-raw)' }}>
                 <div className="h-full transition-all duration-500" style={{ width: `${pct}%`, background: '#3fff8b' }} />
             </div>
-            <p className="font-mono text-[10px] mt-2 text-center" style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
+            <p className="font-mono text-[10px] mt-2 text-center" style={{ color: 'var(--color-text-muted-accent)' }}>
                 Derin rapor hazırlanıyor — bu sayfada bekleyebilir veya başka işlerinize dönebilirsiniz.
             </p>
         </div>
