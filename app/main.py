@@ -18,6 +18,7 @@ from app.api.v1.endpoints import (
 )
 from app.api.v1.endpoints import share as share_router
 from app.api.v1.endpoints import news_summary
+from app.api.v1.endpoints import og as og_router
 from app.core.logging import get_logger, setup_logging
 from app.core.seo import inject_thread_meta, is_bot
 from app.db.redis import close_redis
@@ -144,6 +145,7 @@ app.include_router(ws_endpoint.router,     prefix="/api/v1")
 app.include_router(proxy_endpoint.router,   prefix="/api/v1/proxy",   tags=["Proxy"])
 app.include_router(weather_endpoint.router, prefix="/api/v1/weather", tags=["Weather"])
 app.include_router(share_router.router, prefix="/s", tags=["Share"])
+app.include_router(og_router.router,    prefix="/api/v1",             tags=["OG Preview"])
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
