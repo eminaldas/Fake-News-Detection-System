@@ -19,22 +19,18 @@ import DomainContextSection      from '../features/analysis/report/DomainContext
 import NumericClaimsSection      from '../features/analysis/report/NumericClaimsSection';
 import PrecedentCasesSection     from '../features/analysis/report/PrecedentCasesSection';
 import ReportProgress            from '../features/analysis/report/ReportProgress';
+import SectionHeading           from '../features/analysis/report/SectionHeading';
 
 /* ── Tasarım sabitleri ── */
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 
-/* Section wrapper — başlık border'ı keser */
-function ReportBlock({ title, children }) {
+/* Section wrapper — ikonlu SectionHeading ile */
+function ReportBlock({ title, icon, subtitle, children }) {
     return (
         <div className="relative border" style={S}>
-            <span
-                className="absolute -top-px left-5 px-2 font-mono text-[11px] tracking-widest uppercase"
-                style={{ background: 'var(--color-terminal-surface)', color: 'var(--color-brand-primary)' }}
-            >
-                {title}
-            </span>
-            <div className="p-5 pt-6">
+            <div className="p-5">
+                <SectionHeading icon={icon} title={title} subtitle={subtitle} />
                 {children}
             </div>
         </div>
