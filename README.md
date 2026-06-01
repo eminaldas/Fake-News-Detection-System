@@ -1,100 +1,117 @@
-# Türkçe Sahte Haber Tespit Sistemi
+# NeHaber — Turkish Fake News Detection Platform
 
-Türkçe haber içeriklerini analiz ederek gerçek mi yoksa sahte mi olduğunu tespit eden hibrit yapay zeka sistemi. BERT tabanlı semantik arama, stilometrik analiz ve kural tabanlı NLP sinyallerini birleştirerek 0-100 arası bir **Doğruluk Skoru** üretir.
+**Live:** [nehaber.dev](https://nehaber.dev)
 
----
-
-## Özellikler
-
-- **Metin Analizi** — Ham metin yapıştırarak anında analiz
-- **URL Analizi** — Haber linki girerek otomatik scrape + tam pipeline
-- **Hibrit Skor Motoru** — Semantic (pgvector) + Sınıflandırıcı + Linguistik + Stilometri
-- **Semantik Eşleşme** — pgvector cosine distance ile doğrulanmış haber tabanı karşılaştırması
-- **Türkçe Stilometri** — Clickbait, korku/acele ve kesin ifade örüntülerini tespit eder
-- **Asenkron İşleme** — Celery + Redis ile arka planda kuyruk yönetimi
-- **JWT Auth** — Tüm API endpoint'leri token korumalı
+A full-stack platform for automated fake news detection in Turkish. Combines BERT-based semantic search, machine learning classification, LLM-powered deep research, and community verification into a single production system.
 
 ---
 
-## Mimari
+## Features
+
+### Analysis Pipeline
+- **Stage 1 — Semantic Search:** Incoming text is vectorized (Turkish BERT, 768-dim) and matched against a knowledge base via pgvector cosine similarity. Threshold: 0.08 (~92% similarity). Top-3 matches use similarity² weighted voting.
+- **Stage 2 — ML Classification (async Celery):** 8 NLP signals extracted → combined with BERT embedding into a 776-dim feature vector → StandardScaler + LogisticRegression → weighted ensemble: `combined = 0.70 × fake_p + 0.30 × risk`
+- **Stage 3 — Deep Report (on demand):** 3-stage Gemini research agent (triage → evidence gathering → synthesis). Produces 7-scale verdict, multi-dimensional credibility score, decisive factors, domain context, precedent cases, numeric claim verification.
+
+### Content & Community
+- RSS-based automated news ingestion from 65 Turkish sources (Celery Beat, 6×/day)
+- Forum with community verdict system (20-vote threshold, 75% majority rule)
+- Trust tier system: `yeni_uye → dogrulayici → analist → dedektif`
+- Gamification: XP system with daily limits, 28 badges, leaderboard (weekly/monthly/all-time)
+
+### Platform
+- 32-page React 19 frontend (Tailwind CSS v4, Vite)
+- Admin panel: user management, moderation queue, security events, dataset management, A/B testing
+- Visual analysis: pHash → EXIF → Gemini 3-layer escalation
+- Source bias detection + temporal deception analysis
+- WebSocket real-time notifications
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Backend | FastAPI (async), Python |
+| Frontend | React 19, Tailwind CSS v4, Vite |
+| Database | PostgreSQL 15 + pgvector |
+| ML | scikit-learn, `emrecan/bert-base-turkish-cased-mean-nli-stsb-tr` |
+| Task Queue | Celery + Redis |
+| LLM | Google Gemini 3.5 Flash |
+| Infra | Docker Compose (9 services), DigitalOcean, Vercel, Cloudflare |
+
+---
+
+## Model Performance
+
+Trained on 3,286 balanced Turkish news samples (Teyit + Anadolu Ajansı):
+
+| Metric | Authentic | Fake | Overall |
+|--------|-----------|------|---------|
+| Precision | 0.88 | 0.89 | 0.88 |
+| Recall | 0.90 | 0.87 | 0.89 |
+| F1 | 0.89 | 0.88 | 0.88 |
+| Accuracy | — | — | **88%** |
+
+Feature vector: 776-dim (768 BERT + 8 NLP signals). Last trained: March 2026.
+
+---
+
+## Architecture
 
 ```
-Kullanıcı
-  │
-  ├─ Metin girişi ──► POST /analyze ──► Anlık semantik arama (pgvector)
-  │                                      └─► Doğrudan eşleşme varsa → sonuç
-  │                                      └─► Yoksa → Celery kuyruğu
-  │
-  └─ URL girişi ───► POST /analyze/url ──► Celery kuyruğu
-                                            │
-                                     [Celery Worker]
-                                            │
-                                     1. Web Scraper (requests + BS4)
-                                     2. NewsCleaner (zemberek + regex)
-                                     3. TurkishVectorizer (BERT)
-                                     4. pgvector cosine search
-                                     5. TurkishStylometrics
-                                     6. LogisticRegression classifier
-                                     7. Weighted truth_score (0-100)
-                                     8. PostgreSQL kayıt
+User (Browser)
+    │ HTTPS
+    ▼
+Cloudflare (CDN + DDoS + SSL)
+    │
+    ├── Vercel (React Frontend)
+    │
+    └── DigitalOcean Droplet (2 vCPU / 4 GB RAM / 80 GB SSD)
+            │
+            ├── FastAPI app:8000
+            ├── embedding-service:8001  (Turkish BERT, 900 MB limit)
+            ├── PostgreSQL:5432 + pgvector
+            ├── Redis:6379 (broker + cache)
+            └── Celery Workers
+                    ├── worker           (analysis pipeline)
+                    ├── rss-worker       (news ingestion)
+                    ├── ai-comment-worker (Gemini comments)
+                    ├── rss-beat         (6×/day scheduler)
+                    ├── audit-beat       (async log flush)
+                    └── news-agent       (65-source monitor)
 ```
-
-### Doğruluk Skoru Formülü
-
-| Bileşen | Ağırlık | Kaynak |
-|---------|---------|--------|
-| Semantic | %40 | pgvector cosine benzerliği |
-| Classifier | %35 | BERT embedding + LogisticRegression |
-| Linguistik | %15 | ünlem, büyük harf, soru yoğunluğu |
-| Stilometri | %10 | clickbait, korku, mutlak ifade örüntüleri |
-
-**≥ 65** → AUTHENTIC · **≤ 35** → FAKE · Arada → UNCERTAIN
 
 ---
 
-## Teknoloji Yığını
+## NLP Signals
 
-| Katman | Teknoloji |
-|--------|-----------|
-| Backend | FastAPI + SQLAlchemy (async) + asyncpg |
-| Frontend | React 19 + Vite + Tailwind CSS 4 |
-| Veritabanı | PostgreSQL + pgvector |
-| ML |  scikit-learn |
-| Kuyruk | Celery + Redis |
-| Scraper | requests + BeautifulSoup4 |
-| Altyapı | Docker Compose |
+| Signal | Description | Direction |
+|--------|-------------|-----------|
+| `clickbait_score` | ~30 Turkish sensationalist keywords | ↑ fake |
+| `exclamation_ratio` | Exclamation mark density | ↑ fake |
+| `caps_ratio` | Uppercase character ratio | ↑ fake |
+| `hedge_ratio` | Uncertainty phrases ("iddia edildi") | ↑ fake |
+| `question_density` | Question mark density | ↑ fake |
+| `number_density` | Numeric content density | ↑ fake |
+| `avg_word_length` | Short word average (sensationalism proxy) | ↑ fake |
+| `source_score` | Official source references | ↓ fake |
+
+Risk formula:
+```
+risk = clickbait×0.30 + exclamation×0.20 + uppercase×0.15
+     + hedge×0.15 + question×0.10 + number_density×0.05
+     + short_word_penalty×0.10 − source_score×0.15
+```
 
 ---
 
-## Kurulum
+## Development
 
-### Gereksinimler
+700+ commits across 46 design specs and 52 implementation plans. Spec-driven iterative development — each feature followed: design doc → implementation plan → code → git commit.
 
-- Docker & Docker Compose
-- Python 3.11+ (sadece veri ingestion için)
+---
 
-### Başlatma
+## License
 
-```bash
-git clone https://github.com/eminaldas/Fake-News-Detection-System.git
-cd Fake-News-Detection-System
-
-# Tüm servisleri başlat
-docker compose up -d
-```
-
-
-
-## Veri Seti ve Model Eğitimi
-
-Sistemin çalışması için önce veritabanına doğrulanmış haber verisi yüklenmeli ve sınıflandırıcı modeli eğitilmelidir.
-
-
-Kullanılan veri setleri:
-- **Anadolu Ajansı (AA)** — doğrulanmış haberler (AUTHENTIC)
-- **HaberTürk** — kategorilendirilmiş haberler(AUTHENTIC)
-- **Teyit** — profesyonel doğrulama kuruluşu etiketleri (FAKE/AUTHENTIC)
-
-
-
-Bu proje akademik ve araştırma amaçlı geliştirilmiştir.
+All rights reserved. Live service at [nehaber.dev](https://nehaber.dev).
