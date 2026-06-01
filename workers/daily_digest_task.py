@@ -52,12 +52,14 @@ async def _generate():
 
         # Top-25 bugünün haberleri — pub_date yerine created_at kullan
         # (bazı feed'lerin pub_date'i yanlış parse edilebiliyor; created_at güvenilir)
+        # NOT: embedding filtresi kaldırıldı — RSS pipeline'ında NLP/embedding üretimi
+        # perf nedeniyle kaldırıldığından (fa53f32) haberler embedding=None geliyor;
+        # eski "embedding IS NOT NULL" filtresi tüm haberleri eliyor ve özet donuyordu.
         rows = (await db.execute(
             select(NewsArticle.title, NewsArticle.source_count)
             .where(
                 NewsArticle.created_at >= datetime(today.year, today.month, today.day,
                                                     tzinfo=timezone.utc),
-                NewsArticle.embedding.is_not(None),
                 NewsArticle.id == NewsArticle.cluster_id,
             )
             .order_by(NewsArticle.source_count.desc())
