@@ -13,6 +13,7 @@ import RequireAuth from './components/RequireAuth';
 import RequireAdmin from './components/RequireAdmin';
 import AdminLayout  from './layouts/AdminLayout';
 import Layout from './components/Layout';
+import Popup from './components/ui/Popup';
 
 // Critical path — eager
 import Home     from './pages/Home';
@@ -91,6 +92,7 @@ function App() {
                 <WsLifecycle />
                 <BrowserRouter>
                   <BackgroundJobsProvider>
+                    <Popup />
                     <ActiveJobsPill />
                     <Suspense fallback={
                         <div style={{
