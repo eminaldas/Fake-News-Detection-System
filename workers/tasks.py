@@ -32,6 +32,7 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="UTC",
     enable_utc=True,
+    result_expires=3600,   # task sonuçları 1 saat sonra Redis'ten silinir
 )
 
 # ─────────────────────────────────────────────────────────────────────────────

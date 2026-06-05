@@ -37,8 +37,9 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="Europe/Istanbul",
     enable_utc=True,
-    worker_prefetch_multiplier=1,   # Her worker bir görev alır, OOM önlemi
-    task_acks_late=True,            # Görev tamamlanana kadar onaylama
+    worker_prefetch_multiplier=1,
+    task_acks_late=True,
+    result_expires=3600,
 )
 
 # ─────────────────────────────────────────────────────────────────────────────

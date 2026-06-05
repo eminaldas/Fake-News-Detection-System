@@ -122,6 +122,7 @@ celery_app.conf.update(
     accept_content=["json"],
     timezone="Europe/Istanbul",
     enable_utc=True,
+    result_expires=3600,
 )
 
 # ── DB engine (NullPool — worker process'ler için) ───────────────────────────
