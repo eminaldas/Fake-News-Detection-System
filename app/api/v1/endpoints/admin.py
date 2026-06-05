@@ -575,3 +575,33 @@ async def classify_article(
     await db.commit()
     await db.refresh(article)
     return article
+
+
+@router.delete("/forum/threads/{thread_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def admin_delete_thread(
+    thread_id: UUID,
+    admin:     User         = Depends(require_admin),
+    db:        AsyncSession = Depends(get_db),
+):
+    thread = (await db.execute(
+        select(ForumThread).where(ForumThread.id == thread_id)
+    )).scalar_one_or_none()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Başlık bulunamadı")
+    await db.delete(thread)
+    await db.commit()
+
+
+@router.post("/forum/comments/{comment_id}/remove", status_code=status.HTTP_204_NO_CONTENT)
+async def admin_remove_comment(
+    comment_id: UUID,
+    admin:      User         = Depends(require_admin),
+    db:         AsyncSession = Depends(get_db),
+):
+    comment = (await db.execute(
+        select(ForumComment).where(ForumComment.id == comment_id)
+    )).scalar_one_or_none()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Yorum bulunamadı")
+    await db.delete(comment)
+    await db.commit()

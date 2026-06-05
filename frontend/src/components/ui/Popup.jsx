@@ -31,7 +31,10 @@ export default function Popup() {
   }, [dialog]);
 
   const close   = () => setDialog(null);
-  const confirm = () => { dialog?.onConfirm?.(); close(); };
+  const confirm = async () => {
+    close();
+    try { await dialog?.onConfirm?.(); } catch { /* onConfirm kendi catch'ini yönetir */ }
+  };
 
   if (!dialog) return null;
 
