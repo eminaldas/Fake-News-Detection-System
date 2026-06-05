@@ -125,9 +125,12 @@ class MarketPrefsRequest(BaseModel):
 @router.get("/rates", tags=["Market"])
 async def get_market_rates(redis: Redis = Depends(get_redis)):
     """USD, EUR, Gram Altın ve BIST 100 verilerini Truncgil üzerinden proxy eder. 5 dk Redis cache."""
-    cached = await redis.get("market:rates")
-    if cached:
-        return JSONResponse(content=json.loads(cached))
+    try:
+        cached = await redis.get("market:rates")
+        if cached:
+            return JSONResponse(content=json.loads(cached))
+    except Exception:
+        pass  # Redis unavailable — cache atlanır, canlı veriye geç
 
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
@@ -149,11 +152,16 @@ async def get_market_rates(redis: Redis = Depends(get_redis)):
                 "sell":   parse(entry.get("Selling")),
                 "change": str(entry.get("Change", "")),
             }
-        await redis.setex("market:rates", 300, json.dumps(data))
-        return data
+        try:
+            await redis.setex("market:rates", 300, json.dumps(data))
+        except Exception:
+            pass  # Redis write hatası — veri yine de dönebilir
+        return JSONResponse(content=data)
 
     except Exception as exc:
-        return JSONResponse(status_code=502, content={"error": str(exc)})
+        logging.warning("market/rates fetch failed: %s", exc)
+        # 502 yerine 200 + error flag: Nginx 502'yi intercept edip CORS header'ını siliyor
+        return JSONResponse(content={"error": str(exc), "unavailable": True})
 
 
 @router.get("/stocks", tags=["Market"])
