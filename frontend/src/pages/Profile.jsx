@@ -11,6 +11,7 @@ import {
 import axiosInstance from '../api/axios';
 import { useAuth } from '../contexts/AuthContext';
 import GamificationService from '../services/gamification.service';
+import AnalysisService from '../services/analysis.service';
 import BadgeShowcase from '../features/profile/BadgeShowcase';
 import HistoryModal from '../features/profile/HistoryModal';
 import { TypeBadge } from '../components/common/AnalysisBadges';
@@ -241,6 +242,7 @@ export default function Profile() {
     const [followModal,    setFollowModal]    = useState(null);
     const [lightbox,       setLightbox]       = useState(false);
     const [selectedItem,   setSelectedItem]   = useState(null);
+    const [fullReports,    setFullReports]    = useState(new Set());
     const [error,          setError]          = useState(null);
 
     const SIZE = 10;
@@ -273,7 +275,18 @@ export default function Profile() {
         setALoading(true);
         const params = bigLoad ? { page: 1, size: 50 } : { page: pg, size: SIZE };
         axiosInstance.get(`/users/${userId}/analyses`, { params })
-            .then(({ data }) => { setAnalyses(data.items ?? []); setAnalysisTotal(data.total ?? 0); setAnalysisPage(pg); })
+            .then(async ({ data }) => {
+                const items = data.items ?? [];
+                setAnalyses(items);
+                setAnalysisTotal(data.total ?? 0);
+                setAnalysisPage(pg);
+                const taskIds = items.map(i => i.task_id).filter(Boolean);
+                const found = new Set();
+                await Promise.all(taskIds.map(async tid => {
+                    try { await AnalysisService.getFullReport(tid); found.add(tid); } catch {}
+                }));
+                setFullReports(found);
+            })
             .catch(() => {})
             .finally(() => setALoading(false));
     }, [userId]);
@@ -575,7 +588,7 @@ export default function Profile() {
             {selectedItem && (
                 <HistoryModal
                     item={selectedItem}
-                    hasFullReport={!!selectedItem.task_id}
+                    hasFullReport={fullReports.has(selectedItem.task_id)}
                     onClose={() => setSelectedItem(null)}
                 />
             )}

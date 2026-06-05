@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ShieldX, ShieldCheck, Shield, Loader2, FileSearch } from 'lucide-react';
+import { X, ShieldX, ShieldCheck, Shield, Loader2, FileSearch, FilePlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AnalysisService from '../../services/analysis.service';
 
@@ -255,16 +255,22 @@ export default function HistoryModal({ item, hasFullReport, onClose }) {
                             }}
                         >
                             <FileSearch className="w-4 h-4" />
-                            [ TAM RAPOR → ]
+                            [ TAM RAPORU GÖSTER → ]
                         </button>
-                    ) : (
-                        <span
-                            className="font-mono text-[10px] tracking-widest opacity-30"
-                            style={{ color: 'var(--color-text-muted)' }}
+                    ) : item.task_id ? (
+                        <button
+                            onClick={() => navigate(`/analysis/report/${item.task_id}`)}
+                            className="flex items-center gap-2 px-4 py-2 border font-mono text-sm font-bold tracking-wider transition-all hover:opacity-80"
+                            style={{
+                                borderColor: 'var(--color-terminal-border-raw)',
+                                color:       'var(--color-text-muted)',
+                                background:  'transparent',
+                            }}
                         >
-                            // derin rapor yok
-                        </span>
-                    )}
+                            <FilePlus className="w-4 h-4" />
+                            [ TAM RAPOR OLUŞTUR ]
+                        </button>
+                    ) : null}
                 </div>
             </div>
         </div>,
