@@ -62,7 +62,6 @@ async def update_user(
     if user is None:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
 
-    # Kendi admin hesabını değiştirme koruması
     if user.id == admin.id and (
         body.role == UserRole.user or body.is_active is False
     ):
@@ -212,7 +211,6 @@ async def terminate_sessions(
     if user.id == admin.id:
         raise HTTPException(status_code=400, detail="Kendi oturumlarınızı bu yolla sonlandıramazsınız")
 
-    # Tüm aktif token'ları geçersiz kıl — 30dk TTL (JWT expiry ile eşleşir)
     await redis.setex(f"blacklist:user:{user_id}", 1800, "1")
 
     log.info("user.sessions_terminated", user_id=str(user_id), by_admin_id=str(admin.id))
@@ -280,7 +278,6 @@ async def forum_moderation_queue(
         .limit(size)
     )).scalars().all()
 
-    # Her yorum için rapor sayısını toplu çek
     comment_ids = [c.id for c in rows]
     report_counts: dict = {}
     if comment_ids:
@@ -353,7 +350,6 @@ async def remove_comment(
     return {"message": "Yorum kaldırıldı."}
 
 
-# ── Tüm kullanıcı içerikleri ──────────────────────────────────────────────────
 
 @router.get("/forum/posts")
 async def list_forum_posts(
@@ -500,7 +496,6 @@ async def list_analysis_results(
     if verdict:
         ar_filters.append(AnalysisResult.status == verdict.upper())
 
-    # Count
     total = (await db.execute(
         select(func.count())
         .select_from(AnalysisResult)
@@ -508,7 +503,6 @@ async def list_analysis_results(
         .where(*ar_filters)
     )).scalar_one()
 
-    # Rows — task_id UUID string olarak saklanıyor, text cast ile karşılaştır
     rows = (await db.execute(
         select(
             AnalysisResult.id,
