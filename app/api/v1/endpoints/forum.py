@@ -55,7 +55,6 @@ _THREAD_REPORT_THRESHOLD     = 5   # kaç benzersiz kullanıcı raporu sonrası 
 _INVESTIGATE_THRESHOLD = 10
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────
 
 def _build_comment_tree(flat: list, verified_ids: set = None) -> list:
     """Flat sorgu sonucunu parent_id üzerinden ağaca dönüştürür."""
@@ -134,7 +133,6 @@ async def _check_under_review(thread: ForumThread, article, db: AsyncSession):
         thread.status = "under_review"
 
 
-# ── Endpoints ──────────────────────────────────────────────────────────────
 
 @router.get("/threads", response_model=ForumThreadListResponse)
 async def list_threads(
@@ -191,6 +189,7 @@ async def list_threads(
         ForumThreadSummary(
             id=t.id,
             title=t.title,
+            body=t.body,
             category=t.category,
             status=t.status,
             vote_suspicious=t.vote_suspicious,
@@ -350,7 +349,6 @@ async def discover_threads(
     if category_weights and sort not in ("new", "controversial"):
         threads = sorted(threads, key=weighted_score, reverse=True)
 
-    # Kullanıcıya özgü bookmark + oy durumu
     bookmarked_ids: set = set()
     user_votes: dict    = {}
     if current_user and threads:
@@ -375,6 +373,7 @@ async def discover_threads(
         ForumThreadSummary(
             id=t.id,
             title=t.title,
+            body=t.body,
             category=t.category,
             status=t.status,
             vote_suspicious=t.vote_suspicious,
@@ -430,8 +429,6 @@ async def get_thread(
     )
     flat_comments = comments_result.scalars().all()
 
-    # Shadow ban filtresi: başkalarının shadow-banned yorumlarını gizle.
-    # Ban'lı kullanıcı kendi yorumlarını normal görür.
     viewer_id = current_user.id if current_user else None
     flat_comments = [
         c for c in flat_comments
@@ -805,7 +802,6 @@ async def vote_thread(
     if not thread:
         raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
 
-    # Verdict kontrolü — oy dondurma
     if thread.verdict is not None:
         raise HTTPException(
             status_code=409,
@@ -850,7 +846,6 @@ async def vote_thread(
         _increment_vote(thread, body.vote_type, actual_weight)
         current_vote = body.vote_type
 
-    # under_review automation
     article = None
     if thread.article_id:
         article = (await db.execute(
@@ -858,7 +853,6 @@ async def vote_thread(
         )).scalar_one_or_none()
     await _check_under_review(thread, article, db)
 
-    # Otomatik verdict kontrolü
     _check_auto_verdict(thread)
 
     if thread.status == "under_review" and thread.user_id != current_user.id:
@@ -872,7 +866,6 @@ async def vote_thread(
             },
         )
 
-    # "İncele" eşiği kontrolü — eşik aşılırsa fact-check pipeline'ı tetikle
     if (
         thread.vote_investigate >= _INVESTIGATE_THRESHOLD
         and not thread.fact_check_triggered
@@ -880,7 +873,6 @@ async def vote_thread(
     ):
         try:
             from workers.tasks import analyze_article
-            # article'ı fetch et, analyze_article task'ına gönder
             if article is None:
                 article = (await db.execute(
                     select(Article).where(Article.id == thread.article_id)
@@ -932,7 +924,6 @@ async def resolve_thread(
     if thread.verdict is not None:
         raise HTTPException(status_code=409, detail="Bu tartışma zaten sonuçlandırılmıştır")
 
-    # Contradiction lock — Öne Çıkan Kanıt varsa yazar tek başına kapatamaz
     if thread.featured_comment_id is not None:
         raise HTTPException(
             status_code=409,
@@ -940,7 +931,6 @@ async def resolve_thread(
                    "Karar topluluk oyuna bırakılıyor.",
         )
 
-    # post_type'a göre izin verilen verdict'ler
     allowed = POST_TYPE_VERDICTS.get(thread.post_type or 'iddia', [])
     if not allowed:
         raise HTTPException(status_code=400, detail="Bu tür tartışmalar manuel olarak sonuçlandırılamaz.")
@@ -994,7 +984,6 @@ async def add_comment(
             raise HTTPException(status_code=404, detail="Yanıtlanacak yorum bulunamadı")
         depth = min(parent.depth + 1, 3)
 
-    # ── Toksisite taraması ────────────────────────────────────────────────────
     tox = await asyncio.to_thread(check_toxicity, body.body)
     if not tox["safe"] and tox["severity"] == "high":
         raise HTTPException(
@@ -1019,7 +1008,6 @@ async def add_comment(
 
     await db.flush()
 
-    # Notify followers: distinct user_ids that have commented on this thread (excluding self)
     follower_rows = await db.execute(
         select(ForumComment.user_id)
         .where(
@@ -1034,7 +1022,6 @@ async def add_comment(
     await db.commit()
     await db.refresh(comment)
 
-    # Thread yazarına yorum bildirimi
     if thread.user_id != current_user.id:
         await send_notification(
             db=db,
@@ -1049,7 +1036,6 @@ async def add_comment(
         )
         await db.commit()
 
-    # Yanıt bildirimi (parent varsa)
     if body.parent_id:
         parent_comment = (await db.execute(
             select(ForumComment).where(ForumComment.id == body.parent_id)
@@ -1068,7 +1054,6 @@ async def add_comment(
             )
             await db.commit()
 
-    # @mention bildirimleri — yorum gövdesindeki @kullaniciadi'ları parse et
     mentions = re.findall(r'@(\w+)', body.body)
     if mentions:
         mentioned_result = await db.execute(
@@ -1300,7 +1285,6 @@ async def report_comment(
     if comment.user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Kendi yorumunuzu bildiremezsiniz")
 
-    # Duplicate report kontrolü
     existing = (await db.execute(
         select(ForumReport).where(
             ForumReport.comment_id == comment_id,
@@ -1318,7 +1302,6 @@ async def report_comment(
     db.add(report)
     await db.flush()
 
-    # Rapor sayısını kontrol et — eşiği aşarsa otomatik flagle
     report_count = (await db.execute(
         select(func.count()).where(ForumReport.comment_id == comment_id)
     )).scalar_one()
@@ -1428,6 +1411,7 @@ async def get_article_threads(
         ForumThreadSummary(
             id=t.id,
             title=t.title,
+            body=t.body,
             category=t.category,
             status=t.status,
             vote_suspicious=t.vote_suspicious,
@@ -1444,7 +1428,6 @@ async def get_article_threads(
     return ForumThreadListResponse(items=items, total=len(items), page=1, size=len(items))
 
 
-# ── Bookmark ────────────────────────────────────────────────────────────────
 
 @router.post("/threads/{thread_id}/bookmark", status_code=status.HTTP_204_NO_CONTENT)
 async def toggle_bookmark(
@@ -1496,6 +1479,7 @@ async def my_bookmarks(
         ForumThreadSummary(
             id=t.id,
             title=t.title,
+            body=t.body,
             category=t.category,
             status=t.status,
             vote_suspicious=t.vote_suspicious,
@@ -1512,7 +1496,6 @@ async def my_bookmarks(
     return ForumThreadListResponse(items=items, total=total, page=page, size=size)
 
 
-# ── Search ──────────────────────────────────────────────────────────────────
 
 @router.get("/search", response_model=ForumSearchResponse)
 async def search_threads(
@@ -1557,6 +1540,7 @@ async def search_threads(
         ForumThreadSummary(
             id=t.id,
             title=t.title,
+            body=t.body,
             category=t.category,
             status=t.status,
             vote_suspicious=t.vote_suspicious,
@@ -1572,7 +1556,6 @@ async def search_threads(
     return ForumSearchResponse(items=items, total=total, query=q)
 
 
-# ── Thread Report ───────────────────────────────────────────────────────────
 
 @router.post("/threads/{thread_id}/report", status_code=status.HTTP_200_OK)
 async def report_thread(
@@ -1589,10 +1572,8 @@ async def report_thread(
     if thread.user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Kendi tartışmanızı bildiremezsiniz")
 
-    # Daha önce bildirdi mi?
     existing = await db.get(ForumThreadReport, {"thread_id": thread_id, "reporter_id": current_user.id})
     if not existing:
-        # Unique constraint'e göre get çalışmıyor, scalar kullan
         existing = (await db.execute(
             select(ForumThreadReport).where(
                 ForumThreadReport.thread_id   == thread_id,
@@ -1610,7 +1591,6 @@ async def report_thread(
     ))
     await db.commit()
 
-    # Eşiğe ulaşıldıysa inceleme altına al
     report_count = (await db.execute(
         select(func.count()).select_from(ForumThreadReport).where(
             ForumThreadReport.thread_id == thread_id
@@ -1624,7 +1604,6 @@ async def report_thread(
     return {"status": "reported", "message": "Bildiriminiz alındı. İnceleme sürecine dahil edildi."}
 
 
-# ── Moderation ──────────────────────────────────────────────────────────────
 
 @router.get("/admin/flagged-comments")
 async def list_flagged_comments(

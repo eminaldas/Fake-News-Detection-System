@@ -9,7 +9,7 @@ from datetime import date, datetime, timedelta, timezone, UTC
 
 import uuid as _uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,31 +30,30 @@ async def list_news(
     date_from:   date | None = Query(None, description="Başlangıç tarihi (YYYY-MM-DD)"),
     date_to:     date | None = Query(None, description="Bitiş tarihi (YYYY-MM-DD)"),
     sort:        str  | None = Query(None, description="Sıralama: popular"),
+    q:           str  | None = Query(None, description="Başlık araması"),
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_optional_user),
 ):
     offset = (page - 1) * size
 
-    # 2 saatten daha ileri gelecekte tarihlenen makaleleri filtrele (RSS kaynak hatası)
     now_plus_2h = datetime.now(UTC) + timedelta(hours=2)
 
     base_filter = [
-        # Sadece canonical kayıtları göster (cluster içindeki diğer kaynaklar gizli)
         NewsArticle.id == NewsArticle.cluster_id,
-        # Yanlış gelecek tarihli makaleleri gizle (pub_date olmayan makaleler dahil edilir)
         (NewsArticle.pub_date.is_(None) | (NewsArticle.pub_date <= now_plus_2h)),
     ]
     if category:
         base_filter.append(NewsArticle.category == category)
     if subcategory:
         base_filter.append(NewsArticle.subcategory == subcategory)
+    if q:
+        base_filter.append(NewsArticle.title.ilike(f"%{q}%"))
     if date_from:
         base_filter.append(NewsArticle.pub_date >= datetime(date_from.year, date_from.month, date_from.day, tzinfo=timezone.utc))
     if date_to:
         end = datetime(date_to.year, date_to.month, date_to.day, tzinfo=timezone.utc) + timedelta(days=1)
         base_filter.append(NewsArticle.pub_date < end)
 
-    # Faz 5: Kullanıcı tercihlerine göre filtrele (opsiyonel)
     if current_user:
         user_profile = (await db.execute(
             select(UserPreferenceProfile).where(UserPreferenceProfile.user_id == current_user.id)
@@ -71,14 +70,12 @@ async def list_news(
     total = total_result.scalar_one()
 
     if sort == "popular":
-        # Her zaman 2 günlük pencere — kategori istisnası kaldırıldı
         popular_cutoff = datetime.now(UTC) - timedelta(days=2)
         popular_filter = [
             *base_filter,
             func.coalesce(NewsArticle.pub_date, NewsArticle.created_at) >= popular_cutoff,
         ]
         today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
-        # Bugünkü haberler 3×, dünkü 1× — eski haberler doğal olarak baskılanır
         day_weight = case(
             (func.coalesce(NewsArticle.pub_date, NewsArticle.created_at) >= today_start, 3.0),
             else_=1.0,
@@ -93,7 +90,6 @@ async def list_news(
             .group_by(ContentInteraction.content_id)
             .subquery()
         )
-        # Kaynak ve tıklama eşit ağırlıkta, tazelik destekleyici
         base_score = (
             NewsArticle.source_count * 0.4
             + func.coalesce(cv_sub.c.cv, 0) * 0.4
@@ -118,7 +114,6 @@ async def list_news(
         )
     items = items_result.scalars().all()
 
-    # Topluluk istatistikleri — tek sorguda tüm makaleler için
     article_ids = [a.id for a in items]
     community_map: dict = {}
     if article_ids:
@@ -162,4 +157,41 @@ async def list_news(
         ],
         total=total,
         page=page,
+    )
+
+
+@router.get("/{article_id}", response_model=NewsArticleResponse)
+async def get_news_detail(
+    article_id: _uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    article = (await db.execute(
+        select(NewsArticle).where(NewsArticle.id == article_id)
+    )).scalar_one_or_none()
+    if article is None:
+        raise HTTPException(status_code=404, detail="Haber bulunamadı.")
+
+    stats = (await db.execute(
+        select(
+            func.count().label("total"),
+            func.sum(
+                case((ContentInteraction.interaction_type == "feedback_positive", 1), else_=0)
+            ).label("positive"),
+        ).where(ContentInteraction.content_id == article_id)
+    )).one()
+
+    return NewsArticleResponse(
+        id           = article.id,
+        title        = article.title,
+        image_url    = article.image_url,
+        source_name  = article.source_name,
+        source_url   = article.source_url,
+        category     = article.category,
+        subcategory  = article.subcategory,
+        pub_date     = article.pub_date,
+        source_count = article.source_count,
+        trust_score  = article.trust_score,
+        nlp_score    = article.nlp_score,
+        content_type = article.content_type,
+        community    = {"view_count": stats.total or 0, "positive_count": int(stats.positive or 0)},
     )

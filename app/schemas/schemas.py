@@ -15,9 +15,6 @@ from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
 from app.models.models import User as UserORM, UserRole
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Güvenlik / Auth
-# ─────────────────────────────────────────────────────────────────────────────
 
 class TokenData(BaseModel):
     user_id:  Optional[str] = None
@@ -164,9 +161,6 @@ class UpdateProfileRequest(BaseModel):
         return v
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Admin
-# ─────────────────────────────────────────────────────────────────────────────
 
 class AdminUpdateUserRequest(BaseModel):
     is_active: Optional[bool] = None
@@ -258,9 +252,6 @@ class AdminStatsOverviewResponse(BaseModel):
     critical_alerts:    int
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Analiz Geçmişi
-# ─────────────────────────────────────────────────────────────────────────────
 
 class AnalysisRequestResponse(BaseModel):
     id:            UUID
@@ -291,9 +282,6 @@ class QuotaResponse(BaseModel):
     reset_at:  int   # Unix timestamp (UTC midnight)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Yardımcı
-# ─────────────────────────────────────────────────────────────────────────────
 
 def _sanitize(value: str) -> str:
     """HTML tag'lerini ve XSS vektörlerini temizler."""
@@ -302,9 +290,6 @@ def _sanitize(value: str) -> str:
     return value.strip()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Analiz
-# ─────────────────────────────────────────────────────────────────────────────
 
 class ContentAnalysisRequest(BaseModel):
     text: str = Field(..., description="Analiz edilecek haber metni")
@@ -348,9 +333,6 @@ class ImageAnalysisResponse(BaseModel):
     direct_match_data: Optional[dict] = None
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Makaleler
-# ─────────────────────────────────────────────────────────────────────────────
 
 class ArticleResponse(BaseModel):
     id: UUID
@@ -401,9 +383,6 @@ class HotAnalysesResponse(BaseModel):
     hours: int
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Benzer RSS Haberleri
-# ─────────────────────────────────────────────────────────────────────────────
 
 class SimilarNewsItem(BaseModel):
     id:          str
@@ -423,9 +402,6 @@ class SimilarNewsResponse(BaseModel):
     items: List[SimilarNewsItem]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Haberler (RSS)
-# ─────────────────────────────────────────────────────────────────────────────
 
 class NewsArticleResponse(BaseModel):
     id:           UUID
@@ -452,9 +428,6 @@ class NewsListResponse(BaseModel):
     page:  int
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Daily Digest
-# ─────────────────────────────────────────────────────────────────────────────
 class DailySummaryResponse(BaseModel):
     id:            UUID
     summary_date:  date
@@ -468,9 +441,6 @@ class DailySummaryResponse(BaseModel):
         from_attributes = True
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Interactions (Kullanıcı Davranış Takibi)
-# ─────────────────────────────────────────────────────────────────────────────
 
 import uuid as _uuid
 
@@ -518,7 +488,6 @@ class InteractionTrackRequest(BaseModel):
         return clean or None
 
 
-# ── Faz 4: Bildirimler ────────────────────────────────────────────────────────
 
 class NotificationPrefsResponse(BaseModel):
     high_risk_alert: bool
@@ -548,7 +517,6 @@ class NotificationListResponse(BaseModel):
     unread_count: int
 
 
-# ── Faz 5: Kullanıcı Kontrolü ─────────────────────────────────────────────────
 
 class FeedPreferencesResponse(BaseModel):
     blocked_sources:   list[str]
@@ -570,7 +538,6 @@ class DataExportResponse(BaseModel):
     exported_at:        datetime
 
 
-# ── Faz 6-C: Model Feedback Loop ─────────────────────────────────────────────────
 
 class FeedbackRequest(BaseModel):
     task_id:         str = Field(..., description="Article'ın metadata_info.task_id değeri")
@@ -601,7 +568,6 @@ class FeedbackStatsResponse(BaseModel):
     last_training_run: Optional[TrainingRunResponse] = None
 
 
-# ── Profile Hub: Kullanıcı İstatistikleri ─────────────────────────────────────
 
 class UserStatsResponse(BaseModel):
     total_analyzed: int
@@ -614,7 +580,6 @@ class UserStatsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# ── Profile Hub: Güvenlik ─────────────────────────────────────────────────────
 
 class SessionItem(BaseModel):
     ip_hash: str
@@ -629,7 +594,6 @@ class SessionListResponse(BaseModel):
     anomaly_detected: bool
 
 
-# ── Profile Hub: Geri Bildirimlerim ──────────────────────────────────────────
 
 class FeedbackHistoryItem(BaseModel):
     article_title:   str
@@ -645,7 +609,6 @@ class FeedbackHistoryResponse(BaseModel):
     total_accepted: int
 
 
-# ── Profile Hub: AI Lab ───────────────────────────────────────────────────────
 
 class SourceSearchItem(BaseModel):
     id:                str
@@ -654,9 +617,6 @@ class SourceSearchItem(BaseModel):
     credibility_score: Optional[str] = None
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Forum
-# ─────────────────────────────────────────────────────────────────────────────
 
 FORUM_CATEGORIES = [
     "haberler",
@@ -702,7 +662,6 @@ class ForumCommentCreate(BaseModel):
         return [html.escape(u)[:512] for u in (v or [])]
 
 
-# ── Forum Trust ───────────────────────────────────────────────────────────────
 
 TIER_META = {
     "yeni_uye":    {"label": "Yeni Üye",    "stars": 1},
@@ -816,6 +775,7 @@ class ForumThreadAuthor(BaseModel):
 class ForumThreadSummary(BaseModel):
     id:               UUID
     title:            str
+    body:             Optional[str] = None
     category:         Optional[str]
     status:           str
     vote_suspicious:  int
@@ -936,9 +896,6 @@ class ModerationQueueResponse(BaseModel):
     size:  int
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Browser Extension
-# ─────────────────────────────────────────────────────────────────────────────
 
 class SignalsRequest(BaseModel):
     text: str = Field(..., max_length=500)
@@ -965,7 +922,6 @@ class SharedAnalysisResponse(BaseModel):
     created_at:      Optional[str]   = None
 
 
-# ── Forum Bildirimleri (Notification modeli — read_at) ────────────────────────
 
 class ForumNotificationItem(BaseModel):
     id:         UUID
@@ -983,7 +939,6 @@ class ForumNotificationListResponse(BaseModel):
     unread: int
 
 
-# ── Sosyal / Takip ────────────────────────────────────────────────────────────
 
 class UserProfileResponse(BaseModel):
     id:                UUID
@@ -1031,7 +986,6 @@ class ForumThreadReportCreate(BaseModel):
     reason: str = Field(..., pattern=_VALID_REASONS)
 
 
-# ── Derin Rapor ───────────────────────────────────────────────────────────────
 
 class FullReportRequest(BaseModel):
     user_note: Optional[str] = Field(None, max_length=500)
