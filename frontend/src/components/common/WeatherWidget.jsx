@@ -37,17 +37,8 @@ function wmoLabel(code) {
     return 'Fırtınalı';
 }
 
-function wmoAccent(code) {
-    //                     gradient (alt renk)              alt çizgi
-    if (code === 0)  return { g: 'rgba(253,224,71,0.22)',  b: 'rgba(253,224,71,0.60)'  }; // güneş
-    if (code <= 3)   return { g: 'rgba(148,163,184,0.18)', b: 'rgba(148,163,184,0.45)' }; // bulutlu
-    if (code <= 48)  return { g: 'rgba(100,116,139,0.16)', b: 'rgba(100,116,139,0.42)' }; // sisli
-    if (code <= 65)  return { g: 'rgba(59,130,246,0.20)',  b: 'rgba(59,130,246,0.55)'  }; // yağmur
-    if (code <= 75)  return { g: 'rgba(186,230,253,0.18)', b: 'rgba(186,230,253,0.50)' }; // kar
-    if (code <= 82)  return { g: 'rgba(59,130,246,0.22)',  b: 'rgba(59,130,246,0.58)'  }; // sağanak
-    if (code <= 86)  return { g: 'rgba(186,230,253,0.20)', b: 'rgba(186,230,253,0.52)' }; // kar sağanağı
-    return             { g: 'rgba(139,92,246,0.22)',  b: 'rgba(139,92,246,0.58)'  };       // fırtına
-}
+// Hava durumu kutusu sabit yeşil — çentik rengiyle aynı. Havaya göre yalnızca ikon değişir.
+const WX_GREEN = '#47b172';
 
 async function fetchWeather(lat, lon) {
     const res  = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1'}/weather?lat=${lat}&lon=${lon}`);
@@ -90,7 +81,6 @@ const WeatherWidget = () => {
     const [fetched,  setFetched]  = useState(false);
     const ref = useRef(null);
 
-    // Konum al + birincil hava durumu yükle
     useEffect(() => {
         const load = async (lat, lon, fallbackCity = 'İstanbul') => {
             try {
@@ -112,7 +102,6 @@ const WeatherWidget = () => {
         }
     }, []);
 
-    // Dropdown açılınca diğer şehirleri yükle (bir kez)
     const loadCities = useCallback(async () => {
         if (fetched) return;
         setFetched(true);
@@ -131,7 +120,6 @@ const WeatherWidget = () => {
         setOpen(v => !v);
     };
 
-    // Dışarı tıklanınca kapat
     useEffect(() => {
         if (!open) return;
         const handler = (e) => {
@@ -143,46 +131,38 @@ const WeatherWidget = () => {
 
     if (!primary) return null;
 
-    const Icon   = wmoIcon(primary.code);
-    const accent = wmoAccent(primary.code);
+    const Icon = wmoIcon(primary.code);
 
     return (
-        <div ref={ref} className="relative hidden md:block">
-            {/* Trigger — gradient yok, sadece sol border */}
+        <div ref={ref} className="relative hidden md:flex shrink-0">
+            {/* Trigger — sabit yeşil kutu, beyaz yazı, çentiksiz */}
             <button
                 onClick={toggleOpen}
-                className="select-none whitespace-nowrap transition-opacity hover:opacity-80 flex items-center gap-2"
-                style={{
-                    borderLeft:  `2px solid ${accent.b}`,
-                    padding:     '5px 12px 5px 10px',
-                    background:  'transparent',
-                }}
+                className="relative select-none whitespace-nowrap transition-all hover:brightness-105 flex items-center gap-2 h-full"
+                style={{ padding: '0 14px', background: WX_GREEN }}
             >
-                <Icon
-                    className="w-4 h-4 shrink-0"
-                    style={{ color: 'rgba(255,255,255,0.75)' }}
-                />
+                <Icon className="w-4 h-4 shrink-0" style={{ color: '#fff' }} />
                 <span style={{
                     fontFamily:    "'Open Sans', sans-serif",
                     fontSize:      12,
                     fontWeight:    600,
-                    color:         'rgba(255,255,255,0.82)',
+                    color:         'rgba(255,255,255,0.92)',
                     letterSpacing: '0.02em',
                 }}>
                     {primary.city}
                 </span>
                 <span style={{
                     fontFamily: "'Open Sans', sans-serif",
-                    fontSize:   13,
+                    fontSize:   14,
                     fontWeight: 800,
-                    color:      'rgba(255,255,255,0.95)',
+                    color:      '#fff',
                 }}>
                     {primary.temp}°
                 </span>
                 <ChevronDown
                     className="w-3 h-3 shrink-0"
                     style={{
-                        color:      'rgba(255,255,255,0.50)',
+                        color:      'rgba(255,255,255,0.7)',
                         transform:  open ? 'rotate(180deg)' : 'rotate(0deg)',
                         transition: 'transform 0.25s ease',
                     }}
@@ -194,14 +174,17 @@ const WeatherWidget = () => {
                 <div
                     className="absolute right-0 top-full mt-1 min-w-57.5 z-50 overflow-hidden animate-fade-up"
                     style={{
-                        background:  'var(--color-navbar-bg)',
-                        border:      `1px solid ${accent.b}`,
-                        boxShadow:   '0 8px 32px rgba(0,0,0,0.45)',
-                        minWidth:    '280px',
+                        background:   'var(--color-navbar-bg)',
+                        border:       `1px solid ${WX_GREEN}`,
+                        borderRadius: 14,
+                        boxShadow:    '0 12px 40px rgba(0,0,0,0.30)',
+                        minWidth:     '280px',
+                        backdropFilter: 'blur(20px)',
+                        WebkitBackdropFilter: 'blur(20px)',
                     }}
                 >
                     {/* Konum başlığı — gradient yok, sadece border */}
-                    <div style={{ borderBottom: `1px solid ${accent.b}`, padding: '12px 16px' }}>
+                    <div style={{ borderBottom: `1px solid ${WX_GREEN}`, padding: '12px 16px' }}>
                         <p className="text-[9px] uppercase tracking-widest mb-2"
                            style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-muted)' }}>
                             Konumun
@@ -215,7 +198,7 @@ const WeatherWidget = () => {
                                     {wmoLabel(primary.code)}
                                 </span>
                                 <div className="flex items-center gap-1">
-                                    <Icon className="w-3.5 h-3.5" style={{ color: `${accent.b}` }} />
+                                    <Icon className="w-3.5 h-3.5" style={{ color: WX_GREEN }} />
                                     <span className="text-base font-black" style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-primary)' }}>
                                         {primary.temp}°
                                     </span>

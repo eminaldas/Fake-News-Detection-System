@@ -35,7 +35,7 @@
     --color-skeleton:         #eaeef2;
 
     /* Layout tokenlar */
-    --color-market-band-bg:  #070f12;
+    --color-market-band-bg:  #e8f4ec;
     --color-navbar-bg:       rgba(248,255,254,0.97);
     --color-navbar-border:   rgba(16,185,129,0.22);
     --color-ticker-bg:       #f8fffe;
@@ -58,9 +58,13 @@
     /* ── Forum bileşen tokenları (light) ── */
     --color-forum-left-border: rgba(36,41,47,0.22);
     --color-forum-tab-active:  #e8f5ee;
-    --color-market-label:        rgba(255,255,255,0.65);
-    --color-market-value:        rgba(255,255,255,0.95);
-    --color-market-sys:          rgba(63,255,139,0.70);
+    --color-market-label:        #2e5c3a;
+    --color-market-value:        #0d2b1a;
+    --color-market-sys:          #1a9e4f;
+    --color-market-up:           #15803d;
+    --color-market-down:         #dc2626;
+    --color-market-flat:         rgba(13,43,26,0.45);
+    --color-market-box-bg:       #e1f3eb;
 
     /* ── Durum: Doğru (Authentic) ── */
     --color-authentic-bg:     #dcfce7;
@@ -152,6 +156,10 @@
     --color-market-label:        rgba(255,255,255,0.65);
     --color-market-value:        rgba(255,255,255,0.95);
     --color-market-sys:          rgba(63,255,139,0.70);
+    --color-market-up:           #3fff8b;
+    --color-market-down:         #ff7351;
+    --color-market-flat:         rgba(255,255,255,0.45);
+    --color-market-box-bg:       #0c2323;
 
     /* ── Durum: Doğru (Authentic) ── */
     --color-authentic-bg:     #172621;
@@ -238,33 +246,6 @@
 @keyframes scan-line {
   0%   { top: -10%; }
   100% { top: 110%;  }
-}
-
-@keyframes pipe-bead {
-  0%         { left: -28%; opacity: 0; }
-  6%         { opacity: 1; }
-  44%        { left: 112%; opacity: 1; }
-  45%, 100%  { left: 112%; opacity: 0; }
-}
-
-.navbar-pipe-bead {
-  position: absolute;
-  top: 0;
-  left: -28%;
-  width: 28%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent                                                   0%,
-    color-mix(in srgb, var(--color-brand-primary) 18%, transparent) 20%,
-    var(--color-brand-primary)                                   44%,
-    color-mix(in srgb, var(--color-brand-primary) 60%, white)    50%,
-    var(--color-brand-primary)                                   56%,
-    color-mix(in srgb, var(--color-brand-primary) 18%, transparent) 80%,
-    transparent                                                  100%
-  );
-  filter: blur(0.4px);
-  animation: pipe-bead 5.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* ═══════════════════════════════════════════════════════════════════

@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import MarketService from '../../services/market.service';
 import WeatherWidget from './WeatherWidget';
+import CornerBrackets from './CornerBrackets';
 import { useMarketPrefs } from '../../hooks/useMarketPrefs';
 
-// Truncgil key → display meta
 const RATE_META = {
     'USD':        { label: 'USD/TRY', unit: '₺', decimals: 2 },
     'EUR':        { label: 'EUR/TRY', unit: '₺', decimals: 2 },
@@ -23,7 +23,11 @@ function MarketItem({ label, unit, decimals, value, changePct }) {
     const chg      = changePct !== null && changePct !== undefined ? changePct : null;
     const isUp     = chg !== null && chg > 0;
     const isDown   = chg !== null && chg < 0;
-    const chgColor = isUp ? '#3fff8b' : isDown ? '#ff7351' : 'rgba(255,255,255,0.45)';
+    const chgColor = isUp
+        ? 'var(--color-market-up)'
+        : isDown
+            ? 'var(--color-market-down)'
+            : 'var(--color-market-flat)';
 
     return (
         <span className="flex items-center gap-1.5 font-mono shrink-0">
@@ -66,7 +70,6 @@ const MarketBand = () => {
         return () => clearInterval(id);
     }, []);
 
-    // Build unified symbol → display-data map
     const dataMap = React.useMemo(() => {
         const m = {};
         for (const [key, meta] of Object.entries(RATE_META)) {
@@ -95,7 +98,6 @@ const MarketBand = () => {
 
     const items      = tickers.map(sym => dataMap[sym]).filter(Boolean);
     const useMarquee = items.length > 4;
-    // duration ilk veri yüklenince sabitlenir; sonraki refresh'lerde değişmez.
     const [stableCount, setStableCount] = React.useState(0);
     React.useEffect(() => {
         if (items.length > 0 && stableCount === 0) setStableCount(items.length);
@@ -104,16 +106,16 @@ const MarketBand = () => {
 
     return (
         <div
-            className="fixed top-0 left-0 right-0 z-[60] h-10 flex items-center px-6"
-            style={{
-                background:   'var(--color-market-band-bg)',
-                borderBottom: '1px solid var(--color-terminal-border-raw)',
-            }}
+            className="fixed top-0 left-0 right-0 z-[60] h-8 flex items-center"
+            style={{ backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
         >
-            <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-4">
+            <div className="w-full flex items-stretch h-full">
 
-                {/* Left: SYS badge + market items */}
-                <div className="flex items-center gap-4 flex-1 min-w-0 overflow-hidden">
+                {/* SOL — market kutusu (kendi çentikleri) */}
+                <div className="relative flex-1 min-w-0 flex items-center gap-4 overflow-hidden px-3"
+                     style={{ background: 'var(--color-market-box-bg)' }}>
+                    <CornerBrackets color="#47b172" length={12} thickness={2} />
+
                     <Link to="/borsa" className="flex items-center gap-1.5 font-mono shrink-0 hover:opacity-70 transition-opacity">
                         <span className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0"
                               style={{ background: 'var(--color-market-sys)' }} />
@@ -146,10 +148,8 @@ const MarketBand = () => {
                     )}
                 </div>
 
-                {/* Sağ: Hava durumu */}
-                <div className="shrink-0">
-                    <WeatherWidget />
-                </div>
+                {/* SAĞ — hava durumu kutusu (kendi çentikleri + havaya göre renk) */}
+                <WeatherWidget />
             </div>
         </div>
     );
