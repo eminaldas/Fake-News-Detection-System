@@ -1013,3 +1013,31 @@ class SummarizeRequest(BaseModel):
 
 class SummarizeResponse(BaseModel):
     summary: str
+
+
+class CategoryCreate(BaseModel):
+    slug: str
+    name: str
+    parent_id: Optional[UUID] = None
+    prototype_text: Optional[str] = None
+    display_order: int = 0
+
+
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    prototype_text: Optional[str] = None
+    display_order: Optional[int] = None
+    is_active: Optional[bool] = None
+
+
+class CategoryResponse(BaseModel):
+    id: UUID
+    slug: str
+    name: str
+    parent_id: Optional[UUID]
+    prototype_text: Optional[str]
+    is_stale: bool
+    display_order: int
+    is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)

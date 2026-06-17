@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     RSS_INGEST_QUEUE:    str   = "rss"
     RSS_INGEST_BATCH:    int   = 50
 
+    CATEGORY_MAIN_THRESHOLD:  float = 0.55   # ana kategoriyi ezme eşiği
+    CATEGORY_SUB_THRESHOLD:   float = 0.40   # alt kategori atama eşiği
+    CATEGORY_CLASSIFY_BATCH:  int   = 20     # task başına haber sayısı
+    CATEGORY_CLASSIFY_QUEUE:  str   = "classify"
+    CATEGORY_SWEEP_MAX_AGE_H: int   = 1      # bu kadar saat önce eklenip hâlâ NULL olanlar süpürülür
+
     # Email — Brevo HTTP API (opsiyonel — boş bırakılırsa email devre dışı)
     BREVO_API_KEY: str = ""
     SMTP_FROM:     str = "noreply@fnds.local"

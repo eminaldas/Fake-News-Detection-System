@@ -30,6 +30,7 @@ const AdminDashboard  = lazy(() => import('./pages/AdminDashboard'));
 const AdminUsers      = lazy(() => import('./pages/AdminUsers'));
 const AdminSecurity   = lazy(() => import('./pages/AdminSecurity'));
 const AdminContent    = lazy(() => import('./pages/AdminContent'));
+const AdminCategories = lazy(() => import('./pages/AdminCategories'));
 const AdminCommunity  = lazy(() => import('./pages/AdminCommunity'));
 const AdminAIControl  = lazy(() => import('./pages/AdminAIControl'));
 // Eski sayfalar — geriye uyumluluk
@@ -176,6 +177,7 @@ function App() {
                           <Route index                  element={<AdminDashboard />}  />
                           <Route path="users"           element={<AdminUsers />}      />
                           <Route path="content"         element={<AdminContent />}    />
+                          <Route path="categories"      element={<AdminCategories />} />
                           <Route path="community"       element={<AdminCommunity />}  />
                           <Route path="ai-control"      element={<AdminAIControl />}  />
                           <Route path="security"        element={<AdminSecurity />}   />

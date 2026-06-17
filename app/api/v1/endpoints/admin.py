@@ -11,12 +11,14 @@ from app.core.audit import audit_log
 from app.core.logging import get_logger
 from app.db.redis import get_redis
 from app.db.session import get_db
-from app.models.models import AnalysisRequest, Article, AnalysisResult, User, UserRole, ForumComment, ForumReport, ForumThread
+from app.models.models import AnalysisRequest, Article, AnalysisResult, Category, User, UserRole, ForumComment, ForumReport, ForumThread
 from app.schemas.schemas import (
     AdminUpdateUserRequest, AdminUserResponse, ModerationQueueItem, ModerationQueueResponse,
     PaginatedAdminUserResponse, PaginatedUserResponse, ShadowBanRequest, UserResponse,
     XPDeltaRequest, ArticleResponse,
+    CategoryCreate, CategoryUpdate, CategoryResponse,
 )
+from app.services.category_embedding import compute_prototype_embedding
 
 router = APIRouter()
 log    = get_logger(__name__)
@@ -599,3 +601,77 @@ async def admin_remove_comment(
         raise HTTPException(status_code=404, detail="Yorum bulunamadı")
     await db.delete(comment)
     await db.commit()
+
+
+@router.get("/categories", response_model=list[CategoryResponse])
+async def list_categories(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    rows = await db.execute(select(Category).order_by(Category.display_order))
+    return rows.scalars().all()
+
+
+@router.post("/categories", response_model=CategoryResponse, status_code=201)
+async def create_category(
+    payload: CategoryCreate,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    cat = Category(
+        slug=payload.slug, name=payload.name, parent_id=payload.parent_id,
+        prototype_text=payload.prototype_text, display_order=payload.display_order,
+    )
+    if payload.prototype_text:
+        emb = compute_prototype_embedding(payload.prototype_text)
+        if emb is not None:
+            cat.prototype_embedding = emb
+        else:
+            cat.is_stale = True
+    db.add(cat)
+    await db.commit()
+    await db.refresh(cat)
+    return cat
+
+
+@router.patch("/categories/{category_id}", response_model=CategoryResponse)
+async def update_category(
+    category_id: UUID,
+    payload: CategoryUpdate,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    cat = await db.get(Category, category_id)
+    if not cat:
+        raise HTTPException(status_code=404, detail="Kategori bulunamadı")
+    if payload.name is not None:
+        cat.name = payload.name
+    if payload.display_order is not None:
+        cat.display_order = payload.display_order
+    if payload.is_active is not None:
+        cat.is_active = payload.is_active
+    if payload.prototype_text is not None and payload.prototype_text != cat.prototype_text:
+        cat.prototype_text = payload.prototype_text
+        emb = compute_prototype_embedding(payload.prototype_text)
+        if emb is not None:
+            cat.prototype_embedding = emb
+            cat.is_stale = False
+        else:
+            cat.is_stale = True
+    await db.commit()
+    await db.refresh(cat)
+    return cat
+
+
+@router.delete("/categories/{category_id}", status_code=200)
+async def delete_category(
+    category_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    cat = await db.get(Category, category_id)
+    if not cat:
+        raise HTTPException(status_code=404, detail="Kategori bulunamadı")
+    cat.is_active = False   # soft-delete
+    await db.commit()
+    return {"status": "deactivated"}

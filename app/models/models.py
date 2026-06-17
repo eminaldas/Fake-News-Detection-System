@@ -215,7 +215,23 @@ class NewsArticle(Base):
     nlp_score    = Column(Float,   nullable=True)        # 0.0–1.0
     nlp_signals  = Column(JSONB,   nullable=True)        # {title:{...}, content:{...}}
     content_type = Column(JSONB,   nullable=True)        # ["claim","clickbait"] vb.
+    category_confidence = Column(Float, nullable=True)   # embedding güven skoru; NULL = henüz sınıflanmadı
     created_at   = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Category(Base):
+    __tablename__ = "categories"
+
+    id                  = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    slug                = Column(String(50), nullable=False, unique=True, index=True)  # "otomobil"
+    name                = Column(String(80), nullable=False)                           # "Otomobil"
+    parent_id           = Column(UUID(as_uuid=True), ForeignKey("categories.id", ondelete="CASCADE"), nullable=True, index=True)
+    prototype_text      = Column(Text, nullable=True)        # admin'in yazdığı tanım/kelimeler
+    prototype_embedding = Column(Vector(768), nullable=True) # prototype_text'ten otomatik
+    is_stale            = Column(Boolean, nullable=False, default=False)  # metin değişti, embedding bekliyor
+    display_order       = Column(Integer, nullable=False, default=0)
+    is_active           = Column(Boolean, nullable=False, default=True)
+    created_at          = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class AuditLog(Base):
