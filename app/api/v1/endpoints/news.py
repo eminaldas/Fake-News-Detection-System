@@ -10,13 +10,14 @@ from datetime import date, datetime, timedelta, timezone, UTC
 import uuid as _uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import case, func, select
+from sqlalchemy import and_, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_optional_user
 from app.db.session import get_db
-from app.models.models import ContentInteraction, NewsArticle, User, UserPreferenceProfile
+from app.models.models import Category, ContentInteraction, NewsArticle, User, UserPreferenceProfile
 from app.schemas.schemas import NewsArticleResponse, NewsListResponse
+from app.services.category_tree import build_category_tree
 
 router = APIRouter()
 
@@ -63,6 +64,12 @@ async def list_news(
                 base_filter.append(~NewsArticle.source_url.contains(domain))
             if user_profile.hidden_categories:
                 base_filter.append(~NewsArticle.category.in_(user_profile.hidden_categories))
+            for pair in (user_profile.hidden_subcategories or []):
+                main, _, sub = pair.partition("/")
+                if main and sub:
+                    base_filter.append(
+                        ~and_(NewsArticle.category == main, NewsArticle.subcategory == sub)
+                    )
 
     total_result = await db.execute(
         select(func.count()).select_from(NewsArticle).where(*base_filter)
@@ -158,6 +165,15 @@ async def list_news(
         total=total,
         page=page,
     )
+
+
+@router.get("/categories")
+async def list_categories(db: AsyncSession = Depends(get_db)):
+    """Aktif kategoriler ağaç halinde (public, auth gerekmez)."""
+    rows = (await db.execute(
+        select(Category).where(Category.is_active.is_(True)).order_by(Category.display_order)
+    )).scalars().all()
+    return build_category_tree(rows)
 
 
 @router.get("/{article_id}", response_model=NewsArticleResponse)

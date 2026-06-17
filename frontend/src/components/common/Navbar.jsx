@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Moon, Sun, Menu, X, ChevronDown, User, Settings, Shield, BarChart2, LogOut, Users, MessageSquare, Award } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import axiosInstance from '../../api/axios';
+import useCategories from '../../hooks/useCategories';
+import CategoryCustomizeModal from './CategoryCustomizeModal';
+import toast from '../../services/toast';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 import NotificationBell from '../../features/notifications/NotificationBell';
 import CornerBrackets from './CornerBrackets';
@@ -33,16 +36,6 @@ function useUnreadMessages() {
     return count;
 }
 
-const GUNDEM_CATEGORIES = [
-    { label: 'Gündem',    value: 'gündem'    },
-    { label: 'Ekonomi',   value: 'ekonomi'   },
-    { label: 'Spor',      value: 'spor'      },
-    { label: 'Sağlık',    value: 'sağlık'    },
-    { label: 'Teknoloji', value: 'teknoloji' },
-    { label: 'Kültür',    value: 'kültür'    },
-    { label: 'Yaşam',     value: 'yaşam'     },
-];
-
 const NAV_LINKS = [
     { name: 'Analiz',   path: '/'       },
     { name: 'Haberler', path: '/gundem' },
@@ -53,14 +46,15 @@ const NAV_LINKS = [
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 
-function CategoryBar({ activeCategory, onSelect }) {
+function CategoryBar({ activeCategory, onSelect, categories, hiddenCategories, onCustomize }) {
     const containerRef = useRef(null);
     const btnRefs      = useRef({});
     const [indicator,  setIndicator] = useState({ left: 0, width: 0, ready: false });
 
+    const visibleMains = categories.filter(c => !hiddenCategories.includes(c.slug));
     const items = [
         { label: 'SİZİN İÇİN', value: null },
-        ...GUNDEM_CATEGORIES.map(c => ({ label: c.label.toLocaleUpperCase('tr-TR'), value: c.value })),
+        ...visibleMains.map(c => ({ label: c.name.toLocaleUpperCase('tr-TR'), value: c.slug })),
     ];
 
     useLayoutEffect(() => {
@@ -108,6 +102,42 @@ function CategoryBar({ activeCategory, onSelect }) {
                         </button>
                     );
                 })}
+                <button
+                    onClick={onCustomize}
+                    className="px-4 py-3 text-[11px] font-bold tracking-widest whitespace-nowrap shrink-0 ml-auto"
+                    style={{ fontFamily: "'Elms Sans', sans-serif", color: 'var(--color-text-secondary)' }}
+                    title="Kategorileri özelleştir"
+                >
+                    ⚙ ÖZELLEŞTİR
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function SubcategoryBar({ activeCategory, activeSub, categories, hiddenSubcategories, onSelect }) {
+    const main = categories.find(c => c.slug === activeCategory);
+    if (!main) return null;
+    const subs = main.subcategories.filter(
+        s => !hiddenSubcategories.includes(`${main.slug}/${s.slug}`)
+    );
+    if (subs.length === 0) return null;
+    return (
+        <div style={{ borderTop: '1px solid var(--color-border)' }}>
+            <div className="max-w-7xl mx-auto px-2 flex items-center gap-1 overflow-x-auto scrollbar-none"
+                 style={{ scrollbarWidth: 'none' }}>
+                <button onClick={() => onSelect(null)}
+                        className="px-3 py-2 text-[10px] font-bold tracking-wider whitespace-nowrap shrink-0"
+                        style={{ color: !activeSub ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)' }}>
+                    TÜMÜ
+                </button>
+                {subs.map(s => (
+                    <button key={s.slug} onClick={() => onSelect(s.slug)}
+                        className="px-3 py-2 text-[10px] font-bold tracking-wider whitespace-nowrap shrink-0"
+                        style={{ color: activeSub === s.slug ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)' }}>
+                        {s.name.toLocaleUpperCase('tr-TR')}
+                    </button>
+                ))}
             </div>
         </div>
     );
@@ -205,6 +235,27 @@ const Navbar = () => {
     const [gundemParams, setGundemParams] = useSearchParams();
     const isGundem       = location.pathname === '/gundem';
     const activeCategory = isGundem ? (gundemParams.get('category') ?? null) : null;
+    const activeSub      = isGundem ? gundemParams.get('subcategory') : null;
+
+    const { categories } = useCategories();
+    const [hiddenCategories, setHiddenCategories] = useState([]);
+    const [hiddenSubcategories, setHiddenSubcategories] = useState([]);
+    const [customizeOpen, setCustomizeOpen] = useState(false);
+
+    const loadHidden = useCallback(async () => {
+        try {
+            const { data } = await axiosInstance.get('/users/me/feed-preferences');
+            setHiddenCategories(data.hidden_categories || []);
+            setHiddenSubcategories(data.hidden_subcategories || []);
+        } catch { /* anonim ya da hata: gizli yok */ }
+    }, []);
+    useEffect(() => { if (user) loadHidden(); }, [user, loadHidden]);
+
+    const handleCustomize = () => {
+        if (user) { setCustomizeOpen(true); return; }
+        toast.info('Kategorileri özelleştirmek için giriş yapmalısın.');
+        navigate('/login');
+    };
 
     const unreadMessages = useUnreadMessages();
 
@@ -447,6 +498,31 @@ const Navbar = () => {
                 <CategoryBar
                     activeCategory={activeCategory}
                     onSelect={(val) => val ? setGundemParams({ category: val }) : setGundemParams({})}
+                    categories={categories}
+                    hiddenCategories={hiddenCategories}
+                    onCustomize={handleCustomize}
+                />
+            )}
+
+            {isGundem && activeCategory && (
+                <SubcategoryBar
+                    activeCategory={activeCategory}
+                    activeSub={activeSub}
+                    categories={categories}
+                    hiddenSubcategories={hiddenSubcategories}
+                    onSelect={(sub) => setGundemParams(
+                        sub ? { category: activeCategory, subcategory: sub } : { category: activeCategory }
+                    )}
+                />
+            )}
+
+            {customizeOpen && (
+                <CategoryCustomizeModal
+                    categories={categories}
+                    hiddenCategories={hiddenCategories}
+                    hiddenSubcategories={hiddenSubcategories}
+                    onClose={() => { setCustomizeOpen(false); loadHidden(); }}
+                    onChange={loadHidden}
                 />
             )}
 

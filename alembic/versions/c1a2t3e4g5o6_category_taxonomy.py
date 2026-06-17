@@ -54,7 +54,7 @@ def upgrade() -> None:
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
-    op.create_unique_constraint("uq_categories_slug", "categories", ["slug"])
+    op.create_unique_constraint("uq_categories_parent_slug", "categories", ["parent_id", "slug"])
     op.create_index("ix_categories_parent_id", "categories", ["parent_id"])
 
     # Seed
@@ -81,9 +81,16 @@ def upgrade() -> None:
             )
             order += 1
 
+    op.add_column(
+        "user_preference_profiles",
+        sa.Column("hidden_subcategories", postgresql.JSONB(),
+                  nullable=False, server_default=sa.text("'[]'::jsonb")),
+    )
+
 
 def downgrade() -> None:
+    op.drop_column("user_preference_profiles", "hidden_subcategories")
     op.drop_index("ix_categories_parent_id", table_name="categories")
-    op.drop_constraint("uq_categories_slug", "categories", type_="unique")
+    op.drop_constraint("uq_categories_parent_slug", "categories", type_="unique")
     op.drop_table("categories")
     op.drop_column("news_articles", "category_confidence")

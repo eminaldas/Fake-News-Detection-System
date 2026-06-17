@@ -171,10 +171,11 @@ async def get_feed_preferences(
         select(UserPreferenceProfile).where(UserPreferenceProfile.user_id == current_user.id)
     )).scalar_one_or_none()
     if not profile:
-        return FeedPreferencesResponse(blocked_sources=[], hidden_categories=[])
+        return FeedPreferencesResponse(blocked_sources=[], hidden_categories=[], hidden_subcategories=[])
     return FeedPreferencesResponse(
-        blocked_sources   = profile.blocked_sources   or [],
-        hidden_categories = profile.hidden_categories or [],
+        blocked_sources      = profile.blocked_sources      or [],
+        hidden_categories    = profile.hidden_categories    or [],
+        hidden_subcategories = profile.hidden_subcategories or [],
     )
 
 
@@ -191,8 +192,9 @@ async def update_feed_preferences(
         profile = UserPreferenceProfile(user_id=current_user.id)
         db.add(profile)
 
-    blocked = list(profile.blocked_sources   or [])
-    hidden  = list(profile.hidden_categories or [])
+    blocked = list(profile.blocked_sources      or [])
+    hidden  = list(profile.hidden_categories    or [])
+    subs    = list(profile.hidden_subcategories or [])
 
     if body.add_blocked_source and body.add_blocked_source not in blocked:
         blocked.append(body.add_blocked_source.lower().strip())
@@ -202,12 +204,17 @@ async def update_feed_preferences(
         hidden.append(body.add_hidden_category.lower().strip())
     if body.remove_hidden_category and body.remove_hidden_category.lower().strip() in hidden:
         hidden.remove(body.remove_hidden_category.lower().strip())
+    if body.add_hidden_subcategory and body.add_hidden_subcategory.lower().strip() not in subs:
+        subs.append(body.add_hidden_subcategory.lower().strip())
+    if body.remove_hidden_subcategory and body.remove_hidden_subcategory.lower().strip() in subs:
+        subs.remove(body.remove_hidden_subcategory.lower().strip())
 
-    profile.blocked_sources   = blocked
-    profile.hidden_categories = hidden
+    profile.blocked_sources      = blocked
+    profile.hidden_categories    = hidden
+    profile.hidden_subcategories = subs
     await db.commit()
     await db.refresh(profile)
-    return FeedPreferencesResponse(blocked_sources=blocked, hidden_categories=hidden)
+    return FeedPreferencesResponse(blocked_sources=blocked, hidden_categories=hidden, hidden_subcategories=subs)
 
 
 @router.get("/me/preference-profile")
