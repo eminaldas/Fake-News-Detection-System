@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, ShieldAlert, BrainCircuit,
-  Flag, LogOut, ChevronLeft, ChevronRight, Activity, UsersRound,
+  Flag, LogOut, ChevronLeft, ChevronRight, Activity, UsersRound, Tags,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import axiosInstance from '../api/axios';
@@ -37,6 +37,7 @@ const SECTIONS = [
     label: 'Yönetim',
     items: [
       { to: '/admin/content',   icon: Flag,        label: 'İçerik',   badgeKey: 'reports' },
+      { to: '/admin/categories',icon: Tags,        label: 'Kategoriler'                   },
       { to: '/admin/community', icon: UsersRound,  label: 'Topluluk', badgeKey: 'forum'   },
       { to: '/admin/ai-control',icon: BrainCircuit,label: 'AI Kontrol'                    },
       { to: '/admin/security',  icon: ShieldAlert, label: 'Güvenlik', badgeKey: 'alerts'  },

@@ -538,6 +538,7 @@ async def _ensure_pg_trgm():
 async def _run_ingest():
     await _ensure_pg_trgm()
     urls_to_warm: list[str] = []
+    new_article_ids: list[str] = []
     async with AsyncSessionLocal() as db:
         total_new = 0
         total_dup = 0
@@ -625,6 +626,7 @@ async def _run_ingest():
                 db.add(article)
                 if image_url:
                     urls_to_warm.append(image_url)
+                new_article_ids.append(str(article_id))
                 source_new += 1
                 total_new  += 1
                 if duplicate:
@@ -637,6 +639,14 @@ async def _run_ingest():
             )
 
         logger.info("rss.ingest_complete total_new=%d", total_new)
+
+    if new_article_ids:
+        from workers.category_tasks import classify_articles_batch
+        for i in range(0, len(new_article_ids), settings.CATEGORY_CLASSIFY_BATCH):
+            classify_articles_batch.delay(
+                new_article_ids[i:i + settings.CATEGORY_CLASSIFY_BATCH]
+            )
+        logger.info("category.enqueued total=%d", len(new_article_ids))
 
     # image_cache_warm devre dışı — 150m memory limit SIGKILL'e neden oluyor
     if urls_to_warm:
