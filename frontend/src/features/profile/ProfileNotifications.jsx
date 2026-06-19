@@ -30,7 +30,6 @@ const Block = ({ title, sub, children, footer }) => (
     </div>
 );
 
-/* Blok-style ON/OFF toggle — AI Lab ile aynı dil */
 const BlockToggle = ({ checked, onChange }) => (
     <button
         type="button"
@@ -130,7 +129,6 @@ const ProfileNotifications = () => {
                 footer={
                     <>
                         <span className="font-mono text-[10px] tracking-widest" style={{ color: 'var(--color-text-muted)', opacity: 0.4 }}>
-                            // PREFS_SYNC
                         </span>
                         <span
                             className="font-mono text-[10px] tracking-widest transition-opacity"

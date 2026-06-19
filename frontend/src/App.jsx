@@ -15,12 +15,10 @@ import AdminLayout  from './layouts/AdminLayout';
 import Layout from './components/Layout';
 import Popup from './components/ui/Popup';
 
-// Critical path — eager
 import Home     from './pages/Home';
 import Login    from './pages/Login';
 import Register from './pages/Register';
 
-// Lazy loaded
 const Archive            = lazy(() => import('./pages/Archive'));
 const ProfileLayout      = lazy(() => import('./features/profile/ProfileLayout'));
 const ProfileOverview    = lazy(() => import('./features/profile/ProfileOverview'));
@@ -33,7 +31,6 @@ const AdminContent    = lazy(() => import('./pages/AdminContent'));
 const AdminCategories = lazy(() => import('./pages/AdminCategories'));
 const AdminCommunity  = lazy(() => import('./pages/AdminCommunity'));
 const AdminAIControl  = lazy(() => import('./pages/AdminAIControl'));
-// Eski sayfalar — geriye uyumluluk
 const AdminAnalytics  = lazy(() => import('./pages/AdminAnalytics'));
 const AdminForum      = lazy(() => import('./pages/AdminForum'));
 const AdminABTest     = lazy(() => import('./pages/AdminABTest'));

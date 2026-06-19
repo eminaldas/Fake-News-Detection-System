@@ -1,4 +1,3 @@
-# app/api/v1/endpoints/og.py
 """
 Open Graph preview endpoint'leri — WhatsApp/Telegram/Snapchat gibi botlar için
 dinamik OG meta tag'li HTML üretir.

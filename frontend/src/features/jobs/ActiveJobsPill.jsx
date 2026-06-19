@@ -1,7 +1,3 @@
-/**
- * ActiveJobsPill — sağ-altta sabit, çalışan arkaplan işlerini gösterir.
- * (ToastContainer'ın üstünde, bottom: 96.) Tıklayınca ilgili sayfaya gider.
- */
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, X } from 'lucide-react';

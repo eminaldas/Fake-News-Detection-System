@@ -26,8 +26,6 @@ from ml_engine.processing.stylometric import TurkishStylometrics
 from scrapers.web_scraper import ScraperError, scrape_article
 
 from ml_engine.processing.cleaner import signals_to_vector
-# Singleton'lara modül üzerinden erişilir — from import, worker_process_init
-# öncesinde None olan değeri snapshot alır; modül referansı her zaman güncel değeri gösterir.
 import workers.tasks as _tasks
 from workers.tasks import celery_app
 from workers.ai_comment_task import generate_ai_comment
@@ -40,9 +38,6 @@ VERDICT_AUTHENTIC_THRESHOLD = 65.0
 VERDICT_FAKE_THRESHOLD = 35.0
 
 
-# ---------------------------------------------------------------------------
-# Yardımcı fonksiyonlar
-# ---------------------------------------------------------------------------
 
 def _semantic_component(embedding: list, matches: list) -> float:
     """
@@ -113,9 +108,6 @@ def _verdict(score: float) -> str:
     return "UNCERTAIN"
 
 
-# ---------------------------------------------------------------------------
-# Ana async pipeline
-# ---------------------------------------------------------------------------
 
 def _make_session():
     """Fresh engine + sessionmaker per task call — prevents asyncpg loop binding across tasks."""
@@ -126,7 +118,6 @@ def _make_session():
 async def _async_pipeline(task_id: str, url: str) -> dict:
     TaskSession, task_engine = _make_session()
 
-    # 1. Scrape
     try:
         scraped = scrape_article(url)
     except ScraperError as exc:
@@ -140,18 +131,14 @@ async def _async_pipeline(task_id: str, url: str) -> dict:
         return {"task_id": task_id, "status": "failed",
                 "error": "URL'den okunabilir içerik çekilemedi.", "url": url}
 
-    # 2. Temizle
     processed = _tasks.cleaner.process(raw_iddia=full_text)
     cleaned_text: str = processed["cleaned_text"]
     signals: dict = processed["signals"]
 
-    # 3. BERT embedding
     embedding = _tasks.vectorizer.get_embedding(cleaned_text)
 
-    # Sıfır vektörü kontrolü — boş metin durumunda nötr bırak
     is_zero_vec = all(v == 0.0 for v in embedding)
 
-    # 4. Semantic arama
     semantic = 0.5
     best_match_meta = {}
 
@@ -179,11 +166,9 @@ async def _async_pipeline(task_id: str, url: str) -> dict:
                 "matched_status": bm.status or "UNKNOWN",
             }
 
-    # 5. Stilometri (ham metin üzerinde — noktalama korunsun)
     style_result = _stylometrics.analyse(full_text)
     style_score: float = style_result["style_score"]
 
-    # 6. Sınıflandırıcı — 776-dim feature (768 BERT + 8 sinyal)
     clf_authentic = 0.5
     if _tasks.classifier_model is not None and cleaned_text and not is_zero_vec:
         try:
@@ -194,13 +179,11 @@ async def _async_pipeline(task_id: str, url: str) -> dict:
         except Exception as exc:
             logger.warning("Sınıflandırıcı hatası: %s", exc)
 
-    # 7. Truth score + verdict
     ling = _ling_component(signals)
     score = _truth_score(semantic, clf_authentic, ling, style_score)
     verdict = _verdict(score)
     confidence = round(score / 100.0, 4)
 
-    # 8. DB kaydı
     all_signals = {
         **signals,
         **{f"style_{k}": v for k, v in style_result.items()},
@@ -240,7 +223,6 @@ async def _async_pipeline(task_id: str, url: str) -> dict:
     await task_engine.dispose()
     logger.info("URL analizi → verdict=%s score=%.1f | %s", verdict, score, url)
 
-    # ── Phase 2: AI yorum task'ını spawn et ───────────────────────────────────
     _LOW  = settings.GEMINI_ESCALATION_LOW
     _HIGH = settings.GEMINI_ESCALATION_HIGH
     _uncertain = _LOW <= confidence <= _HIGH
@@ -277,9 +259,6 @@ async def _async_pipeline(task_id: str, url: str) -> dict:
     }
 
 
-# ---------------------------------------------------------------------------
-# Celery task
-# ---------------------------------------------------------------------------
 
 @celery_app.task(name="analyze_article_url", rate_limit=settings.CELERY_RATE_LIMIT)
 def analyze_article_url(task_id: str, url: str) -> dict:

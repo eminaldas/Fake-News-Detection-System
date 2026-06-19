@@ -9,7 +9,6 @@ const axiosInstance = axios.create({
     headers: { 'Content-Type': 'application/json' },
 });
 
-// ── Token utilities (inline — avoids circular import with auth.service.js) ──
 
 function getToken() {
     return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
@@ -31,7 +30,6 @@ function isTokenExpiringSoon(token) {
     return Date.now() >= payload.exp * 1000 - 5 * 60 * 1000; // 5 dakika kala
 }
 
-// ── Proactive refresh state ───────────────────────────────────────────────────
 
 let isRefreshing    = false;
 let refreshPromise  = null;
@@ -57,11 +55,9 @@ async function maybeRefreshToken() {
     if (refreshPromise) await refreshPromise;
 }
 
-// ── Request interceptor ───────────────────────────────────────────────────────
 
 axiosInstance.interceptors.request.use(
     async (config) => {
-        // /auth/ endpoint'leri için proaktif refresh atla
         if (!config.url?.includes('/auth/')) {
             await maybeRefreshToken();
         }
@@ -72,7 +68,6 @@ axiosInstance.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// ── Response interceptor ─────────────────────────────────────────────────────
 
 let isRedirecting = false;
 

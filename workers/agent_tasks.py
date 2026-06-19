@@ -22,9 +22,6 @@ from workers.audit_flush_task import flush_audit_buffer
 
 logger = logging.getLogger("NewsAgent.Beat")
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Celery Uygulama
-# ─────────────────────────────────────────────────────────────────────────────
 celery_app = Celery(
     "agent",
     broker=settings.REDIS_URL,
@@ -42,9 +39,6 @@ celery_app.conf.update(
     result_expires=3600,
 )
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Beat Zamanlaması
-# ─────────────────────────────────────────────────────────────────────────────
 celery_app.conf.beat_schedule = {
     "scan-turkish-news-every-60s": {
         "task": "workers.agent_tasks.run_news_scan",
@@ -61,9 +55,6 @@ celery_app.conf.beat_schedule = {
 }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Celery Task
-# ─────────────────────────────────────────────────────────────────────────────
 @celery_app.task(name="workers.agent_tasks.run_news_scan", bind=True, max_retries=3)
 def run_news_scan(self):
     """

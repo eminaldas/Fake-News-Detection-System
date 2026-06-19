@@ -96,7 +96,6 @@ const FOOTER_LINKS = [
     { label: 'Kullanım Koşulları',  to: '/legal?doc=terms'    },
 ];
 
-/* Floating dot particles — dark modda hafif görünür */
 const PARTICLES = [
     { left:'5%',  top:'18%',  size:1.5, dur:'22s', delay:'0s'    },
     { left:'15%', top:'65%',  size:1,   dur:'28s', delay:'4s'    },
@@ -129,8 +128,6 @@ const Layout = () => {
     const isSettings     = pathname.startsWith('/profile/settings');
     const prevPathRef = useRef(null);
 
-    /* Yön bilgisini render sırasında hesapla */
-    /* eslint-disable react-hooks/refs */
     let pageClass;
     if (prevPathRef.current === null) {
         pageClass = 'animate-fade-up';
@@ -143,14 +140,11 @@ const Layout = () => {
     } else {
         pageClass = 'animate-fade-up';
     }
-    /* eslint-enable react-hooks/refs */
 
-    /* Sayfa değişiminde en üste git */
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'instant' });
     }, [pathname]);
 
-    /* Yön ref'ini animasyon sonrası güncelle */
     useEffect(() => {
         prevPathRef.current = pathname;
     }, [pathname]);

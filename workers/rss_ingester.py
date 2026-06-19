@@ -69,9 +69,6 @@ async def _warm_one(url: str) -> None:
 
 logger = logging.getLogger(__name__)
 
-# Türkiye UTC+3. Feed'de timezone yoksa feedparser tuple'ı yerel saat gibi gelir,
-# biz de UTC sanıp +0 ile kaydederiz → 3 saat ileri görünür.
-# _parse_pub_date bu durumu yakalar ve UTC+3 varsayar.
 _TR_UTC_OFFSET = 3 * 3600  # saniye cinsinden
 
 
@@ -95,12 +92,10 @@ def _parse_pub_date(entry) -> datetime | None:
         if tup:
             tz_offset = tup[9]
             if tz_offset is None:
-                # Feed'de timezone yok → UTC+3 varsay
                 ts = mktime_tz(tup[:9] + (_TR_UTC_OFFSET,))
             else:
                 ts = mktime_tz(tup)
             return datetime.fromtimestamp(ts, tz=timezone.utc)
-    # Fallback: feedparser tuple (timezone varsa feedparser UTC'ye çevirmiştir)
     pp = getattr(entry, "published_parsed", None)
     if pp:
         try:
@@ -110,7 +105,6 @@ def _parse_pub_date(entry) -> datetime | None:
     return None
 
 
-# ── Celery app ────────────────────────────────────────────────────────────────
 celery_app = Celery(
     "rss_ingester",
     broker=settings.REDIS_URL,
@@ -125,11 +119,9 @@ celery_app.conf.update(
     result_expires=3600,
 )
 
-# ── DB engine (NullPool — worker process'ler için) ───────────────────────────
 engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
-# ── Celerybeat: sabit saatlerde günde 6 kez ──────────────────────────────────
 @celery_app.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(
@@ -139,7 +131,6 @@ def setup_periodic_tasks(sender, **kwargs):
     )
 
 
-# ── Domain → trust score ──────────────────────────────────────────────────────
 TRUST_SCORES = {
     "aa.com.tr":          1.0,
     "bbc.com":            1.0,
@@ -177,9 +168,7 @@ TRUST_SCORES = {
 }
 
 
-# ── URL slug → (category, subcategory) ───────────────────────────────────────
 SLUG_MAP = {
-    # Gündem
     "gundem":           ("gündem", None),
     "turkiye":          ("gündem", "türkiye"),
     "dunya":            ("gündem", "dünya"),
@@ -189,12 +178,10 @@ SLUG_MAP = {
     "guncel":           ("gündem", None),
     "analiz":           ("gündem", "analiz"),
     "all":              ("gündem", None),
-    # Ekonomi
     "ekonomi":          ("ekonomi", None),
     "finans":           ("ekonomi", "finans"),
     "borsa":            ("ekonomi", "borsa"),
     "piyasa":           ("ekonomi", "piyasa"),
-    # Spor
     "spor":             ("spor", None),
     "galatasaray":      ("spor", "futbol"),
     "fenerbahce":       ("spor", "futbol"),
@@ -202,19 +189,16 @@ SLUG_MAP = {
     "trabzonspor":      ("spor", "futbol"),
     "bursaspor":        ("spor", "futbol"),
     "basketbol":        ("spor", "basketbol"),
-    # Sağlık
     "saglik":           ("sağlık", None),
     "diyet":            ("sağlık", "beslenme"),
     "koronavirus":      ("sağlık", None),
     "bilim":            ("sağlık", "bilim"),
-    # Teknoloji — bilim_teknoloji bilim'den önce gelmeli (URL substring eşleşmesi)
     "bilim_teknoloji":  ("teknoloji", "bilim"),
     "teknoloji":        ("teknoloji", None),
     "bilim-teknoloji":  ("teknoloji", "bilim"),
     "oyun":             ("teknoloji", "oyun"),
     "otomobil":         ("teknoloji", "otomobil"),
     "otomotiv":         ("teknoloji", "otomobil"),
-    # Kültür & Sanat
     "kultur-sanat":     ("kültür", "sanat"),
     "kultursanat":      ("kültür", "sanat"),
     "kultur":           ("kültür", None),
@@ -222,7 +206,6 @@ SLUG_MAP = {
     "tiyatro":          ("kültür", "tiyatro"),
     "muzik":            ("kültür", "müzik"),
     "kitap":            ("kültür", "kitap"),
-    # Yaşam
     "aktuel":           ("gündem", None),
     "magazin":          ("yaşam", "magazin"),
     "yasam":            ("yaşam", None),
@@ -236,26 +219,21 @@ SLUG_MAP = {
     "yemek":            ("yaşam", "yemek"),
     "gida":             ("yaşam", "yemek"),
     "egitim":           ("yaşam", "eğitim"),
-    # Gündem alt
     "manset":           ("gündem", None),
     "yerel-haberler":   ("gündem", "yerel"),
     "yerel":            ("gündem", "yerel"),
 }
 
 
-# ── RSS kaynakları: (url, source_name) ───────────────────────────────────────
 RSS_SOURCES = [
-    # ── BBC Türkçe (güvenilir, görselli) ─────────────────────────────────────
     ("https://www.bbc.com/turkce/index.xml",                       "BBC Türkçe"),
     ("https://www.bbc.com/turkce/ekonomi/index.xml",               "BBC Türkçe"),
     ("https://www.bbc.com/turkce/spor/index.xml",                  "BBC Türkçe"),
-    # ── Anadolu Ajansı (güvenilir, görselli) ─────────────────────────────────
     ("https://www.aa.com.tr/tr/rss/default?cat=gundem",            "AA"),
     ("https://www.aa.com.tr/tr/rss/default?cat=ekonomi",           "AA"),
     ("https://www.aa.com.tr/tr/rss/default?cat=spor",              "AA"),
     ("https://www.aa.com.tr/tr/rss/default?cat=saglik",            "AA"),
     ("https://www.aa.com.tr/tr/rss/default?cat=teknoloji",         "AA"),
-    # ── CNN Türk ─────────────────────────────────────────────────────────────
     ("https://www.cnnturk.com/feed/rss/turkiye/news",              "CNN Türk"),
     ("https://www.cnnturk.com/feed/rss/dunya/news",                "CNN Türk"),
     ("https://www.cnnturk.com/feed/rss/ekonomi/news",              "CNN Türk"),
@@ -267,13 +245,11 @@ RSS_SOURCES = [
     ("https://www.cnnturk.com/feed/rss/yasam/news",                "CNN Türk"),
     ("https://www.cnnturk.com/feed/rss/otomobil/news",             "CNN Türk"),
     ("https://www.cnnturk.com/feed/rss/seyahat/news",              "CNN Türk"),
-    # ── NTV ──────────────────────────────────────────────────────────────────
     ("https://www.ntv.com.tr/gundem.rss",                          "NTV"),
     ("https://www.ntv.com.tr/ekonomi.rss",                         "NTV"),
     ("https://www.ntv.com.tr/spor.rss",                            "NTV"),
     ("https://www.ntv.com.tr/teknoloji.rss",                       "NTV"),
     ("https://www.ntv.com.tr/saglik.rss",                          "NTV"),
-    # ── TRT Haber ────────────────────────────────────────────────────────────
     ("https://www.trthaber.com/sondakika.rss",                          "TRT Haber"),
     ("https://www.trthaber.com/spor.rss",                               "TRT Haber"),
     ("https://www.trthaber.com/ekonomi.rss",                            "TRT Haber"),
@@ -289,37 +265,25 @@ RSS_SOURCES = [
     ("https://www.trthaber.com/guncel_articles.rss",                    "TRT Haber"),
     ("https://www.trthaber.com/egitim_articles.rss",                    "TRT Haber"),
     ("https://www.trthaber.com/koronavirus_articles.rss",               "TRT Haber"),
-    # ── TRT Spor (güvenilir, görselli) ───────────────────────────────────────
     ("https://www.trtspor.com.tr/rss/spor.rss",                    "TRT Spor"),
-    # ── Euronews Türkçe (güvenilir, görselli) ────────────────────────────────
     ("https://tr.euronews.com/rss?format=mrss&level=theme&name=news", "Euronews TR"),
-    # ── DW Türkçe (güvenilir, görsel yok) ────────────────────────────────────
     ("https://rss.dw.com/rdf/rss-tur-all",                         "DW Türkçe"),
-    # ── IndyTürk / The Independent (güvenilir, görselli) ─────────────────────
     ("https://www.indyturk.com/rss.xml",                           "IndyTürk"),
-    # ── T24 (güvenilir, görselli) ─────────────────────────────────────────────
     ("https://t24.com.tr/rss",                                     "T24"),
-    # ── Gazete Duvar ──────────────────────────────────────────────────────────
     ("https://www.gazeteduvar.com.tr/feed",                        "Gazete Duvar"),
-    # ── Bianet ───────────────────────────────────────────────────────────────
     ("https://bianet.org/biamag/rss",                              "Bianet"),
-    # ── Hürriyet ──────────────────────────────────────────────────────────────
     ("https://www.hurriyet.com.tr/rss/gundem",                     "Hürriyet"),
     ("https://www.hurriyet.com.tr/rss/ekonomi",                    "Hürriyet"),
     ("https://www.hurriyet.com.tr/rss/spor",                       "Hürriyet"),
     ("https://www.hurriyet.com.tr/rss/teknoloji",                  "Hürriyet"),
-    # ── Milliyet ──────────────────────────────────────────────────────────────
     ("https://www.milliyet.com.tr/rss/rssNew/gundemRss.xml",       "Milliyet"),
     ("https://www.milliyet.com.tr/rss/rssNew/ekonomiRss.xml",      "Milliyet"),
     ("https://www.milliyet.com.tr/rss/rssNew/sporRss.xml",         "Milliyet"),
-    # ── Sözcü ────────────────────────────────────────────────────────────────
     ("https://www.sozcu.com.tr/rss/gundem.xml",                    "Sözcü"),
     ("https://www.sozcu.com.tr/rss/ekonomi.xml",                   "Sözcü"),
     ("https://www.sozcu.com.tr/rss/spor.xml",                      "Sözcü"),
-    # ── Cumhuriyet ───────────────────────────────────────────────────────────
     ("https://www.cumhuriyet.com.tr/rss/son_dakika.xml",           "Cumhuriyet"),
     ("https://www.cumhuriyet.com.tr/rss/ekonomi.xml",              "Cumhuriyet"),
-    # ── HaberTürk ────────────────────────────────────────────────────────────
     ("https://www.haberturk.com/rss/gundem.xml",                        "Haberturk"),
     ("https://www.haberturk.com/rss/ekonomi.xml",                       "Haberturk"),
     ("https://www.haberturk.com/rss/spor.xml",                          "Haberturk"),
@@ -339,7 +303,6 @@ RSS_SOURCES = [
     ("https://www.haberturk.com/rss/kategori/gida.xml",                 "Haberturk"),
     ("https://www.haberturk.com/rss/kategori/kitap.xml",                "Haberturk"),
     ("https://www.haberturk.com/rss/yerel-haberler.xml",                "Haberturk"),
-    # ── Sabah ────────────────────────────────────────────────────────────────
     ("https://www.sabah.com.tr/rss/gundem.xml",                    "Sabah"),
     ("https://www.sabah.com.tr/rss/ekonomi.xml",                   "Sabah"),
     ("https://www.sabah.com.tr/rss/spor.xml",                      "Sabah"),
@@ -347,11 +310,9 @@ RSS_SOURCES = [
     ("https://www.sabah.com.tr/rss/galatasaray.xml",               "Sabah"),
     ("https://www.sabah.com.tr/rss/fenerbahce.xml",                "Sabah"),
     ("https://www.sabah.com.tr/rss/besiktas.xml",                  "Sabah"),
-    # ── A Haber ──────────────────────────────────────────────────────────────
     ("https://www.ahaber.com.tr/rss/gundem.xml",                   "A Haber"),
     ("https://www.ahaber.com.tr/rss/ekonomi.xml",                  "A Haber"),
     ("https://www.ahaber.com.tr/rss/spor.xml",                     "A Haber"),
-    # ── Yeni Şafak (kategori bazlı) ───────────────────────────────────────────
     ("https://www.yenisafak.com/rss-feeds?category=gundem",        "Yeni Şafak"),
     ("https://www.yenisafak.com/rss-feeds?category=dunya",         "Yeni Şafak"),
     ("https://www.yenisafak.com/rss-feeds?category=spor",          "Yeni Şafak"),
@@ -360,24 +321,19 @@ RSS_SOURCES = [
     ("https://www.yenisafak.com/rss-feeds?category=saglik",        "Yeni Şafak"),
     ("https://www.yenisafak.com/rss-feeds?category=hayat",         "Yeni Şafak"),
     ("https://www.yenisafak.com/rss-feeds?category=kultur-sanat",  "Yeni Şafak"),
-    # ── Ensonhaber ───────────────────────────────────────────────────────────
     ("https://www.ensonhaber.com/rss/ensonhaber.xml",              "Ensonhaber"),
-    # ── Dünya (ekonomi ağırlıklı) ─────────────────────────────────────────────
     ("https://www.dunya.com/rss/gundem.xml",                       "Dünya"),
     ("https://www.dunya.com/rss/ekonomi.xml",                      "Dünya"),
-    # ── Fanatik (spor) ────────────────────────────────────────────────────────
     ("https://www.fanatik.com.tr/rss/spor.xml",                    "Fanatik"),
     ("https://www.fanatik.com.tr/rss/galatasaray.xml",             "Fanatik"),
     ("https://www.fanatik.com.tr/rss/fenerbahce.xml",              "Fanatik"),
     ("https://www.fanatik.com.tr/rss/besiktas.xml",                "Fanatik"),
-    # ── Mynet ────────────────────────────────────────────────────────────────
     ("https://www.mynet.com/gundem/rss",                           "Mynet"),
     ("https://www.mynet.com/spor/rss",                             "Mynet"),
     ("https://www.mynet.com/ekonomi/rss",                          "Mynet"),
 ]
 
 
-# ── Yardımcı: domain'den trust score al ──────────────────────────────────────
 def _get_trust_score(url: str) -> float:
     try:
         domain = urlparse(url).netloc.lower().lstrip("www.")
@@ -389,7 +345,6 @@ def _get_trust_score(url: str) -> float:
     return 0.5
 
 
-# ── Yardımcı: RSS URL'inden kategori/subcategory çıkar ───────────────────────
 def _get_category(rss_url: str) -> tuple:
     url_lower = rss_url.lower()
     for slug, (cat, subcat) in SLUG_MAP.items():
@@ -398,9 +353,7 @@ def _get_category(rss_url: str) -> tuple:
     return "gündem", None
 
 
-# ── Yardımcı: RSS entry'sinden image URL çıkar ───────────────────────────────
 def _extract_image(entry) -> str | None:
-    # 1. <media:content> (standart)
     media_content = getattr(entry, "media_content", None)
     if media_content and isinstance(media_content, list):
         for mc in media_content:
@@ -408,22 +361,18 @@ def _extract_image(entry) -> str | None:
             if url:
                 return url
 
-    # 2. <media:thumbnail>
     media_thumbnail = getattr(entry, "media_thumbnail", None)
     if media_thumbnail and isinstance(media_thumbnail, list):
         url = media_thumbnail[0].get("url") or media_thumbnail[0].get("href")
         if url:
             return url
 
-    # 3. <enclosure type="image/...">
     enclosures = getattr(entry, "enclosures", None)
     if enclosures:
         for enc in enclosures:
             if "image" in enc.get("type", ""):
                 return enc.get("href") or enc.get("url")
 
-    # 4. <image> tag'i — AA, CNN Türk, Yeni Şafak custom field
-    #    feedparser bunu dict, string ya da FeedParserDict olarak döndürebilir
     image_tag = entry.get("image") if hasattr(entry, "get") else getattr(entry, "image", None)
     if image_tag:
         if isinstance(image_tag, dict):
@@ -434,14 +383,12 @@ def _extract_image(entry) -> str | None:
         elif isinstance(image_tag, str) and image_tag.startswith("http"):
             return image_tag
 
-    # 5. links içinde image ilişkisi
     links = getattr(entry, "links", None)
     if links:
         for lnk in links:
             if "image" in lnk.get("type", "") and lnk.get("href"):
                 return lnk["href"]
 
-    # 6. Fallback: summary / description / content içindeki <img src="..."> tag
     for field in ("summary", "description"):
         text = getattr(entry, field, None) or ""
         if text:
@@ -460,9 +407,6 @@ def _extract_image(entry) -> str | None:
     return None
 
 
-# ── Yardımcı: ham RSS XML'den item-level <image> tag'lerini çıkar ─────────────
-# feedparser item-level custom <image> tag'ini (CNN Türk, AA, Yeni Şafak gibi)
-# parse etmiyor. Bu fonksiyon ham XML'i regex ile tarar ve link→url map'i döner.
 def _raw_image_map(rss_url: str) -> dict:
     try:
         resp = _requests.get(
@@ -476,7 +420,6 @@ def _raw_image_map(rss_url: str) -> dict:
     result = {}
     items = re.findall(r"<item[^>]*>(.*?)</item>", raw, re.DOTALL | re.IGNORECASE)
     for item_xml in items:
-        # link veya guid'den entry key'i çıkar
         lm = re.search(
             r"<link[^>]*>(?:<!\[CDATA\[)?\s*(https?://[^\]\s<]+)",
             item_xml, re.IGNORECASE,
@@ -488,14 +431,12 @@ def _raw_image_map(rss_url: str) -> dict:
             continue
         link = lm.group(1).strip().rstrip("]]>").strip()
 
-        # <image>URL</image>  (CNN Türk, AA)
         m = re.search(r"<image[^>]*>\s*(https?://[^\s<]+)\s*</image>",
                       item_xml, re.IGNORECASE)
         if m:
             result[link] = m.group(1).strip()
             continue
 
-        # <image><url>URL</url></image>  (Yeni Şafak)
         m = re.search(r"<image[^>]*>.*?<url[^>]*>\s*(https?://[^\s<]+)",
                       item_xml, re.DOTALL | re.IGNORECASE)
         if m:
@@ -504,7 +445,6 @@ def _raw_image_map(rss_url: str) -> dict:
     return result
 
 
-# ── Yardımcı: cosine similarity ile dedup kontrol ────────────────────────────
 async def _find_duplicate(db: AsyncSession, title: str) -> NewsArticle | None:
     """
     pg_trgm trigram benzerliğiyle duplicate bul.
@@ -528,7 +468,6 @@ async def _find_duplicate(db: AsyncSession, title: str) -> NewsArticle | None:
     return None
 
 
-# ── Ana ingest fonksiyonu (async) ─────────────────────────────────────────────
 async def _ensure_pg_trgm():
     async with AsyncSessionLocal() as db:
         await db.execute(sqlalchemy.text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
@@ -553,8 +492,6 @@ async def _run_ingest():
                 logger.warning("rss.fetch_error url=%s err=%s", rss_url, exc)
                 continue
 
-            # feedparser item-level <image> tag'ini parse etmiyor;
-            # ham XML'den ayrıca çıkar (CNN Türk, AA, Yeni Şafak için)
             img_map = _raw_image_map(rss_url)
 
             trust_score = _get_trust_score(rss_url)
@@ -573,7 +510,6 @@ async def _run_ingest():
 
                 source_url = getattr(entry, "link", "") or ""
 
-                # URL daha önce alınmışsa atla (aynı kaynak tekrar ingest / farklı feed)
                 if source_url:
                     exists = await db.execute(
                         select(NewsArticle.id).where(NewsArticle.source_url == source_url).limit(1)
@@ -587,10 +523,8 @@ async def _run_ingest():
 
                 duplicate = await _find_duplicate(db, title)
 
-                # cluster_id: yeni haber ise kendi id'si, duplicate ise canonical'ın cluster_id'si
                 if duplicate:
                     cluster_id = duplicate.cluster_id or duplicate.id
-                    # Canonical kaydı güncelle: sayaç, görsel, güvenilirlik
                     duplicate.source_count += 1
                     if not duplicate.image_url and image_url:
                         duplicate.image_url = image_url
@@ -648,12 +582,10 @@ async def _run_ingest():
             )
         logger.info("category.enqueued total=%d", len(new_article_ids))
 
-    # image_cache_warm devre dışı — 150m memory limit SIGKILL'e neden oluyor
     if urls_to_warm:
         logger.info("image_cache_warm skipped count=%d (memory limit)", len(urls_to_warm))
 
 
-# ── Celery task ───────────────────────────────────────────────────────────────
 @celery_app.task(name="workers.rss_ingester.ingest_rss_feeds", queue=settings.RSS_INGEST_QUEUE)
 def ingest_rss_feeds():
     logger.info("rss.task_start")

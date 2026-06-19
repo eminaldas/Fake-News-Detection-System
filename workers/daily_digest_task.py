@@ -1,4 +1,3 @@
-# workers/daily_digest_task.py
 """
 Günlük haber özeti — Gemini Flash ile günde 4 kez çalışır.
 Bugünün top-25 haberi (source_count DESC) başlığını Gemini'ye gönderir,
@@ -50,11 +49,6 @@ async def _generate():
     async with AsyncSessionLocal() as db:
         today = date.today()
 
-        # Top-25 bugünün haberleri — pub_date yerine created_at kullan
-        # (bazı feed'lerin pub_date'i yanlış parse edilebiliyor; created_at güvenilir)
-        # NOT: embedding filtresi kaldırıldı — RSS pipeline'ında NLP/embedding üretimi
-        # perf nedeniyle kaldırıldığından (fa53f32) haberler embedding=None geliyor;
-        # eski "embedding IS NOT NULL" filtresi tüm haberleri eliyor ve özet donuyordu.
         rows = (await db.execute(
             select(NewsArticle.title, NewsArticle.source_count)
             .where(
@@ -118,7 +112,6 @@ Sadece aşağıdaki JSON formatında yanıt ver, başka hiçbir şey yazma:
         summary_text = data.get("summary", "").strip()
         sections = data.get("sections", [])
         topics = data.get("topics", [])
-        # Geriye uyumluluk: sections yoksa summary'yi tek bölüm say
         if not sections and summary_text:
             sections = []
         if not summary_text and not sections:
@@ -140,8 +133,6 @@ Sadece aşağıdaki JSON formatında yanıt ver, başka hiçbir şey yazma:
             )
         )).scalar_one_or_none()
 
-        # summary_text'e yapılandırılmış veriyi JSON olarak gömüyoruz
-        # (DB migration gerektirmeden sections desteği; frontend parse eder)
         structured = json.dumps(
             {"summary": summary_text, "sections": sections},
             ensure_ascii=False,

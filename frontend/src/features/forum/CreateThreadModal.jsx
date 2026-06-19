@@ -43,7 +43,6 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
     const [visible,    setVisible]    = React.useState(false);
     const [suggestion, setSuggestion] = React.useState(propTitle || '');
 
-    // Haber başlığını articleId'den çek (prop yoksa)
     useEffect(() => {
         if (propTitle) { setSuggestion(propTitle); return; }
         if (!articleId) return;
@@ -73,7 +72,6 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
         return () => { document.body.style.overflow = ''; };
     }, []);
 
-    // Tab tuşu ile öneri doldur
     const handleTitleKeyDown = (e) => {
         if (e.key === 'Tab' && suggestion && !title) {
             e.preventDefault();
@@ -195,7 +193,7 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
                                 style={{
                                     color:       'var(--color-text-primary)',
                                     caretColor:  BRAND,
-                                    fontFamily:  "'Open Sans', sans-serif",
+                                    fontFamily:  "'Elms Sans', sans-serif",
                                     padding:     '6px 0',
                                     borderBottom: `1px solid ${title ? 'rgba(63,255,139,0.30)' : 'var(--color-terminal-border-raw)'}`,
                                     transition:  'border-color 0.2s',
@@ -239,7 +237,7 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
                                 style={{
                                     color:      'var(--color-text-primary)',
                                     caretColor: BRAND,
-                                    fontFamily: "'Open Sans', sans-serif",
+                                    fontFamily: "'Elms Sans', sans-serif",
                                 }}
                             />
                         </div>
@@ -287,7 +285,7 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
                                         background:  'var(--color-terminal-surface)',
                                         borderColor: 'var(--color-terminal-border-raw)',
                                         color:       'var(--color-text-primary)',
-                                        fontFamily:  "'Open Sans', sans-serif",
+                                        fontFamily:  "'Elms Sans', sans-serif",
                                     }}
                                 >
                                     {CATEGORIES.map(c => (

@@ -19,7 +19,6 @@ router = APIRouter()
 
 @router.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket, token: str = Query(...)):
-    # ── Auth ───────────────────────────────────────────────────────────────
     try:
         token_data = verify_token(token)
     except Exception:
@@ -29,7 +28,6 @@ async def websocket_endpoint(ws: WebSocket, token: str = Query(...)):
     await ws.accept()
     logger.info("WS bağlantı kuruldu user_id=%s", token_data.user_id)
 
-    # ── Redis Pub/Sub ──────────────────────────────────────────────────────
     r = await get_redis()
     pubsub = r.pubsub()
 
@@ -40,9 +38,6 @@ async def websocket_endpoint(ws: WebSocket, token: str = Query(...)):
     await pubsub.subscribe(*channels)
     logger.debug("WS subscribe kanallar=%s", channels)
 
-    # ── İki concurrent görev ───────────────────────────────────────────────
-    # redis_task : Redis mesajı gelince WebSocket'e ilet (sonsuz döngü)
-    # closer_task: İstemci bağlantıyı koparınca döngüyü sonlandır
     async def _redis_to_ws():
         try:
             async for msg in pubsub.listen():
@@ -78,5 +73,4 @@ async def websocket_endpoint(ws: WebSocket, token: str = Query(...)):
                 pass
     finally:
         await pubsub.aclose()
-        # Don't close r — it's the shared singleton
         logger.info("WS bağlantı kapandı user_id=%s", token_data.user_id)

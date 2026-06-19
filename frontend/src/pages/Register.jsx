@@ -265,7 +265,6 @@ const Register = () => {
                             <div className="p-8 md:p-9">
                             <p className="text-[10px] font-manrope font-black uppercase tracking-[0.22em] mb-4"
                                style={{ color: 'var(--color-brand-primary)' }}>
-                                // Hesap Oluştur
                             </p>
 
 

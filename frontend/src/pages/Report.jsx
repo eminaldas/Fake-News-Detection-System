@@ -1,4 +1,3 @@
-// frontend/src/pages/Report.jsx
 import React, { useState } from 'react';
 import { FileWarning, Bug, AlertTriangle, Mail, ChevronRight, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -80,7 +79,6 @@ export default function Report() {
             {/* Büyük başlık */}
             <div>
                 <p className="font-mono text-[11px] uppercase tracking-[0.3em] mb-2" style={{ color: BRAND }}>
-                    // BİLDİRİM_SİSTEMİ
                 </p>
                 <h1 className="font-mono text-4xl md:text-5xl font-black leading-tight text-tx-primary">
                     {step === 1 && 'Neyi Bildiriyorsun?'}
@@ -131,7 +129,6 @@ export default function Report() {
                 <div className="relative border" style={{ background: SURFACE, borderColor: BORDER }}>
                     <span className="absolute -top-px left-5 px-2 font-mono text-[11px] tracking-widest uppercase pointer-events-none"
                           style={{ background: SURFACE, color: selectedType.color }}>
-                        // {selectedType.key.toUpperCase()}_BİLDİRİMİ
                     </span>
                     <Notch color={selectedType.color} />
                     <div className="p-6 pt-8 flex flex-col gap-5">
@@ -205,7 +202,6 @@ export default function Report() {
                             <CheckCircle className="w-8 h-8" style={{ color: BRAND }} />
                             <div>
                                 <p className="font-mono text-[10px] uppercase tracking-widest mb-0.5" style={{ color: BRAND, opacity: 0.7 }}>
-                                    // BİLDİRİM_ALINDI
                                 </p>
                                 <p className="font-mono text-2xl font-black text-tx-primary">#{reportId}</p>
                             </div>

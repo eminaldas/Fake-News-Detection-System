@@ -1,4 +1,3 @@
-// frontend/src/services/popup.js
 let _emit = null;
 
 const popup = {

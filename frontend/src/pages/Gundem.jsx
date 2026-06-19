@@ -31,7 +31,6 @@ export default function Gundem() {
                 <div className="mb-5">
                     <p className="font-mono text-[10px] uppercase tracking-widest mb-1.5"
                        style={{ color: 'var(--color-brand-primary)' }}>
-                        // GÜNCEL_HABERLER
                     </p>
                     <h1 key={category ?? 'for-you'}
                         className="text-4xl md:text-5xl font-extrabold font-manrope tracking-tight leading-none animate-fade-up"

@@ -87,7 +87,6 @@ export default function RecommendedUsersWidget({ profileUserId, currentUserId })
         return next;
       });
     } catch {
-      /* sessiz hata */
     } finally {
       setPending(prev => { const n = new Set(prev); n.delete(userId); return n; });
     }
@@ -113,7 +112,6 @@ export default function RecommendedUsersWidget({ profileUserId, currentUserId })
         </div>
       ) : users.length === 0 ? (
         <p className="p-4 font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
-          // öneri yok
         </p>
       ) : (
         users.map(u => {

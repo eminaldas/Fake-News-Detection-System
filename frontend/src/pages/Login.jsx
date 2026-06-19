@@ -100,7 +100,6 @@ const Login = () => {
     });
 
     const onGoogleButtonClick = () => {
-        // Yeni hesap oluşturulabilir — koşullar daha önce kabul edilmemişse modal göster
         if (localStorage.getItem('terms_v1_accepted') !== 'true') {
             setPendingGoogle(true);
             setShowLegal(true);
@@ -186,7 +185,6 @@ const Login = () => {
 
                             <p className="text-[10px] font-manrope font-black uppercase tracking-[0.22em] mb-6"
                                style={{ color: 'var(--color-brand-primary)' }}>
-                                // Kimlik Doğrulama
                             </p>
 
                             <form className="space-y-5" onSubmit={handleLogin} autoComplete="on">

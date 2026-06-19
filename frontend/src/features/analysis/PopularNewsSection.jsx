@@ -136,7 +136,6 @@ export default function PopularNewsSection() {
             </div>
             <p className="font-mono text-[10px] uppercase tracking-widest mb-4"
                style={{ color: 'var(--color-text-primary)', opacity: 0.5 }}>
-                // Son 2 Gün / Görüntülenme Bazlı
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 auto-rows-[220px]">

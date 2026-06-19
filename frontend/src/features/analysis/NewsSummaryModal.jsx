@@ -113,7 +113,6 @@ export default function NewsSummaryModal({
                         <FileText className="w-4 h-4" style={{ color: BRAND }} />
                         <span className="font-mono font-bold text-[10px] uppercase tracking-widest"
                               style={{ color: BRAND }}>
-                            // HABER_ÖZETİ
                         </span>
                     </div>
                     <button onClick={onClose} className="opacity-40 hover:opacity-100 transition-opacity">

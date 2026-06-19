@@ -10,7 +10,6 @@ import axiosInstance from '../../api/axios';
 import toast from '../../services/toast';
 import SettingsPanelShell from './SettingsPanelShell';
 
-/* ── Renkler — CSS değişkeni tabanlı, light/dark otomatik ── */
 const W     = 'var(--color-text-primary)';
 const W60   = 'var(--color-text-secondary)';
 const W30   = 'var(--color-text-muted)';
@@ -30,7 +29,6 @@ const PLATFORMS = [
   { key: 'website',   label: 'Website',     Icon: Globe,     placeholder: 'https://siteniz.com'               },
 ];
 
-/* Kart yok — sadece bölüm başlığı + alt çizgi ayırıcı */
 function Section({ title, children, accent, noDivider, color }) {
   const bar = color || 'var(--color-brand-primary)';
   return (
@@ -49,7 +47,6 @@ function Section({ title, children, accent, noDivider, color }) {
   );
 }
 
-/* Underline input — sadece alt border, focus'ta 2px beyaz */
 function UnderlineInput({ icon: Icon, label, hint, value, onChange, placeholder, type='text', disabled, rightEl }) {
   const [focused, setFocused] = useState(false);
   const inputId = label ? `ui-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined;
@@ -91,7 +88,6 @@ function UnderlineInput({ icon: Icon, label, hint, value, onChange, placeholder,
   );
 }
 
-/* Underline textarea */
 function UnderlineTextarea({ label, hint, value, onChange, placeholder, rows=3, maxLength }) {
   const [focused, setFocused] = useState(false);
   return (
@@ -124,7 +120,6 @@ function UnderlineTextarea({ label, hint, value, onChange, placeholder, rows=3, 
   );
 }
 
-/* Ayrılma uyarı modalı */
 function LeaveModal({ onConfirm, onCancel }) {
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center"
@@ -164,7 +159,6 @@ function LeaveModal({ onConfirm, onCancel }) {
   );
 }
 
-/* Social link satırı */
 function isValidUrl(url) {
   try { const u = new URL(url); return u.protocol === 'http:' || u.protocol === 'https:'; }
   catch { return false; }
@@ -256,7 +250,6 @@ function SocialLinkRow({ item, onUrlChange, onRemove, platforms }) {
   );
 }
 
-/* sosyal_links obj → dizi dönüştürme */
 function objToLinks(obj) {
   if (!obj) return [];
   return Object.entries(obj).map(([key, url]) => ({
@@ -273,9 +266,6 @@ function linksToObj(links) {
   return obj;
 }
 
-/* ════════════════════════════════════════════════════════
-   Ana bileşen
-════════════════════════════════════════════════════════ */
 export default function SettingsAccount() {
   const { user: authUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -286,15 +276,12 @@ export default function SettingsAccount() {
   const [links,     setLinks]     = useState([]);
   const [feedPrefs, setFeedPrefs] = useState({ hidden_categories: [] });
 
-  /* Username check */
   const [usernameStatus, setUsernameStatus] = useState(null);
   const usernameTimer = useRef(null);
 
-  /* Save state */
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
 
-  /* Hesap silme */
   const [deleteModal,   setDeleteModal]   = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteLoading,  setDeleteLoading]  = useState(false);
@@ -302,21 +289,16 @@ export default function SettingsAccount() {
   const isGoogleUser = authUser && !authUser.hashed_password && authUser.google_id;
   const [saveError, setSaveError] = useState('');
 
-  /* Original snapshot — dirty detection için */
   const [original, setOriginal] = useState(null);
 
-  /* Platform picker */
   const [showPicker, setShowPicker] = useState(false);
   const [pickerPos,  setPickerPos]  = useState({ top: 0, left: 0 });
   const pickerBtnRef = useRef(null);
 
-  /* Leave warning */
   const [showLeave, setShowLeave] = useState(false);
 
-  /* Avatar upload */
   const fileRef = useRef(null);
 
-  /* ── Veri yükleme ── */
   useEffect(() => {
     axiosInstance.get('/auth/me').then(r => {
       const d = r.data;
@@ -331,7 +313,6 @@ export default function SettingsAccount() {
     axiosInstance.get('/users/me/feed-preferences').then(r => setFeedPrefs(r.data)).catch(() => {});
   }, []);
 
-  /* ── Dirty detection ── */
   const isDirty = original && (
     username  !== original.username  ||
     bio       !== original.bio       ||
@@ -339,7 +320,6 @@ export default function SettingsAccount() {
     JSON.stringify(links) !== original.links
   );
 
-  /* ── beforeunload ── */
   useEffect(() => {
     if (!isDirty) return;
     const h = e => { e.preventDefault(); e.returnValue = ''; };
@@ -347,7 +327,6 @@ export default function SettingsAccount() {
     return () => window.removeEventListener('beforeunload', h);
   }, [isDirty]);
 
-  /* ── Username check ── */
   const handleUsernameChange = (val) => {
     setUsername(val);
     setUsernameStatus(null);
@@ -363,7 +342,6 @@ export default function SettingsAccount() {
     }, 400);
   };
 
-  /* ── Avatar upload — 120×120 sıkıştırılmış JPEG ── */
   const handleFileChange = e => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -388,7 +366,6 @@ export default function SettingsAccount() {
     e.target.value = '';
   };
 
-  /* ── Category toggle ── */
   const toggleCategory = async (cat) => {
     const hidden = feedPrefs.hidden_categories || [];
     const next = hidden.includes(cat) ? hidden.filter(c => c !== cat) : [...hidden, cat];
@@ -396,7 +373,6 @@ export default function SettingsAccount() {
     try { await axiosInstance.patch('/users/me/feed-preferences', { hidden_categories: next }); } catch {}
   };
 
-  /* ── Social links ── */
   const addPlatform = (platformKey) => {
     const id = platformKey === 'other' ? `other_${Date.now()}` : platformKey;
     setLinks(prev => [...prev, { id, platform: platformKey, label: platformKey === 'other' ? 'Diğer' : undefined, url: '' }]);
@@ -406,11 +382,9 @@ export default function SettingsAccount() {
   const updateLinkUrl = (id, url) => setLinks(prev => prev.map(l => l.id === id ? { ...l, url } : l));
   const removeLink    = (id)      => setLinks(prev => prev.filter(l => l.id !== id));
 
-  /* Available platforms — eklenmemiş ve tekil olanlar */
   const addedKeys = new Set(links.map(l => l.platform).filter(k => k !== 'other'));
   const availablePlatforms = [...PLATFORMS.filter(p => !addedKeys.has(p.key)), { key: 'other', label: 'Diğer', Icon: Link2, placeholder: 'https://' }];
 
-  /* ── Kaydet ── */
   const handleSave = async () => {
     if (usernameStatus === 'taken') return;
     if (username !== original?.username && !/^[a-zA-Z0-9_ğüşıöçĞÜŞİÖÇ]+$/.test(username)) {
@@ -437,7 +411,6 @@ export default function SettingsAccount() {
     } finally { setSaving(false); }
   };
 
-  /* ── İptal ── */
   const handleCancel = () => {
     if (!original) return;
     setUsername(original.username);
@@ -448,10 +421,8 @@ export default function SettingsAccount() {
     setSaveError('');
   };
 
-  /* ── Avatar src ── */
   const avatarIdx = (username?.charCodeAt(0) ?? 0) % PAL_BG.length;
 
-  /* ── Render ── */
   return (
     <>
     <SettingsPanelShell>
@@ -619,7 +590,6 @@ export default function SettingsAccount() {
            onClick={e => { if (e.target === e.currentTarget) setDeleteModal(false); }}>
         <div style={{ background:'var(--color-terminal-surface)', border:'1px solid rgba(239,68,68,0.40)', borderTop:'3px solid #ef4444', width:'100%', maxWidth:420, padding:'2rem', boxShadow:'0 32px 80px rgba(0,0,0,0.6)' }}>
           <p style={{ fontFamily:'monospace', fontSize:'0.65rem', color:'#ef4444', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'0.5rem' }}>
-            // HESAP_SİLME
           </p>
           <p style={{ fontFamily:'var(--font-manrope, sans-serif)', fontWeight:800, fontSize:'1.2rem', color:W, marginBottom:'1rem' }}>
             Hesabı silmek istediğinize emin misiniz?

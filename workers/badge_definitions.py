@@ -12,14 +12,12 @@ class BadgeDef:
 
 
 BADGE_DEFS: list[BadgeDef] = [
-    # ── Seviye rozetleri ────────────────────────────────────────────
     BadgeDef("level_1",  "Çaylak",      "Sisteme katıldın",             "level", "User",        "var(--color-text-muted)"),
     BadgeDef("level_10", "Meraklı",     "10. seviyeye ulaştın",         "level", "Search",      "var(--color-accent-blue)"),
     BadgeDef("level_20", "Araştırmacı", "20. seviyeye ulaştın",         "level", "FileSearch",  "var(--color-accent-amber)"),
     BadgeDef("level_30", "Analist",     "30. seviyeye ulaştın",         "level", "BarChart2",   "var(--color-brand-primary)"),
     BadgeDef("level_40", "Dedektif",    "40. seviyeye ulaştın",         "level", "Shield",      "#a855f7"),
     BadgeDef("level_50", "Usta",        "50. seviyeye ulaştın",         "level", "Star",        "#ef4444"),
-    # ── Aktivite / Kilometre Taşı Rozetleri ─────────────────────────
     BadgeDef("first_analysis", "İlk Adım",           "İlk analizini yaptın",               "activity", "Cpu",          "var(--color-brand-primary)"),
     BadgeDef("analyst_100",    "Yüzlük",              "100 analiz tamamladın",              "activity", "TrendingUp",   "var(--color-accent-amber)"),
     BadgeDef("first_thread",   "Forum Açıcı",         "İlk forum başlığını açtın",          "activity", "MessageSquare","var(--color-accent-blue)"),
@@ -33,7 +31,6 @@ BADGE_DEFS: list[BadgeDef] = [
     BadgeDef("streak_30",      "Aylık Seri",          "30 gün üst üste giriş yaptın",       "activity", "CalendarCheck","var(--color-accent-amber)"),
     BadgeDef("debunker",       "Çürütücü",            "FAKE haberlere 5 kez kanıt ekledin", "activity", "ShieldCheck",  "var(--color-brand-primary)"),
     BadgeDef("early_bird",     "Erken Kuş",           "İlk 100 kullanıcıdan birisin",       "activity", "Zap",          "#f59e0b"),
-    # ── Kategori Rozetleri ──────────────────────────────────────────
     BadgeDef("cat_haberler",  "Haber Takipçisi",   "Haberler kategorisinde 20+ başlık",  "category", "Newspaper",  "var(--color-accent-blue)"),
     BadgeDef("cat_teknoloji", "Teknoloji Uzmanı",  "Teknoloji kategorisinde 20+ başlık", "category", "Cpu",        "var(--color-brand-primary)"),
     BadgeDef("cat_kultur",    "Kültür Elçisi",     "Kültür kategorisinde 20+ başlık",    "category", "BookOpen",   "var(--color-accent-amber)"),
@@ -47,7 +44,6 @@ BADGE_DEFS: list[BadgeDef] = [
 
 BADGE_BY_KEY: dict[str, BadgeDef] = {b.key: b for b in BADGE_DEFS}
 
-# Her rozet için progress hesabı: (metric_name, threshold)
 BADGE_PROGRESS_HINTS: dict[str, tuple[str, int]] = {
     "first_analysis": ("analysis_count",  1),
     "analyst_100":    ("analysis_count",  100),

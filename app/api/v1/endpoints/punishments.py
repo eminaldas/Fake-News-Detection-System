@@ -41,7 +41,6 @@ async def _get_target(user_id: UUID, db: AsyncSession) -> User:
     return user
 
 
-# ── GET /admin/users/{user_id}/warnings ───────────────────────────────────
 
 @router.get("/users/{user_id}/warnings", response_model=list[WarningResponse])
 async def list_warnings(
@@ -59,7 +58,6 @@ async def list_warnings(
     return rows
 
 
-# ── POST /admin/users/{user_id}/punish ────────────────────────────────────
 
 @router.post("/users/{user_id}/punish", status_code=200)
 async def punish_user(
@@ -96,10 +94,8 @@ async def punish_user(
         case "ban":
             target.is_active = False
             target.restriction_reason = body.reason
-            # Aktif oturumları Redis'ten geçersiz kıl
             await redis.set(f"blacklist:user:{str(user_id)}", "1", ex=60 * 60 * 24 * 365)
 
-    # Uyarı kaydı
     warning = UserWarning(
         user_id=user_id,
         admin_id=admin.id,
@@ -110,7 +106,6 @@ async def punish_user(
     db.add(warning)
     await db.commit()
 
-    # Shadow ban gizli kalmalı — kullanıcıya mail gönderme
     if body.action != "shadow_ban":
         try:
             await send_warning_mail(
@@ -136,7 +131,6 @@ async def punish_user(
     return {"ok": True, "action": body.action}
 
 
-# ── POST /admin/users/{user_id}/lift ──────────────────────────────────────
 
 @router.post("/users/{user_id}/lift", status_code=200)
 async def lift_punishment(

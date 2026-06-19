@@ -28,7 +28,6 @@ const EVENT_LABELS = {
 const PAGE_SIZE = 50;
 const MAX_LIVE  = 200;
 
-/* ── Canlı Terminal ──────────────────────────────────────────────────────── */
 function LiveTerminal({ events }) {
   const bottomRef    = useRef(null);
   const containerRef = useRef(null);
@@ -91,7 +90,6 @@ function LiveTerminal({ events }) {
   );
 }
 
-/* ── IP Tehdit Listesi ───────────────────────────────────────────────────── */
 function IPThreatPanel({ onSelectIP }) {
   const [threats,  setThreats]  = useState([]);
   const [loading,  setLoading]  = useState(true);
@@ -184,7 +182,6 @@ function IPThreatPanel({ onSelectIP }) {
   );
 }
 
-/* ── IP Detay Modal ──────────────────────────────────────────────────────── */
 function IPDetailModal({ ipHash, onClose }) {
   const [events,  setEvents]  = useState([]);
   const [total,   setTotal]   = useState(0);
@@ -300,7 +297,6 @@ function IPDetailModal({ ipHash, onClose }) {
   );
 }
 
-/* ── Ana Bileşen ─────────────────────────────────────────────────────────── */
 export default function AdminSecurity() {
   const { subscribe } = useWebSocket();
   const [events,     setEvents]     = useState([]);

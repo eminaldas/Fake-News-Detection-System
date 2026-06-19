@@ -13,7 +13,6 @@ async def init_db():
         await conn.run_sync(Base.metadata.create_all)
     print("Tables created.")
 
-    # audit_logs tablosu için ek index'ler
     async with engine.begin() as conn:
         await conn.execute(text(
             "CREATE INDEX IF NOT EXISTS idx_audit_event_type_created "
@@ -51,7 +50,6 @@ async def init_db():
     print("audit_logs index'leri oluşturuldu.")
 
     async with AsyncSessionLocal() as session:
-        # Admin kullanıcı zaten var mı kontrol et
         result = await session.execute(
             select(User).where(User.username == settings.ADMIN_USERNAME)
         )

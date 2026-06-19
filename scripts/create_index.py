@@ -6,18 +6,15 @@ async def create_indexes():
     async with AsyncSessionLocal() as session:
 
         steps = [
-            # pgvector HNSW — kullanıcı analizi benzerlik araması
             (
                 """CREATE INDEX IF NOT EXISTS article_embedding_idx
                    ON articles USING hnsw (embedding vector_cosine_ops);""",
                 "HNSW index: articles.embedding",
             ),
-            # pg_trgm extension — RSS dedup için başlık benzerliği
             (
                 "CREATE EXTENSION IF NOT EXISTS pg_trgm;",
                 "pg_trgm extension",
             ),
-            # Trigram index — news_articles başlık benzerlik araması
             (
                 """CREATE INDEX IF NOT EXISTS news_articles_title_trgm_idx
                    ON news_articles USING gin (title gin_trgm_ops);""",

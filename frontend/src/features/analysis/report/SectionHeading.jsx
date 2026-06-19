@@ -1,6 +1,5 @@
 import React from 'react';
 
-/* İkon + kalın başlık — keskin köşe aksanlı kutuda. // mono etiket yerine. */
 export default function SectionHeading({ icon: Icon, title, accent = 'var(--color-brand-primary)', subtitle }) {
     return (
         <div className="flex items-start gap-2.5 mb-3">

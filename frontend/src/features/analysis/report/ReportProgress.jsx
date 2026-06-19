@@ -8,7 +8,6 @@ const STAGES = [
     { n: 3, label: 'Rapor sentezleniyor' },
 ];
 
-/* Aşamaya bağlı dekoratif log satırları */
 const STAGE_LINES = {
     1: ['kritik iddialar ayrıştırılıyor…', 'alan tespiti yapılıyor…'],
     2: ['kaynaklar taranıyor…', 'çapraz doğrulama yapılıyor…'],

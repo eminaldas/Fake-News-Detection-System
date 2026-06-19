@@ -101,21 +101,18 @@ export default function LegalModal({ onAccept, onClose, initialTab = 'privacy' }
     const scrollRef     = useRef(null);
     const modalRef      = useRef(null);
 
-    // Fokus tuzağı — erişilebilirlik
     useEffect(() => {
         const prev = document.activeElement;
         modalRef.current?.focus();
         return () => prev?.focus();
     }, []);
 
-    // ESC ile kapat
     useEffect(() => {
         const handler = (e) => { if (e.key === 'Escape') onClose?.(); };
         document.addEventListener('keydown', handler);
         return () => document.removeEventListener('keydown', handler);
     }, [onClose]);
 
-    // Tab değişince scroll'u başa al
     useEffect(() => {
         if (scrollRef.current) scrollRef.current.scrollTop = 0;
     }, [tab]);

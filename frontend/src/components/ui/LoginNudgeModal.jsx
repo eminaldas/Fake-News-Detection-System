@@ -2,10 +2,6 @@ import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { MessageSquare, ShieldCheck } from 'lucide-react';
 
-/**
- * Forum giriş duvarı.
- * Kapatma butonu yok — kullanıcı giriş yapana kadar içerik engellenir.
- */
 export default function LoginNudgeModal() {
     return createPortal(
         <div
@@ -29,7 +25,6 @@ export default function LoginNudgeModal() {
                     <MessageSquare className="w-5 h-5 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
                     <p className="text-[10px] font-manrope font-black uppercase tracking-[0.22em]"
                        style={{ color: 'var(--color-brand-primary)' }}>
-                        // Forum Erişimi
                     </p>
                 </div>
 

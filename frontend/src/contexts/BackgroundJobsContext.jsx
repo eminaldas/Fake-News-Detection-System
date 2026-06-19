@@ -1,8 +1,3 @@
-/**
- * BackgroundJobsContext — analiz/rapor işlerini arkaplanda takip eder.
- * Global WS eventlerini dinler, işleri localStorage'da tutar, tamamlanınca
- * toast üretir. Toast'ın TEK sahibi burasıdır (hooks başarı toast'ı üretmez).
- */
 import React, { createContext, useContext, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWebSocket } from './WebSocketContext';
@@ -38,7 +33,6 @@ function persistJobs(jobs) {
 export function BackgroundJobsProvider({ children }) {
   const [jobs, setJobs] = useState(loadJobs);
   const jobsRef = useRef(jobs);
-  // ref'i render dışında sync'le — lint kuralı gereği layout effect içinde
   useLayoutEffect(() => { jobsRef.current = jobs; });
   const { subscribe } = useWebSocket();
   const navigate = useNavigate();
@@ -106,7 +100,6 @@ export function BackgroundJobsProvider({ children }) {
   const trackAnalysis = useCallback((taskId, meta = {}) => startJob(taskId, 'analysis', meta), [startJob]);
   const getJob        = useCallback((taskId) => jobsRef.current[taskId] || null, []);
 
-  // Global WS aboneliği (bir kez)
   useEffect(() => {
     const unsubs = [
       subscribe('report_progress', (p) => p?.task_id && updateStage(p.task_id, p.stage ?? 0, p.label || 'İşleniyor…')),
@@ -118,14 +111,11 @@ export function BackgroundJobsProvider({ children }) {
     return () => unsubs.forEach((u) => u && u());
   }, [subscribe, updateStage, completeJob, failJob]);
 
-  // Çalışan rapor işlerinin id kümesi — yalnızca KÜME değişince polling yeniden kurulur
-  // (her stage güncellemesinde değil; yoksa 20sn'lik güvenlik ağı sürekli sıfırlanır).
   const runningReportKey = Object.values(jobs)
     .filter((j) => j.kind === 'report' && j.status === 'running')
     .map((j) => j.taskId)
     .join(',');
 
-  // Rapor işleri için fallback polling (WS kaçarsa güvenlik ağı)
   useEffect(() => {
     if (!runningReportKey) return undefined;
     const ids = runningReportKey.split(',');
@@ -139,8 +129,6 @@ export function BackgroundJobsProvider({ children }) {
     return () => clearInterval(iv);
   }, [runningReportKey, completeJob]);
 
-  // Stale temizliği — worker sert çökerse (report_failed gelmezse) çalışan kalan
-  // işi STALE_MS sonra başarısız say (zombi pill önleme).
   useEffect(() => {
     const iv = setInterval(() => {
       const now = Date.now();
@@ -160,7 +148,6 @@ export function BackgroundJobsProvider({ children }) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function useBackgroundJobs() {
   const ctx = useContext(Ctx);
   if (!ctx) throw new Error('useBackgroundJobs must be used within BackgroundJobsProvider');

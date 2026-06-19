@@ -1,4 +1,3 @@
-# workers/deep_report_task.py
 """
 DeepReportTask — Gemini Google Search grounding ile kapsamlı doğrulama raporu.
 Sonuç AnalysisResult.full_report JSONB kolonuna kaydedilir.
@@ -38,9 +37,6 @@ celery_app.conf.update(
 
 _gemini_client = None
 
-# ── v3 Skorlama ──────────────────────────────────────────────────────────
-# Verdict -> overall skor izin verilen aralık (tutarlılık guard'ı için clamp)
-# Aralıklar bilinçli örtüşür: guard yalnızca uç değerleri kırpar, orta bölge serbest.
 VERDICT_SCORE_RANGES = {
     "DOĞRU":                (75, 100),
     "BÜYÜK_ÖLÇÜDE_DOĞRU":   (60, 85),
@@ -52,7 +48,6 @@ VERDICT_SCORE_RANGES = {
 }
 VALID_DECISIONS = set(VERDICT_SCORE_RANGES.keys())
 
-# overall = ağırlıklı alt skor ortalaması (toplam = 1.0)
 SUB_SCORE_WEIGHTS = {
     "evidence_strength":     0.35,
     "source_reliability":    0.30,
@@ -378,7 +373,6 @@ def _validate_report(raw: dict) -> dict:
     except (TypeError, ValueError):
         raw["linguistic"]["manipulation_density"] = 0.0
 
-    # verdict_explanation
     raw.setdefault("verdict_explanation", {
         "decision": "",
         "primary_reason": "",
@@ -393,7 +387,6 @@ def _validate_report(raw: dict) -> dict:
     ve["supporting_points"] = ve["supporting_points"][:5]
     ve["contradicting_evidence"] = ve["contradicting_evidence"][:5]
 
-    # source_analysis
     raw.setdefault("source_analysis", {
         "sources_found": [],
         "bias_summary": "",
@@ -418,12 +411,10 @@ def _validate_report_v3(raw: dict, signals: dict | None = None) -> dict:
     overall skoru deterministik hesaplar + verdict ile tutarlı clamp uygular.
     language_manipulation alt skorunu mevcut signals ile çapalar."""
     signals = signals or {}
-    # Capture manipulation_density before _validate_report fills defaults
     _orig_linguistic = raw.get("linguistic")
     _orig_manip = _orig_linguistic.get("manipulation_density") if isinstance(_orig_linguistic, dict) else None
     raw = _validate_report(raw)  # legacy ortak alanlar (overall_assessment, fact_checks, linguistic...)
 
-    # ── fact_checks: sources normalizasyonu ──
     for fc in raw.get("fact_checks", []):
         srcs = fc.get("sources")
         if not isinstance(srcs, list):
@@ -437,7 +428,6 @@ def _validate_report_v3(raw: dict, signals: dict | None = None) -> dict:
                                   "url": (str(s.get("url"))[:300] if s.get("url") and s.get("url") != "null" else None)})
             fc["sources"] = clean
 
-    # ── verdict ──
     verdict = raw.get("verdict")
     if not isinstance(verdict, dict):
         verdict = {}
@@ -454,7 +444,6 @@ def _validate_report_v3(raw: dict, signals: dict | None = None) -> dict:
         "one_line":  str(verdict.get("one_line") or "")[:300],
     }
 
-    # ── decisive_factors (ağırlığa göre azalan, max 6) ──
     factors = raw.get("decisive_factors")
     if not isinstance(factors, list):
         factors = []
@@ -478,7 +467,6 @@ def _validate_report_v3(raw: dict, signals: dict | None = None) -> dict:
     clean_factors.sort(key=lambda x: x["weight"], reverse=True)
     raw["decisive_factors"] = clean_factors[:6]
 
-    # ── credibility_score ──
     cs = raw.get("credibility_score")
     if not isinstance(cs, dict):
         cs = {}
@@ -495,9 +483,6 @@ def _validate_report_v3(raw: dict, signals: dict | None = None) -> dict:
             "rationale": str(node.get("rationale") or "")[:300],
         }
 
-    # language_manipulation'ı mevcut signal ile çapala (halüsinasyon önle):
-    # düşük manipülasyon = yüksek skor. linguistic.manipulation_density veya
-    # signals.risk_score'dan türet, Gemini değeriyle 50/50 harmanla.
     manip = _orig_manip  # use original value before _validate_report defaulted it
     if manip is None:
         manip = signals.get("risk_score", 0.0)
@@ -512,7 +497,6 @@ def _validate_report_v3(raw: dict, signals: dict | None = None) -> dict:
     overall = apply_verdict_score_guard(decision, overall)
     raw["credibility_score"] = {"overall": overall, "sub_scores": sub_scores}
 
-    # ── adaptif yeni alanlar ──
     if not isinstance(raw.get("precedent_cases"), list):
         raw["precedent_cases"] = []
     raw["precedent_cases"] = raw["precedent_cases"][:5]
@@ -522,7 +506,6 @@ def _validate_report_v3(raw: dict, signals: dict | None = None) -> dict:
     dc = raw.get("domain_context")
     raw["domain_context"] = str(dc)[:1200] if dc else None
 
-    # ── geriye uyumluluk: eski UI verdict_explanation okuyor ──
     raw["verdict_explanation"] = {
         "decision": decision,
         "primary_reason": raw["verdict"]["one_line"],
@@ -625,7 +608,6 @@ async def _publish_user_event(user_id: str | None, event_type: str, payload: dic
         logger.warning("deep_report: WS publish hatası (%s): %s", event_type, exc)
 
 
-# Aşama etiketleri (frontend ilerleme göstergesi için sözleşme)
 REPORT_STAGES = {
     1: "İddialar ayrıştırılıyor",
     2: "Kaynaklar taranıyor",
@@ -664,7 +646,6 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
             logger.warning("deep_report: task_id bulunamadı: %s", task_id)
             return {"error": "task_not_found"}
 
-        # Daha önce üretildiyse yeniden Gemini çağırma
         if data.full_report:
             return {"cached": True, "report": data.full_report}
 
@@ -673,7 +654,6 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
         confidence = data.confidence or 0.0
         today      = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-        # ── Aşama A: Triyaj & Plan ──
         await _publish_user_event(user_id, "report_progress",
                                   {"task_id": task_id, "stage": 1, "label": REPORT_STAGES[1]})
         triage = _call_gemini_json(
@@ -681,7 +661,6 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
             use_search=False,
         ) or {}
 
-        # ── Aşama B: Kanıt Toplama (grounded) ──
         await _publish_user_event(user_id, "report_progress",
                                   {"task_id": task_id, "stage": 2, "label": REPORT_STAGES[2]})
         evidence = _call_gemini_json(
@@ -689,7 +668,6 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
             use_search=True,
         ) or {}
 
-        # ── Aşama C: Sentez & Skorlama ──
         await _publish_user_event(user_id, "report_progress",
                                   {"task_id": task_id, "stage": 3, "label": REPORT_STAGES[3]})
         raw_report = _call_gemini_json(
@@ -702,7 +680,6 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
             await _publish_user_event(user_id, "report_failed", {"task_id": task_id})
             return {"error": "gemini_failed"}
 
-        # Kanıt aşamasının adaptif alanlarını sentez çıktısına taşı (Gemini atlamışsa)
         for k in ("domain_context", "precedent_cases", "numeric_claims"):
             if k not in raw_report and k in evidence:
                 raw_report[k] = evidence[k]
@@ -719,7 +696,6 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
             )
             await session.commit()
 
-        # Forum thread ac
         source_url = (data.metadata_info or {}).get("source_url")
         async with Session() as session:
             thread_id = await _create_report_thread(
@@ -742,10 +718,8 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
                 )
                 await session.commit()
 
-        # WS: report_ready event (arkaplan yöneticisi için)
         await _publish_user_event(user_id, "report_ready", {"task_id": task_id})
 
-        # Kalıcı zil bildirimi (NotificationBell için)
         if user_id:
             try:
                 async with Session() as session:

@@ -12,11 +12,9 @@ import GamificationService from '../../services/gamification.service';
 import BadgeShowcaseModal from '../../components/common/BadgeShowcaseModal';
 import { TypeBadge, PredictionBadge } from '../../components/common/AnalysisBadges';
 
-/* ── Tasarım sabitleri ── */
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 
-/* Köşe aksan çifti */
 const Corner = () => (
     <>
         <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand pointer-events-none" />
@@ -73,7 +71,6 @@ const ProfileOverview = () => {
                 setHistory(data.items);
                 setHistoryTotal(data.total);
 
-                /* Tam rapor kontrolü — sayfa başına paralel istekler */
                 const taskIds = data.items.map(i => i.task_id).filter(Boolean);
                 const found   = new Set();
                 await Promise.all(taskIds.map(async tid => {
@@ -178,7 +175,6 @@ const ProfileOverview = () => {
                     <div className="flex items-center justify-between mb-2">
                         <span className="font-mono text-[10px] uppercase tracking-widest"
                               style={{ color: 'var(--color-brand-primary)' }}>
-                            // LEVEL {xpStats.level}
                         </span>
                         <span className="font-mono text-[10px]"
                               style={{ color: 'var(--color-text-muted)' }}>
@@ -259,7 +255,6 @@ const ProfileOverview = () => {
                 {/* Başlık */}
                 <div className="px-4 py-3 border-b flex items-center justify-between" style={BD}>
                     <span className="font-mono text-xs tracking-widest uppercase" style={{ color: 'var(--color-brand-primary)' }}>
-                        // SON ANALİZLER
                     </span>
                     {historyTotal > 0 && (
                         <span className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
@@ -271,11 +266,9 @@ const ProfileOverview = () => {
                 {/* İçerik */}
                 {historyLoading ? (
                     <div className="p-8 text-center font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                        // yükleniyor...
                     </div>
                 ) : history.length === 0 ? (
                     <div className="p-8 text-center font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                        // kayıt bulunamadı
                     </div>
                 ) : (
                     <div>
@@ -352,7 +345,6 @@ const ProfileOverview = () => {
                 {/* Footer */}
                 <div className="px-4 py-2 border-t flex justify-between" style={BD}>
                     <span className="font-mono text-[9px] tracking-widest" style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
-                        // HİSTORY_LOG
                     </span>
                     <span className="font-mono text-[9px] tracking-widest" style={{ color: 'var(--color-brand-primary)', opacity: 0.6 }}>
                         v2.4

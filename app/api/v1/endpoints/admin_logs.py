@@ -28,9 +28,6 @@ def _since(hours: int) -> datetime:
     return datetime.now(timezone.utc) - timedelta(hours=hours)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Güvenlik Logları
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/stats/overview", response_model=AdminStatsOverviewResponse)
 async def get_stats_overview(
@@ -74,9 +71,6 @@ async def get_stats_overview(
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Güvenlik Logları
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/logs/security")
 async def get_security_logs(
@@ -133,9 +127,6 @@ async def get_security_logs(
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Aktif Alert'ler (Redis)
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/logs/alerts")
 async def get_alerts(
@@ -153,9 +144,6 @@ async def get_alerts(
     return {"alerts": alerts}
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Kullanım Analitiği
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/logs/analytics/daily")
 async def get_daily_analytics(
@@ -244,9 +232,6 @@ async def get_top_users(
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Sistem Sağlığı
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/logs/system/health")
 async def get_system_health(
@@ -285,9 +270,6 @@ async def get_system_health(
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Model Feedback İstatistikleri
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/logs/feedback/stats", response_model=FeedbackStatsResponse)
 async def get_feedback_stats(
@@ -297,7 +279,6 @@ async def get_feedback_stats(
     """Feedback consensus durumu ve son eğitim çalışması bilgisi."""
     threshold = settings.FEEDBACK_CONSENSUS_THRESHOLD
 
-    # consensus_ready: en az bir etiket için oy sayısı >= threshold olan article sayısı
     consensus_ready_result = await db.execute(
         select(func.count()).select_from(
             select(ModelFeedback.article_id)
@@ -308,14 +289,12 @@ async def get_feedback_stats(
     )
     consensus_ready = consensus_ready_result.scalar_one() or 0
 
-    # pending_consensus: en az bir feedback olan ama henüz consensus'e ulaşmamış article sayısı
     all_articles_result = await db.execute(
         select(func.count(func.distinct(ModelFeedback.article_id)))
     )
     all_articles_with_feedback = all_articles_result.scalar_one() or 0
     pending_consensus = max(0, all_articles_with_feedback - consensus_ready)
 
-    # Son eğitim çalışması
     last_run_result = await db.execute(
         select(ModelTrainingRun).order_by(ModelTrainingRun.created_at.desc()).limit(1)
     )
@@ -328,9 +307,6 @@ async def get_feedback_stats(
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# IP Tehdit Listesi
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/security/ip-threats")
 async def get_ip_threats(
@@ -346,7 +322,6 @@ async def get_ip_threats(
     """
     since = _since(hours)
 
-    # ip_hash başına: olay sayısı, en yüksek severity, en son olay zamanı, event türleri
     rows = (await db.execute(
         select(
             AuditLog.ip_hash,

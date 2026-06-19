@@ -21,7 +21,6 @@ from app.models.models import Article, AnalysisResult, ForumThread
 
 router = APIRouter()
 
-# BASE_URL settings'ten okunur — share.py içinde doğrudan kullanılır
 
 _OG_TEMPLATE = """\
 <!DOCTYPE html>

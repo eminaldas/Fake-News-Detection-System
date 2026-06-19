@@ -24,7 +24,6 @@ function getIcon(name) {
   return ICON_MAP[name] ?? Award;
 }
 
-/* Renk → tier (badge_definitions.py color değerleriyle eşleşir) */
 function getTier(color = '') {
   if (!color || color.includes('text-muted')) return 1;
   if (color.includes('accent-blue') || color.includes('brand-primary')) return 2;
@@ -34,14 +33,12 @@ function getTier(color = '') {
   return 2;
 }
 
-/* Tier → boyut */
 const TIER_SIZE = { 1: 72, 2: 76, 3: 84, 4: 88, 5: 96 };
 const TIER_ICON = { 1: 18, 2: 20, 3: 24, 4: 26, 5: 28 };
 const TIER_BORDER = { 1: '1px solid', 2: '1.5px solid', 3: '2px solid', 4: '2px solid', 5: '2px solid' };
 const TIER_CORNER = { 1: 0, 2: 10, 3: 14, 4: 16, 5: 18 };
 const TIER_ANIM = { 1: '4s', 2: '3.5s', 3: '3s', 4: '3s', 5: '2.8s' };
 
-/* Tier → arka plan gradyanı */
 function bgGradient(color, tier) {
   const map = {
     1: `${color}08`,

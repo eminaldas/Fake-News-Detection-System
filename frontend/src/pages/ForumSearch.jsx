@@ -7,7 +7,6 @@ import {
 import axiosInstance from '../api/axios';
 import { useAuth } from '../contexts/AuthContext';
 
-/* ── Tasarım ────────────────────────────────────────────── */
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
@@ -44,7 +43,6 @@ function timeAgo(d) {
     return `${Math.floor(s/86400)}g`;
 }
 
-/* ── Kullanıcı kartı ──────────────────────────────────── */
 function UserCard({ user: u, onFollowToggle }) {
     const { user: me }  = useAuth();
     const navigate      = useNavigate();
@@ -144,7 +142,6 @@ function UserCard({ user: u, onFollowToggle }) {
     );
 }
 
-/* ── Thread kartı ─────────────────────────────────────── */
 function ThreadCard({ t }) {
     const sc = STATUS_C[t.status] ?? STATUS_C.active;
     return (
@@ -186,7 +183,6 @@ function ThreadCard({ t }) {
     );
 }
 
-/* ── Ana sayfa ─────────────────────────────────────────── */
 export default function ForumSearch() {
     const { user: me }       = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -236,7 +232,6 @@ export default function ForumSearch() {
         searchUsers(q);
     }, [searchPosts, searchUsers]);
 
-    /* URL'den ilk yükleme */
     useEffect(() => {
         if (initialQ) doSearch(initialQ);
     }, []); // eslint-disable-line
@@ -339,14 +334,12 @@ export default function ForumSearch() {
                         <div className="p-10 flex flex-col items-center gap-3">
                             <Search className="w-10 h-10 opacity-20" style={{ color: 'var(--color-text-muted)' }} />
                             <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                                // tartışmalarda arama yap
                             </p>
                         </div>
                     ) : posts.length === 0 ? (
                         <div className="p-10 flex flex-col items-center gap-3">
                             <AlertCircle className="w-8 h-8 opacity-20" style={{ color: 'var(--color-text-muted)' }} />
                             <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                                // "{query}" için gönderi bulunamadı
                             </p>
                         </div>
                     ) : (
@@ -354,7 +347,6 @@ export default function ForumSearch() {
                             <div className="px-4 py-2.5 border-b flex items-center justify-between" style={BD}>
                                 <span className="font-mono text-xs tracking-widest uppercase"
                                       style={{ color: 'var(--color-brand-primary)' }}>
-                                    // SONUÇLAR
                                 </span>
                                 <span className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
                                     {postTotal} gönderi
@@ -380,14 +372,12 @@ export default function ForumSearch() {
                         <div className="p-10 flex flex-col items-center gap-3">
                             <Users className="w-10 h-10 opacity-20" style={{ color: 'var(--color-text-muted)' }} />
                             <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                                // kullanıcılarda arama yap
                             </p>
                         </div>
                     ) : users.length === 0 ? (
                         <div className="p-10 flex flex-col items-center gap-3">
                             <AlertCircle className="w-8 h-8 opacity-20" style={{ color: 'var(--color-text-muted)' }} />
                             <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                                // "{query}" adında kullanıcı bulunamadı
                             </p>
                         </div>
                     ) : (
@@ -395,7 +385,6 @@ export default function ForumSearch() {
                             <div className="px-4 py-2.5 border-b flex items-center justify-between" style={BD}>
                                 <span className="font-mono text-xs tracking-widest uppercase"
                                       style={{ color: 'var(--color-brand-primary)' }}>
-                                    // KİŞİLER
                                 </span>
                                 <span className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
                                     {userTotal} kullanıcı

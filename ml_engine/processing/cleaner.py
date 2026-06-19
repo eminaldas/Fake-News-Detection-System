@@ -2,9 +2,6 @@ import re
 import math
 from typing import Dict, Any
 
-# "AA" (Anadolu Ajansı) haber ajansı kısaltması — büyük harf, kelime sınırı zorunlu.
-# Türkçe harf olmayan karakter öncesi/sonrasında "AA" arar.
-# "saat" (s-a-a-t) gibi kelimelerde büyük "AA" geçmez, eşleşmez.
 _AA_AGENCY_PATTERN = re.compile(r'(?<![A-ZÇĞÜŞÖİa-zçğüşöıi])AA(?![A-ZÇĞÜŞÖİa-zçğüşöıi])')
 
 def _turkish_lower(text: str) -> str:
@@ -16,8 +13,6 @@ def _turkish_lower(text: str) -> str:
     return text.replace("İ", "i").replace("I", "ı").lower()
 
 
-# ── Sabit sinyal sırası — eğitim ve inference'da aynı order zorunlu ──────────
-# Bu listeye yeni sinyal eklenirse train_classifier.py yeniden çalıştırılmalıdır.
 SIGNAL_KEYS = [
     "exclamation_ratio",
     "caps_ratio",           # uppercase_ratio yerine
@@ -29,8 +24,6 @@ SIGNAL_KEYS = [
     "number_density",
 ]
 
-# avg_word_length [0, ~15] aralığında; diğer sinyaller [0, 1].
-# Normalizer LogisticRegression'ın ölçek hassasiyetini giderir.
 _AVG_WORD_LEN_NORM = 10.0
 
 
@@ -49,7 +42,6 @@ def signals_to_vector(signals: dict) -> list:
     return vec
 
 
-# Domain → güvenilirlik skoru (rss_ingester.py ile senkron tutulur)
 _DOMAIN_TRUST: dict[str, float] = {
     "aa.com.tr":          1.0,
     "bbc.com":            1.0,
@@ -87,16 +79,13 @@ _DOMAIN_TRUST: dict[str, float] = {
 }
 _UNKNOWN_DOMAIN_TRUST = 0.45
 
-# ── Clickbait / sensasyon / komplo kelimeleri (Türkçe) ─────────────────────
 _CLICKBAIT_WORDS = {
-    # Doğrudan sensasyon
     "şok", "şokta", "şoke", "inanılmaz", "bomba", "flaş", "flash",
     "son dakika", "skandal",
     "rezalet", "utanç", "ibret", "lanet", "dehşet", "korkunç",
     "müthiş", "tarihi", "efsane", "çarpıcı", "ezber bozan",
     "herkesi şoke etti", "kimse bilmiyordu", "gizlenen gerçek",
     "saklanıyor", "ortaya çıktı", "ifşa",
-    # Komplo / gizleme dili
     "yıllarca sakladı", "yıllardır sakladı", "yıllarca gizledi",
     "yıllardır gizliyor", "gerçeği sakladı", "gerçeği gizledi",
     "gizleniyor",  # örtbas içeren metinlerde genel gizleme fiili
@@ -105,35 +94,27 @@ _CLICKBAIT_WORDS = {
     "kimse söylemiyor", "söyleyemiyorlar", "söyletmiyorlar",
     "aslında ne oldu", "gerçek ortaya çıktı", "perde arkası",
     "kamuoyundan gizlenen", "devlet gizliyor",
-    # Aciliyet / korku
     "dikkat", "uyarı", "tehlike", "alarm", "acil",
     "kritik uyarı", "son dakika uyarısı",
-    # Merak kışkırtma
     "kimse beklemiyordu", "sürpriz karar", "beklenmedik gelişme",
     "herkes bunu konuşuyor", "viral oldu", "gündem oldu",
     "sosyal medyayı salladı", "olay yarattı",
-    # Abartılı niteleme
     "tarihi karar", "devrim niteliğinde", "çığır açan",
     "rekor kırdı", "benzeri görülmemiş",
-    # Komplo / nefret
     "hain", "satılmış", "yalancı", "terörist",
 }
 
-# ── Belirsizlik / anonim kaynak kelimeleri (hedge words) ────────────────────
 _HEDGE_WORDS = {
-    # Kaynak belirsizliği
     "iddia", "iddiaya göre", "iddia edildi", "iddia ediyor",
     "söyleniyor", "söylentiye göre", "belirtildi", "öne sürüldü",
     "öne sürüyor", "ileri sürüldü", "aktarıldı", "bildirildi",
     "anlaşıldı", "öğrenildi", "tahmin ediliyor", "bekleniyor",
     "sanılıyor", "zannediliyor", "görünüyor", "gibi görünüyor",
-    # Anonim kaynak kalıpları
     "yakın çevresi", "yakın kaynaklar", "kaynaklar belirtiyor",
     "kulislerde", "iç kulislere göre", "kulislerde konuşuluyor",
     "çevre kaynaklara göre", "isimsiz kaynaklar", "kaynaklar aktardı",
 }
 
-# ── Kaynak güvenilirlik sinyali kelimeleri ─────────────────────────────────
 _SOURCE_KEYWORDS = {
     "kaynak", "açıkladı", "dedi ki", "söyledi", "belirtti",
     "açıklamasında", "röportajında", "basın toplantısında",
@@ -144,7 +125,6 @@ _SOURCE_KEYWORDS = {
 
 class NewsCleaner:
     def __init__(self):
-        # UI temizliği için hedef metin
         self.ui_artifact_text = "Etkileşim penceresinin başlangıcı. ESC tuşu işlemi iptal edip pencereyi kapatacaktır."
 
     @staticmethod
@@ -161,9 +141,7 @@ class NewsCleaner:
         """iddia sütunundaki kısa linkleri (örn. https://t.co/...) regex ile temizler."""
         if not text or self._is_missing(text):
             return text
-        # Linkleri temizle
         text = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', '', text)
-        # Fazla boşlukları düzelt
         return re.sub(r'\s+', ' ', text).strip()
 
     def handle_nan(self, value: Any) -> str:
@@ -172,8 +150,6 @@ class NewsCleaner:
             return "Bilgi mevcut değil"
         return str(value).strip()
 
-    # NOT: Türkçe karakterler korunur ve Stemming (kök bulma) işlemi kasıtlı olarak yapılmaz 
-    # (BERT'in anlam çıkarabilmesi için ekler ve kökler metinde bırakılır).
 
     def extract_manipulative_signals(self, original_text: str, trust_score: float = 0.0) -> Dict[str, Any]:
         """
@@ -209,54 +185,35 @@ class NewsCleaner:
         text_lower = _turkish_lower(original_text)
         length     = len(original_text)
 
-        # ── Orijinal sinyaller ─────────────────────────────────────────────
         exclamation_count = original_text.count('!')
         question_count    = original_text.count('?')
 
-        # ── Kelime düzeyinde hazırlık ──────────────────────────────────────
         words = text_lower.split()
         word_count = len(words) or 1  # sıfıra bölünme koruması
 
-        # ADD: ALL CAPS word ratio (uses original_text words to preserve case)
         orig_words     = original_text.split()
         all_caps_words = [w for w in orig_words if len(w) > 1 and w.isupper()]
         caps_ratio     = round(len(all_caps_words) / word_count, 4)
 
-        # ── Clickbait skoru ───────────────────────────────────────────────
-        # Her clickbait ifadesinin metinde geçiş sayısını topla; kelime
-        # sayısına normalize et. Çok kelimeli ifadeler de aranır.
         clickbait_hits = sum(
             1 for phrase in _CLICKBAIT_WORDS if phrase in text_lower
         )
         clickbait_score = round(min(clickbait_hits / word_count, 1.0), 4)
 
-        # ── Hedge (belirsizlik) oranı ─────────────────────────────────────
-        # Güvenilir kaynaklar (AA, BBC vb.) "iddia etti" yazım tarzını
-        # kullanır ama bu onların haber dili — fake sinyal değil.
         hedge_hits  = sum(1 for phrase in _HEDGE_WORDS if phrase in text_lower)
         hedge_ratio = 0.0 if trust_score >= 0.9 else round(min(hedge_hits / word_count, 1.0), 4)
 
-        # ── Kaynak güvenilirlik skoru ─────────────────────────────────────
-        # "AA" (Anadolu Ajansı) orijinal metinde büyük harf + kelime sınırıyla aranır;
-        # diğer anahtar kelimeler küçük harfe dönüştürülmüş metinde substring aramasıyla bulunur.
         aa_hits      = len(_AA_AGENCY_PATTERN.findall(original_text))
         source_hits  = aa_hits + sum(1 for phrase in _SOURCE_KEYWORDS if phrase in text_lower)
         source_score = round(min(source_hits / word_count, 1.0), 4)
 
-        # ── Ortalama kelime uzunluğu ──────────────────────────────────────
-        # Boşluk hariç kelimelerin karakter ortalaması.
-        # Clickbait/sensasyon haberleri genelde kısa kelimeler kullanır.
         avg_word_length = round(
             sum(len(w) for w in words) / word_count, 4
         )
 
-        # ── Rakam yoğunluğu ───────────────────────────────────────────────
         digit_count    = sum(1 for c in original_text if c.isdigit())
         number_density = round(digit_count / length, 4) if length > 0 else 0.0
 
-        # ── Triggered words — substring arama (çok kelimeli ifadeler dahil) ─────────
-        # Listeyi uzunluğa göre sırala: frontend HighlightedText'in greedy scan'ı
-        # için ön koşul; aynı zamanda UI'da tutarlı sıralama sağlar.
         triggered_clickbait = sorted(
             [phrase for phrase in _CLICKBAIT_WORDS if phrase in text_lower],
             key=len, reverse=True
@@ -291,7 +248,6 @@ class NewsCleaner:
         """
         Gelen CSV metinlerini işler. URL temizliği ve eksik veri yönetimi uygulanır.
         """
-        # Ham iddia metninde NaN/Null kontrolü -> ardından sadece string işleme
         iddia_text = self.handle_nan(raw_iddia)
         if iddia_text == "Bilgi mevcut değil":
             cleaned_iddia = iddia_text
@@ -300,7 +256,6 @@ class NewsCleaner:
             cleaned_iddia = self.clean_links(iddia_text)
             signals = self.extract_manipulative_signals(iddia_text)
             
-        # Detaylı analiz metninde UI artifact temizliği
         cleaned_detayli = self.clean_ui_artifacts(self.handle_nan(detayli_analiz_raw)) if detayli_analiz_raw is not None else None
         
         return {
@@ -319,7 +274,6 @@ def _compute_risk(signals: dict, domain_url: str = "") -> float:
     """
     from urllib.parse import urlparse
 
-    # Katman 1: domain trust
     if domain_url:
         try:
             domain = urlparse(domain_url).netloc.lower().lstrip("www.")
@@ -333,7 +287,6 @@ def _compute_risk(signals: dict, domain_url: str = "") -> float:
     else:
         domain_trust = _UNKNOWN_DOMAIN_TRUST
 
-    # Katman 2: metin içi kaynak referansı (+0.10 bonus)
     text_source  = signals.get("source_score", 0.0)
     final_source = min(domain_trust + text_source * 0.10, 1.0)
 
@@ -365,8 +318,6 @@ def _classify_content(
     """
     types: list[str] = []
 
-    # Güvenilir kaynaklar (AA, BBC vb.) "son dakika" gibi ifadeler kullanır
-    # ama bu clickbait değil — haber dili. trust >= 0.9 ise atla.
     if title_signals.get("clickbait_score", 0.0) >= 0.08 and trust_score < 0.9:
         types.append("clickbait")
 
@@ -376,7 +327,6 @@ def _classify_content(
     if nlp_score >= 0.60:
         types.append("high_risk")
 
-    # Yukarıdakilerden hiçbiri yoksa ve source iyi ise → haber
     content_source = content_signals.get("source_score", 0.0)
     content_hedge  = content_signals.get("hedge_ratio",  0.0)
     if not types and (content_source >= 0.5 or trust_score >= 0.8) and content_hedge < 0.05:

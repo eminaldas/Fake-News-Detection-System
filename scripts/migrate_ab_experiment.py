@@ -43,7 +43,6 @@ async def run():
             );
         """))
 
-        # İlk deneyi seed et (idempotent)
         await conn.execute(text("""
             INSERT INTO ab_experiments (name, status, min_clicks)
             SELECT 'rec_weights_v1', 'active', 100

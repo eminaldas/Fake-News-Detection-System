@@ -11,7 +11,6 @@ const FalseClaimsCard = ({ falseClaims }) => {
             <div className="flex items-center gap-2 px-4 sm:px-5 pt-4 pb-3">
                 <AlertTriangle className="w-4 h-4 text-red-400" />
                 <span className="text-red-400 font-mono font-bold text-[10px] tracking-widest uppercase">
-                    // Haberdeki_Hatalı_Bilgiler
                 </span>
             </div>
 

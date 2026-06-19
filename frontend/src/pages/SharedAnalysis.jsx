@@ -120,7 +120,6 @@ const SharedAnalysis = () => {
                     <Icon className="w-4 h-4 shrink-0" style={{ color }} />
                     <span className="font-mono text-[11px] font-black uppercase tracking-[0.18em]"
                           style={{ color }}>
-                        // Analiz Sonucu
                     </span>
                     <span className="ml-auto font-mono text-[10px]" style={{ color: MUTED }}>
                         nehaber.dev
@@ -233,7 +232,6 @@ const SharedAnalysis = () => {
             </div>
 
             <p className="mt-5 font-mono text-[10px] text-center max-w-xs" style={{ color: MUTED }}>
-                // Bu sonuç yapay zeka tarafından üretilmiştir. Kesin yargı için birden fazla kaynağa başvurunuz.
             </p>
         </div>
     );

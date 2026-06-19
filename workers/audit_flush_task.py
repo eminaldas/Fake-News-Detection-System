@@ -33,7 +33,6 @@ async def _flush_async() -> None:
         settings.REDIS_URL, encoding="utf-8", decode_responses=True
     )
     try:
-        # Atomik oku + temizle
         pipe        = redis.pipeline(transaction=True)
         pipe.lrange(BUFFER_KEY, 0, BATCH_SIZE - 1)
         pipe.ltrim(BUFFER_KEY, BATCH_SIZE, -1)

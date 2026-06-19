@@ -52,17 +52,17 @@ function CityRow({ city, weather }) {
         <div className="flex items-center justify-between px-4 py-2.5 transition-colors cursor-default"
              onMouseEnter={e => e.currentTarget.style.background = 'rgba(128,128,128,0.07)'}
              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            <span className="text-xs font-semibold" style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-primary)' }}>
+            <span className="text-xs font-semibold" style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-primary)' }}>
                 {city.name}
             </span>
             {weather ? (
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px]" style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-muted)' }}>
+                    <span className="text-[10px]" style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-muted)' }}>
                         {wmoLabel(weather.code)}
                     </span>
                     <div className="flex items-center gap-1">
                         <Icon className="w-3 h-3" style={{ color: 'var(--color-text-secondary)' }} />
-                        <span className="text-sm font-bold" style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-primary)' }}>
+                        <span className="text-sm font-bold" style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-primary)' }}>
                             {weather.temp}°
                         </span>
                     </div>
@@ -143,7 +143,7 @@ const WeatherWidget = () => {
             >
                 <Icon className="w-4 h-4 shrink-0" style={{ color: '#fff' }} />
                 <span style={{
-                    fontFamily:    "'Open Sans', sans-serif",
+                    fontFamily:    "'Elms Sans', sans-serif",
                     fontSize:      12,
                     fontWeight:    600,
                     color:         'rgba(255,255,255,0.92)',
@@ -152,7 +152,7 @@ const WeatherWidget = () => {
                     {primary.city}
                 </span>
                 <span style={{
-                    fontFamily: "'Open Sans', sans-serif",
+                    fontFamily: "'Elms Sans', sans-serif",
                     fontSize:   14,
                     fontWeight: 800,
                     color:      '#fff',
@@ -186,20 +186,20 @@ const WeatherWidget = () => {
                     {/* Konum başlığı — gradient yok, sadece border */}
                     <div style={{ borderBottom: `1px solid ${WX_GREEN}`, padding: '12px 16px' }}>
                         <p className="text-[9px] uppercase tracking-widest mb-2"
-                           style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-muted)' }}>
+                           style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-muted)' }}>
                             Konumun
                         </p>
                         <div className="flex items-center justify-between">
-                            <span className="text-sm font-bold" style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-primary)' }}>
+                            <span className="text-sm font-bold" style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-primary)' }}>
                                 {primary.city}
                             </span>
                             <div className="flex items-center gap-2">
-                                <span className="text-[10px]" style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-secondary)' }}>
+                                <span className="text-[10px]" style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-secondary)' }}>
                                     {wmoLabel(primary.code)}
                                 </span>
                                 <div className="flex items-center gap-1">
                                     <Icon className="w-3.5 h-3.5" style={{ color: WX_GREEN }} />
-                                    <span className="text-base font-black" style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-primary)' }}>
+                                    <span className="text-base font-black" style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-primary)' }}>
                                         {primary.temp}°
                                     </span>
                                 </div>
@@ -210,7 +210,7 @@ const WeatherWidget = () => {
                     {/* Diğer şehirler */}
                     <div className="pb-2">
                         <p className="text-[9px] uppercase tracking-widest px-4 pt-3 pb-1"
-                           style={{ fontFamily: "'Open Sans',sans-serif", color: 'var(--color-text-muted)' }}>
+                           style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-muted)' }}>
                             Diğer Şehirler
                         </p>
                         {CITIES.map(city => (

@@ -63,7 +63,6 @@ const ProfileLayout = () => {
                         className="font-mono text-xs tracking-widest uppercase mb-4"
                         style={{ color: 'var(--color-brand-primary)' }}
                     >
-                        // USER_SESSION
                     </p>
                     <div className="flex items-center gap-3.5">
                         {/* Avatar */}
@@ -141,7 +140,6 @@ const ProfileLayout = () => {
                             className="font-mono text-xs tracking-widest uppercase mb-3"
                             style={{ color: 'var(--color-text-muted)' }}
                         >
-                            // GÜNLÜK KOTA
                         </p>
                         <div
                             className="h-[2px] mb-2"
@@ -173,7 +171,6 @@ const ProfileLayout = () => {
                         className="font-mono text-xs tracking-widest"
                         style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}
                     >
-                        // PROFIL_MOD
                     </span>
                 </div>
             </aside>

@@ -1,4 +1,3 @@
-// frontend/src/components/ui/ToastContainer.jsx
 import React, { useCallback, useEffect, useState } from 'react';
 import toast from '../../services/toast';
 import Toast from './Toast';
@@ -15,14 +14,12 @@ export default function ToastContainer() {
   useEffect(() => {
     const emit = (item) => {
       setItems(prev => {
-        // Aynı id varsa replace et
         const exists = prev.findIndex(t => t.id === item.id);
         if (exists !== -1) {
           const next = [...prev];
           next[exists] = item;
           return next;
         }
-        // Max 5: en eskiyi at
         const next = prev.length >= MAX_TOASTS ? prev.slice(1) : prev;
         return [...next, item];
       });

@@ -1,4 +1,3 @@
-// frontend/src/components/ui/Toast.jsx
 import React, { useEffect, useRef, useState } from 'react';
 import {
   CheckCircle, AlertCircle, Info, AlertTriangle,
@@ -28,7 +27,6 @@ export default function Toast({ item, onRemove }) {
     if (!item.duration) return;
     timerRef.current = setTimeout(dismiss, item.duration);
     return () => clearTimeout(timerRef.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.duration]);
 
   return (

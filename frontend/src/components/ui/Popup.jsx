@@ -1,4 +1,3 @@
-// frontend/src/components/ui/Popup.jsx
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, Info, CheckCircle, X, Trash2 } from 'lucide-react';
 import popup from '../../services/popup';
@@ -11,7 +10,6 @@ export default function Popup() {
     return () => popup._unregister();
   }, []);
 
-  // Scroll kilidi
   useEffect(() => {
     if (dialog) {
       document.body.style.overflow = 'hidden';
@@ -21,13 +19,11 @@ export default function Popup() {
     return () => { document.body.style.overflow = ''; };
   }, [dialog]);
 
-  // Escape tuşu
   useEffect(() => {
     if (!dialog) return;
     const handler = (e) => { if (e.key === 'Escape') close(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dialog]);
 
   const close   = () => setDialog(null);

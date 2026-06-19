@@ -18,9 +18,6 @@ from workers.ai_comment_task import generate_ai_comment
 
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Celery
-# ─────────────────────────────────────────────────────────────────────────────
 celery_app = Celery(
     "worker",
     broker=settings.REDIS_URL,
@@ -35,9 +32,6 @@ celery_app.conf.update(
     result_expires=3600,   # task sonuçları 1 saat sonra Redis'ten silinir
 )
 
-# ─────────────────────────────────────────────────────────────────────────────
-# NLP singleton'ları — beat process'te None kalır, worker process'te yüklenir
-# ─────────────────────────────────────────────────────────────────────────────
 cleaner          = None
 vectorizer       = None
 classifier_model = None
@@ -62,14 +56,10 @@ def _load_models(**kwargs):
         classifier_model = None
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Async pipeline
-# ─────────────────────────────────────────────────────────────────────────────
 async def _analyze_and_save(content_id: str, text: str, news_evidence: str = None, user_id: str = None) -> dict:
     engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
-    # NLP stage — WS progress
     if user_id:
         try:
             import json as _json_p
@@ -85,22 +75,13 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
         except Exception:
             pass
 
-    # 1. Temizlik + linguistik sinyaller
     processed   = cleaner.process(raw_iddia=text)
     signals     = processed["signals"]
     cleaned     = processed["cleaned_text"]
     raw         = processed["original_text"]
 
-    # 2. BERT embedding — tek vektör (ham metin üzerinden)
-    #
-    # NOT: Başlık+içerik ağırlıklı birleşim (get_weighted_embedding) bu pipeline için
-    # uygun değildir. Teyit verilerinde "content" alanı orijinal haber gövdesi değil,
-    # fact-check doğrulama analizidir. Bu metne ağırlık vermek modele ters sinyal üretir.
-    # get_weighted_embedding yalnızca gerçek haber başlığı + haber gövdesi çiftinin
-    # kesin olarak bilindiği senaryolarda (ör. URL scraping pipeline) kullanılmalıdır.
     embedding = vectorizer.get_embedding(cleaned)
 
-    # Zero vector check — boş embedding analize girmiyor
     if not any(embedding):
         logger.warning(
             "zero_vector: Boş embedding üretildi — metin çok kısa veya boş. task_id=%s",
@@ -113,18 +94,6 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
             "message": "Metin çok kısa veya analiz edilemiyor. Lütfen daha uzun bir metin girin.",
         }
 
-    # 3. Risk skoru (kural tabanlı, genişletilmiş sinyal seti)
-    #
-    # Ağırlıklar — manipülatif sinyal türüne göre katkı payları:
-    #   clickbait_score  : en güçlü sahte haber göstergesi
-    #   exclamation_ratio: duygusal manipülasyon
-    #   caps_ratio       : bağırma / abartı
-    #   hedge_ratio      : belirsiz kaynak → güven azalır
-    #   question_density : retorik soru yoğunluğu
-    #   number_density   : yüksek rakam → manipülatif istatistik riski
-    #   source_score     : güvenilir kaynak referansı → riski DÜŞÜRÜR (negatif katkı)
-    #   avg_word_length  : kısa kelime ortalaması → sensasyonel dil riski
-    #
     _AVG_WORD_LEN_BASELINE = 5.5   # Türkçe haber metni beklenen ortalaması
     avg_len = signals.get("avg_word_length", _AVG_WORD_LEN_BASELINE)
     short_word_penalty = max(0.0, (_AVG_WORD_LEN_BASELINE - avg_len) / _AVG_WORD_LEN_BASELINE)
@@ -141,22 +110,6 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
     )
     risk = max(0.0, min(risk, 1.0))   # [0, 1] aralığına sıkıştır
 
-    # 4. Sınıflandırma — katmanlı karar mekanizması
-    #
-    # Katman A — Hard override (kural tabanlı):
-    #   BERT semantiğe odaklanır; güçlü sinyal kombinasyonları veya tek başına
-    #   yüksek clickbait/hedge değerleri semantik kararı geçersiz kılar.
-    #   Koşullar:
-    #     1. clickbait > 0.15 + büyük harf veya ünlem (bağırarak sensasyon)
-    #     2. clickbait > 0.30 tek başına (çoklu komplo/sensasyon ifadesi)
-    #     3. clickbait + hedge + soru kombinasyonu (komplo söylemi)
-    #     4. hedge > 0.15 tek başına (yüksek anonim kaynak yoğunluğu)
-    #
-    # Katman B — Ağırlıklı ensemble (model + kural):
-    #   Feature vektörü: [768-dim BERT] + [8-dim sinyal] = 776-dim
-    #   combined = 0.55 × fake_p + 0.45 × risk
-    #   (BERT kurumsal dile karşı önyargılı; sinyallere daha fazla ağırlık verilir)
-    #
     clickbait = signals.get("clickbait_score",   0)
     uppercase = signals.get("caps_ratio",        0)
     exclaim   = signals.get("exclamation_ratio", 0)
@@ -173,7 +126,6 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
     )
 
     if strong_manipulative:
-        # Güven: sinyal yoğunluğuna göre 0.55-0.90 arası kalibre edilir
         pred_status    = "FAKE"
         override_conf  = 0.55 + clickbait * 0.50 + exclaim * 2.0 + uppercase * 0.30
         confidence     = round(min(override_conf, 0.90), 4)
@@ -194,11 +146,9 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
             confidence  = 0.0
 
     else:
-        # Classifier yok — yalnızca kural tabanlı karar
         pred_status = "FAKE" if risk > 0.20 else "AUTHENTIC"
         confidence  = round(min(risk if risk > 0.20 else 1.0 - risk, 0.99), 4)
 
-    # 5. DB kaydı
     title_db = (text[:50] + "...") if len(text) > 50 else text
     async with Session() as session:
         article = Article(
@@ -232,9 +182,6 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
         await session.commit()
         article_id = str(article.id)
 
-    # ── Phase 2: AI yorum task'ını spawn et ────────────────────────────────────
-    # Hard override durumunda (strong_manipulative) Gemini'ye gerek yok.
-    # Yalnızca classifier karar verdiyse veya kural bazlı fallback'te spawn edilir.
     _LOW  = settings.GEMINI_ESCALATION_LOW
     _HIGH = settings.GEMINI_ESCALATION_HIGH
     _uncertain = _LOW <= confidence <= _HIGH
@@ -261,9 +208,6 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
 
     await engine.dispose()
 
-    # ── WebSocket push ─────────────────────────────────────────────────────
-    # Celery worker'lar her task için asyncio.run() ile yeni event loop açar.
-    # app.db.redis singleton'u önceki loop'a bağlı olur — transient bağlantı kullanılır.
     if user_id:
         try:
             import json as _json
@@ -304,24 +248,17 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Celery task
-# ─────────────────────────────────────────────────────────────────────────────
 @celery_app.task(name="analyze_article", rate_limit=settings.CELERY_RATE_LIMIT)
 def analyze_article(content_id: str, text: str, news_evidence: str = None, user_id: str = None) -> dict:
     """Ham metin → temizlik → embedding → sınıflandırma → DB kaydı."""
     return asyncio.run(_analyze_and_save(content_id, text, news_evidence=news_evidence, user_id=user_id))
 
 
-# Görsel analiz task'ını kaydet — worker startup'ta keşfedilsin
 from workers.image_analysis_task import analyze_image as _analyze_image_task  # noqa: F401
 from workers.deep_report_task import generate_deep_report as _generate_deep_report  # noqa: F401
 from workers.evidence_verdict_task import analyze_evidence_comment as _analyze_evidence  # noqa: F401
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Audit flush task + beat schedule
-# ─────────────────────────────────────────────────────────────────────────────
 from celery.schedules import crontab
 from workers.audit_flush_task import flush_audit_buffer as _flush_audit_buffer  # noqa: F401
 from workers.preference_updater import update_preference_profiles as _update_prefs

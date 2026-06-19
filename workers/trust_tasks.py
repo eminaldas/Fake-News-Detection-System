@@ -22,9 +22,6 @@ from app.core.config import settings
 
 logger = logging.getLogger("TrustTask")
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Celery Uygulama
-# ─────────────────────────────────────────────────────────────────────────────
 celery_app = Celery(
     "trust",
     broker=settings.REDIS_URL,
@@ -39,12 +36,8 @@ celery_app.conf.update(
     enable_utc=True,
 )
 
-# Beat zamanlaması Task 4'te eklenir — burada tanımlanmaz.
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Yardımcı: tier hesaplama
-# ─────────────────────────────────────────────────────────────────────────────
 def _xp_to_level(total_xp: int) -> int:
     """total_xp'den mevcut seviyeyi hesaplar."""
     def xp_for(lvl: int) -> int:
@@ -72,9 +65,6 @@ def _score_to_tier(score: float) -> str:
         return "dedektif"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Async iş mantığı
-# ─────────────────────────────────────────────────────────────────────────────
 async def _recalculate() -> dict:
     engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
 
@@ -82,11 +72,8 @@ async def _recalculate() -> dict:
     highlighted_count = 0
 
     try:
-        # ── Okuma fazı: yazma kilidi olmadan tüm sinyalleri topla ────────────
         async with engine.connect() as conn:
 
-            # Adım 1: Kullanıcı bazında sinyal toplaması
-            # helpful_total, comment_count, thread_count tek sorguda alınır.
             signals_rows = await conn.execute(text("""
                 SELECT
                     u.id                              AS user_id,
@@ -113,8 +100,6 @@ async def _recalculate() -> dict:
                 logger.info("Hiç kullanıcı bulunamadı, görev tamamlandı.")
                 return {"updated_users": 0, "highlighted_comments": 0}
 
-            # Adım 2: Oy doğruluğu (vote_accuracy)
-            # Yalnızca total_votes >= 10 olan thread'ler geçerli (gürültü filtresi).
             votes_rows = await conn.execute(text("""
                 SELECT
                     fv.user_id,
@@ -149,7 +134,6 @@ async def _recalculate() -> dict:
                 ) AS thread_votes ON fv.thread_id = thread_votes.thread_id
             """))
 
-            # Kullanıcı bazında doğru / toplam sayısını hesapla
             vote_correct: dict = defaultdict(int)
             vote_total:   dict = defaultdict(int)
             for row in votes_rows:
@@ -157,7 +141,6 @@ async def _recalculate() -> dict:
                 if row.vote_type == row.majority_vote:
                     vote_correct[row.user_id] += 1
 
-            # Adım 3: En aktif kategori
             category_rows = await conn.execute(text("""
                 SELECT
                     c.user_id,
@@ -177,7 +160,6 @@ async def _recalculate() -> dict:
             for uid, cat_counts in user_category_counts.items():
                 user_top_category[uid] = max(cat_counts, key=cat_counts.get)
 
-        # ── Python hesaplama fazı: DB bağlantısı yok ─────────────────────────
         update_values = []
         for user_id, sig in signals.items():
             helpful_total = sig["helpful_total"]
@@ -206,7 +188,6 @@ async def _recalculate() -> dict:
                 "level":    level,
             })
 
-        # ── Yazma fazı: kısa transaction, yalnızca UPDATE'ler ────────────────
         async with engine.begin() as conn:
             if update_values:
                 await conn.execute(
@@ -239,7 +220,6 @@ async def _recalculate() -> dict:
             updated_count = len(update_values)
             logger.info("Trust skorlari guncellendi: %d kullanici", updated_count)
 
-            # is_highlighted güncelleme — users UPDATE commit'inden sonra çalışır
             result = await conn.execute(text("""
                 UPDATE forum_comments c
                 SET is_highlighted = (
@@ -262,9 +242,6 @@ async def _recalculate() -> dict:
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Celery Task
-# ─────────────────────────────────────────────────────────────────────────────
 @celery_app.task(name="recalculate_trust_scores")
 def recalculate_trust_scores() -> dict:
     """

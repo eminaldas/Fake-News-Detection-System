@@ -1,13 +1,3 @@
-/**
- * frontend/src/services/websocket.js
- * Singleton WebSocket service — reconnect with exponential backoff.
- *
- * Kullanım:
- *   wsService.connect(token)
- *   const unsub = wsService.subscribe('analysis_complete', (payload) => { ... })
- *   unsub()
- *   wsService.disconnect()
- */
 
 const BACKOFF_STEPS = [1000, 2000, 4000, 8000, 16000, 30000]; // ms
 
@@ -32,17 +22,12 @@ class WebSocketService {
     }
 
     _open() {
-        /* VITE_API_URL:
-           - Dev:  tanımsız → fallback 'http://localhost:8000/api/v1'  (backend direkt)
-           - Prod: '/api/v1'  (nginx proxy, relative)                   */
         const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
         let wsBase;
         if (apiUrl.startsWith('/')) {
-            // Prod — nginx üzerinden, mevcut host'tan türet
             const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
             wsBase = `${proto}://${window.location.host}${apiUrl}`;
         } else {
-            // Dev — http → ws dönüştür
             wsBase = apiUrl.replace(/^http/, 'ws');
         }
         const url = `${wsBase}/ws?token=${this._token}`;
@@ -60,7 +45,6 @@ class WebSocketService {
                 const { type, payload } = JSON.parse(event.data);
                 this._emit(type, payload);
             } catch {
-                // geçersiz JSON — yok say
             }
         };
 
@@ -73,7 +57,6 @@ class WebSocketService {
         };
 
         this._ws.onerror = () => {
-            // onclose tetiklenecek — orada retry yapılır
         };
     }
 

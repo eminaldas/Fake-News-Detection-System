@@ -1,7 +1,6 @@
 import React from 'react';
 import { ShieldCheck, ShieldAlert, ShieldX, Shield, HelpCircle, Drama } from 'lucide-react';
 
-/* v3 verdict teması (7 skala) */
 const VERDICT_THEME = {
     'DOĞRU':                { hex: '#3fff8b', Icon: ShieldCheck, label: 'DOĞRU' },
     'BÜYÜK_ÖLÇÜDE_DOĞRU':   { hex: '#5fe08b', Icon: ShieldCheck, label: 'BÜYÜK ÖLÇÜDE DOĞRU' },
@@ -12,7 +11,6 @@ const VERDICT_THEME = {
     'SAHTE':                { hex: '#ff7351', Icon: ShieldX,      label: 'SAHTE' },
 };
 
-/* legacy mlVerdict teması (AUTHENTIC/FAKE/UNKNOWN) */
 const LEGACY_THEME = {
     AUTHENTIC: { hex: '#3fff8b', Icon: ShieldCheck, label: 'GÜVENİLİR İÇERİK' },
     FAKE:      { hex: '#ff7351', Icon: ShieldX,     label: 'ŞÜPHELİ İÇERİK'  },
@@ -41,7 +39,6 @@ export default function VerdictHeader({ verdict, mlVerdict, report }) {
                 <theme.Icon className="w-10 h-10 shrink-0 mt-1" style={{ color: theme.hex }} />
                 <div className="flex-1 min-w-0">
                     <p className="font-mono text-[10px] tracking-widest uppercase mb-1" style={{ color: theme.hex, opacity: 0.8 }}>
-                        // TAM_ANALİZ_RAPORU
                     </p>
                     <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-mono text-xl font-black" style={{ color: theme.hex }}>{theme.label}</p>

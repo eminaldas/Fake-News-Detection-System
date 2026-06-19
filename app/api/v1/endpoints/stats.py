@@ -38,7 +38,6 @@ async def platform_stats(db: AsyncSession = Depends(get_db)):
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         week_start = today_start - timedelta(days=6)
 
-        # Bugünkü istatistikler — yalnızca kullanıcı analizleri (task_id içerenler)
         today_rows = (await db.execute(
             select(
                 AnalysisResult.status,
@@ -54,7 +53,6 @@ async def platform_stats(db: AsyncSession = Depends(get_db)):
         fake_count  = sum(r.cnt for r in today_rows if r.status == "FAKE")
         auth_count  = sum(r.cnt for r in today_rows if r.status == "AUTHENTIC")
 
-        # Aktif kullanıcılar (bugün login, aktif hesaplar)
         active_users = (await db.execute(
             select(func.count(User.id)).where(
                 User.last_login_at >= today_start,
@@ -62,7 +60,6 @@ async def platform_stats(db: AsyncSession = Depends(get_db)):
             )
         )).scalar_one()
 
-        # 7 günlük heatmap — yalnızca kullanıcı analizleri
         heatmap_rows = (await db.execute(
             select(
                 cast(AnalysisResult.created_at, Date).label("day"),

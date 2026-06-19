@@ -104,7 +104,6 @@ async def mark_notification_read(
     return notif
 
 
-# ── Forum Bildirimleri (Notification modeli — read_at) ────────────────────────
 
 @router.get("/forum", response_model=ForumNotificationListResponse)
 async def list_forum_notifications(

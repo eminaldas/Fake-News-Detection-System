@@ -144,7 +144,6 @@ const ProfileSecurity = () => {
                 sub="yeni şifren en az 8 karakter olmalı"
                 footer={
                     <span className="font-mono text-[10px] tracking-widest opacity-40" style={{ color: 'var(--color-text-muted)' }}>
-                        // BCRYPT_HASH
                     </span>
                 }
             >
@@ -197,7 +196,6 @@ const ProfileSecurity = () => {
                 footer={
                     <>
                         <span className="font-mono text-[10px] tracking-widest opacity-40" style={{ color: 'var(--color-text-muted)' }}>
-                            // SESSION_LOG
                         </span>
                         <span className="font-mono text-[10px] opacity-60" style={{ color: 'var(--color-brand-primary)' }}>
                             {sessions.length} oturum
@@ -279,7 +277,6 @@ const ProfileSecurity = () => {
                 sub="hesap bilgilerin, analiz geçmişin ve tercihlerini JSON olarak indirebilirsin"
                 footer={
                     <span className="font-mono text-[10px] tracking-widest opacity-40" style={{ color: 'var(--color-text-muted)' }}>
-                        // GDPR_COMPLIANT
                     </span>
                 }
             >

@@ -7,7 +7,6 @@ import {
 import GamificationService from '../services/gamification.service';
 import { useAuth } from '../contexts/AuthContext';
 
-/* ── Tasarım sabitleri ─────────────────────────────────────────── */
 const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 
@@ -20,7 +19,6 @@ const Corner = () => (
     </>
 );
 
-/* Lucide icon adından component'e map */
 const ICON_MAP = {
     User: Award, Search, FileSearch: Search, BarChart2, Shield,
     Star, Cpu, TrendingUp, MessageSquare, Zap, Link: Zap,
@@ -37,7 +35,6 @@ function getIcon(iconName) {
 
 const LEVEL_BADGE_KEYS = ['level_1', 'level_10', 'level_20', 'level_30', 'level_40', 'level_50'];
 
-/* ── Rozet Kartı ───────────────────────────────────────────────── */
 function BadgeCard({ badge, earned, showcased, onToggleShowcase, showcaseFull }) {
     const Icon = getIcon(badge.icon);
     const progress  = !earned ? (badge.progress  ?? 0) : null;
@@ -147,7 +144,6 @@ function BadgeCard({ badge, earned, showcased, onToggleShowcase, showcaseFull })
     );
 }
 
-/* ── Sıralama Sekmesi ──────────────────────────────────────────── */
 const RANK_STYLES = [
     { bg: 'rgba(255,215,0,0.12)', border: '#FFD700', text: '#FFD700', label: '#1' },
     { bg: 'rgba(192,192,192,0.12)', border: '#C0C0C0', text: '#C0C0C0', label: '#2' },
@@ -218,7 +214,6 @@ function LeaderboardTab() {
             {loading && (
                 <div className="relative border p-8 text-center" style={TS}>
                     <p className="font-mono text-sm" style={{ color: 'var(--color-brand-primary)' }}>
-                        // sıralama yükleniyor...
                     </p>
                 </div>
             )}
@@ -324,7 +319,6 @@ function LeaderboardTab() {
     );
 }
 
-/* ── Ana Sayfa ─────────────────────────────────────────────────── */
 export default function Badges() {
     const [tab,          setTab]          = useState('levels');
     const [badges,       setBadges]       = useState(null);
@@ -401,7 +395,6 @@ export default function Badges() {
                     <div>
                         <h1 className="font-mono text-xl font-black tracking-wider"
                             style={{ color: 'var(--color-brand-primary)' }}>
-                            // ROZETLER & BAŞARIMLAR
                         </h1>
                         <p className="font-mono text-xs mt-1"
                            style={{ color: 'var(--color-text-primary)', opacity: 0.7 }}>
@@ -472,7 +465,6 @@ export default function Badges() {
                         <div>
                             <p className="font-mono text-xs font-bold uppercase tracking-widest mb-2"
                                style={{ color: 'var(--color-brand-primary)' }}>
-                                // VİTRİN — {showcase.length}/3 rozet seçili
                             </p>
                             <div className="flex items-center gap-2 flex-wrap">
                                 {Array.from({ length: 3 }).map((_, i) => {
@@ -555,7 +547,6 @@ export default function Badges() {
             {loading && (
                 <div className="relative border p-8 text-center" style={TS}>
                     <p className="font-mono text-sm" style={{ color: 'var(--color-brand-primary)' }}>
-                        // yükleniyor...
                     </p>
                 </div>
             )}

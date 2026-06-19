@@ -34,7 +34,6 @@ const AnalysisDisclaimer = () => {
                 <div className="flex-1 min-w-0">
                     <p className="font-mono text-[10px] font-bold uppercase tracking-widest mb-1.5"
                        style={{ color: 'var(--color-info-icon)' }}>
-                        // DİKKAT
                     </p>
                     <p className="text-[13px] leading-relaxed" style={{ color: 'var(--color-info-text)' }}>
                         <span className="font-semibold" style={{ color: 'var(--color-info-title)' }}>

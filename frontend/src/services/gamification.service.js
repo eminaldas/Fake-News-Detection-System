@@ -1,4 +1,3 @@
-// frontend/src/services/gamification.service.js
 import axiosInstance from '../api/axios';
 import toast from './toast';
 

@@ -59,7 +59,6 @@ export default function BadgeShowcaseModal({ onClose, onSave }) {
                 <div className="px-4 py-3 border-b flex items-center justify-between" style={BD}>
                     <span className="font-mono text-xs tracking-widest uppercase"
                           style={{ color: 'var(--color-brand-primary)' }}>
-                        // ROZET VİTRİNİ — {selected.length}/3
                     </span>
                     <button onClick={onClose} className="transition-opacity hover:opacity-60"
                             style={{ color: 'var(--color-text-muted)' }}>

@@ -256,7 +256,6 @@ export default function Legal() {
             {/* Başlık */}
             <div className="mb-8">
                 <p className="font-mono text-[10px] uppercase tracking-widest mb-1" style={{ color: BRAND }}>
-                    // HUKUKI_BELGELER
                 </p>
                 <h1 className="font-manrope font-extrabold text-3xl tracking-tight"
                     style={{ color: 'var(--color-text-primary)' }}>

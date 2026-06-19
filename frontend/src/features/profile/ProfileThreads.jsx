@@ -84,7 +84,6 @@ function ThreadRow({ thread, onUpdated, onDeleted }) {
             onMouseLeave={e => e.currentTarget.style.borderLeftColor = statusColor + '60'}
         >
             {editing ? (
-                /* ── Düzenleme modu ── */
                 <div className="p-4 flex flex-col gap-3">
                     <input
                         value={editTitle}
@@ -130,7 +129,6 @@ function ThreadRow({ thread, onUpdated, onDeleted }) {
                     </div>
                 </div>
             ) : confirmDel ? (
-                /* ── Silme onayı ── */
                 <div className="p-4 flex items-center gap-3 flex-wrap">
                     <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: '#ef4444' }} />
                     <span className="font-mono text-sm flex-1" style={{ color: 'var(--color-text-primary)' }}>
@@ -155,7 +153,6 @@ function ThreadRow({ thread, onUpdated, onDeleted }) {
                     </div>
                 </div>
             ) : (
-                /* ── Normal görünüm ── */
                 <div className="flex items-center gap-3 px-4 py-3">
                     {/* Durum + Başlık */}
                     <div className="flex-1 min-w-0 flex flex-col gap-1">
@@ -261,7 +258,6 @@ const ProfileThreads = () => {
                 {/* Başlık */}
                 <div className="px-4 py-3 border-b flex items-center justify-between" style={BD}>
                     <span className="font-mono text-xs tracking-widest uppercase" style={{ color: 'var(--color-brand-primary)' }}>
-                        // TARTIŞMALARIM
                     </span>
                     {total > 0 && (
                         <span className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
@@ -273,13 +269,11 @@ const ProfileThreads = () => {
                 {/* İçerik */}
                 {loading ? (
                     <div className="p-8 text-center font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                        // yükleniyor...
                     </div>
                 ) : threads.length === 0 ? (
                     <div className="p-12 flex flex-col items-center gap-4">
                         <MessagesSquare className="w-10 h-10 opacity-15" style={{ color: 'var(--color-text-muted)' }} />
                         <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                            // henüz tartışma yok
                         </p>
                         <Link
                             to="/forum"
@@ -333,7 +327,6 @@ const ProfileThreads = () => {
                 {/* Footer */}
                 <div className="px-4 py-2 border-t flex justify-between" style={BD}>
                     <span className="font-mono text-[9px] tracking-widest" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}>
-                        // THREAD_LOG
                     </span>
                     <span className="font-mono text-[9px] tracking-widest" style={{ color: 'var(--color-brand-primary)', opacity: 0.6 }}>
                         24s düzenlenebilir

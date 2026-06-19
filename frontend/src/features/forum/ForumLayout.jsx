@@ -45,7 +45,6 @@ const ForumLayout = () => {
     const isThreadPage = /^\/forum\/[^/]+$/.test(location.pathname) && !isSearchPage;
     const [searchParams, setSearchParams] = useSearchParams();
 
-    // Paylaşılan thread: ilk ziyarette içeriği göster, yenileyince modal
     const [threadAllowed] = React.useState(() => {
         if (!isThreadPage || isAuthenticated) return true;
         const key = `forum_thread_seen_${location.pathname}`;

@@ -1,4 +1,3 @@
-// frontend/src/hooks/useImageAnalysis.js
 import { useState, useRef, useCallback } from 'react';
 import axiosInstance from '../api/axios';
 

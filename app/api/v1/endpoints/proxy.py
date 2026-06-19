@@ -16,7 +16,6 @@ router = APIRouter()
 
 _MAX_BYTES = 5 * 1024 * 1024  # 5 MB
 
-# RFC-1918 ve loopback aralıkları — bunlara proxy yapılmaz (SSRF koruması)
 _BLOCKED_NETWORKS = [
     ipaddress.ip_network("10.0.0.0/8"),
     ipaddress.ip_network("172.16.0.0/12"),
@@ -38,7 +37,6 @@ def _is_safe_url(url: str) -> bool:
         hostname = parsed.hostname
         if not hostname:
             return False
-        # "localhost" veya sayısal private IP string kontrolü (DNS olmadan hızlı guard)
         if hostname == "localhost":
             return False
         try:
@@ -46,7 +44,6 @@ def _is_safe_url(url: str) -> bool:
             return not any(ip in net for net in _BLOCKED_NETWORKS)
         except ValueError:
             pass  # hostname, sayısal IP değil — DNS ile devam et
-        # DNS çözümle ve IP kontrol et
         try:
             resolved = socket.gethostbyname(hostname)
             ip = ipaddress.ip_address(resolved)

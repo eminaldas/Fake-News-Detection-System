@@ -114,7 +114,6 @@ export default function PlatformStatsSection() {
                 </h2>
             </div>
             <p className="font-mono text-[10px] text-tx-secondary/80 uppercase tracking-widest mb-4">
-                // Canlı · Bugüne ait veriler
             </p>
 
             <div className="relative border" style={{ background: SURFACE, borderColor: BORDER }}>
@@ -137,7 +136,6 @@ export default function PlatformStatsSection() {
                 <div className="px-4 md:px-5 pt-4 pb-5">
                     <p className="font-mono text-[10px] uppercase tracking-widest mb-4"
                        style={{ color: BRAND, opacity: 0.7 }}>
-                        // SON_7_GÜN · SAHTELİK_ORANI
                     </p>
                     <div className="flex gap-2">
                         {last7.map(({ dateStr, dayLabel, data }, idx) => (

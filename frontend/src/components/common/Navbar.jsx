@@ -94,7 +94,7 @@ function CategoryBar({ activeCategory, onSelect, categories, hiddenCategories, o
                             onClick={() => onSelect(item.value)}
                             className="px-4 py-3 text-[11px] font-bold tracking-widest whitespace-nowrap transition-colors duration-200 shrink-0"
                             style={{
-                                fontFamily: "'Open Sans', sans-serif",
+                                fontFamily: "'Elms Sans', sans-serif",
                                 color:      isActive ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)',
                             }}
                         >
@@ -211,7 +211,7 @@ function DesktopNav() {
                         ref={el => { linkRefs.current[item.path] = el; }}
                         className="relative px-3.5 py-1.5 text-[15px] font-medium transition-colors"
                         style={{
-                            fontFamily: "'Open Sans', sans-serif",
+                            fontFamily: "'Elms Sans', sans-serif",
                             color:      active ? 'var(--color-brand-primary)' : 'var(--color-text-primary)',
                         }}
                     >

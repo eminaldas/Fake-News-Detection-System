@@ -116,7 +116,6 @@ const AnalysisForm = ({ onAnalyze, onAnalyzeUrl, onAnalyzeImage, loading, isPoll
               />
             </div>
             <p className="font-mono text-[11px] text-tx-secondary/70">
-              // Makale scrape edilip BERT ve stilometrik analiz uygulanacaktır.
             </p>
           </div>
         )}

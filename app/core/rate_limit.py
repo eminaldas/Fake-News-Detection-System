@@ -41,7 +41,6 @@ async def check_rate_limit(
     Kayıtlı user: RATE_LIMIT_USER/gün.
     Anonim: RATE_LIMIT_ANON/gün (IP bazlı).
     """
-    # Admin bypass
     if current_user is not None and getattr(current_user, "role", None) is not None:
         from app.models.models import UserRole
         if current_user.role == UserRole.admin:
@@ -112,7 +111,6 @@ async def check_rate_limit(
             },
         )
 
-    # Kalan bilgisini request.state'e yaz — middleware header'a ekleyecek
     request.state.rate_limit_limit     = limit
     request.state.rate_limit_remaining = remaining
     request.state.rate_limit_reset     = _midnight_epoch()

@@ -144,12 +144,10 @@ async def _update_profiles_async() -> None:
                     db.add(profile)
                 updated_user_ids.append(uid_str)
 
-            # ── Faz 4: High-risk alert trigger ────────────────────────────────
             notified_user_ids = await _send_high_risk_alerts(db, user_data)
             await db.commit()
             logger.info("preference_profiles güncellendi: %d kullanıcı", len(user_data))
 
-            # ── WS push ────────────────────────────────────────────────────────
             ws_events: list[tuple[str, str, dict]] = []
             for uid_str in updated_user_ids:
                 ws_events.append((f"user:{uid_str}:events", "recommendations_updated", {}))
@@ -182,19 +180,16 @@ async def _send_high_risk_alerts(db: AsyncSession, user_data: dict) -> list[str]
         except ValueError:
             continue
 
-        # Bildirim tercihini kontrol et
         prefs = (await db.execute(
             select(UserNotificationPrefs).where(UserNotificationPrefs.user_id == uid)
         )).scalar_one_or_none()
         if prefs and not prefs.high_risk_alert:
             continue
 
-        # Bu kullanıcının ilgi kategorileri
         top_cats = list(data["category_clicks"].keys()) if data["category_clicks"] else []
         if not top_cats:
             continue
 
-        # Son 24 saatte bu kategorilerde yüksek riskli haber sayısı
         count_result = (await db.execute(
             select(sqlfunc.count()).select_from(NewsArticle).where(
                 NewsArticle.category.in_(top_cats),
@@ -206,7 +201,6 @@ async def _send_high_risk_alerts(db: AsyncSession, user_data: dict) -> list[str]
         if count_result < 3:
             continue
 
-        # Bu gün için zaten bildirim gönderildi mi?
         today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         existing = (await db.execute(
             select(UserNotification).where(

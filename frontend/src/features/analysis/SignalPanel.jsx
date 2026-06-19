@@ -53,7 +53,6 @@ const SignalPanel = ({
         <div>
             {sectionLabel && (
                 <p className="text-tx-secondary text-[10px] font-mono font-bold tracking-widest uppercase mb-3">
-                    // {sectionLabel.toUpperCase().replace(/ /g, '_')}
                 </p>
             )}
             <div className={gridCls}>

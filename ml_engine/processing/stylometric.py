@@ -15,9 +15,6 @@ from typing import Dict
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Kalıp listeleri (büyük harf Türkçe)
-# ---------------------------------------------------------------------------
 
 CLICKBAIT_PATTERNS = [
     r"\bŞOK\b", r"\bFLAŞ\b", r"\bBOMBA\b", r"\bSKANDAL\b",
@@ -48,12 +45,10 @@ ABSOLUTE_PATTERNS = [
     r"\bHİÇ GÖRÜLMEM\w*\b", r"\bİLK KEZ\b",
 ]
 
-# Bileşik ağırlıklar
 _W_CLICKBAIT = 0.50
 _W_FEAR = 0.30
 _W_ABSOLUTE = 0.20
 
-# Normalleştirme eşikleri: bu kadar hit → skor = 1.0
 _NORM_CLICKBAIT = 3
 _NORM_FEAR = 4
 _NORM_ABSOLUTE = 5

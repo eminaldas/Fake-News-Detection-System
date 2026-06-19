@@ -1,18 +1,12 @@
 import React from 'react';
 import { Quote } from 'lucide-react';
 
-// Stitch tasarımıyla eşleşen kategori renkleri (sabit — karardan bağımsız)
 const CATEGORY_STYLE = {
     clickbait: { bg: '#ff735133', text: '#ff7351', border: '#ff7351' }, // hata/kırmızı
     hedge:     { bg: '#f9731633', text: '#fb923c', border: '#f97316' }, // turuncu
     source:    { bg: '#3fff8b33', text: '#3fff8b', border: '#3fff8b' }, // yeşil
 };
 
-/**
- * triggered_words içindeki ifadeleri metinde vurgular.
- * Uzun ifadeler önce aranır (greedy matching).
- * dangerouslySetInnerHTML kullanılmaz — React node dizisi döner.
- */
 function buildHighlightedNodes(text, triggeredWords) {
     if (!text || !triggeredWords) return [text];
 

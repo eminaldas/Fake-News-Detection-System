@@ -10,7 +10,6 @@ from ddgs import DDGS
 
 logger = logging.getLogger(__name__)
 
-# ─── NER desenleri — öncelik sırası: TAM AD > KURUM > YER > TEK KELİME ───────
 _ENTITY_PATTERNS = [
     r'\b[A-ZÇĞİÖŞÜ][a-zçğışöüa-z]+ [A-ZÇĞİÖŞÜ][a-zçğışöüa-z]+\b',
     r'\b(AKP|CHP|MHP|HDP|İYİ Parti|TBMM|NATO|AB|BM|TÜİK|AFAD|BOTAŞ|EPDK|BDDK)\b',
@@ -18,7 +17,6 @@ _ENTITY_PATTERNS = [
     r'\b[A-ZÇĞİÖŞÜ][a-zçğışöüa-z]{3,}\b',
 ]
 
-# ─── Prompt injection koruması ────────────────────────────────────────────────
 _INJECTION_PATTERNS = re.compile(
     r'\[SİSTEM\]|\[SYSTEM\]|\[GÖREV\]|ignore previous|önceki talimatları unut|'
     r'forget instructions|\[HABER\]|verdict\s*:|```json|</?script',

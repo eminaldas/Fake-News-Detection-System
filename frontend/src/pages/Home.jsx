@@ -18,7 +18,6 @@ import PlatformStatsSection from "../features/analysis/PlatformStatsSection";
 import ForumTrendBand from "../components/features/gundem/ForumTrendBand";
 import { useForumTrends } from "../hooks/useForumTrends";
 
-/* ── Kelime HUD çerçevesi ── */
 function WordHUD({ color, exiting }) {
   const sides = [
     'top-0 left-0 h-[2px] w-[11px]', 'top-0 left-0 w-[2px] h-[11px]',
@@ -43,14 +42,12 @@ function WordHUD({ color, exiting }) {
   );
 }
 
-/* ── Hero Subtitle ── */
 function HeroSubtitle() {
   const [phase, setPhase] = React.useState('idle');
   const [dDyn,  setDDyn]  = React.useState({});
   const [yDyn,  setYDyn]  = React.useState({});
   const [aDyn,  setADyn]  = React.useState({ opacity: 0 });
 
-  /* "Ne?" ile aynı stil: skewX + chromatic aberration + opacity titremesi */
   const glitchIn = React.useCallback((setDyn, finalStyle, dur = 420) => {
     let start = null;
     const step = (ts) => {
@@ -71,7 +68,6 @@ function HeroSubtitle() {
     requestAnimationFrame(step);
   }, []);
 
-  /* Glitch + eş zamanlı opacity sıfıra inen çıkış */
   const glitchOut = React.useCallback((setDyn, dur = 850, onDone) => {
     let start = null;
     const step = (ts) => {
@@ -98,7 +94,6 @@ function HeroSubtitle() {
     const cycle = () => {
       if (dead) return;
 
-      // 1. doğru hedefle + glitch → yeşil
       T.push(setTimeout(() => {
         if (dead) return;
         setPhase('dogru');
@@ -109,7 +104,6 @@ function HeroSubtitle() {
       T.push(setTimeout(() => { if (!dead) setPhase('dogru-out'); }, 1380));
       T.push(setTimeout(() => { if (!dead) setPhase('mid'); },       1720));
 
-      // 2. yanlış hedefle + glitch → kırmızı
       T.push(setTimeout(() => {
         if (dead) return;
         setPhase('yanlis');
@@ -120,7 +114,6 @@ function HeroSubtitle() {
       T.push(setTimeout(() => { if (!dead) setPhase('yanlis-out'); }, 3200));
       T.push(setTimeout(() => { if (!dead) setPhase('mid2'); },       3550));
 
-      // 3. "hemen analiz et" hedefle → glitch ile belir
       T.push(setTimeout(() => {
         if (dead) return;
         setPhase('analize');
@@ -128,7 +121,6 @@ function HeroSubtitle() {
           if (!dead) glitchIn(setADyn, { opacity: 1, color: 'var(--color-text-primary)' });
         }, 340));
       }, 4050));
-      // 4. 5-6 saniye bekle, ardından glitch ile yok ol → SONRA hedef küçülüp gider
       T.push(setTimeout(() => {
         if (!dead) glitchOut(setADyn, 850, () => {
           if (!dead) {
@@ -179,7 +171,6 @@ function HeroSubtitle() {
   );
 }
 
-/* ── HUD Target Frame ── */
 const NC = 'rgba(16,185,129,0.88)';
 const HUD_VARIANTS = [
   { anim: 'hudVar1 2.4s linear both', origin: 'top center',    dur: 2400 },
@@ -230,7 +221,6 @@ function HeroFrame() {
   );
 }
 
-/* ── Glitch Hero ── */
 function GlitchNe() {
   const [dynStyle, setDynStyle] = React.useState({});
   const [scanning, setScanning] = React.useState(false);
@@ -298,14 +288,12 @@ const Home = () => {
       _analyzeUrl(url);
   };
 
-  // Backend'den 429 gelirse quota bölümünü göster
   useEffect(() => {
       const handler = () => { if (!isAuthenticated) setQuotaExceeded(true); };
       window.addEventListener('rate-limit-exceeded', handler);
       return () => window.removeEventListener('rate-limit-exceeded', handler);
   }, [isAuthenticated]);
 
-  // Kullanıcı giriş yaparsa quota UI'ı gizle
   useEffect(() => {
       if (isAuthenticated) setQuotaExceeded(false);
   }, [isAuthenticated]);
@@ -330,7 +318,6 @@ const Home = () => {
     submitImage(file);
   };
 
-  // Loading'den result'a geçişi takip et → completionPhase
   useEffect(() => {
       if (showAnalysisSkeleton) { wasLoadingRef.current = true; }
   }, [showAnalysisSkeleton]);
@@ -346,7 +333,6 @@ const Home = () => {
       }
   }, [result]);
 
-  // Sonuç kartı göründüğünde smooth scroll (completionPhase bitti + result var)
   useEffect(() => {
     if (!completionPhase && result && resultRef.current) {
       setTimeout(() => {
@@ -430,7 +416,6 @@ const Home = () => {
                           <div>
                               <p className="font-mono text-[10px] uppercase tracking-widest mb-0.5"
                                  style={{ color: 'var(--color-brand-primary)', opacity: 0.65 }}>
-                                  // Günlük limit
                               </p>
                               <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                                   Ücretsiz analiz hakkınız doldu.

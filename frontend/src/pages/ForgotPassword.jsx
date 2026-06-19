@@ -66,7 +66,6 @@ const ForgotPassword = () => {
 
                     <p className="text-[10px] font-manrope font-black uppercase tracking-[0.22em] mb-4"
                        style={{ color: 'var(--color-brand-primary)' }}>
-                        // Şifremi Unuttum
                     </p>
 
                     {success ? (
