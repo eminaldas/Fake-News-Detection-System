@@ -81,7 +81,6 @@ async def _retrain_async() -> None:
 
     try:
         async with Session() as session:
-            # ── 1. Consensus'e ulaşmış feedback'ler ──────────────────────────
             consensus_subq = (
                 select(
                     ModelFeedback.article_id,
@@ -95,7 +94,6 @@ async def _retrain_async() -> None:
             consensus_result = await session.execute(select(consensus_subq))
             consensus_raw = consensus_result.fetchall()
 
-            # article_id başına yalnızca kazanan label'ı tut (>%60 kontrolü)
             from collections import defaultdict
             article_votes: dict = defaultdict(dict)
             for row in consensus_raw:
@@ -108,13 +106,11 @@ async def _retrain_async() -> None:
                 if winner_cnt / total > 0.60:
                     consensus_labels[art_id] = winner
 
-            # ── 2. Ground-truth articles ──────────────────────────────────────
             gt_result = await session.execute(
                 select(Article).where(Article.status.in_(_VALID_STATUSES))
             )
             gt_articles = gt_result.scalars().all()
 
-            # ── 3. Proportion cap ─────────────────────────────────────────────
             n_gt = len(gt_articles)
             max_feedback = int(n_gt * max_prop / (1 - max_prop))
             selected_art_ids = list(consensus_labels.keys())[:max_feedback]
@@ -122,14 +118,12 @@ async def _retrain_async() -> None:
 
             total_count = n_gt + n_feedback
 
-            # ── 4. Veri yeterliliği kontrolü ──────────────────────────────────
             if total_count < 10:
                 await _write_run(session, status="skipped", notes="Yetersiz veri")
                 await session.commit()
                 logger.info("retrain: skipped — yetersiz veri (%d örnek)", total_count)
                 return
 
-            # ── 5. Feature vektörleri: ground-truth ──────────────────────────
             X, y = [], []
             for article in gt_articles:
                 label = _status_to_label(article.status)
@@ -144,7 +138,6 @@ async def _retrain_async() -> None:
                 X.append(embedding + signal_vec)
                 y.append(label)
 
-            # ── 5b. Feature vektörleri: feedback ─────────────────────────────
             if selected_art_ids:
                 fb_articles_result = await session.execute(
                     select(Article).where(
@@ -179,7 +172,6 @@ async def _retrain_async() -> None:
                 X_np, y_np, test_size=0.2, random_state=42, stratify=stratify_arg
             )
 
-            # ── 6. Mevcut modelin accuracy'si ────────────────────────────────
             prev_accuracy = None
             try:
                 with open(_MODEL_PATH, "rb") as f:
@@ -189,7 +181,6 @@ async def _retrain_async() -> None:
             except Exception as exc:
                 logger.warning("retrain: mevcut model ölçülemedi: %s", exc)
 
-            # ── 7. Yeni modeli eğit ───────────────────────────────────────────
             new_pipeline = Pipeline([
                 ("scaler", StandardScaler()),
                 ("lr", LogisticRegression(
@@ -203,7 +194,6 @@ async def _retrain_async() -> None:
             y_pred_new = new_pipeline.predict(X_test)
             new_accuracy = float(accuracy_score(y_test, y_pred_new))
 
-            # ── 8. Accuracy guard ─────────────────────────────────────────────
             if prev_accuracy is not None and new_accuracy < prev_accuracy - 0.02:
                 notes = f"Accuracy düştü: {new_accuracy:.3f} < {prev_accuracy:.3f} - 0.02"
                 await _write_run(
@@ -215,7 +205,6 @@ async def _retrain_async() -> None:
                 logger.info("retrain: skipped — %s", notes)
                 return
 
-            # ── 9. Eski modeli backup'la, yeni modeli kaydet ─────────────────
             if os.path.exists(_MODEL_PATH):
                 shutil.copy(_MODEL_PATH, _MODEL_PATH + ".bak")
             os.makedirs(os.path.dirname(_MODEL_PATH), exist_ok=True)
@@ -227,7 +216,6 @@ async def _retrain_async() -> None:
                 new_accuracy, prev_accuracy or 0, total_count, n_feedback,
             )
 
-            # ── 10. ModelTrainingRun kaydı ────────────────────────────────────
             await _write_run(
                 session, status="success",
                 sample_count=total_count, feedback_count=n_feedback,
@@ -235,7 +223,6 @@ async def _retrain_async() -> None:
             )
             await session.commit()
 
-            # ── 11. Admin WS push (transient Redis) ──────────────────────────
             try:
                 import json as _json
                 from redis.asyncio import from_url as _redis_from_url

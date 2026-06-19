@@ -24,7 +24,6 @@ const MentionTextarea = ({ value, onChange, placeholder, rows = 4, id, className
     const [mentionStart,  setMentionStart]  = React.useState(null); // index of '@' in value
     const [activeIndex,   setActiveIndex]   = React.useState(0);
 
-    // Close dropdown on click outside
     React.useEffect(() => {
         const handleClickOutside = (e) => {
             if (
@@ -61,7 +60,6 @@ const MentionTextarea = ({ value, onChange, placeholder, rows = 4, id, className
 
         onChange(newValue);
 
-        // Find the '@word' that the cursor is currently inside
         const textBeforeCursor = newValue.slice(0, cursorPos);
         const match = textBeforeCursor.match(/@(\w*)$/);
 
@@ -88,7 +86,6 @@ const MentionTextarea = ({ value, onChange, placeholder, rows = 4, id, className
         const beforeMention = value.slice(0, mentionStart);
         const afterCursor   = value.slice(cursorPos);
 
-        // Find end of the partial @word after mentionStart
         const partialEnd    = value.slice(mentionStart).search(/\s|$/);
         const endIndex      = mentionStart + (partialEnd >= 0 ? partialEnd : value.length - mentionStart);
         const afterMention  = value.slice(endIndex);
@@ -100,7 +97,6 @@ const MentionTextarea = ({ value, onChange, placeholder, rows = 4, id, className
         setSuggestions([]);
         setMentionStart(null);
 
-        // Restore focus and place cursor after inserted mention
         const newCursorPos = mentionStart + username.length + 2; // '@' + username + ' '
         requestAnimationFrame(() => {
             textareaRef.current?.focus();

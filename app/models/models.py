@@ -97,10 +97,8 @@ class UserWarning(Base):
     id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"),  nullable=False, index=True)
     admin_id   = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    # warn | restrict | shadow_ban | ban
     action     = Column(String(30), nullable=False)
     reason     = Column(Text, nullable=False)
-    # restrict için hangi izinler kaldırıldı
     restrictions = Column(JSONB, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -223,7 +221,7 @@ class Category(Base):
     __tablename__ = "categories"
 
     id                  = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    slug                = Column(String(50), nullable=False, unique=True, index=True)  # "otomobil"
+    slug                = Column(String(50), nullable=False, index=True)  # "otomobil"
     name                = Column(String(80), nullable=False)                           # "Otomobil"
     parent_id           = Column(UUID(as_uuid=True), ForeignKey("categories.id", ondelete="CASCADE"), nullable=True, index=True)
     prototype_text      = Column(Text, nullable=True)        # admin'in yazdığı tanım/kelimeler
@@ -232,6 +230,10 @@ class Category(Base):
     display_order       = Column(Integer, nullable=False, default=0)
     is_active           = Column(Boolean, nullable=False, default=True)
     created_at          = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("parent_id", "slug", name="uq_categories_parent_slug"),
+    )
 
 
 class AuditLog(Base):
@@ -299,6 +301,7 @@ class UserPreferenceProfile(Base):
     interaction_count  = Column(Integer, default=0)
     blocked_sources    = Column(JSONB, default=list)
     hidden_categories  = Column(JSONB, default=list)
+    hidden_subcategories = Column(JSONB, default=list)
     last_updated       = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
@@ -443,12 +446,10 @@ class ForumThread(Base):
     fact_check_triggered = Column(Boolean, server_default="false", nullable=False)
     group_id             = Column(UUID(as_uuid=True), nullable=True)
     image_urls           = Column(JSONB, nullable=False, server_default="[]")
-    # Verdict alanları
     verdict         = Column(String(20),    nullable=True)   # 'DOGRU'|'YANLIS'|'YANILTICI'
     verdict_reason  = Column(Text,          nullable=True)
     verdict_by      = Column(String(20),    nullable=True)   # 'author'|'auto'
     verdict_at      = Column(DateTime(timezone=True), nullable=True)
-    # Verdict Reform 2.0
     vote_suspicious_weighted  = Column(Float,   nullable=False, server_default="0")
     vote_authentic_weighted   = Column(Float,   nullable=False, server_default="0")
     vote_investigate_weighted = Column(Float,   nullable=False, server_default="0")

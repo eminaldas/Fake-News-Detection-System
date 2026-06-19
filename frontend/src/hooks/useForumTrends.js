@@ -15,7 +15,6 @@ export function useForumTrends() {
                 });
                 setThreads(res.data.trending_threads || []);
             } catch {
-                // band gizlenir — silently fail
             } finally {
                 setLoading(false);
             }

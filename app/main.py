@@ -110,7 +110,6 @@ async def security_headers(request: Request, call_next) -> Response:
     response.headers["Referrer-Policy"]               = "strict-origin-when-cross-origin"
     response.headers["Cross-Origin-Opener-Policy"]    = "same-origin-allow-popups"
 
-    # Rate limit header'larını request.state'den ekle (set edildiyse)
     if hasattr(request.state, "rate_limit_limit"):
         response.headers["X-RateLimit-Limit"]     = str(request.state.rate_limit_limit)
         response.headers["X-RateLimit-Remaining"] = str(request.state.rate_limit_remaining)

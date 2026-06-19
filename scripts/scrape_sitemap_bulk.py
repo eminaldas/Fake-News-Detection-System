@@ -72,7 +72,6 @@ SITEMAP_SOURCES = {
         "url_filter": "ntv.com.tr/",
         "domain": "ntv.com.tr",
     },
-    # Not: BBC Türkçe geleneksel sitemap kullanmıyor; news sitemap denenecek, çalışmayabilir.
     "BBC Türkçe": {
         "sitemap_url": "https://www.bbc.com/sitemaps/https-index-com-turkish.xml",
         "content_selectors": ["div[data-component='text-block']", "article", "main"],
@@ -144,7 +143,6 @@ def _parse_sitemap_urls(
         logger.warning("Sitemap XML parse hatası (%s): %s", sitemap_url, exc)
         return []
 
-    # XML namespace'i temizle
     ns = root.tag.split("}")[0].strip("{") if "}" in root.tag else ""
     tag = lambda name: f"{{{ns}}}{name}" if ns else name
 

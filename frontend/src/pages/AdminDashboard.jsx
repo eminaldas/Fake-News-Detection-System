@@ -122,7 +122,7 @@ export default function AdminDashboard() {
             cursor: 'pointer',
             fontSize: 12,
             fontWeight: 600,
-            fontFamily: 'Open Sans, system-ui, sans-serif',
+            fontFamily: 'Elms Sans, system-ui, sans-serif',
           }}
         >
           <RefreshCw size={13} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />

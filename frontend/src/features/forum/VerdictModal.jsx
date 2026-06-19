@@ -86,7 +86,6 @@ const VerdictModal = ({ threadId, postType = 'iddia', onClose, onResolved }) => 
 
                     <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={BD}>
                         <span className="font-mono text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-brand-primary)' }}>
-                            // tartışmayı_sonuçlandır
                         </span>
                         <button type="button" onClick={handleClose} className="font-mono text-xs transition-opacity hover:opacity-60" style={{ color: 'var(--color-text-muted)' }}>
                             [✕]

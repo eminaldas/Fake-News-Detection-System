@@ -112,7 +112,6 @@ async def main():
         for stmt in STATEMENTS:
             await conn.execute(sqlalchemy.text(stmt))
 
-        # Seed system tags — ON CONFLICT DO NOTHING to be idempotent
         for tag_name in SYSTEM_TAGS:
             await conn.execute(
                 sqlalchemy.text(

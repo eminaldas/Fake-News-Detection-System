@@ -54,8 +54,6 @@ export function CookieProvider({ children }) {
     }, [consent.analytics]);
 
     const resetConsent = useCallback(() => {
-        // Intentionally removes the key rather than writing DEFAULT_STATE,
-        // so the banner re-appears on next load as if the user never decided.
         localStorage.removeItem(STORAGE_KEY);
         setConsent(DEFAULT_STATE);
     }, []);
@@ -67,7 +65,6 @@ export function CookieProvider({ children }) {
     );
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function useCookie() {
     const ctx = useContext(CookieContext);
     if (!ctx) throw new Error('useCookie must be used inside CookieProvider');

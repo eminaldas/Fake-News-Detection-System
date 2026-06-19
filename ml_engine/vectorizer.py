@@ -24,7 +24,6 @@ class TurkishVectorizer:
             self.model  = None
             return
 
-        # Lazy imports — remote modda bu kütüphaneler hiç yüklenmez
         import torch
         from sentence_transformers import SentenceTransformer
         from app.core.config import settings

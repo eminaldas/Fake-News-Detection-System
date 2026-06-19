@@ -1,4 +1,3 @@
-# workers/gemini_retry.py
 """
 Gemini generate_content için retry + fallback yardımcı modülü.
 Primary model (GEMINI_MODEL) 503/aşırı yük dönerse kısa beklemeyle tekrar dener;
@@ -11,7 +10,6 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Geçici (retry edilebilir) hata işaretleri — büyük/küçük harf duyarsız aranır
 _TRANSIENT_MARKERS = (
     "503", "unavailable", "429", "overloaded",
     "high demand", "resource_exhausted", "try again",

@@ -162,7 +162,6 @@ export default function AnalysisModal({ result, onClose }) {
                             <div className="flex items-center gap-2 px-4 pt-4 pb-3">
                                 <Brain className={`w-4 h-4 ${theme.statusCls}`} />
                                 <span className={`${theme.statusCls} font-mono font-bold text-[10px] tracking-widest uppercase`}>
-                                    // İçerik_Analizi
                                 </span>
                             </div>
                             <div className="px-4 pb-2">

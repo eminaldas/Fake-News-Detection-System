@@ -1,9 +1,5 @@
 import axiosInstance from '../api/axios';
 
-/**
- * Kullanıcı etkileşimini sessizce kaydeder.
- * Fire-and-forget: hata fırlatsın ya da fırlatmasın UX etkilenmez.
- */
 export async function trackInteraction({
     content_id,
     interaction_type,
@@ -23,6 +19,5 @@ export async function trackInteraction({
             visibility_weight,
         });
     } catch {
-        // Sessizce geç — tracking hatası kullanıcıyı etkilemez
     }
 }

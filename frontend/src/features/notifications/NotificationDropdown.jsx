@@ -46,7 +46,6 @@ export default function NotificationDropdown({ onClose }) {
             <div className="px-4 py-2.5 border-b flex items-center justify-between" style={{ ...TS, ...BD }}>
                 <span className="font-mono text-xs tracking-widest uppercase"
                       style={{ color: 'var(--color-brand-primary)' }}>
-                    // BİLDİRİMLER
                 </span>
                 {unread > 0 && (
                     <span className="font-mono text-[10px] tracking-wider"
@@ -61,14 +60,12 @@ export default function NotificationDropdown({ onClose }) {
                 {loading && (
                     <div className="px-4 py-6 text-center">
                         <p className="font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                            // yükleniyor...
                         </p>
                     </div>
                 )}
                 {!loading && items.length === 0 && (
                     <div className="px-4 py-8 text-center">
                         <p className="font-mono text-xs opacity-50" style={{ color: 'var(--color-text-muted)' }}>
-                            // bildirim yok
                         </p>
                     </div>
                 )}
@@ -104,7 +101,6 @@ export default function NotificationDropdown({ onClose }) {
             <div className="px-4 py-2 border-t" style={BD}>
                 <span className="font-mono text-[9px] tracking-widest opacity-30"
                       style={{ color: 'var(--color-text-muted)' }}>
-                    // NOTIF_STREAM
                 </span>
             </div>
         </div>

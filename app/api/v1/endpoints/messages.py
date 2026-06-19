@@ -20,7 +20,6 @@ from app.models.models import DirectMessage, User
 router = APIRouter()
 
 
-# ── Şemalar ─────────────────────────────────────────────────────────────────
 
 class SendMessageRequest(BaseModel):
     content:     str            = Field(..., min_length=1, max_length=2000)
@@ -79,7 +78,6 @@ class ConversationOut(BaseModel):
     unread_count:  int
 
 
-# ── Endpoints ────────────────────────────────────────────────────────────────
 
 @router.get("/conversations")
 async def list_conversations(
@@ -189,7 +187,6 @@ async def get_conversation(
     total    = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
     messages = (await db.execute(q.offset((page - 1) * size).limit(size))).scalars().all()
 
-    # Gelen mesajları okundu işaretle
     await db.execute(
         update(DirectMessage)
         .where(
@@ -278,7 +275,6 @@ async def send_message(
     )
 
     out = MessageOut.from_orm(msg)
-    # reply_to ilişkisi henüz yüklenmediyse manuel ekle
     if reply_to_id and not out.reply_to and reply_preview_data:
         out = out.model_copy(update={"reply_to": ReplyPreview(**reply_preview_data)})
     return out.model_dump()

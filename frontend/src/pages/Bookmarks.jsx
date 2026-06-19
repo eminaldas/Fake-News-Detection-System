@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { Bookmark, MessageSquare } from 'lucide-react';
 import axiosInstance from '../api/axios';
 
-/* ── Basit thread kartı (kaydedilenler için) ─────────────────── */
 function BookmarkThreadCard({ thread }) {
     function timeAgo(dateStr) {
         const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
@@ -97,7 +96,6 @@ function BookmarkThreadCard({ thread }) {
     );
 }
 
-/* ── Spinner ─────────────────────────────────────────────────── */
 function Spinner() {
     return (
         <div className="flex items-center justify-center py-24 gap-3" style={{ color: 'var(--color-text-muted)' }}>
@@ -110,7 +108,6 @@ function Spinner() {
     );
 }
 
-/* ── Ana sayfa ────────────────────────────────────────────────── */
 export default function Bookmarks() {
     const [threads,  setThreads]  = useState([]);
     const [total,    setTotal]    = useState(0);

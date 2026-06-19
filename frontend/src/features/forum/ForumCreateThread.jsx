@@ -75,7 +75,6 @@ const ForumCreateThread = () => {
             <div className="flex items-center gap-3">
                 <span className="font-mono text-xs font-bold tracking-widest uppercase"
                       style={{ color: 'var(--color-brand-primary)' }}>
-                    // tartışma_başlat
                 </span>
                 <div className="flex-1 h-px opacity-30" style={{ background: 'var(--color-terminal-border-raw)' }} />
                 <Link to="/forum"

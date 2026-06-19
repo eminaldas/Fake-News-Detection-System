@@ -11,7 +11,6 @@ const BRAND   = 'var(--color-brand-primary)';
 const SURFACE = 'var(--color-terminal-surface)';
 const BORDER  = 'var(--color-terminal-border-raw)';
 
-/* ── Intersection observer ── */
 function useInView(threshold = 0.12) {
     const ref = useRef(null);
     const [inView, setInView] = useState(false);
@@ -28,7 +27,6 @@ function useInView(threshold = 0.12) {
     return [ref, inView];
 }
 
-/* ── Scroll-triggered fade ── */
 function Reveal({ children, delay = 0, dir = 'up', className = '' }) {
     const [ref, inView] = useInView();
     const map = { up: 'translateY(28px)', left: 'translateX(-28px)', right: 'translateX(28px)' };
@@ -43,7 +41,6 @@ function Reveal({ children, delay = 0, dir = 'up', className = '' }) {
     );
 }
 
-/* ── Köşe çentikler ── */
 function Notch({ color = BRAND, size = 16 }) {
     const s = `${size}px`, t = '2px';
     return (
@@ -56,7 +53,6 @@ function Notch({ color = BRAND, size = 16 }) {
     );
 }
 
-/* ── Count-up ── */
 function Counter({ target, suffix = '', delay = 0 }) {
     const [val, setVal]  = useState(0);
     const [ref, inView]  = useInView(0.3);
@@ -79,7 +75,6 @@ function Counter({ target, suffix = '', delay = 0 }) {
     return <span ref={ref}>{val >= 1000 ? `${(val / 1000).toFixed(val >= 10000 ? 0 : 1)}K` : val}{suffix}</span>;
 }
 
-/* ─────────────────────────────────────────────── */
 const About = () => (
     <div className="w-full max-w-5xl mx-auto px-4 pb-24 pt-10">
 
@@ -144,7 +139,6 @@ const About = () => (
         <section className="mb-20">
             <Reveal className="mb-8">
                 <p className="font-mono text-[10px] uppercase tracking-widest mb-1" style={{ color: BRAND }}>
-                    // NE_İÇERİYORUZ
                 </p>
                 <h2 className="text-2xl md:text-3xl font-manrope font-extrabold tracking-tight"
                     style={{ color: 'var(--color-text-primary)' }}>
@@ -184,7 +178,6 @@ const About = () => (
         <section className="mb-20">
             <Reveal className="mb-8">
                 <p className="font-mono text-[10px] uppercase tracking-widest mb-1" style={{ color: BRAND }}>
-                    // HEDEFİMİZ
                 </p>
                 <h2 className="text-2xl md:text-3xl font-manrope font-extrabold tracking-tight"
                     style={{ color: 'var(--color-text-primary)' }}>
@@ -197,7 +190,6 @@ const About = () => (
                     <div className="relative border p-7 h-full" style={{ background: SURFACE, borderColor: BORDER }}>
                         <Notch />
                         <p className="font-mono text-[10px] uppercase tracking-widest mb-4" style={{ color: BRAND }}>
-                            // VİZYON
                         </p>
                         <Eye className="w-6 h-6 mb-4" style={{ color: BRAND }} />
                         <h3 className="font-manrope font-extrabold text-xl mb-3"
@@ -225,7 +217,6 @@ const About = () => (
                     <div className="relative border p-7 h-full" style={{ background: SURFACE, borderColor: BORDER }}>
                         <Notch />
                         <p className="font-mono text-[10px] uppercase tracking-widest mb-4" style={{ color: BRAND }}>
-                            // MİSYON
                         </p>
                         <Target className="w-6 h-6 mb-4" style={{ color: BRAND }} />
                         <h3 className="font-manrope font-extrabold text-xl mb-3"
@@ -255,7 +246,6 @@ const About = () => (
         <section className="mb-20">
             <Reveal className="mb-8">
                 <p className="font-mono text-[10px] uppercase tracking-widest mb-1" style={{ color: BRAND }}>
-                    // PLANLARIMIZ
                 </p>
                 <h2 className="text-2xl md:text-3xl font-manrope font-extrabold tracking-tight"
                     style={{ color: 'var(--color-text-primary)' }}>
@@ -354,7 +344,6 @@ const About = () => (
         <section className="mb-20">
             <Reveal className="mb-8">
                 <p className="font-mono text-[10px] uppercase tracking-widest mb-1" style={{ color: BRAND }}>
-                    // TEKNOLOJİ_YIĞINI
                 </p>
                 <h2 className="text-2xl md:text-3xl font-manrope font-extrabold tracking-tight"
                     style={{ color: 'var(--color-text-primary)' }}>
@@ -391,7 +380,6 @@ const About = () => (
             <div className="relative border p-10 text-center" style={{ background: SURFACE, borderColor: BORDER }}>
                 <Notch size={20} />
                 <p className="font-mono text-[10px] uppercase tracking-widest mb-3" style={{ color: BRAND }}>
-                    // HAREKETE_GEÇ
                 </p>
                 <h2 className="text-2xl md:text-3xl font-manrope font-extrabold tracking-tight mb-3"
                     style={{ color: 'var(--color-text-primary)' }}>
@@ -423,7 +411,6 @@ const About = () => (
                 </div>
                 <div className="flex-1">
                     <p className="font-mono text-[10px] uppercase tracking-widest mb-1" style={{ color: BRAND }}>
-                        // İLETİŞİM
                     </p>
                     <p className="font-mono text-sm font-bold mb-0.5" style={{ color: 'var(--color-text-primary)' }}>
                         Bize Ulaşın

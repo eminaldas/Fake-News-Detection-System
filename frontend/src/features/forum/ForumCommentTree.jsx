@@ -36,7 +36,6 @@ function depthBorderColor(depth, highlighted) {
 }
 
 function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewComment, onVerify, currentUserId, depth = 0 }) {
-    /* Alt yanıtlar varsayılan kapalı */
     const [showReplies,  setShowReplies]  = React.useState(false);
     const [visibleCount, setVisibleCount] = React.useState(REPLIES_INITIAL);
     const [editMode,     setEditMode]     = React.useState(false);
@@ -331,7 +330,6 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
     if (!comments?.length) {
         return (
             <p className="font-mono text-sm text-center py-8 opacity-50" style={{ color: 'var(--color-text-muted)' }}>
-                // henüz yorum yok — ilk yorumu sen yap
             </p>
         );
     }
@@ -369,7 +367,6 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
 
                         <div className="flex items-center justify-between mb-4">
                             <span className="font-mono text-xs tracking-widest uppercase" style={{ color: 'var(--color-brand-primary)' }}>
-                                // YORUMU BİLDİR
                             </span>
                             <button onClick={() => setReportTarget(null)} style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
                                 <X className="w-4 h-4" />

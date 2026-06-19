@@ -1,4 +1,3 @@
-// frontend/src/features/analysis/ImageDropZone.jsx
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Image as ImageIcon, X } from 'lucide-react';
 

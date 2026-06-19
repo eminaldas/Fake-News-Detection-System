@@ -37,14 +37,12 @@ export default function MiniMessenger() {
     const ref        = useRef(null);
     const loadedRef  = useRef(false);
 
-    /* Dışarı tıklayınca kapat */
     useEffect(() => {
         const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
         document.addEventListener('mousedown', h);
         return () => document.removeEventListener('mousedown', h);
     }, []);
 
-    /* Mount: okunmamış sayısı */
     useEffect(() => {
         if (!isAuthenticated) return;
         axiosInstance.get('/messages/unread-count')
@@ -52,8 +50,6 @@ export default function MiniMessenger() {
             .catch(() => {});
     }, [isAuthenticated]);
 
-    /* Panel açılınca konuşmaları yükle (ilk açılışta bir kere) */
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => {
         if (!open) return;
         if (loadedRef.current) return;
@@ -65,7 +61,6 @@ export default function MiniMessenger() {
             .finally(() => setLoading(false));
     }, [open]);
 
-    /* WebSocket: yeni mesaj */
     useEffect(() => {
         const unsub = subscribe('dm.new_message', (payload) => {
             setUnread(v => v + 1);
@@ -117,7 +112,6 @@ export default function MiniMessenger() {
                     <div className="flex items-center justify-between px-3 py-2 border-b" style={BD}>
                         <span className="font-mono text-[10px] tracking-widest uppercase"
                               style={{ color: 'var(--color-brand-primary)' }}>
-                            // MESAJLAR
                         </span>
                         <Link
                             to="/messages"
@@ -137,7 +131,6 @@ export default function MiniMessenger() {
                     ) : conversations.length === 0 ? (
                         <div className="p-5 text-center space-y-2">
                             <p className="font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                                // henüz mesaj yok
                             </p>
                             <Link
                                 to="/messages"

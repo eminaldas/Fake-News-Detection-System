@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Sun, Cloud, CloudSun, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Wind, MapPin } from 'lucide-react';
 import WeatherService, { ISTANBUL } from '../../../services/weather.service';
 
-/* ── Hava durumu koduna göre renk teması ───────────────────────── */
 function wmoTheme(code) {
     if (code === 0)                               return { accent: '#FBBF24', glow: 'rgba(251,191,36,0.18)',  border: 'rgba(251,191,36,0.22)' }; // Açık → sarı
     if (code <= 2)                                return { accent: '#FCD34D', glow: 'rgba(252,211,77,0.14)',  border: 'rgba(252,211,77,0.20)' }; // Az bulutlu → soluk sarı

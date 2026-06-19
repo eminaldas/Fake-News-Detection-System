@@ -151,7 +151,6 @@ export default function ForumTrendBand({ threads, loading }) {
                 </div>
             </div>
             <p className="font-mono text-[10px] text-tx-secondary/80 uppercase tracking-widest mb-4">
-                // Son 6 Saatin En Aktif Tartışmaları
             </p>
 
             <div className="relative">

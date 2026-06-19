@@ -1,4 +1,3 @@
-# workers/image_analysis_task.py
 """
 Celery Task — Görsel sahtelik analizi (Layer 3: Gemini multimodal).
 
@@ -45,7 +44,6 @@ celery_app.conf.update(
     enable_utc=True,
 )
 
-# ─── Gemini lazy init ────────────────────────────────────────────────────────
 _gemini_client = None
 
 def _get_gemini():
@@ -56,7 +54,6 @@ def _get_gemini():
     return _gemini_client
 
 
-# ─── Prompt ─────────────────────────────────────────────────────────────────
 _FORENSICS_PROMPT = """Sen bir dijital medya adli bilişim uzmanısın. Verilen görseli aşağıdaki kriterlere göre incele:
 
 1. **AI Üretimi:** Anatomik hatalar (yamuk parmaklar, asimetrik yüzler), fizik yasalarına aykırı gölgeler, erimiş dokular veya tekrar eden dokular var mı?
@@ -82,7 +79,6 @@ Koordinatlar 0-1000 ölçeğinde normalize edilmiş olmalıdır.
 Tersine arama sonucu bulunamazsa reverse_search_links boş liste olsun."""
 
 
-# ─── DB yardımcı ─────────────────────────────────────────────────────────────
 def _make_session():
     engine = create_async_engine(
         settings.DATABASE_URL,
@@ -104,7 +100,6 @@ async def _save_to_db(phash: str, exif_flags: dict, gemini_result: dict):
     await engine.dispose()
 
 
-# ─── Task ────────────────────────────────────────────────────────────────────
 @celery_app.task(name="analyze_image", bind=True, max_retries=2)
 def analyze_image(self, task_id: str, image_b64: str, phash: str, exif_flags: dict):
     """
@@ -117,7 +112,6 @@ def analyze_image(self, task_id: str, image_b64: str, phash: str, exif_flags: di
         image_bytes = base64.b64decode(image_b64)
         client = _get_gemini()
 
-        # ─── MIME type tespiti ─────────────────────────────────────────────
         pil_img = PILImage.open(io.BytesIO(image_bytes))
         mime_map = {
             "JPEG": "image/jpeg",
@@ -128,7 +122,6 @@ def analyze_image(self, task_id: str, image_b64: str, phash: str, exif_flags: di
         }
         mime_type = mime_map.get(pil_img.format or "", "image/jpeg")
 
-        # ─── Görsel 1024px'e küçült (Gemini token tasarrufu) ────────────
         max_side = 1024
         if max(pil_img.size) > max_side:
             pil_img.thumbnail((max_side, max_side))
@@ -137,7 +130,6 @@ def analyze_image(self, task_id: str, image_b64: str, phash: str, exif_flags: di
             pil_img.save(buf, format=save_format)
             image_bytes = buf.getvalue()
 
-        # ─── Gemini çağrısı ───────────────────────────────────────────────
         response = client.models.generate_content(
             model=settings.GEMINI_MODEL,
             contents=[
@@ -161,14 +153,12 @@ def analyze_image(self, task_id: str, image_b64: str, phash: str, exif_flags: di
                 "reverse_search_links": [],
             }
 
-        # ─── Zorunlu alanları doldur (eksikse) ───────────────────────────
         gemini_result.setdefault("verdict", "UNCERTAIN")
         gemini_result.setdefault("confidence", 0.0)
         gemini_result.setdefault("explanation", "")
         gemini_result.setdefault("bounding_boxes", [])
         gemini_result.setdefault("reverse_search_links", [])
 
-        # ─── DB'ye kaydet ──────────────────────────────────────────────────
         asyncio.run(_save_to_db(phash, exif_flags, gemini_result))
 
         return {

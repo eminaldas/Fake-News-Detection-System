@@ -24,7 +24,6 @@ const TABS = [
   { id: 'privacy',       label: 'Gizlilik',           icon: Shield,            Component: ProfilePrivacy       },
 ];
 
-/* Tema renkleri — CSS değişkeni tabanlı, light/dark otomatik */
 const SIDEBAR_BG  = 'var(--color-navbar-bg)';
 const CONTENT_BG  = 'var(--color-navbar-bg)';
 const DIVIDER     = 'var(--color-navbar-border)';
@@ -46,7 +45,7 @@ export default function ProfileSettings() {
             borderColor: DIVIDER,
             color:       'var(--color-text-primary)',
             background:  'var(--color-terminal-surface)',
-            fontFamily:  "'Open Sans', sans-serif",
+            fontFamily:  "'Elms Sans', sans-serif",
           }}
         >
           {TABS.map(t => <option key={t.id} value={t.id} style={{ background: 'var(--color-terminal-surface)', color: 'var(--color-text-primary)' }}>{t.label}</option>)}

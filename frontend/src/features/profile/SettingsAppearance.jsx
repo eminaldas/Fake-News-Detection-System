@@ -10,7 +10,6 @@ const SCALES = [
   { id: 'lg', label: 'Büyük', px: '18px', aaSize: 'text-3xl' },
 ];
 
-/* Framer Motion fontSize animasyonu için px cinsinden değerler kullan */
 const PREVIEW_TITLE = { sm: '18px', md: '22px', lg: '26px' };
 const PREVIEW_BODY  = { sm: '13px', md: '15px', lg: '17px' };
 const PREVIEW_META  = { sm: '11px', md: '12px', lg: '13px' };

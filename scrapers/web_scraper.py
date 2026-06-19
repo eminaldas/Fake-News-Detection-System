@@ -87,7 +87,6 @@ def scrape_article(url: str) -> ScrapedArticle:
     except requests.exceptions.RequestException as exc:
         raise ScraperError(f"Ağ hatası: {exc}") from exc
 
-    # Türkçe sayfalar zaman zaman yanlış encoding döner
     if resp.encoding and resp.encoding.upper() in ("ISO-8859-1", "LATIN-1"):
         resp.encoding = resp.apparent_encoding or "utf-8"
 

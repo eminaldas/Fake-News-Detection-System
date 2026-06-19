@@ -1,4 +1,3 @@
-// frontend/src/pages/Borsa.jsx
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, Star } from 'lucide-react';
 import MarketService from '../services/market.service';
@@ -171,7 +170,6 @@ export default function Borsa() {
                     </h1>
                 </div>
                 <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: BRAND, opacity: 0.7 }}>
-                    // Canlı Döviz · Emtia · BIST Hisseleri
                 </p>
                 {!isAuthenticated && (
                     <p className="font-mono text-[10px] mt-2" style={{ color: '#f59e0b' }}>

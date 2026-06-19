@@ -104,7 +104,6 @@ def analyze_temporal(sources: list[dict]) -> dict:
     elif days_since_oldest <= _FRESH_THRESHOLD_DAYS:
         result["freshness_flag"] = "fresh"
 
-    # Koordineli yayılım: aynı gün _COORDINATED_MIN_SOURCES+ kaynak
     date_counts: dict[str, int] = {}
     for dt in parsed_dates:
         day_str = dt.strftime("%Y-%m-%d")

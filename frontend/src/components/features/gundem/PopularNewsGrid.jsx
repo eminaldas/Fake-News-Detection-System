@@ -51,11 +51,9 @@ function AnalyzeButton({ article }) {
     const [showAnalysis, setShowAnalysis] = useState(false);
     const pollerRef = useRef(null);
 
-    // LocalStorage cache key'leri
     const sumKey  = article.id ? `ns_sum_${article.id}`  : null;
     const anaKey  = article.source_url ? `g_analysis_${article.source_url}` : null;
 
-    // Startup: cache restore
     useEffect(() => {
         if (sumKey) {
             try {
@@ -76,12 +74,10 @@ function AnalyzeButton({ article }) {
                 }
             } catch { /* ignore */ }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => () => { if (pollerRef.current) clearInterval(pollerRef.current); }, []);
 
-    // Özet butonu tıklandı
     const handleSummarize = async (e) => {
         e.preventDefault(); e.stopPropagation();
         if (phase === 'summarized') { setShowSummary(true); return; }
@@ -100,7 +96,6 @@ function AnalyzeButton({ article }) {
         }
     };
 
-    // Analiz et (modal içinden çağrılır)
     const handleAnalyze = async () => {
         if (!article.source_url || phase === 'analyzing' || phase === 'analyzed') return;
         setPhase('analyzing');
@@ -174,7 +169,6 @@ function AnalyzeButton({ article }) {
         </>
     );
 
-    // idle
     return (
         <button
             onClick={handleSummarize}
@@ -403,7 +397,6 @@ export default function PopularNewsGrid({ featured, articles, loading, loadingMo
     if (loading) return <GridSkeleton />;
     if (!featured && (!articles || articles.length === 0)) return (
         <p className="font-mono text-sm text-center py-20" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}>
-            // makale bulunamadı
         </p>
     );
 
@@ -444,7 +437,6 @@ export default function PopularNewsGrid({ featured, articles, loading, loadingMo
                          style={{ borderColor: BRAND, borderTopColor: 'transparent' }} />
                     <span className="font-mono text-[10px] uppercase tracking-widest"
                           style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
-                        // haberler yükleniyor
                     </span>
                 </div>
             )}

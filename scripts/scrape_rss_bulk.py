@@ -38,8 +38,6 @@ MIN_CONTENT_LEN = 50
 EMBED_MAX_CHARS = 1500
 COMMIT_BATCH = 50
 
-# Güvenilir Türk haber kaynakları
-# Not: URL'leri tarayıcıdan doğrula, değiştiyse güncelle.
 SOURCES = [
     {"name": "TRT Haber",       "rss": "https://www.trthaber.com/sondakika.rss"},
     {"name": "BBC Türkçe",      "rss": "https://feeds.bbci.co.uk/turkish/rss.xml"},

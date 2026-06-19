@@ -34,7 +34,6 @@ probas = model.predict_proba([cleaned_text])[0]
 print(f"Probability Authentic (0): {probas[0]:.4f}")
 print(f"Probability Fake (1): {probas[1]:.4f}")
 
-# Let's see which words in the text triggered what
 vectorized = tfidf.transform([cleaned_text]).toarray()[0]
 active_features = np.where(vectorized > 0)[0]
 

@@ -28,7 +28,6 @@ const TYPE_LABEL = {
 
 const PAGE_SIZE = 20;
 
-/* ── İhbar Havuzu ────────────────────────────────────────────────────────── */
 function ReportsTab() {
   const [reports,     setReports]     = useState([]);
   const [total,       setTotal]       = useState(0);
@@ -314,7 +313,6 @@ function ClassifyBtns({ articleId, currentStatus, onClassify, acting }) {
   );
 }
 
-/* ── Bilgi Tabanı ────────────────────────────────────────────────────────── */
 function KnowledgeBaseTab() {
   const [articles, setArticles] = useState([]);
   const [total,    setTotal]    = useState(0);
@@ -422,7 +420,6 @@ function KnowledgeBaseTab() {
   );
 }
 
-/* ── Analizler ───────────────────────────────────────────────────────────── */
 function AnalysesTab() {
   const [items,   setItems]   = useState([]);
   const [total,   setTotal]   = useState(0);
@@ -545,7 +542,6 @@ function AnalysesTab() {
   );
 }
 
-/* ── Dataset Override ana wrapper ────────────────────────────────────────── */
 function DatasetTab() {
   const [sub, setSub] = useState('kb');
   return (
@@ -577,7 +573,6 @@ function DatasetTab() {
   );
 }
 
-/* ── Ana Bileşen ─────────────────────────────────────────────────────────── */
 export default function AdminContent() {
   const [tab, setTab] = useState('reports');
 

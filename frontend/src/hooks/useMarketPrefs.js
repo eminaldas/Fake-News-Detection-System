@@ -24,7 +24,6 @@ export function useMarketPrefs() {
     const [tickers, setTickers] = useState(getInitial);
     const [saving,  setSaving]  = useState(false);
 
-    // Sync when user logs in/out
     useEffect(() => {
         if (isAuthenticated && user?.preferences?.market_tickers?.length) {
             setTickers(user.preferences.market_tickers);

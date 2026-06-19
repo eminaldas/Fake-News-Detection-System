@@ -59,7 +59,6 @@ async def my_history(
     )
     raw_items = items_result.scalars().all()
 
-    # Enrich each request with Article title + AnalysisResult status + source_url
     enriched = []
     for req in raw_items:
         item_data = AnalysisRequestResponse(
@@ -160,7 +159,6 @@ async def my_stats(
     )
 
 
-# ── Faz 5: Feed Tercihleri ────────────────────────────────────────────────────
 
 @router.get("/me/feed-preferences", response_model=FeedPreferencesResponse)
 async def get_feed_preferences(
@@ -171,10 +169,11 @@ async def get_feed_preferences(
         select(UserPreferenceProfile).where(UserPreferenceProfile.user_id == current_user.id)
     )).scalar_one_or_none()
     if not profile:
-        return FeedPreferencesResponse(blocked_sources=[], hidden_categories=[])
+        return FeedPreferencesResponse(blocked_sources=[], hidden_categories=[], hidden_subcategories=[])
     return FeedPreferencesResponse(
-        blocked_sources   = profile.blocked_sources   or [],
-        hidden_categories = profile.hidden_categories or [],
+        blocked_sources      = profile.blocked_sources      or [],
+        hidden_categories    = profile.hidden_categories    or [],
+        hidden_subcategories = profile.hidden_subcategories or [],
     )
 
 
@@ -191,8 +190,9 @@ async def update_feed_preferences(
         profile = UserPreferenceProfile(user_id=current_user.id)
         db.add(profile)
 
-    blocked = list(profile.blocked_sources   or [])
-    hidden  = list(profile.hidden_categories or [])
+    blocked = list(profile.blocked_sources      or [])
+    hidden  = list(profile.hidden_categories    or [])
+    subs    = list(profile.hidden_subcategories or [])
 
     if body.add_blocked_source and body.add_blocked_source not in blocked:
         blocked.append(body.add_blocked_source.lower().strip())
@@ -202,12 +202,17 @@ async def update_feed_preferences(
         hidden.append(body.add_hidden_category.lower().strip())
     if body.remove_hidden_category and body.remove_hidden_category.lower().strip() in hidden:
         hidden.remove(body.remove_hidden_category.lower().strip())
+    if body.add_hidden_subcategory and body.add_hidden_subcategory.lower().strip() not in subs:
+        subs.append(body.add_hidden_subcategory.lower().strip())
+    if body.remove_hidden_subcategory and body.remove_hidden_subcategory.lower().strip() in subs:
+        subs.remove(body.remove_hidden_subcategory.lower().strip())
 
-    profile.blocked_sources   = blocked
-    profile.hidden_categories = hidden
+    profile.blocked_sources      = blocked
+    profile.hidden_categories    = hidden
+    profile.hidden_subcategories = subs
     await db.commit()
     await db.refresh(profile)
-    return FeedPreferencesResponse(blocked_sources=blocked, hidden_categories=hidden)
+    return FeedPreferencesResponse(blocked_sources=blocked, hidden_categories=hidden, hidden_subcategories=subs)
 
 
 @router.get("/me/preference-profile")
@@ -242,7 +247,6 @@ async def reset_preference_profile(
         await db.commit()
 
 
-# ── Faz 5: KVKK / GDPR Data Export ──────────────────────────────────────────
 
 @router.get("/me/data-export", response_model=DataExportResponse)
 async def data_export(
@@ -307,7 +311,6 @@ async def data_export(
     )
 
 
-# ── Profile Hub: Oturum Geçmişi ───────────────────────────────────────────────
 
 @router.get("/me/sessions", response_model=SessionListResponse)
 async def my_sessions(
@@ -326,7 +329,6 @@ async def my_sessions(
     )
     logs = result.scalars().all()
 
-    # Determine current IP identifier
     client_ip = request.client.host if request.client else None
     current_ip_hash = hash_ip(client_ip) if client_ip else None
 
@@ -352,7 +354,6 @@ async def my_sessions(
     return SessionListResponse(sessions=sessions, anomaly_detected=anomaly_detected)
 
 
-# ── Profile Hub: Geri Bildirimlerim ──────────────────────────────────────────
 
 _LABEL_TR = {"FAKE": "Yanıltıcı", "AUTHENTIC": "Güvenilir"}
 
@@ -363,7 +364,6 @@ async def my_feedback(
     db: AsyncSession = Depends(get_db),
 ):
     """Kullanıcının gönderdiği model düzeltmelerini ve kabul durumlarını döndürür."""
-    # Subquery: her article için en son AnalysisResult status'u
     latest_status_sq = (
         select(AnalysisResult.status)
         .where(AnalysisResult.article_id == Article.id)
@@ -382,7 +382,6 @@ async def my_feedback(
     )
     rows = result.all()
 
-    # Gerçek toplam sayı (limit'ten bağımsız)
     total_count_result = await db.execute(
         select(func.count()).select_from(ModelFeedback).where(ModelFeedback.user_id == current_user.id)
     )
@@ -391,7 +390,6 @@ async def my_feedback(
     if not rows:
         return FeedbackHistoryResponse(items=[], total_sent=0, total_accepted=0)
 
-    # Tüm ilgili article_id'ler için consensus oyu say (filtersiz — tüm kullanıcılar)
     article_ids = [row[0].article_id for row in rows]
     threshold = settings.FEEDBACK_CONSENSUS_THRESHOLD
 
@@ -404,7 +402,6 @@ async def my_feedback(
         .where(ModelFeedback.article_id.in_(article_ids))
         .group_by(ModelFeedback.article_id, ModelFeedback.submitted_label)
     )
-    # vote_map[article_id][label] = count
     vote_map: dict = {}
     for vr in vote_result.all():
         aid = str(vr.article_id)
@@ -416,7 +413,6 @@ async def my_feedback(
     for fb, title, status in rows:
         aid = str(fb.article_id)
         votes_for_article = vote_map.get(aid, {})
-        # Consensus: bu article için kullanıcının oyu etkin çoğunluğa ulaştı mı?
         user_label_count = votes_for_article.get(fb.submitted_label, 0)
         total_votes = sum(votes_for_article.values())
         accepted = (
@@ -449,7 +445,6 @@ async def my_trust_info(
     return ForumTrustInfo.from_user(current_user)
 
 
-# ── Sosyal: Takip / Profil / Feed / Mention ───────────────────────────────────
 
 @router.post("/{user_id}/follow", status_code=status.HTTP_204_NO_CONTENT)
 async def toggle_follow(
@@ -501,12 +496,10 @@ async def get_user_profile(
         select(func.count()).select_from(ForumThread).where(ForumThread.user_id == user_id)
     )).scalar_one()
 
-    # Toplam analiz sayısı
     analysis_count = (await db.execute(
         select(func.count()).select_from(AnalysisRequest).where(AnalysisRequest.user_id == user_id)
     )).scalar_one()
 
-    # FAKE sonuçlu analiz sayısı
     fake_count = (await db.execute(
         select(func.count())
         .select_from(AnalysisRequest)
@@ -771,7 +764,6 @@ async def search_users(
         select(User)
         .where(User.username.ilike(f"%{q}%"), User.is_active == True, User.role != UserRole.admin)
         .order_by(
-            # Tam eşleşme önce
             (User.username.ilike(q)).desc(),
             User.follower_count.desc(),
             User.username,
@@ -780,7 +772,6 @@ async def search_users(
     total = (await db.execute(select(func.count()).select_from(query.subquery()))).scalar_one()
     users = (await db.execute(query.offset((page - 1) * size).limit(size))).scalars().all()
 
-    # Takip durumunu kontrol et
     followed_ids: set = set()
     if current_user and users:
         rows = await db.execute(

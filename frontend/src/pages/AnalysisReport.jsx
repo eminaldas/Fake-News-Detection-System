@@ -22,11 +22,9 @@ import PrecedentCasesSection     from '../features/analysis/report/PrecedentCase
 import ReportProgress            from '../features/analysis/report/ReportProgress';
 import SectionHeading           from '../features/analysis/report/SectionHeading';
 
-/* ── Tasarım sabitleri ── */
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 
-/* Section wrapper — ikonlu SectionHeading ile */
 function ReportBlock({ title, icon, subtitle, children }) {
     return (
         <div className="relative border" style={S}>
@@ -38,7 +36,6 @@ function ReportBlock({ title, icon, subtitle, children }) {
     );
 }
 
-/* Higyen + Kesinlik metrikleri */
 function MetricBar({ report, mlVerdict, confidence }) {
     const manipulation = report?.linguistic?.manipulation_density ?? null;
     if (manipulation === null && confidence === null) return null;
@@ -59,7 +56,6 @@ function MetricBar({ report, mlVerdict, confidence }) {
             {/* Hijyen */}
             <div className="relative border md:col-span-2 p-5" style={S}>
                 <p className="font-mono text-[10px] tracking-widest uppercase mb-3" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>
-                    // HİJYEN_SKORU
                 </p>
                 <div className="flex items-end gap-3 mb-3">
                     <span className="font-mono text-5xl font-black leading-none" style={{ color: hColor }}>{hygieneScore}</span>
@@ -79,7 +75,6 @@ function MetricBar({ report, mlVerdict, confidence }) {
             {certScore !== null && (
                 <div className="relative border flex flex-col items-center justify-center p-5 text-center" style={S}>
                     <p className="font-mono text-[10px] tracking-widest uppercase mb-3" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>
-                        // KESİNLİK
                     </p>
                     <Radar className="w-7 h-7 mb-2" style={{ color: 'var(--color-brand-primary)' }} />
                     <span className="font-mono text-4xl font-black" style={{ color: 'var(--color-brand-primary)' }}>%{certScore}</span>

@@ -50,7 +50,7 @@ const AdminLayout = () => {
       height:     '100vh',
       background: A.bg,
       overflow:   'hidden',
-      fontFamily: 'Open Sans, system-ui, sans-serif',
+      fontFamily: 'Elms Sans, system-ui, sans-serif',
     }}>
       <AdminSidebar open={open} onToggle={toggle} />
 

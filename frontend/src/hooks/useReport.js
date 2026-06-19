@@ -31,7 +31,6 @@ export const useReport = (taskId) => {
             AnalysisService.getFullReport(taskId)
                 .then((data) => apply(data)) // status === 'pending' → false, bekle (hata değil)
                 .catch((err) => {
-                    // Gerçek 404 (bilinmeyen task) veya ağ hatası
                     if (err?.response?.status === 404) {
                         setError('Rapor bulunamadı.');
                         setLoading(false);

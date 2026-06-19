@@ -35,7 +35,7 @@ export const cardHead = {
 };
 
 export const label = {
-  fontFamily:    'Open Sans, system-ui, sans-serif',
+  fontFamily:    'Elms Sans, system-ui, sans-serif',
   fontSize:      '10px',
   fontWeight:    700,
   textTransform: 'uppercase',
@@ -48,7 +48,7 @@ export const pageWrap = {
   minHeight:  '100%',
   padding:    28,
   color:      A.text1,
-  fontFamily: 'Open Sans, system-ui, sans-serif',
+  fontFamily: 'Elms Sans, system-ui, sans-serif',
 };
 
 export const badge = (color, dim) => ({
@@ -70,7 +70,7 @@ export const btn = (color, dim) => ({
   fontSize:      '12px',
   fontWeight:    600,
   cursor:        'pointer',
-  fontFamily:    'Open Sans, system-ui, sans-serif',
+  fontFamily:    'Elms Sans, system-ui, sans-serif',
   transition:    'opacity 0.15s',
 });
 
@@ -83,7 +83,7 @@ export const ghostBtn = {
   fontWeight:    600,
   color:         A.text3,
   cursor:        'pointer',
-  fontFamily:    'Open Sans, system-ui, sans-serif',
+  fontFamily:    'Elms Sans, system-ui, sans-serif',
   transition:    'border-color 0.15s, color 0.15s',
 };
 
@@ -137,7 +137,7 @@ export const input = {
   fontSize:      '13px',
   color:         A.text1,
   outline:       'none',
-  fontFamily:    'Open Sans, system-ui, sans-serif',
+  fontFamily:    'Elms Sans, system-ui, sans-serif',
   width:         '100%',
 };
 

@@ -25,7 +25,6 @@ const EMOJIS = [
     '😎','🥳','😴','🤯','🫡','💀','👻','🫶','🧠','🕵️',
 ];
 
-/* ── Forum URL tespiti ────────────────────────────────────── */
 const FORUM_RE  = /https?:\/\/(?:www\.)?nehaber\.dev\/forum\/([0-9a-f-]{36})/i;
 const GENERAL_RE = /https?:\/\/[^\s<>"]+/gi;
 
@@ -51,7 +50,6 @@ function timeStr(d) {
     return new Date(d).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 }
 
-/* ── Metin içi URL'leri tıklanabilir yap ─────────────────── */
 function LinkedText({ text: txt }) {
     const parts = [];
     let last = 0;
@@ -78,7 +76,6 @@ function LinkedText({ text: txt }) {
     );
 }
 
-/* ── Forum Thread Kart Önizlemesi ─────────────────────────── */
 function ForumCard({ threadId, isMine }) {
     const [thread, setThread] = useState(null);
     const [err,    setErr]    = useState(false);
@@ -96,7 +93,6 @@ function ForumCard({ threadId, isMine }) {
             <Loader2 className="w-3 h-3 animate-spin shrink-0"
                      style={{ color: isMine ? '#070f12' : 'var(--color-brand-primary)' }} />
             <span className="font-mono text-xs" style={{ color: isMine ? '#070f1280' : 'var(--color-text-muted)' }}>
-                // yükleniyor...
             </span>
         </div>
     );
@@ -112,7 +108,6 @@ function ForumCard({ threadId, isMine }) {
               className="mt-2 block border-l-2 pl-3 pr-2 py-2 transition-opacity hover:opacity-80"
               style={{ background: bg, borderColor: bdC }}>
             <p className="font-mono text-[9px] uppercase tracking-widest mb-1" style={{ color: mc }}>
-                // FORUM POSTU
             </p>
             <p className="font-mono text-xs font-bold leading-snug line-clamp-2" style={{ color: tc }}>
                 {thread.title}
@@ -135,7 +130,6 @@ function ForumCard({ threadId, isMine }) {
     );
 }
 
-/* ── Avatar ───────────────────────────────────────────────── */
 function Avatar({ user, size = 36 }) {
     const c = ['rgba(16,185,129,0.15)','rgba(59,130,246,0.15)','rgba(245,158,11,0.15)','rgba(239,68,68,0.15)'];
     const t = ['var(--color-brand-primary)','var(--color-accent-blue)','var(--color-accent-amber)','#ef4444'];
@@ -154,7 +148,6 @@ function Avatar({ user, size = 36 }) {
     );
 }
 
-/* ── Emoji Picker ─────────────────────────────────────────── */
 function EmojiPicker({ onSelect, onClose }) {
     const ref = useRef(null);
     useEffect(() => {
@@ -178,7 +171,6 @@ function EmojiPicker({ onSelect, onClose }) {
     );
 }
 
-/* ── Tarih Ayırıcı ─────────────────────────────────────────── */
 function DateSeparator({ label }) {
     return (
         <div className="flex items-center gap-3 my-4 px-4">
@@ -192,7 +184,6 @@ function DateSeparator({ label }) {
     );
 }
 
-/* ── Yanıt Önizleme (mesaj balonunda) ────────────────────── */
 function ReplyQuote({ replyTo, isMine, meId }) {
     if (!replyTo) return null;
     const isMyReply = replyTo.sender_id === meId;
@@ -212,7 +203,6 @@ function ReplyQuote({ replyTo, isMine, meId }) {
     );
 }
 
-/* ── Mesaj balonu ─────────────────────────────────────────── */
 function MessageBubble({ msg, isMine, isFirst, isLast, onReply, onDelete, meId }) {
     const [hover, setHover] = useState(false);
     const isGif   = msg.msg_type === 'gif';
@@ -301,7 +291,6 @@ function MessageBubble({ msg, isMine, isFirst, isLast, onReply, onDelete, meId }
     );
 }
 
-/* ── Konuşma listesi öğesi ────────────────────────────────── */
 function ConvItem({ conv, active, onClick }) {
     return (
         <button
@@ -342,7 +331,6 @@ function ConvItem({ conv, active, onClick }) {
     );
 }
 
-/* ── Yeni konuşma — kişi arama ───────────────────────────── */
 function NewConversation({ onSelect, onClose }) {
     const [query,   setQuery]   = useState('');
     const [results, setResults] = useState([]);
@@ -422,7 +410,6 @@ function NewConversation({ onSelect, onClose }) {
     );
 }
 
-/* ── Ana bileşen ─────────────────────────────────────────── */
 export default function Messages() {
     const { userId: paramUserId } = useParams();
     const { user: me }            = useAuth();
@@ -481,13 +468,11 @@ export default function Messages() {
         if (paramUserId && paramUserId !== activeId) setActiveId(paramUserId);
     }, [paramUserId, activeId]);
 
-    /* Mesaj alanını alta scroll */
     useEffect(() => {
         const el = msgContainerRef.current;
         if (el) el.scrollTop = el.scrollHeight;
     }, [messages]);
 
-    /* WebSocket — yeni mesaj */
     useEffect(() => {
         const unsub = subscribe('dm.new_message', (payload) => {
             if (payload.sender_id === activeId) {
@@ -564,7 +549,6 @@ export default function Messages() {
         finally { setSending(false); }
     };
 
-    /* Mesaj sil */
     const handleDelete = useCallback(async (messageId) => {
         try {
             await axiosInstance.delete(`/messages/${messageId}`);
@@ -572,7 +556,6 @@ export default function Messages() {
         } catch { /* sessiz */ }
     }, []);
 
-    /* Emoji: imleç konumuna ekle */
     const handleEmojiInsert = useCallback((emoji) => {
         const ta = inputRef.current;
         if (!ta) { setText(prev => prev + emoji); setShowEmoji(false); return; }
@@ -597,7 +580,6 @@ export default function Messages() {
         }
     };
 
-    /* Mesajları grupla + tarih ayırıcı */
     const enrichedMessages = useMemo(() => {
         return messages.map((msg, idx) => {
             const prev    = messages[idx - 1];
@@ -668,7 +650,6 @@ export default function Messages() {
                             ) : filteredConv.length === 0 ? (
                                 <div className="p-6 text-center">
                                     <p className="font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                                        // henüz mesaj yok
                                     </p>
                                 </div>
                             ) : filteredConv.map(c => (
@@ -720,7 +701,6 @@ export default function Messages() {
                                     <div className="flex flex-col items-center justify-center h-full gap-3 px-4">
                                         <Avatar user={partner} size={56} />
                                         <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                                            // {partner.username} ile ilk mesajı gönder
                                         </p>
                                     </div>
                                 ) : (
@@ -819,7 +799,6 @@ export default function Messages() {
                     ) : activeId && !partner ? (
                         <div className="flex-1 flex flex-col items-center justify-center gap-3 px-4">
                             <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                                // konuşma yüklenemedi
                             </p>
                             <button onClick={() => loadConversation(activeId)}
                                     className="font-mono text-xs border px-3 py-1.5 transition-opacity hover:opacity-70"
@@ -834,7 +813,6 @@ export default function Messages() {
                                 <Send className="w-7 h-7" style={{ color: 'var(--color-brand-primary)' }} />
                             </div>
                             <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                                // bir konuşma seç veya yeni başlat
                             </p>
                         </div>
                     )}

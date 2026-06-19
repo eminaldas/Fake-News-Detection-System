@@ -18,7 +18,6 @@ import FullReportModal from './FullReportModal';
 import { getTheme, buildExplanation, RING_CIRC } from './analysisTheme';
 import { useIsDark } from '../../hooks/useIsDark';
 
-/* ─── Bileşen ──────────────────────────────────────────────────────── */
 const AnalysisResultCard = ({ result }) => {
     const navigate           = useNavigate();
     const { isAuthenticated } = useAuth();
@@ -43,7 +42,6 @@ const AnalysisResultCard = ({ result }) => {
         try { await trackInteraction({ content_id: articleId, interaction_type: 'feedback_negative', note: feedbackReason }); } catch {}
     };
 
-    // Hooks must come before the early return — compute values safely with optional chaining
     const isUrlAnalysis = !!result?.truth_score;
     const displayScore = result
         ? (isUrlAnalysis
@@ -98,7 +96,6 @@ const AnalysisResultCard = ({ result }) => {
             : `NLP modeli: ${aiComment.ml_status} → Gemini tarafından revize edildi`
         : null;
 
-    /* opacity helpers — use light/dark-aware hex */
     const hex15 = `${hex}26`;
     const hex30 = `${hex}4d`;
     const hex08 = `${hex}14`;
@@ -229,7 +226,6 @@ const AnalysisResultCard = ({ result }) => {
                         <div className="flex items-center gap-2 px-4 sm:px-5 pt-4 pb-3">
                             <Brain className={`w-4 h-4 ${theme.statusCls}`} />
                             <span className={`${theme.statusCls} font-mono font-bold text-[10px] tracking-widest uppercase`}>
-                                // İçerik_Analizi
                             </span>
                         </div>
                         <div className="px-4 sm:px-5 pb-2">

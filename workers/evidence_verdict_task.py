@@ -1,4 +1,3 @@
-# workers/evidence_verdict_task.py
 """
 Gemini ile kaynaklı forum yorumunun kanıt analizi.
 Thread'in Öne Çıkan Kanıt yorumu eşiği aştığında tetiklenir.

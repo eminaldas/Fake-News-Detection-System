@@ -18,7 +18,6 @@ import { TypeBadge } from '../components/common/AnalysisBadges';
 import RecommendedUsersWidget from '../features/profile/RecommendedUsersWidget';
 import PopularThreadsWidget from '../features/profile/PopularThreadsWidget';
 
-/* ── Sabitler ──────────────────────────────────────────────────────── */
 const S  = { background: 'rgba(16,185,129,0.07)', borderColor: 'rgba(16,185,129,0.07)' };
 const BD = { borderColor: 'rgba(16,185,129,0.07)' };
 
@@ -54,7 +53,6 @@ const FILTER_COLOR = {
     UNCERTAIN: 'var(--color-accent-amber)',
 };
 
-/* ── Corner ────────────────────────────────────────────────────────── */
 function Corner() {
     return (
         <>
@@ -71,7 +69,6 @@ function Corner() {
     );
 }
 
-/* ── Avatar ────────────────────────────────────────────────────────── */
 const PAL_BG   = ['rgba(16,185,129,0.15)','rgba(59,130,246,0.15)','rgba(245,158,11,0.15)','rgba(239,68,68,0.15)','rgba(168,85,247,0.15)'];
 const PAL_TEXT = ['var(--color-brand-primary)','var(--color-accent-blue)','var(--color-accent-amber)','#ef4444','#a855f7'];
 
@@ -96,7 +93,6 @@ function UserAvatar({ username, avatarUrl, onClick }) {
     );
 }
 
-/* ── FollowModal ────────────────────────────────────────────────────── */
 function FollowModal({ userId, mode, onClose }) {
     const [items, setItems]     = useState([]);
     const [loading, setLoading] = useState(true);
@@ -164,7 +160,6 @@ function FollowModal({ userId, mode, onClose }) {
     );
 }
 
-/* ── Yardımcılar ────────────────────────────────────────────────────── */
 function timeAgo(d) {
     const s = (Date.now() - new Date(d).getTime()) / 1000;
     if (s < 60)     return `${Math.floor(s)}s`;
@@ -195,7 +190,6 @@ function Pagination({ page, totalPages, load }) {
     );
 }
 
-/* ── Bölüm başlığı ─────────────────────────────────────────────────── */
 function SectionHeader({ icon: Icon, label, onMore }) {
     return (
         <div className="flex items-center gap-2 mb-4">
@@ -215,9 +209,6 @@ function SectionHeader({ icon: Icon, label, onMore }) {
     );
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   ANA BİLEŞEN
-   ══════════════════════════════════════════════════════════════════════ */
 export default function Profile() {
     const { userId }  = useParams();
     const { user }    = useAuth();
@@ -596,7 +587,6 @@ export default function Profile() {
     );
 }
 
-/* ── Thread kartı ─────────────────────────────────────────────────── */
 function ThreadCard({ thread }) {
     const catColor = CAT_COLOR[thread.category] ?? 'var(--color-accent-blue)';
     return (
@@ -644,7 +634,6 @@ function ThreadCard({ thread }) {
     );
 }
 
-/* ── Analiz kartı — tıklanabilir ──────────────────────────────────── */
 function AnalysisCard({ item, setSelectedItem }) {
     const accentColor = PRED_ACCENT[item.prediction] ?? 'transparent';
     return (
@@ -698,7 +687,6 @@ function AnalysisCard({ item, setSelectedItem }) {
     );
 }
 
-/* ── Genel Bakış ──────────────────────────────────────────────────── */
 function OverviewTab({ threads, analyses, tLoading, aLoading, setActiveTab, setSelectedItem }) {
     return (
         <div className="flex flex-col gap-6">
@@ -739,7 +727,6 @@ function OverviewTab({ threads, analyses, tLoading, aLoading, setActiveTab, setS
     );
 }
 
-/* ── Tartışmalar Tab ──────────────────────────────────────────────── */
 function ThreadsTab({ threads, loading, page, totalPages, load }) {
     return (
         <div className="flex flex-col gap-4">
@@ -763,7 +750,6 @@ function ThreadsTab({ threads, loading, page, totalPages, load }) {
     );
 }
 
-/* ── Analizlerim Tab ──────────────────────────────────────────────── */
 function AnalysesTab({ analyses, loading, page, totalPages, load, filter, clearFilter, setSelectedItem }) {
     return (
         <div className="flex flex-col gap-4">

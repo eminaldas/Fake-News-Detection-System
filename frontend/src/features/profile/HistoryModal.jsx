@@ -81,7 +81,6 @@ export default function HistoryModal({ item, hasFullReport, onClose }) {
                             className="font-mono text-[10px] tracking-widest uppercase mb-2"
                             style={{ color: theme.hex }}
                         >
-                            // KISA_ANALİZ
                         </p>
                         <p
                             className="font-mono text-sm leading-snug"
@@ -149,7 +148,6 @@ export default function HistoryModal({ item, hasFullReport, onClose }) {
                         <div className="flex items-center justify-center gap-3 py-12">
                             <Loader2 className="w-5 h-5 animate-spin" style={{ color: theme.hex }} />
                             <span className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                                // analiz yükleniyor...
                             </span>
                         </div>
                     ) : (
@@ -161,7 +159,6 @@ export default function HistoryModal({ item, hasFullReport, onClose }) {
                                         className="font-mono text-[11px] tracking-widest uppercase mb-4"
                                         style={{ color: theme.hex }}
                                     >
-                                        // NLP_SIGNALS
                                     </p>
                                     <div className="space-y-3">
                                         {topSignals.map(key => {
@@ -211,7 +208,6 @@ export default function HistoryModal({ item, hasFullReport, onClose }) {
                                         className="font-mono text-[11px] tracking-widest uppercase mb-3"
                                         style={{ color: 'var(--color-brand-primary)' }}
                                     >
-                                        // GEMINI_EVAL
                                     </p>
                                     <p
                                         className="font-mono text-sm leading-relaxed"
@@ -241,7 +237,6 @@ export default function HistoryModal({ item, hasFullReport, onClose }) {
                         className="font-mono text-[10px] tracking-widest opacity-40"
                         style={{ color: 'var(--color-text-muted)' }}
                     >
-                        // {new Date(item.created_at).toLocaleDateString('tr-TR')}
                     </span>
 
                     {hasFullReport ? (

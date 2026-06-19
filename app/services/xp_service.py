@@ -37,7 +37,6 @@ DAILY_LIMITS: dict[XPActionType, int] = {
 }
 
 
-# ── Seviye hesaplama ─────────────────────────────────────────────────────────
 
 def xp_for_level(level: int) -> int:
     """level seviyesine ulaşmak için gereken kümülatif XP."""
@@ -62,7 +61,6 @@ def level_from_xp(total_xp: int) -> int:
             return 200
 
 
-# ── Badge koşul metriklerini topla ───────────────────────────────────────────
 
 async def _collect_stats(db: AsyncSession, user_id: UUID) -> dict:
     user = (await db.execute(select(User).where(User.id == user_id))).scalar_one()
@@ -87,7 +85,6 @@ async def _collect_stats(db: AsyncSession, user_id: UUID) -> dict:
         )
     )).scalar_one()
 
-    # Debunker: FAKE sonuçlu haber thread'inde kanıt yorumu (5 kez)
     debunker_row = await db.execute(text("""
         SELECT COUNT(DISTINCT e.id)
         FROM user_xp_events e
@@ -101,7 +98,6 @@ async def _collect_stats(db: AsyncSession, user_id: UUID) -> dict:
     """), {"uid": str(user_id)})
     debunker_count = debunker_row.scalar_one() or 0
 
-    # Kategori sayıları
     cat_rows = await db.execute(
         select(ForumThread.category, func.count().label("cnt"))
         .where(ForumThread.user_id == user_id)
@@ -161,7 +157,6 @@ _BADGE_CONDITIONS: dict[str, callable] = {
     "cat_ekonomi":    lambda s: s["cat_ekonomi"]   >= 20,
     "cat_genel":      lambda s: s["cat_genel"]     >= 20,
     "cat_all":        lambda s: s["cat_all"]       >= 8,
-    # early_bird migration ile atanır, burada kontrol edilmez
 }
 
 
@@ -187,7 +182,6 @@ async def check_and_unlock_badges(db: AsyncSession, user_id: UUID) -> list[str]:
     return new_keys
 
 
-# ── Ana servis fonksiyonu ────────────────────────────────────────────────────
 
 async def award_xp(
     db:          AsyncSession,
@@ -200,7 +194,6 @@ async def award_xp(
     if xp_amount == 0:
         return {"xp_gained": 0, "new_badges": []}
 
-    # Günlük limit kontrolü
     daily_limit = DAILY_LIMITS.get(action_type)
     if daily_limit is not None:
         today = date.today().isoformat()
@@ -211,10 +204,8 @@ async def award_xp(
         if count > daily_limit:
             return {"xp_gained": 0, "new_badges": []}
 
-    # Kullanıcıyı bir kez fetch et — hem streak hem XP güncellemesi için kullanılır
     user_row = (await db.execute(select(User).where(User.id == user_id))).scalar_one()
 
-    # Günlük giriş — streak güncelleme
     if action_type == XPActionType.daily_login:
         today_date = date.today()
         if user_row.last_login_date == today_date:
@@ -224,10 +215,8 @@ async def award_xp(
         user_row.current_streak = (user_row.current_streak + 1) if user_row.last_login_date == yesterday else 1
         user_row.last_login_date = today_date
 
-    # XP event kaydet
     db.add(UserXPEvent(user_id=user_id, action_type=action_type, xp_amount=xp_amount, ref_id=ref_id))
 
-    # total_xp ve level gerçek zamanlı güncelle
     old_level    = user_row.level or 1
     new_total_xp = (user_row.total_xp or 0) + xp_amount
     user_row.total_xp = new_total_xp
@@ -241,7 +230,6 @@ async def award_xp(
         for k in new_keys if k in BADGE_BY_KEY
     ]
 
-    # Milestone varsa WebSocket üzerinden kullanıcıya bildir
     level_up = user_row.level if user_row.level > old_level else None
     if new_keys or level_up:
         from app.core.pubsub import publish_async

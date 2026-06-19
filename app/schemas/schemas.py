@@ -519,15 +519,18 @@ class NotificationListResponse(BaseModel):
 
 
 class FeedPreferencesResponse(BaseModel):
-    blocked_sources:   list[str]
-    hidden_categories: list[str]
+    blocked_sources:      list[str]
+    hidden_categories:    list[str]
+    hidden_subcategories: list[str] = []
 
 
 class FeedPreferencesUpdate(BaseModel):
-    add_blocked_source:     Optional[str] = None
-    remove_blocked_source:  Optional[str] = None
-    add_hidden_category:    Optional[str] = None
-    remove_hidden_category: Optional[str] = None
+    add_blocked_source:        Optional[str] = None
+    remove_blocked_source:     Optional[str] = None
+    add_hidden_category:       Optional[str] = None
+    remove_hidden_category:    Optional[str] = None
+    add_hidden_subcategory:    Optional[str] = None   # "ana/alt"
+    remove_hidden_subcategory: Optional[str] = None   # "ana/alt"
 
 
 class DataExportResponse(BaseModel):

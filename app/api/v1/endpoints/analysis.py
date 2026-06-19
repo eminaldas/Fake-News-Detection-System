@@ -155,7 +155,6 @@ async def analyze_content(
     nlp_result         = cleaner.process(raw_iddia=request.text)
     cleaned_for_search = nlp_result["cleaned_text"]
 
-    # ── Deduplication: same cleaned text already analysed? ─────────────────
     dedup_result = await db.execute(
         select(
             Article.id,
@@ -195,13 +194,6 @@ async def analyze_content(
     matches = result.all()
 
     if matches:
-        # ── Stage 1: Çoklu eşleşme — benzerlik ağırlıklı oylama ─────────────
-        #
-        # Tek en iyi eşleşmeyi kullanmak yerine top-3 sonucun ağırlıklı oyunu
-        # hesaplarız. Bu yaklaşım; bilgi tabanında birden fazla benzer kayıt
-        # olduğunda daha tutarlı ve güvenilir bir karar üretir.
-        #
-        # Ağırlık: w = similarity² — yakın eşleşmeler üstel olarak daha fazla oy taşır.
 
         def _normalize_status(raw: str) -> str:
             if not raw:
@@ -221,12 +213,10 @@ async def analyze_content(
             if status in weighted_votes:
                 weighted_votes[status] += weight
 
-        # Kazanan: en yüksek ağırlıklı oy
         winner = max(weighted_votes, key=weighted_votes.get)
         total_weight = sum(weighted_votes.values()) or 1.0
         vote_confidence = round(weighted_votes[winner] / total_weight * 100, 1)
 
-        # Kanıt ve benzerlik bilgisi en iyi eşleşmeden alınır
         best_match, best_dist = matches[0]
         best_similarity = (1 - best_dist) * 100
         dayanak = (
@@ -235,11 +225,8 @@ async def analyze_content(
             else "Bilinmiyor"
         )
 
-        # Direct match için sinyal hesapla (triggered_words dahil)
-        # cleaner zaten line 25'te tanımlı, nlp_result line 44'te hesaplandı
         match_signals = nlp_result["signals"]
 
-        # Analiz isteğini logla — eşleşen makalenin task_id'sini sakla ki history join çalışsın
         matched_task_id = (
             best_match.metadata_info.get("task_id") if best_match.metadata_info else None
         ) or str(best_match.id)
@@ -292,8 +279,6 @@ async def analyze_content(
         user_id=str(current_user.id) if current_user else None,
     )
 
-    # Analiz isteğini logla — content_id sakla (task.id değil) ki history join çalışsın
-    # Article metadata_info['task_id'] = content_id olarak yaratılır
     ar = AnalysisRequest(
         user_id=current_user.id if current_user else None,
         ip_hash=hash_ip(ip),
@@ -344,7 +329,6 @@ async def analyze_url(
 
     content_id = str(uuid.uuid4())
 
-    # ── Deduplication: same source_url already analysed? ───────────────────
     url_str = str(request.url)
     dedup_url_result = await db.execute(
         select(
@@ -372,8 +356,6 @@ async def analyze_url(
 
     task = analyze_article_url.delay(task_id=content_id, url=url_str)
 
-    # Analiz isteğini logla — content_id sakla (task.id değil) ki history join çalışsın
-    # Article metadata_info['task_id'] = content_id (kwarg) olarak yaratılır
     ar = AnalysisRequest(
         user_id=current_user.id if current_user else None,
         ip_hash=hash_ip(ip),
@@ -418,7 +400,6 @@ async def analyze_image_endpoint(
     ip = http_request.client.host if http_request.client else "unknown"
     content_id = str(uuid.uuid4())
 
-    # ── Boyut kontrolü ─────────────────────────────────────────────────────
     contents = await file.read()
     if len(contents) > _MAX_IMAGE_BYTES:
         raise HTTPException(
@@ -426,7 +407,6 @@ async def analyze_image_endpoint(
             detail="Görsel 25 MB'dan büyük olamaz.",
         )
 
-    # ── Görsel aç ──────────────────────────────────────────────────────────
     try:
         image = Image.open(io.BytesIO(contents))
         image.load()
@@ -436,7 +416,6 @@ async def analyze_image_endpoint(
             detail="Bu format desteklenmiyor, lütfen farklı bir görsel deneyin.",
         )
 
-    # ── Layer 1: pHash lookup ───────────────────────────────────────────────
     phash_str = _compute_phash(image)
     cache_rows_result = await db.execute(select(ImageCache))
     cache_rows = cache_rows_result.scalars().all()
@@ -460,19 +439,16 @@ async def analyze_image_endpoint(
                 },
             )
 
-    # ── Layer 2: EXIF metadata ──────────────────────────────────────────────
     exif_flags = _extract_exif_flags(image)
     ai_software = _detect_ai_software(exif_flags)
     if ai_software:
         log.info("image.exif_ai_detected", software=ai_software)
 
-    # ── Layer 3: Gemini — kota burada düşer ────────────────────────────────
     await check_rate_limit(http_request, redis, current_user)
 
     image_b64 = base64.b64encode(contents).decode("utf-8")
     task = celery_analyze_image.delay(content_id, image_b64, phash_str, exif_flags)
 
-    # ── Analiz isteğini logla ───────────────────────────────────────────────
     ar = AnalysisRequest(
         user_id=current_user.id if current_user else None,
         ip_hash=hash_ip(ip),
@@ -512,7 +488,6 @@ async def submit_feedback(
     """
     from sqlalchemy.exc import IntegrityError
 
-    # 1. task_id ile makaleyi bul
     result = await db.execute(
         select(Article, AnalysisResult)
         .join(AnalysisResult, AnalysisResult.article_id == Article.id)
@@ -528,14 +503,12 @@ async def submit_feedback(
 
     article, analysis_result = row
 
-    # 2. Confidence guard — yüksek güven → feedback kabul etme
     if analysis_result.confidence is not None and analysis_result.confidence >= settings.FEEDBACK_CONFIDENCE_GUARD:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Model bu sonuçtan yeterince emin, düzeltme kabul edilmiyor.",
         )
 
-    # 3. Feedback kaydını ekle — (article_id, user_id) çakışırsa 409
     feedback = ModelFeedback(
         article_id=article.id,
         user_id=current_user.id,
@@ -560,8 +533,6 @@ async def get_analysis_status(
     db: AsyncSession = Depends(get_db),
 ):
     """Devam eden bir analiz görevinin durumunu sorgular."""
-    # 1. PostgreSQL — tamamlanmış görevler burada saklanır
-    # embedding kolonu (Vector(768)) seçilmiyor — asyncpg codec sorunu önlenir
     query = (
         select(
             AnalysisResult.status,
@@ -599,7 +570,6 @@ async def get_analysis_status(
             },
         )
 
-    # 2. Redis — görev hâlâ çalışıyorsa
     task_result = AsyncResult(task_id)
     response = TaskStatusResponse(task_id=task_id, status=task_result.status)
 
@@ -608,7 +578,6 @@ async def get_analysis_status(
             celery_res = task_result.result or {}
             db_article_id = celery_res.get("db_article_id")
 
-            # Phase-2 (ai_comment) henüz yazılmış olabilir — DB'den taze veri çek
             if db_article_id:
                 try:
                     db_query = (
@@ -656,8 +625,6 @@ async def analyze_signals(
 ):
     """Başlık metnini NLP sinyallerine göre hızlıca değerlendirir. ML/BERT çalışmaz."""
     signals = cleaner.extract_manipulative_signals(body.text)
-    # Ağırlıklar: başlık/hızlı sinyal için ayarlanmış — _compute_risk'ten kasıtlı farklı.
-    # avg_word_length kısa başlık tespitinde daha yüksek katkı alır (0.10 vs. 0.00 ingest'te).
 
     risk = (
         signals["clickbait_score"]   * 0.28 +
@@ -808,7 +775,6 @@ async def check_similar_report(
     current_user: User = Depends(get_current_user),
 ):
     """Aynı task_id'nin embedding'ine yakın ve full_report'u olan başka makale var mı?"""
-    # Kaynak makaleyi ve embedding'ini al
     row = await db.execute(
         select(Article.embedding)
         .join(AnalysisResult, AnalysisResult.article_id == Article.id)
@@ -819,7 +785,6 @@ async def check_similar_report(
     if not source or source.embedding is None:
         return SimilarReportResponse(found=False)
 
-    # Benzer + full_report'u olan makaleyi bul (kendisi hariç)
     result = await db.execute(
         select(
             Article.metadata_info.op("->>")(  "task_id").label("other_task_id"),
@@ -863,8 +828,6 @@ async def get_full_report(
     )
     data = row.first()
 
-    # Analiz hiç yoksa gerçek 404. Analiz var ama rapor henüz üretilmediyse 200 + pending
-    # (polling'in 404 spam'ini önler — bekleme normal bir durumdur).
     if not data:
         raise HTTPException(status_code=404, detail="Analiz bulunamadı.")
 

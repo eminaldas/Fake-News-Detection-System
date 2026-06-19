@@ -206,7 +206,7 @@
   [data-font-scale="lg"] { font-size: 18px; }
 
   html {
-    font-family: 'Open Sans', system-ui, sans-serif;
+    font-family: 'Elms Sans', system-ui, sans-serif;
   }
 
   button, a, [role="button"], label[for], select, input[type="submit"] {
@@ -214,7 +214,7 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Open Sans', system-ui, sans-serif;
+    font-family: 'Elms Sans', system-ui, sans-serif;
     font-weight: 800;
   }
 
@@ -253,9 +253,9 @@
    ═══════════════════════════════════════════════════════════════════ */
 @theme {
   /* Fontlar */
-  --font-inter:    'Open Sans', sans-serif;
-  --font-outfit:   'Open Sans', sans-serif;
-  --font-manrope:  'Open Sans', sans-serif;
+  --font-inter:    'Elms Sans', sans-serif;
+  --font-outfit:   'Elms Sans', sans-serif;
+  --font-manrope:  'Elms Sans', sans-serif;
   --font-pacifico: 'Pacifico', cursive;
 
   /* Zemin */

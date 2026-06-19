@@ -36,7 +36,6 @@ function relSlot(slot) {
     return next ? `Sonraki güncelleme ${next}` : 'Yarın 09:00\'da güncellenir';
 }
 
-/* summary_text artık JSON olabilir (yeni) ya da düz string (eski) */
 function parseDigestText(raw) {
     try {
         const parsed = JSON.parse(raw);

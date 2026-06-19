@@ -39,9 +39,6 @@ from app.core.config import settings
 from app.models.models import Article, AnalysisResult
 from ml_engine.processing.cleaner import NewsCleaner
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Logging
-# ─────────────────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [NewsAgent] %(levelname)s: %(message)s",
@@ -54,9 +51,6 @@ def _safe_log(text: str, max_len: int = 80) -> str:
     return re.sub(r"[\r\n\t]", " ", str(text))[:max_len]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Sabitler
-# ─────────────────────────────────────────────────────────────────────────────
 TITLE_MAX_LEN        = 500
 URL_MAX_LEN          = 500
 MAX_HEADLINES        = 5
@@ -75,9 +69,6 @@ _HEADERS = {
 
 _cleaner = NewsCleaner()
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Güvenilir Kaynak Domainleri
-# ─────────────────────────────────────────────────────────────────────────────
 _TRUSTED_DOMAINS = {
     "aa.com.tr", "trt.net.tr", "trtworld.com",
     "bloomberght.com", "bbc.com", "reuters.com",
@@ -87,11 +78,7 @@ _TRUSTED_DOMAINS = {
     "bianet.org", "gazeteduvar.com.tr", "cumhuriyet.com.tr",
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Keyword Kökleri — Türkçe Morfologiye Uygun Alt-Dizi Eşleşmesi
-# ─────────────────────────────────────────────────────────────────────────────
 
-# Gerçek/doğrulanmış → dogru sinyali
 _FACTUAL_ROOTS = [
     "açıkla", "duyur", "doğrulan", "kesinleş", "onaylan",
     "imzalan", "yürürlüğe", "kabul ed", "karar veril",
@@ -100,22 +87,17 @@ _FACTUAL_ROOTS = [
     "göreve başla", "istifa et", "seçildi", "atandı",
 ]
 
-# İddia/söylenti → belirsiz sinyali
 _CLAIM_ROOTS = [
     "iddia", "söylent", "sızınt", "öne sürd", "ileri sürd",
     "duyumlar", "kulislerde", "kaynağa göre",
     "edinilen bilgilere", "iddianame",
 ]
 
-# Sadece gerçek clickbait/tabloid dili → yalan sinyali
-# NOT: çöktü/battı/yıkıldı ÇIKARILDI — fiziksel olayları anlatır
 _MANIPULATIVE_ROOTS = [
     "inanamayacak", "şok edici", "bomba gibi", "patlak verd",
     "rezalet", "skandal patlad", "dehşete düşürdü",
 ]
 
-# Resmî kurum adı başlıkta geçiyorsa güvenilirlik sinyali
-# Kısaltmalar dahil edildi (MSB, MEB, TBMM, İBB vb.)
 _AUTHORITY_ROOTS = [
     "msb:", "msb ", "meb:", "meb ", "tbmm", "ibb:",
     "bakanlık", "bakan ", "başbakan", "cumhurbaşkan",
@@ -126,9 +108,6 @@ _AUTHORITY_ROOTS = [
 ]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Yardımcılar
-# ─────────────────────────────────────────────────────────────────────────────
 def _validate_url(url: str) -> Optional[str]:
     try:
         parsed = urlparse(url)
@@ -181,7 +160,6 @@ def fetch_snippet(source_href: str, title: str) -> str:
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "lxml")
 
-        # Başlıkla eşleşen haber linkini bul
         title_lower = title.lower()[:40]
         for a_tag in soup.find_all("a", href=True):
             link_text = a_tag.get_text().lower().strip()
@@ -192,7 +170,6 @@ def fetch_snippet(source_href: str, title: str) -> str:
                     if len(text) > 80:
                         return text[:SNIPPET_MAX_CHARS]
 
-        # Fallback: meta description
         meta = (
             soup.find("meta", attrs={"name": "description"}) or
             soup.find("meta", attrs={"property": "og:description"})
@@ -207,9 +184,6 @@ def fetch_snippet(source_href: str, title: str) -> str:
     return ""
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Vektör Yükleyici — Lazy Singleton
-# ─────────────────────────────────────────────────────────────────────────────
 _vectorizer = None
 
 
@@ -225,9 +199,6 @@ def get_vectorizer():
     return _vectorizer
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Skor Tabanlı Sınıflandırıcı
-# ─────────────────────────────────────────────────────────────────────────────
 def classify(
     title:          str,
     snippet:        str          = "",
@@ -317,9 +288,6 @@ def classify(
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# RSS Monitor
-# ─────────────────────────────────────────────────────────────────────────────
 class RSSMonitor:
     RSS_URL = "https://news.google.com/rss?hl=tr&gl=TR&ceid=TR:tr"
 
@@ -333,7 +301,6 @@ class RSSMonitor:
         cutoff    = datetime.now(timezone.utc) - timedelta(hours=24)
         headlines = []
         for entry in feed.entries:
-            # Ham başlıktan kaynak adını temizlemeden önce al
             raw_title = entry.get("title", "").strip()
             raw_url   = entry.get("link", "").strip()
             if not raw_title:
@@ -348,7 +315,6 @@ class RSSMonitor:
                 continue
 
             source_name, source_domain = _extract_source(entry)
-            # Kaynak adını başlıktan temizle
             clean_title = re.sub(
                 rf"\s*-\s*{re.escape(source_name)}\s*$", "", raw_title
             ).strip() if source_name else re.sub(r"\s*-\s*[^-]+$", "", raw_title).strip()
@@ -372,9 +338,6 @@ class RSSMonitor:
         return result.scalars().first() is not None
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# pgvector Benzerlik Kontrolü
-# ─────────────────────────────────────────────────────────────────────────────
 async def find_similar_status(
     session:   AsyncSession,
     embedding: list[float],
@@ -405,9 +368,6 @@ async def find_similar_status(
     return None
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Ana Orkestrasyon
-# ─────────────────────────────────────────────────────────────────────────────
 async def run_agent_cycle(dry_run: bool = False) -> list[dict]:
     """
     Tek bir tarama döngüsü:
@@ -436,7 +396,6 @@ async def run_agent_cycle(dry_run: bool = False) -> list[dict]:
         source_domain = item["source_domain"]
         source_href   = item["source_href"]
 
-        # 1. Duplicate kontrolü
         if not dry_run:
             async with SessionFactory() as session:
                 if await monitor.is_duplicate(session, title):
@@ -445,14 +404,12 @@ async def run_agent_cycle(dry_run: bool = False) -> list[dict]:
 
         logger.info("Yeni başlık: %s [%s]", _safe_log(title), source_domain or "?")
 
-        # 2. Kaynak sitesinden snippet çek
         snippet = fetch_snippet(source_href, title)
         if snippet:
             logger.info("Snippet alındı (%d karakter).", len(snippet))
         else:
             logger.debug("Snippet alınamadı.")
 
-        # 3. BERT embedding üret
         embedding      = None
         similar_status = None
         if vectorizer:
@@ -467,7 +424,6 @@ async def run_agent_cycle(dry_run: bool = False) -> list[dict]:
                 logger.warning("Embedding üretilemedi: %s", exc)
                 embedding = None
 
-        # 4. Sınıflandırma
         result = classify(
             title,
             snippet=snippet,
@@ -485,7 +441,6 @@ async def run_agent_cycle(dry_run: bool = False) -> list[dict]:
             })
             continue
 
-        # 5. DB kaydı
         async with SessionFactory() as session:
             try:
                 new_article = Article(
@@ -538,9 +493,6 @@ async def run_agent_cycle(dry_run: bool = False) -> list[dict]:
     return processed
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# CLI Entry Point
-# ─────────────────────────────────────────────────────────────────────────────
 async def main(dry_run: bool):
     if dry_run:
         results = await run_agent_cycle(dry_run=True)

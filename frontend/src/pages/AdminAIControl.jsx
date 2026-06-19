@@ -15,7 +15,6 @@ const TABS = [
 
 const VARIANT_NAMES = { 0: 'Kontrol', 1: 'Recency-Heavy', 2: 'Category-Heavy' };
 
-/* ── Model Performans Sekmesi ────────────────────────────────────────────── */
 function ModelTab() {
   const [stats,    setStats]    = useState(null);
   const [health,   setHealth]   = useState(null);
@@ -169,7 +168,6 @@ function ModelTab() {
   );
 }
 
-/* ── A/B Test Sekmesi ────────────────────────────────────────────────────── */
 function ABTestTab() {
   const [experiments, setExperiments] = useState([]);
   const [selected,    setSelected]    = useState(null);
@@ -364,7 +362,6 @@ function ABTestTab() {
   );
 }
 
-/* ── Ana Bileşen ─────────────────────────────────────────────────────────── */
 export default function AdminAIControl() {
   const [tab, setTab] = useState('model');
 

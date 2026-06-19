@@ -24,7 +24,6 @@ const ACTION_CONFIG = {
   ban:        { label: 'Kalıcı Ban',    color: A.red,   dim: A.redDim   },
 };
 
-/* ── Moderasyon Kuyruğu ──────────────────────────────────────────────────── */
 function QueueTab() {
   const [items,   setItems]   = useState([]);
   const [total,   setTotal]   = useState(0);
@@ -170,7 +169,6 @@ function QueueTab() {
   );
 }
 
-/* ── İtibar Yönetimi ────────────────────────────────────────────────────── */
 function ReputationTab() {
   const [q,        setQ]        = useState('');
   const [users,    setUsers]    = useState([]);
@@ -181,14 +179,12 @@ function ReputationTab() {
   const [warnings, setWarnings] = useState([]);
   const [warnLoad, setWarnLoad] = useState(false);
 
-  // Ceza modal state
   const [punishOpen,  setPunishOpen]  = useState(false);
   const [action,      setAction]      = useState('warn');
   const [reason,      setReason]      = useState('');
   const [restrictions, setRestrictions] = useState({ can_comment: true, can_post_analysis: true, can_create_thread: true });
   const [submitting,  setSubmitting]  = useState(false);
 
-  // Kaldır modal state
   const [liftOpen,      setLiftOpen]      = useState(false);
   const [liftBan,       setLiftBan]       = useState(false);
   const [liftShadow,    setLiftShadow]    = useState(false);
@@ -623,7 +619,6 @@ function ReputationTab() {
   );
 }
 
-/* ── İçerikler Sekmesi ───────────────────────────────────────────────────── */
 const ACTION_CONFIG_POSTS = {
   warn:       { label: 'Uyar',        color: A.amber, dim: A.amberDim },
   restrict:   { label: 'Kısıtla',     color: A.amber, dim: A.amberDim },
@@ -643,7 +638,6 @@ function PostsTab() {
   const [loading, setLoading] = useState(true);
   const [acting,  setActing]  = useState(null);
 
-  // Warn modal
   const [warnTarget,   setWarnTarget]   = useState(null); // { id, username, postId, postType }
   const [warnAction,   setWarnAction]   = useState('warn');
   const [warnReason,   setWarnReason]   = useState('');
@@ -972,7 +966,6 @@ function PostsTab() {
   );
 }
 
-/* ── Ana Bileşen ─────────────────────────────────────────────────────────── */
 export default function AdminCommunity() {
   const [tab, setTab] = useState('posts');
 

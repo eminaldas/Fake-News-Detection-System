@@ -66,14 +66,12 @@ export default function CookieConsentModal({ isOpen, onClose }) {
     const [analytics, setAnalytics] = useState(consent.analytics);
     const [personalization, setPersonalization] = useState(consent.personalization);
 
-    /* eslint-disable react-hooks/set-state-in-effect */
     useEffect(() => {
         if (isOpen) {
             setAnalytics(consent.analytics);
             setPersonalization(consent.personalization);
         }
     }, [isOpen, consent.analytics, consent.personalization]);
-    /* eslint-enable react-hooks/set-state-in-effect */
 
     if (!isOpen) return null;
 
@@ -103,7 +101,6 @@ export default function CookieConsentModal({ isOpen, onClose }) {
                 <div className="flex items-center justify-between px-5 py-4 border-b" style={BD}>
                     <span className="font-mono text-xs font-bold uppercase tracking-widest"
                           style={{ color: 'var(--color-brand-primary)' }}>
-                        // GİZLİLİK TERCİHLERİ
                     </span>
                     <button onClick={onClose} className="opacity-40 hover:opacity-80 transition-opacity">
                         <X className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />

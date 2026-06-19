@@ -1,4 +1,3 @@
-// frontend/src/components/ui/MilestoneContainer.jsx
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import wsService from '../../services/websocket';
 import MilestoneNotification from './MilestoneNotification';
@@ -20,7 +19,6 @@ export default function MilestoneContainer() {
     });
   }, []);
 
-  // ref'e kaydet ki event handler'da stale closure olmasın
   addRef.current = add;
 
   const remove = useCallback((id) => {
@@ -29,7 +27,6 @@ export default function MilestoneContainer() {
 
   useEffect(() => {
     const unsub = wsService.subscribe('xp_milestone', (payload) => {
-      // Level-up bildirimi
       if (payload.level_up) {
         playLevelSound();
         addRef.current({
@@ -39,7 +36,6 @@ export default function MilestoneContainer() {
           sub:   payload.xp_gained ? `+${payload.xp_gained} XP` : undefined,
         });
       }
-      // Her rozet ayrı kart
       (payload.badges ?? []).forEach((badge) => {
         playBadgeSound();
         addRef.current({

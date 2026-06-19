@@ -1,4 +1,3 @@
-// frontend/src/components/ui/MilestoneNotification.jsx
 import React, { useEffect, useRef, useState } from 'react';
 import { Award, TrendingUp, X } from 'lucide-react';
 
@@ -20,7 +19,6 @@ export default function MilestoneNotification({ item, onRemove }) {
   useEffect(() => {
     timerRef.current = setTimeout(dismiss, 6000);
     return () => clearTimeout(timerRef.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

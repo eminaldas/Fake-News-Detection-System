@@ -10,7 +10,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 from sqlalchemy.future import select
 
-# Add project root to sys path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.db.session import AsyncSessionLocal
@@ -18,9 +17,6 @@ from app.models.models import Article
 from ml_engine.processing.cleaner import NewsCleaner, signals_to_vector
 from ml_engine.vectorizer import TurkishVectorizer
 
-# Feature boyutu: 768 (BERT) + 8 (sinyaller) = 776
-# Sinyal sırası ml_engine/processing/cleaner.py::SIGNAL_KEYS'te tanımlanır.
-# Bu dosyayı değiştirirseniz SIGNAL_KEYS'i de güncellemeyi unutmayın.
 
 
 async def fetch_training_data_from_db():
@@ -29,10 +25,6 @@ async def fetch_training_data_from_db():
     y_labels   = []
 
     async with AsyncSessionLocal() as session:
-        # Yalnızca ground-truth etiketli (ingest edilmiş) kayıtları al.
-        # "completed" → tasks.py analiz çıktısı (bias döngüsü riski)
-        # "Karma", "Sonuçlandırılamadı", None → belirsiz etiket
-        # Sadece "Doğru/Yanlış" ve İngilizce karşılıkları eğitime girer.
         _VALID_STATUSES = (
             "Doğru", "DOĞRU", "doğru",
             "Yanlış", "YANLIŞ", "yanlış",
@@ -58,8 +50,6 @@ async def fetch_training_data_from_db():
             else:
                 continue  # Bilinmeyen etiket — atla
 
-            # ── BERT embedding ──────────────────────────────────────────────
-            # Depolanan embedding varsa kullan; yoksa yeniden hesapla.
             if article.embedding is not None:
                 embedding = list(article.embedding)
             else:
@@ -74,14 +64,10 @@ async def fetch_training_data_from_db():
 
                 embedding = vectorizer.get_embedding(text)
 
-            # ── Linguistik sinyaller ────────────────────────────────────────
-            # raw_content (temizlenmemiş) tercih edilir; uppercase ve ünlem
-            # gibi sinyaller orijinal metinden daha doğru çıkarılır.
             signal_source = article.raw_content or article.content or ""
             signals       = cleaner.extract_manipulative_signals(signal_source)
             signal_vec    = signals_to_vector(signals)
 
-            # ── Feature vektörü: [768-dim BERT] + [8-dim sinyaller] = 776 dim ─
             feature_vector = embedding + signal_vec
 
             X_features.append(feature_vector)
@@ -104,9 +90,6 @@ def train_and_save_model(X_features, y_labels):
         X, y, test_size=0.2, random_state=42, stratify=y
     )
 
-    # Pipeline: StandardScaler → LogisticRegression
-    # StandardScaler, BERT boyutları ile sinyal boyutlarının farklı ölçeklerini dengeler.
-    # Tüm pipeline tek .pkl dosyasına kaydedilir — inference'da aynı scaler kullanılır.
     clf = Pipeline([
         ("scaler", StandardScaler()),
         ("lr",     LogisticRegression(

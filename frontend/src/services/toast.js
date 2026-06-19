@@ -1,4 +1,3 @@
-// frontend/src/services/toast.js
 let _emit = null;
 
 function _show(type, title, options = {}) {

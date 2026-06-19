@@ -1,4 +1,3 @@
-// frontend/src/utils/milestoneSound.js
 let _ctx = null;
 
 function getCtx() {
@@ -22,7 +21,6 @@ function playNote(ctx, freq, startTime, duration) {
   osc.stop(startTime + duration);
 }
 
-// Rozet: 2 nota (yükselen)
 export function playBadgeSound() {
   try {
     const ctx = getCtx();
@@ -32,7 +30,6 @@ export function playBadgeSound() {
   } catch { /* AudioContext henüz izin verilmedi — sessizce atla */ }
 }
 
-// Seviye: 3 nota (daha uzun, daha kutlama hissi)
 export function playLevelSound() {
   try {
     const ctx = getCtx();

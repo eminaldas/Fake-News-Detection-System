@@ -154,7 +154,6 @@ const ProfileBookmarks = () => {
                 {/* Başlık */}
                 <div className="px-4 py-3 border-b flex items-center justify-between" style={BD}>
                     <span className="font-mono text-xs tracking-widest uppercase" style={{ color: 'var(--color-brand-primary)' }}>
-                        // KAYDEDİLENLER
                     </span>
                     {total > 0 && (
                         <span className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
@@ -166,7 +165,6 @@ const ProfileBookmarks = () => {
                 {/* İçerik */}
                 {loading ? (
                     <div className="p-8 text-center font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                        // yükleniyor...
                     </div>
                 ) : error ? (
                     <div className="p-8 text-center font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
@@ -176,7 +174,6 @@ const ProfileBookmarks = () => {
                     <div className="p-12 flex flex-col items-center gap-4">
                         <Bookmark className="w-10 h-10 opacity-15" style={{ color: 'var(--color-text-muted)' }} />
                         <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                            // kayıtlı tartışma yok
                         </p>
                         <Link
                             to="/forum"
@@ -228,7 +225,6 @@ const ProfileBookmarks = () => {
                 {/* Footer */}
                 <div className="px-4 py-2 border-t flex justify-between" style={BD}>
                     <span className="font-mono text-[9px] tracking-widest" style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
-                        // BOOKMARK_LOG
                     </span>
                     <span className="font-mono text-[9px] tracking-widest" style={{ color: 'var(--color-brand-primary)', opacity: 0.6 }}>
                         v1.0

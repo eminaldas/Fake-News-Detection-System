@@ -1,4 +1,3 @@
-// frontend/src/hooks/usePlatformStats.js
 import { useState, useEffect } from 'react';
 import axiosInstance from '../api/axios';
 
@@ -14,7 +13,6 @@ export function usePlatformStats() {
                 const res = await axiosInstance.get('/stats/platform');
                 setStats(res.data);
             } catch {
-                // sessizce başarısız — bileşen gizlenir
             } finally {
                 setLoading(false);
             }

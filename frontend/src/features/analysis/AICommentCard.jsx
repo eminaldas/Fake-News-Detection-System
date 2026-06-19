@@ -18,7 +18,6 @@ const AICommentCard = ({ aiComment, theme, sourceBiasSummary = null, temporalAna
             <div className="flex items-center gap-2 px-4 sm:px-5 pt-4 sm:pt-5 pb-3">
                 <Sparkles className={`w-4 h-4 ${theme.statusCls}`} />
                 <span className={`${theme.statusCls} font-mono font-bold text-[10px] tracking-widest uppercase`}>
-                    // AI_Analiz_Sonucu
                 </span>
             </div>
 
@@ -72,7 +71,6 @@ const AICommentCard = ({ aiComment, theme, sourceBiasSummary = null, temporalAna
                             <div className="flex items-center gap-1.5 mb-2">
                                 <FileText className={`w-3 h-3 ${theme.statusCls} opacity-70`} />
                                 <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-tx-secondary/80">
-                                    // Haber_Özeti
                                 </span>
                             </div>
                             <p className="text-tx-secondary text-sm leading-relaxed">
@@ -87,7 +85,6 @@ const AICommentCard = ({ aiComment, theme, sourceBiasSummary = null, temporalAna
                             <div className="flex items-center gap-1.5 mb-2">
                                 <CheckCircle2 className={`w-3 h-3 ${theme.statusCls} opacity-70`} />
                                 <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-tx-secondary/80">
-                                    // Doğrulama_Yorumu
                                 </span>
                             </div>
                             <p className="text-sm leading-relaxed italic" style={{ color: isDark ? theme.hex : '#2d7549' }}>

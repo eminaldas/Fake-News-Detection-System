@@ -23,7 +23,6 @@ export function useTrending(category) {
             });
             setItems(data.items || []);
         } catch {
-            // sessizce geç — önceki liste kalsın
         } finally {
             setLoading(false);
         }

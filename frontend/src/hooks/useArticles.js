@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import ArticleService from '../services/article.service';
 
-/**
- * Custom hook to manage fetching and paginating articles from the KB.
- */
 export const useArticles = (initialPage = 1, initialSize = 10) => {
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -30,7 +27,6 @@ export const useArticles = (initialPage = 1, initialSize = 10) => {
         }
     }, [initialSize]);
 
-    // Re-fetch when dependencies change
     useEffect(() => {
         fetchArticles(page, filter);
     }, [page, filter, fetchArticles]);

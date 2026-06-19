@@ -3,7 +3,6 @@ import pandas as pd
 import os
 import sys
 
-# Add the root project directory to the sys paths to allow importing app modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.models.models import Article
@@ -32,8 +31,6 @@ async def ingest_aa_dataset(csv_path: str):
     
     async with AsyncSessionLocal() as session:
         for index, row in df.iterrows():
-            # For AA data, 'baslik' or 'ozet' acts like the claim ('iddia')
-            # 'detayli_analiz' contains the actual news text.
             raw_claim = str(row.get('baslik', '')) + " " + str(row.get('ozet', ''))
             
             processed_data = cleaner.process(
@@ -47,10 +44,8 @@ async def ingest_aa_dataset(csv_path: str):
             if content == "Bilgi mevcut değil" or not content.strip():
                 continue
                 
-            # AA Data is highly reliable, so everything is Authentic/Doğru
             status = "Doğru"
             
-            # Pack all relevant CSV columns into metadata JSONB
             metadata = {
                 "link": str(row.get('link', '')),
                 "baslik": str(row.get('baslik', '')),
@@ -64,10 +59,8 @@ async def ingest_aa_dataset(csv_path: str):
                 "source": "Anadolu Ajansı"
             }
             
-            # Create embedding
             embedding = vectorizer.get_embedding(content)
             
-            # Create DB Article
             title_text = str(row.get('baslik', content[:50]))
             title = title_text[:75] + "..." if len(title_text) > 75 else title_text
             
@@ -82,12 +75,10 @@ async def ingest_aa_dataset(csv_path: str):
             
             session.add(article)
             
-            # Commit occasionally or at the end
             if index > 0 and index % 50 == 0:
                 print(f"Processed {index} rows...")
                 await session.commit()
                 
-        # Final commit
         await session.commit()
         print(f"Successfully ingrained AA dataset to the database. Total rows processed: {len(df)}")
 

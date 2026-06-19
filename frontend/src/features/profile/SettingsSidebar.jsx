@@ -112,7 +112,6 @@ export default function SettingsSidebar({ tabs, activeTab, onSelect, user }) {
       {/* ── Navigasyon bölüm başlığı ── */}
       <div style={{ padding:'0.5rem 1rem 0.375rem', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
         <span style={{ fontFamily:'monospace', fontSize:'0.6rem', letterSpacing:'0.1em', color: WHITE_DIM, textTransform:'uppercase' }}>
-          // NAV_MENU
         </span>
         <span style={{ fontFamily:'monospace', fontSize:'0.6rem', color: WHITE_DIM }}>
           {tabs.length}
@@ -172,7 +171,6 @@ export default function SettingsSidebar({ tabs, activeTab, onSelect, user }) {
         display: 'flex', alignItems:'center', justifyContent:'space-between',
       }}>
         <span style={{ fontFamily:'monospace', fontSize:'0.6rem', color: WHITE_DIM, letterSpacing:'0.06em' }}>
-          // SYS_MONITOR
         </span>
         <div style={{ display:'flex', alignItems:'center', gap:5 }}>
           <div style={{ width:5, height:5, borderRadius:'50%', background:'var(--color-brand-primary)', opacity:0.6 }} />

@@ -19,8 +19,6 @@ const TIPS = [
     'Paylaşmadan önce en az bir bağımsız kaynaktan doğrulayın.',
 ];
 
-// minMs: minimum fake timer before auto-completing this step
-// Infinity = only backend stage or isComplete can complete it
 const STEPS = [
     { label: 'Metin analiz ediliyor',     Icon: ScanText,    minMs: 1500     },
     { label: 'NLP sinyalleri hesaplandı', Icon: Cpu,         minMs: 2500     },
@@ -79,13 +77,11 @@ export default function AnalysisLoadingScreen({ analysisStage, pendingText, isCo
         }
     };
 
-    // Mount: step 0 already 'active'; schedule fake timer
     useEffect(() => {
         addT(() => completeStep(0), STEPS[0].minMs);
         return () => { timersRef.current.forEach(clearTimeout); timersRef.current = []; };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Backend stage: force-complete steps before minStep, activate minStep
     useEffect(() => {
         if (!analysisStage || isComplete) return;
         const min = stageMinStep(analysisStage);
@@ -105,7 +101,6 @@ export default function AnalysisLoadingScreen({ analysisStage, pendingText, isCo
         }
     }, [analysisStage]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // isComplete: cascade all to done, bar to 100%, onComplete
     useEffect(() => {
         if (!isComplete) return;
         STEPS.forEach((_, i) => {
@@ -123,13 +118,11 @@ export default function AnalysisLoadingScreen({ analysisStage, pendingText, isCo
         return () => { clearInterval(barId); clearTimeout(doneT); };
     }, [isComplete]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Tip rotator
     useEffect(() => {
         const id = setInterval(() => setTipIdx(i => (i + 1) % TIPS.length), 4500);
         return () => clearInterval(id);
     }, []);
 
-    // Progress bar crawl
     useEffect(() => {
         if (isComplete) return;
         const doneCount = phases.filter(ph => ph === 'done').length;
@@ -178,7 +171,6 @@ export default function AnalysisLoadingScreen({ analysisStage, pendingText, isCo
                 <div className="flex flex-col gap-4">
                     <p className="font-mono text-[10px] uppercase tracking-widest mb-1"
                        style={{ color: BRAND, opacity: 0.6 }}>
-                        // İşlem Adımları
                     </p>
 
                     {STEPS.map(({ label, Icon }, idx) => {
@@ -261,7 +253,6 @@ export default function AnalysisLoadingScreen({ analysisStage, pendingText, isCo
                 <div className="flex flex-col gap-4">
                     <p className="font-mono text-[10px] uppercase tracking-widest"
                        style={{ color: BRAND, opacity: 0.6 }}>
-                        // Biliyor Muydunuz?
                     </p>
                     <div className="flex-1 relative min-h-20">
                         <p

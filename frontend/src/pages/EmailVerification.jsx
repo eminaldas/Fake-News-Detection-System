@@ -20,14 +20,12 @@ export default function EmailVerification() {
     const [cooldown,   setCooldown]   = useState(0); // kalan saniye
     const intervalRef = useRef(null);
 
-    /* Sayfa yüklenince localStorage'dan cooldown'ı geri yükle */
     useEffect(() => {
         const until = parseInt(localStorage.getItem(COOLDOWN_KEY) || '0', 10);
         const remaining = Math.ceil((until - Date.now()) / 1000);
         if (remaining > 0) setCooldown(remaining);
     }, []);
 
-    /* Geri sayım tick */
     useEffect(() => {
         if (cooldown <= 0) return;
         const t = setTimeout(() => setCooldown(c => c - 1), 1000);
@@ -39,7 +37,6 @@ export default function EmailVerification() {
         setCooldown(secs);
     };
 
-    /* Token URL'den geldiyse otomatik doğrula */
     useEffect(() => {
         if (!token) return;
         axiosInstance.post('/auth/verify-email', { token })
@@ -50,14 +47,12 @@ export default function EmailVerification() {
             .catch(() => setStatus('error'));
     }, [token, navigate]);
 
-    /* Zaten doğrulanmışsa direkt onboarding'e */
     useEffect(() => {
         if (user?.is_email_verified) {
             navigate('/onboarding', { replace: true });
         }
     }, [user, navigate]);
 
-    /* Her 4 saniyede /auth/me poll et */
     useEffect(() => {
         if (status !== 'waiting') return;
         intervalRef.current = setInterval(async () => {

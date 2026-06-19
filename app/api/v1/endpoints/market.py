@@ -160,7 +160,6 @@ async def get_market_rates(redis: Redis = Depends(get_redis)):
 
     except Exception as exc:
         logging.warning("market/rates fetch failed: %s", exc)
-        # 502 yerine 200 + error flag: Nginx 502'yi intercept edip CORS header'ını siliyor
         return JSONResponse(content={"error": str(exc), "unavailable": True})
 
 

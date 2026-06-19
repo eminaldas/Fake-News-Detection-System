@@ -62,6 +62,5 @@ async def track_interaction(
         await db.commit()
     except Exception:
         await db.rollback()
-        # Sessizce geç — tracking hatası kullanıcıyı etkilemez
 
     return {"accepted": True}

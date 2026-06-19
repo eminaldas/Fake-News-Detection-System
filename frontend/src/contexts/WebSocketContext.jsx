@@ -1,18 +1,8 @@
-/**
- * frontend/src/contexts/WebSocketContext.jsx
- * React context — WebSocketService'i bileşenlere sunar.
- *
- * Kullanım:
- *   const { connected, subscribe } = useWebSocket();
- *   const unsub = subscribe('analysis_complete', handler);
- *   return unsub; // cleanup
- */
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import wsService from '../services/websocket';
 
 const WebSocketContext = createContext(null);
 
-// Stable reference — singleton never changes, bind once at module level
 const wsSubscribe = wsService.subscribe.bind(wsService);
 
 export function WebSocketProvider({ children }) {

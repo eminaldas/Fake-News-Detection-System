@@ -8,7 +8,6 @@ const CATEGORIES = ['gündem', 'ekonomi', 'spor', 'sağlık', 'teknoloji', 'kül
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 
-/* Başlık border'ın üzerini keserek geçen section wrapper */
 const Block = ({ title, sub, children, footer }) => (
     <div className="relative border" style={S}>
         <span
@@ -123,7 +122,6 @@ const ProfileAiLab = () => {
                 footer={
                     <>
                         <span className="font-mono text-[10px] tracking-widest opacity-40" style={{ color: 'var(--color-text-muted)' }}>
-                            // AUTO_CALIBRATE
                         </span>
                         <span className="font-mono text-[10px] tracking-widest opacity-50" style={{ color: 'var(--color-brand-primary)' }}>
                             v1.0
@@ -184,7 +182,6 @@ const ProfileAiLab = () => {
                 sub="seçtiğin kaynakların içerikleri feed'ine düşmez"
                 footer={
                     <span className="font-mono text-[10px] tracking-widest opacity-40" style={{ color: 'var(--color-text-muted)' }}>
-                        // FEED_FILTER_ACTIVE
                     </span>
                 }
             >

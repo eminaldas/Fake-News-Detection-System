@@ -14,25 +14,21 @@ import { useAuth } from '../../contexts/AuthContext';
 import CreateThreadModal from './CreateThreadModal';
 import SendToFriendModal from './SendToFriendModal';
 
-/* ── Tasarım sabitleri ── */
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 
-/* Durum → border-l rengi */
 const STATUS_COLOR = {
     active:       'var(--color-brand-primary)',
     under_review: 'var(--color-accent-amber)',
     resolved:     'var(--color-accent-blue)',
 };
 
-/* Durum → etiket */
 const STATUS_BADGE = {
     active:       { label: 'AKTİF',    color: 'var(--color-brand-primary)', border: 'rgba(16,185,129,0.30)' },
     under_review: { label: 'İNCELEME', color: 'var(--color-accent-amber)',  border: 'rgba(245,158,11,0.30)'  },
     resolved:     { label: 'ÇÖZÜLDÜ',  color: 'var(--color-accent-blue)',   border: 'rgba(59,130,246,0.30)'  },
 };
 
-/* Karar sonucu → etiket */
 const VERDICT_BADGE = {
     DOGRU:     { label: '✓ DOĞRU',     color: 'var(--color-brand-primary)', border: 'rgba(16,185,129,0.30)' },
     YANLIS:    { label: '✗ YANLIŞ',    color: 'var(--color-fake-fill)',      border: 'rgba(239,68,68,0.30)'  },
@@ -50,7 +46,6 @@ function timeAgo(dateStr) {
     return `${Math.floor(diff / 2592000)} ay önce`;
 }
 
-/* Oy dağılım barı — segmented */
 function VoteSegBar({ suspicious, authentic, investigate }) {
     const total  = suspicious + authentic + investigate || 1;
     const SEGS   = 8;
@@ -71,7 +66,6 @@ function VoteSegBar({ suspicious, authentic, investigate }) {
     );
 }
 
-/* Yazar avatarı — kare (terminal stil) */
 function AuthorAvatar({ username, avatarUrl, size = 8 }) {
     const palBg   = ['rgba(16,185,129,0.15)','rgba(59,130,246,0.15)','rgba(245,158,11,0.15)','rgba(239,68,68,0.15)','rgba(168,85,247,0.15)'];
     const palText = ['var(--color-brand-primary)','var(--color-accent-blue)','var(--color-accent-amber)','#ef4444','#a855f7'];
@@ -92,7 +86,6 @@ function AuthorAvatar({ username, avatarUrl, size = 8 }) {
     );
 }
 
-/* ─────────────────────────────────────────────────────── */
 function ThreadCard({ thread, index }) {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -332,7 +325,6 @@ function ThreadCard({ thread, index }) {
                     {(() => {
                         if (local.verdict) return (
                             <span className="font-mono text-[10px] font-bold" style={{ color: verdictCfg?.color ?? 'var(--color-text-muted)', opacity: 0.7 }}>
-                                // oylar donduruldu
                             </span>
                         );
                         const isNews = local.article_id || local.category === 'haberler';
@@ -470,7 +462,6 @@ function ThreadCard({ thread, index }) {
                         {/* Başlık */}
                         <div className="px-5 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
                             <span className="font-mono text-xs tracking-widest uppercase" style={{ color: 'var(--color-brand-primary)' }}>
-                                // İÇERİĞİ BİLDİR
                             </span>
                             <button onClick={() => { setReportOpen(false); setReportReason(''); setReportSent(false); }}
                                     className="font-mono text-xs transition-opacity hover:opacity-60"
@@ -479,7 +470,6 @@ function ThreadCard({ thread, index }) {
 
                         <div className="p-5">
                             {reportSent ? (
-                                /* Geri bildirim durumu */
                                 <div className="flex flex-col items-center gap-3 py-4">
                                     <div className="w-10 h-10 flex items-center justify-center"
                                          style={{ border: '2px solid var(--color-brand-primary)', background: 'rgba(16,185,129,0.08)' }}>
@@ -577,7 +567,6 @@ function ThreadCard({ thread, index }) {
     );
 }
 
-/* ─────────────────────────────────────────────────────── */
 const ForumFeed = () => {
     const { user } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -644,7 +633,6 @@ const ForumFeed = () => {
     React.useEffect(() => { load(1); }, [load]);
     React.useEffect(() => { setPage(1); }, [activeTab]);
 
-    /* Observer — 300px önceden tetikle, ref ile çift istek engelle */
     React.useEffect(() => {
         if (!sentinelRef.current) return;
         const obs = new IntersectionObserver(
@@ -659,7 +647,6 @@ const ForumFeed = () => {
         return () => obs.disconnect();
     }, [hasMore, page, load]);
 
-    /* Twitter-style yeni gönderi kontrolü — 60 sn'de bir */
     React.useEffect(() => {
         if (activeTab === 'following') return;
         const id = setInterval(async () => {
@@ -834,7 +821,6 @@ const ForumFeed = () => {
                 {loadError && (
                     <div className="flex flex-col items-center gap-2">
                         <span className="font-mono text-xs" style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
-                            // yüklenemedi
                         </span>
                         <button
                             onClick={() => { setLoadError(false); setHasMore(true); load(page + 1, true); }}
@@ -847,7 +833,6 @@ const ForumFeed = () => {
                 )}
                 {!hasMore && !loadError && threads.length > 0 && (
                     <span className="font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                        // son kayıt
                     </span>
                 )}
             </div>

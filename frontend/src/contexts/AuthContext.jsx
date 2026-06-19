@@ -92,7 +92,6 @@ export const AuthProvider = ({ children }) => {
         AuthService.logout();                   // storage'ı hemen temizle
         setUser(null);
         setIsAuthenticated(false);
-        // Server blacklist fire-and-forget — token artık storage'da yok, header'ı elle ekle
         if (token) {
             axiosInstance.post('/auth/logout', null, {
                 headers: { Authorization: `Bearer ${token}` },

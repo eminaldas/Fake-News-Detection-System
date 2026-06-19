@@ -15,14 +15,11 @@ export function usePopularNews(category, dateFrom, dateTo) {
 
     const pageRef  = useRef(1);
     const totalRef = useRef(0);
-    // featured id'yi takip et — date feed'den çıkarmak için
     const featuredIdRef = useRef(null);
 
-    // Günün en popüler haberi — ayrı çağrı
     const fetchFeatured = useCallback(async () => {
         const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
         try {
-            // 1. Bugünün en popülerini dene
             const todayData = await NewsService.getNews({
                 sort:      'popular',
                 size:      1,
@@ -37,7 +34,6 @@ export function usePopularNews(category, dateFrom, dateTo) {
                 featuredIdRef.current = todayItem.id;
                 return;
             }
-            // 2. Bugün yoksa dünün en popülerine bak — en az 3 kaynakla çıkmışsa göster
             const fallbackData = await NewsService.getNews({
                 sort:     'popular',
                 size:     1,
@@ -58,7 +54,6 @@ export function usePopularNews(category, dateFrom, dateTo) {
         }
     }, [category]);
 
-    // Geri kalan haberler — tarih sıralı (yeniden eskiye)
     const fetchPage = useCallback(async (page, append = false) => {
         if (page === 1) setLoading(true); else setLoadingMore(true);
         setError(null);
@@ -69,12 +64,10 @@ export function usePopularNews(category, dateFrom, dateTo) {
                 category:  category  || undefined,
                 date_from: dateFrom  || undefined,
                 date_to:   dateTo    || undefined,
-                // sort parametresi yok → backend pub_date DESC döner
             });
             const total = data.total || 0;
             totalRef.current = total;
 
-            // Featured olan haberi listeden çıkar
             const items = (data.items || [])
                 .filter(a => a.id !== featuredIdRef.current)
                 .slice(0, PAGE_SIZE);
@@ -88,16 +81,13 @@ export function usePopularNews(category, dateFrom, dateTo) {
         }
     }, [category, dateFrom, dateTo]);
 
-    // İlk yükleme ve filtre değişince
     useEffect(() => {
         pageRef.current = 1;
         setArticles([]);
         setHasMore(true);
-        // Önce featured çek, sonra listeyi getir
         fetchFeatured().then(() => fetchPage(1, false));
     }, [fetchFeatured, fetchPage]);
 
-    // Periyodik yenileme
     useEffect(() => {
         const id = setInterval(async () => {
             try {

@@ -60,7 +60,6 @@ const ProfileFeedback = () => {
             .finally(() => setLoading(false));
     }, []);
 
-    /* Skeleton */
     if (loading) return (
         <div className="space-y-6">
             <div className="relative border" style={S}>
@@ -129,7 +128,6 @@ const ProfileFeedback = () => {
                 title="// feedback_stats"
                 footer={
                     <span className="font-mono text-[10px] tracking-widest opacity-40" style={{ color: 'var(--color-text-muted)' }}>
-                        // MODEL_CONTRIBUTION_SCORE
                     </span>
                 }
             >
@@ -175,7 +173,6 @@ const ProfileFeedback = () => {
                 footer={
                     <>
                         <span className="font-mono text-[10px] tracking-widest opacity-40" style={{ color: 'var(--color-text-muted)' }}>
-                            // DIFF_VIEW
                         </span>
                         <span className="font-mono text-[10px] opacity-50" style={{ color: 'var(--color-brand-primary)' }}>
                             {data.total_accepted} kabul / {data.total_sent - data.total_accepted} beklemede

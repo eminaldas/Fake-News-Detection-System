@@ -73,12 +73,10 @@ export default function ProfilePrivacy() {
     const [saved, setSaved] = useState(false);
     const timerRef = useRef(null);
 
-    /* eslint-disable react-hooks/set-state-in-effect */
     useEffect(() => {
         setAnalytics(consent.analytics);
         setPersonalization(consent.personalization);
     }, [consent.analytics, consent.personalization]);
-    /* eslint-enable react-hooks/set-state-in-effect */
 
     const handleSave = () => {
         saveConsent({ analytics, personalization });

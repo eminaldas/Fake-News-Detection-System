@@ -13,7 +13,6 @@ const RecentHeadlines = () => {
     const [loading,   setLoading]   = useState(true);
     const [blink,     setBlink]     = useState(true);
 
-    // İlk yükleme + 60s polling
     useEffect(() => {
         const seenIds = new Set();
 
@@ -39,13 +38,11 @@ const RecentHeadlines = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // Cursor blink
     useEffect(() => {
         const t = setInterval(() => setBlink(b => !b), 600);
         return () => clearInterval(t);
     }, []);
 
-    // Yeni item'lar teker teker üstten kayarak gelsin, taşanlar alttan çıksın
     useEffect(() => {
         if (allItems.length === 0) return;
         const newItems = allItems.filter(item => !displayed.some(d => d.id === item.id));
@@ -109,7 +106,6 @@ const RecentHeadlines = () => {
                     ))
                 ) : displayed.length === 0 ? (
                     <p className="px-4 py-8 text-center font-mono text-xs" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}>
-                        // NO_FEED_DATA
                     </p>
                 ) : (
                     displayed.map((item, idx) => (
@@ -153,7 +149,6 @@ const RecentHeadlines = () => {
             {/* Footer */}
             <div className="px-4 py-2 border-t shrink-0 flex justify-between items-center" style={divStyle}>
                 <span className="font-mono text-[11px]" style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
-                    // RSS_FEED_ACTIVE
                 </span>
                 <span className="font-mono text-[11px]" style={{ color: 'var(--color-brand-primary)', opacity: 0.6 }}>
                     {allItems.length} kayıt

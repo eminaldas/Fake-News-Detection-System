@@ -19,7 +19,6 @@ import GeneralVoteBar from './GeneralVoteBar';
 import VerdictModal   from './VerdictModal';
 import VerdictBox     from './VerdictBox';
 
-/* ── Tasarım sabitleri ── */
 const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 
@@ -177,7 +176,6 @@ const ForumThread = () => {
 
     if (!thread) return (
         <p className="font-mono text-sm text-center py-16" style={{ color: 'var(--color-text-muted)' }}>
-            // tartışma bulunamadı
         </p>
     );
 
@@ -426,7 +424,6 @@ const ForumThread = () => {
                             )}
                             <div className="flex-1 min-w-0">
                                 <span className="font-mono text-[9px] uppercase tracking-widest font-bold block mb-1" style={{ color: '#a855f7' }}>
-                                    // kaynak haber
                                 </span>
                                 <p className="font-mono text-sm font-semibold leading-snug" style={{ color: 'var(--color-text-primary)' }}>
                                     {thread.article.title}
@@ -459,7 +456,6 @@ const ForumThread = () => {
                     <div className="flex items-center gap-3 pt-3 border-t" style={BD}>
                         {thread.verdict ? (
                             <span className="font-mono text-[10px] opacity-40" style={{ color: 'var(--color-text-muted)' }}>
-                                // oylar donduruldu
                             </span>
                         ) : (
                             isNews
@@ -475,7 +471,6 @@ const ForumThread = () => {
                 title={`// tartışma · ${thread.comment_count} yorum`}
                 footer={
                     <span className="font-mono text-[10px] opacity-40" style={{ color: 'var(--color-text-muted)' }}>
-                        // COMMENT_STREAM
                     </span>
                 }
             >

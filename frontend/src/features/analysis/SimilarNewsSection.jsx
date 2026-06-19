@@ -136,7 +136,6 @@ export default function SimilarNewsSection({ taskId }) {
             </div>
             <p className="font-mono text-[11px] uppercase tracking-widest mb-4"
                style={{ color: 'var(--color-text-primary)', opacity: 0.5 }}>
-                // Semantik Benzerlik / Vektör Arama
             </p>
 
             <div className={`grid ${colsCls} gap-3 auto-rows-[200px]`}>

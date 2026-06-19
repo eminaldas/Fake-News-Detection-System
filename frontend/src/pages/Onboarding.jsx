@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-/* ── Sabitler ─────────────────────────────────────────────────────── */
 
 const INTERESTS = [
     { id: 'gundem',     label: 'Gündem & Politika',       icon: Newspaper,    color: '#3b82f6' },
@@ -51,7 +50,6 @@ const STEPS_GOOGLE = ['Kullanıcı Adı', 'Profil Fotoğrafı', 'İlgi Alanları
 const STEPS_NORMAL = ['Profil Fotoğrafı', 'İlgi Alanları', 'Sizi Tanıyalım'];
 const MIN_INTERESTS = 3;
 
-/* ── Tasarım sabitleri ────────────────────────────────────────────── */
 const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 
 function ProgressBar({ step, steps }) {
@@ -93,7 +91,6 @@ function ProgressBar({ step, steps }) {
     );
 }
 
-/* ── Step 0 (Google): Kullanıcı Adı ──────────────────────────────── */
 function StepUsername({ currentUsername, username, setUsername, onNext }) {
     const [localVal, setLocalVal] = React.useState(username || currentUsername || '');
     const [error,    setError]    = React.useState('');
@@ -180,7 +177,6 @@ function StepUsername({ currentUsername, username, setUsername, onNext }) {
     );
 }
 
-/* ── Step 1: Avatar ───────────────────────────────────────────────── */
 function StepAvatar({ user, avatar, setAvatar, onNext }) {
     const fileRef = useRef(null);
 
@@ -268,7 +264,6 @@ function StepAvatar({ user, avatar, setAvatar, onNext }) {
     );
 }
 
-/* ── Step 2: İlgi Alanları ────────────────────────────────────────── */
 function StepInterests({ selected, setSelected, onBack, onNext }) {
     const toggle = (id) =>
         setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -345,7 +340,6 @@ function StepInterests({ selected, setSelected, onBack, onNext }) {
     );
 }
 
-/* ── Step 3: Kaynak ───────────────────────────────────────────────── */
 function StepSource({ selected, setSelected, onBack, onFinish, loading }) {
     const toggle = (id) =>
         setSelected(prev => prev === id ? '' : id);
@@ -408,7 +402,6 @@ function StepSource({ selected, setSelected, onBack, onFinish, loading }) {
     );
 }
 
-/* ── Ana bileşen ──────────────────────────────────────────────────── */
 export default function Onboarding() {
     const { user, completeOnboarding } = useAuth();
     const navigate                     = useNavigate();
@@ -416,7 +409,6 @@ export default function Onboarding() {
     const isGoogleUser = !!user?.google_id;
     const STEPS        = isGoogleUser ? STEPS_GOOGLE : STEPS_NORMAL;
 
-    // Step indeksleri
     const usernameStep  = 0;                     // sadece Google kullanıcıları
     const avatarStep    = isGoogleUser ? 1 : 0;
     const interestsStep = isGoogleUser ? 2 : 1;
@@ -443,7 +435,6 @@ export default function Onboarding() {
             interests,
             marketing_source: source || undefined,
         };
-        // Google kullanıcısı farklı bir kullanıcı adı seçtiyse gönder
         if (isGoogleUser && username && username !== user?.username) {
             payload.username = username;
         }
@@ -463,7 +454,6 @@ export default function Onboarding() {
             <div className="mb-8">
                 <p className="text-xs font-bold uppercase tracking-widest mb-1"
                    style={{ color: 'var(--color-brand-primary)' }}>
-                    // HOŞ GELDİNİZ
                 </p>
                 <h1 className="text-4xl font-manrope font-extrabold" style={{ color: 'var(--color-text-primary)' }}>
                     {user?.username ? `Merhaba, ${user.username}!` : 'Profilinizi Oluşturun'}

@@ -18,7 +18,6 @@ import AnalysisService from '../services/analysis.service';
 import HistoryModal from '../features/profile/HistoryModal';
 import GamificationService from '../services/gamification.service';
 
-/* ── Tasarım ───────────────────────────────────────────────── */
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 
@@ -83,7 +82,6 @@ function StatPill({ label, value, onClick }) {
     );
 }
 
-/* ── Takipçi/Takip modal ─────────────────────────────────── */
 function FollowModal({ userId, mode, onClose }) {
     const [items,   setItems]   = useState([]);
     const [loading, setLoading] = useState(true);
@@ -106,7 +104,6 @@ function FollowModal({ userId, mode, onClose }) {
                 <div className="px-4 py-3 border-b flex items-center justify-between" style={BD}>
                     <span className="font-mono text-xs tracking-widest uppercase"
                           style={{ color: 'var(--color-brand-primary)' }}>
-                        // {mode === 'followers' ? 'TAKİPÇİLER' : 'TAKİP EDİLENLER'}
                     </span>
                     <button onClick={onClose} className="transition-opacity hover:opacity-60"
                             style={{ color: 'var(--color-text-muted)' }}>
@@ -116,11 +113,9 @@ function FollowModal({ userId, mode, onClose }) {
                 <div className="overflow-y-auto flex-1">
                     {loading ? (
                         <div className="p-6 text-center font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                            // yükleniyor...
                         </div>
                     ) : items.length === 0 ? (
                         <div className="p-6 text-center font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                            // henüz yok
                         </div>
                     ) : items.map(u => (
                         <button key={u.id}
@@ -152,7 +147,6 @@ function FollowModal({ userId, mode, onClose }) {
     );
 }
 
-/* ── Thead özet kartı ────────────────────────────────────── */
 function ThreadMini({ thread }) {
   function timeAgo(d) {
     const s = (Date.now() - new Date(d).getTime()) / 1000;
@@ -207,7 +201,6 @@ function ThreadMini({ thread }) {
   );
 }
 
-/* ── Ana sayfa ───────────────────────────────────────────── */
 export default function UserProfile() {
     const { userId }          = useParams();
     const { user: currentUser } = useAuth();
@@ -240,7 +233,6 @@ export default function UserProfile() {
 
     const TH_SIZE = 10, H_SIZE = 10;
 
-    /* Profil yükle */
     useEffect(() => {
         setLoading(true);
         axiosInstance.get(`/users/${userId}/profile`)
@@ -255,13 +247,11 @@ export default function UserProfile() {
             .catch(() => {});
     }, [userId]);
 
-    /* Kendi istatistikleri */
     useEffect(() => {
         if (!isOwnProfile) return;
         axiosInstance.get('/users/me/stats').then(r => setStats(r.data)).catch(() => {});
     }, [isOwnProfile]);
 
-    /* Thread'ler */
     const loadThreads = useCallback((pg = 1) => {
         setThLoad(true);
         axiosInstance.get(`/users/${userId}/threads`, { params: { page: pg, size: TH_SIZE } })
@@ -272,7 +262,6 @@ export default function UserProfile() {
 
     useEffect(() => { loadThreads(1); }, [loadThreads]);
 
-    /* Analiz geçmişi (sadece kendi) */
     const loadHistory = useCallback((pg = 1) => {
         if (!isOwnProfile) return;
         setHLoad(true);
@@ -294,7 +283,6 @@ export default function UserProfile() {
 
     useEffect(() => { if (activeTab === 'analyses') loadHistory(1); }, [activeTab, loadHistory]);
 
-    /* Follow toggle */
     const handleFollow = async () => {
         if (!currentUser || fLoading) return;
         setFLoading(true);
@@ -618,7 +606,6 @@ export default function UserProfile() {
                     <div className="px-4 py-3 border-b flex items-center justify-between" style={BD}>
                         <span className="font-mono text-xs tracking-widest uppercase"
                               style={{ color: 'var(--color-brand-primary)' }}>
-                            // TARTIŞMALAR
                         </span>
                         <span className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
                             {thTotal} kayıt
@@ -626,11 +613,9 @@ export default function UserProfile() {
                     </div>
                     {thLoad ? (
                         <div className="p-8 text-center font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                            // yükleniyor...
                         </div>
                     ) : threads.length === 0 ? (
                         <div className="p-8 text-center font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                            // tartışma yok
                         </div>
                     ) : (
                         <>
@@ -672,11 +657,9 @@ export default function UserProfile() {
                     </div>
                     {hLoad ? (
                         <div className="p-8 text-center font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                            // yükleniyor...
                         </div>
                     ) : history.length === 0 ? (
                         <div className="p-8 text-center font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                            // analiz yok
                         </div>
                     ) : (
                         <>
@@ -801,7 +784,6 @@ export default function UserProfile() {
     );
 }
 
-/* ── Kaydedilenler sekmesi ── */
 function BookmarksTab() {
     const [threads, setThreads] = useState([]);
     const [loading, setLoading] = useState(true);

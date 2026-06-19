@@ -59,7 +59,6 @@ async def login(
 ):
     ip = request.client.host if request.client else "unknown"
 
-    # Kullanıcı adı veya email ile ara
     result = await db.execute(
         select(User).where(
             (User.username == form_data.username) | (User.email == form_data.username)
@@ -113,10 +112,8 @@ async def login(
             detail=_GENERIC_AUTH_ERROR,
         )
 
-    # Başarılı login — brute force sayacını sıfırla
     await clear_login_limit(ip, redis)
 
-    # remember_me query param'dan oku
     remember_me_param = request.query_params.get("remember_me", "false").lower() == "true"
     client_param      = request.query_params.get("client", "")
 
@@ -135,7 +132,6 @@ async def login(
         expires_delta=expires_delta,
     )
 
-    # last_login_at güncelle
     user.last_login_at = datetime.now(timezone.utc)
     await db.commit()
 
@@ -179,10 +175,8 @@ async def register(
     if existing_email:
         if existing_email.is_email_verified:
             raise HTTPException(status_code=422, detail="email:Bu e-posta adresi zaten kayıtlı.")
-        # Doğrulanmamış hesap — silinip yeniden oluşturulacak
         if existing_uname and existing_uname.id != existing_email.id:
             raise HTTPException(status_code=422, detail="username:Bu kullanıcı adı zaten kullanılıyor.")
-        # analysis_requests'te ondelete yok, önce null'la
         from sqlalchemy import update as sa_update
         await db.execute(sa_update(AnalysisRequest).where(AnalysisRequest.user_id == existing_email.id).values(user_id=None))
         await db.delete(existing_email)
@@ -232,7 +226,6 @@ async def register(
     )
 
 
-# ── Google OAuth ─────────────────────────────────────────────────────────────
 
 @router.post("/google", response_model=GoogleAuthResponse)
 async def google_auth(
@@ -294,7 +287,6 @@ async def google_auth(
         if avatar_url and not user.avatar_url:
             user.avatar_url = avatar_url
         user.is_email_verified = True
-        # Mevcut kullanıcı ilk kez kabul ediyorsa güncelle
         if body.terms_accepted and not (user.preferences or {}).get("terms_version"):
             prefs = dict(user.preferences or {})
             prefs["terms_version"]    = "v1.0"
@@ -312,7 +304,6 @@ async def google_auth(
     except Exception:
         pass
 
-    # Yeni kullanıcıya hoş geldin emaili gönder (background — response'u bloklamasın)
     if is_new and bool(settings.SMTP_HOST and settings.SMTP_USER):
         background_tasks.add_task(_send_welcome_email, user.email, user.username)
 
@@ -332,7 +323,6 @@ async def google_auth(
     )
 
 
-# ── Email verification ────────────────────────────────────────────────────────
 
 _RESEND_COOLDOWN_SECS = 60
 
@@ -361,7 +351,6 @@ async def send_verification(
         background_tasks.add_task(_send_verification_email, current_user.email, token)
         return {"detail": "Doğrulama emaili gönderildi"}
     else:
-        # Dev mode: token'ı döndür
         return {"detail": "dev_mode", "token": token}
 
 
@@ -382,7 +371,6 @@ async def delete_account(
     await db.commit()
     log.info("user.soft_deleted", user_id=str(current_user.id))
 
-    # Recovery token — 30 gün geçerli
     recovery_token = secrets.token_urlsafe(32)
     await redis.setex(f"account_recover:{recovery_token}", 2592000, str(current_user.id))
     if bool(settings.SMTP_HOST and settings.SMTP_USER):
@@ -487,7 +475,6 @@ async def verify_email(
     return user
 
 
-# ── Onboarding ────────────────────────────────────────────────────────────────
 
 @router.put("/complete-onboarding", response_model=UserResponse)
 async def complete_onboarding(
@@ -538,7 +525,6 @@ async def complete_onboarding(
     return current_user
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
 
 async def _unique_username(display_name: str, db: AsyncSession) -> str:
     base = re.sub(r"[^a-z0-9_]", "", display_name.lower().replace(" ", "_"))[:20] or "kullanici"

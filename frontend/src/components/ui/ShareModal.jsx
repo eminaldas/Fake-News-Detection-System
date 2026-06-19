@@ -118,7 +118,6 @@ export default function ShareModal({ url, hex }) {
                         >
                             <span className="font-mono text-[11px] font-bold tracking-[0.18em] uppercase"
                                   style={{ color: effectiveHex }}>
-                                // Paylaş
                             </span>
                             <button
                                 onClick={() => setIsOpen(false)}

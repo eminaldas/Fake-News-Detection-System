@@ -1,4 +1,3 @@
-// frontend/src/features/analysis/ImageResultCard.jsx
 import React, { useRef, useEffect } from 'react';
 import { CheckCircle2, AlertTriangle, HelpCircle, Shield, ExternalLink } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';

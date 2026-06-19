@@ -109,7 +109,6 @@ const SendToFriendModal = ({ threadTitle, threadUrl, onClose }) => {
                             <Users className="w-3.5 h-3.5" style={{ color: 'var(--color-brand-primary)' }} />
                             <span className="font-mono text-xs font-bold tracking-widest uppercase"
                                   style={{ color: 'var(--color-brand-primary)' }}>
-                                // arkadaşa_gönder
                             </span>
                         </div>
                         <button
@@ -145,13 +144,11 @@ const SendToFriendModal = ({ threadTitle, threadUrl, onClose }) => {
                         {!query.trim() && (
                             <p className="font-mono text-xs text-center py-8"
                                style={{ color: 'var(--color-text-muted)' }}>
-                                // kullanıcı adı yaz
                             </p>
                         )}
                         {query.trim() && !loading && users.length === 0 && (
                             <p className="font-mono text-xs text-center py-8"
                                style={{ color: 'var(--color-text-muted)' }}>
-                                // kullanıcı bulunamadı
                             </p>
                         )}
                         {users.map(u => (

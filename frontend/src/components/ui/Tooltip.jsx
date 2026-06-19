@@ -1,4 +1,3 @@
-// frontend/src/components/ui/Tooltip.jsx
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 

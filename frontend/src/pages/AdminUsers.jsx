@@ -231,7 +231,7 @@ export default function AdminUsers() {
               width: '100%', padding: '9px 12px 9px 32px',
               background: A.card, border: `1px solid ${A.border}`,
               borderRadius: 8, color: A.text1, fontSize: 13,
-              fontFamily: 'Open Sans, system-ui, sans-serif',
+              fontFamily: 'Elms Sans, system-ui, sans-serif',
               outline: 'none', boxSizing: 'border-box',
             }}
           />

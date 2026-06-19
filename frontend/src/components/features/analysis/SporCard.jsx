@@ -1,7 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Trophy } from 'lucide-react';
 
-/* ── Mock veri (gerçek API bağlantısı sonraya) ───────────────────── */
 const LEAGUES = [
     { id: 'super-lig',      name: 'Süper Lig',       flag: 'TR' },
     { id: 'premier-league', name: 'Premier League',  flag: 'EN' },

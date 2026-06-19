@@ -183,7 +183,6 @@ async def get_recommendations(
     if context == "post_analysis":
         limit = 5
 
-    # ── Aktif deney kontrolü ──────────────────────────────────────────────────
     experiment = (await db.execute(
         select(AbExperiment).where(AbExperiment.status == "active")
     )).scalar_one_or_none()
@@ -206,7 +205,6 @@ async def get_recommendations(
             base["ab_experiment_id"] = ab_experiment_id
         return base
 
-    # ── Öneri modu seçimi ─────────────────────────────────────────────────────
     if user is None:
         articles = await _cold_start(db, {}, limit)
         return {**_ab_meta([_serialize(a, "Trend") for a in articles]), "mode": "cold_start"}

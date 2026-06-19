@@ -1,4 +1,3 @@
-# app/api/v1/endpoints/reports.py
 import smtplib
 import threading
 from datetime import datetime, timezone
@@ -20,7 +19,6 @@ from app.models.models import ReportStatus, ReportType, User, UserReport
 
 router = APIRouter()
 
-# ── Pydantic şemaları ─────────────────────────────────────────────
 
 class CreateReportRequest(BaseModel):
     type:        ReportType
@@ -34,7 +32,6 @@ class AdminReplyRequest(BaseModel):
     status: ReportStatus
 
 
-# ── E-posta yardımcıları ──────────────────────────────────────────
 
 def _smtp_send(msg: MIMEMultipart, to_email: str) -> None:
     if not (settings.SMTP_HOST and settings.SMTP_USER):
@@ -81,7 +78,6 @@ def _send_confirmation(to_email: str, username: str, report_id: str, report_type
               </td>
               <td style="padding:12px 16px;color:#10b981;font-size:13px;font-weight:700;
                          font-family:'Courier New',monospace;border-bottom:1px solid #1c3344;">
-                #{short_id}
               </td>
             </tr>
             <tr>
@@ -183,7 +179,6 @@ def _email_base() -> str:
 </html>"""
 
 
-# ── Endpoint'ler ──────────────────────────────────────────────────
 
 @router.post("", status_code=201)
 async def create_report(
@@ -276,7 +271,6 @@ async def reply_report(
 
     await db.refresh(report, ["reporter"])
 
-    # Commit öncesi al — refresh sonrası reporter detach olur
     reporter_email    = report.reporter.email
     reporter_username = report.reporter.username
     report_subject    = report.subject
