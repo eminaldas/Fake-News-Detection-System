@@ -33,8 +33,10 @@ SEED = {
 
 
 def _slug(s: str) -> str:
-    table = str.maketrans("çğıöşü ", "cgiosu-")
-    return s.translate(table)
+    # Slug, news_articles.category/subcategory ile birebir eşleşmeli (RSS ingester
+    # SLUG_MAP'i Türkçe değer yazıyor: "sağlık", "son dakika"...). ASCII'ye çevirmek
+    # eşleşmeyi bozar; ham (küçük harf Türkçe) değeri kullanıyoruz.
+    return s.lower()
 
 
 def upgrade() -> None:
