@@ -24,7 +24,7 @@ const ForumFeed = () => {
     const [loading,     setLoading]     = React.useState(false);
     const [loadError,   setLoadError]   = React.useState(false);
     const [showModal,   setShowModal]   = React.useState(false);
-    const [newCount,    setNewCount]    = React.useState(0);
+    const [pending,     setPending]     = React.useState([]);
     const SIZE = 20;
     const sentinelRef   = React.useRef(null);
     const isLoadingRef  = React.useRef(false);
@@ -54,9 +54,9 @@ const ForumFeed = () => {
                 setThreads(prev => [...prev, ...items]);
             } else {
                 setThreads(items);
+                setPending([]);
                 if (items.length > 0) {
                     newestAtRef.current = items[0].created_at;
-                    setNewCount(0);
                 }
             }
             setPage(data.page ?? pg);
@@ -93,31 +93,62 @@ const ForumFeed = () => {
         const id = setInterval(async () => {
             if (!newestAtRef.current || document.hidden) return;
             try {
-                const { data } = await axiosInstance.get('/forum/threads/discover', {
-                    params: { sort: 'new', page: 1, size: 1 },
-                });
-                const latest = data.items?.[0];
-                if (latest && latest.created_at > newestAtRef.current) {
-                    setNewCount(n => n + 1);
+                const params = { sort: 'new', page: 1, size: 10 };
+                if (category) params.category = category;
+                if (tag)      params.tag      = tag;
+                const { data } = await axiosInstance.get('/forum/threads/discover', { params });
+                const fresh = (data.items ?? []).filter(t => t.created_at > newestAtRef.current);
+                if (fresh.length === 0) return;
+                newestAtRef.current = fresh[0].created_at;
+                if (window.scrollY < 80) {
+                    setThreads(prev => [...fresh, ...prev]);      // sessiz prepend
+                } else {
+                    setPending(prev => [...fresh, ...prev]);      // birikir
                 }
             } catch { /* sessiz */ }
         }, 60_000);
         return () => clearInterval(id);
-    }, [activeTab]);
+    }, [activeTab, category, tag]);
 
     return (
         <>
         <div className="flex flex-col gap-2">
 
-            {/* ── Yeni gönderi banner ── */}
-            {newCount > 0 && (
+            {/* ── Sort sekmeleri ── */}
+            <div className="flex items-center gap-2">
+                {[
+                    { key: 'hot',           label: 'Popüler'    },
+                    { key: 'new',           label: 'Yeni'       },
+                    { key: 'controversial', label: 'Tartışmalı' },
+                ].map((o) => {
+                    const active = sort === o.key;
+                    return (
+                        <button
+                            key={o.key}
+                            type="button"
+                            onClick={() => { const n = new URLSearchParams(searchParams); n.set('sort', o.key); setSearchParams(n); }}
+                            className="px-3 py-1.5 font-mono text-xs font-bold border transition-all"
+                            style={{
+                                background:  active ? 'var(--color-brand-primary)' : 'var(--color-terminal-surface)',
+                                borderColor: active ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)',
+                                color:       active ? '#070f12' : 'var(--color-text-primary)',
+                            }}
+                        >
+                            {o.label}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* ── Yeni gönderi pill (aşağıdayken) ── */}
+            {pending.length > 0 && (
                 <button
-                    onClick={() => load(1)}
-                    className="flex items-center justify-center gap-2 py-2.5 font-mono text-xs font-bold border transition-all hover:opacity-80 animate-fade-up"
-                    style={{ background: 'rgba(16,185,129,0.10)', borderColor: 'rgba(16,185,129,0.35)', color: 'var(--color-brand-primary)' }}
+                    type="button"
+                    onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); setThreads(prev => [...pending, ...prev]); setPending([]); }}
+                    className="sticky top-20 z-30 self-center flex items-center gap-2 px-4 py-1.5 font-mono text-[11px] font-bold border shadow-lg animate-fade-up"
+                    style={{ background: 'var(--color-brand-accent)', borderColor: 'rgba(63,255,139,0.40)', color: 'var(--color-brand-primary)' }}
                 >
-                    <Loader2 className="w-3.5 h-3.5" />
-                    Yeni gönderiler var — yenile
+                    ↑ {pending.length} yeni gönderi
                 </button>
             )}
 
