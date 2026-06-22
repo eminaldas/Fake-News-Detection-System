@@ -9,7 +9,7 @@ import axiosInstance from '../../api/axios';
 import { useAuth } from '../../contexts/AuthContext';
 import SendToFriendModal from './SendToFriendModal';
 import AuthorAvatar from './AuthorAvatar';
-import { timeAgo } from './threadFormat';
+import { timeAgo, reliabilityColor } from './threadFormat';
 
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
@@ -236,7 +236,56 @@ export default function ThreadCard({ thread }) {
                     )}
                 </div>
 
-                {/* MODULE_ANCHOR — opsiyonel modüller Task 9'da buraya eklenir */}
+                {/* Opsiyonel: gömülü kaynak + güven metresi */}
+                {local.article && (
+                    <a href={local.article.source_url} target="_blank" rel="noopener noreferrer"
+                       onClick={e => e.stopPropagation()}
+                       className="flex gap-3 border p-2.5 transition-colors hover:border-brand"
+                       style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'rgba(0,0,0,0.15)', textDecoration: 'none' }}>
+                        {local.article.image_url && (
+                            <img src={local.article.image_url} alt="" className="w-14 h-14 object-cover shrink-0"
+                                 style={{ border: '1px solid var(--color-terminal-border-raw)' }}
+                                 onError={e => { e.currentTarget.style.display = 'none'; }} />
+                        )}
+                        <div className="min-w-0">
+                            <p className="text-[12.5px] font-bold leading-snug line-clamp-2" style={{ color: 'var(--color-text-primary)' }}>
+                                {local.article.title}
+                            </p>
+                            <div className="font-mono text-[10px] mt-1 flex items-center gap-2 flex-wrap" style={{ color: 'var(--color-text-muted)' }}>
+                                {local.article.nlp_score != null && (
+                                    <span style={{ color: reliabilityColor(local.article.nlp_score), fontWeight: 800 }}>
+                                        %{Math.round((1 - local.article.nlp_score) * 100)} güven
+                                    </span>
+                                )}
+                                {local.article.ai_verdict && (
+                                    <span className="px-1.5 py-0.5"
+                                          style={{
+                                              color: local.article.ai_verdict === 'FAKE' ? 'var(--color-fake-fill)' : 'var(--color-brand-primary)',
+                                              border: '1px solid var(--color-terminal-border-raw)',
+                                          }}>
+                                        AI: {local.article.ai_verdict === 'FAKE' ? 'YANLIŞ' : 'DOĞRU'}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </a>
+                )}
+
+                {/* Opsiyonel: topluluk kararı çubuğu (verdict yoksa) */}
+                {total > 0 && !local.verdict && (
+                    <div>
+                        <div className="flex h-1.5 overflow-hidden border" style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
+                            <span style={{ width: `${(local.vote_authentic   / total) * 100}%`, background: 'var(--color-brand-primary)' }} />
+                            <span style={{ width: `${(local.vote_suspicious  / total) * 100}%`, background: 'var(--color-fake-fill)' }} />
+                            <span style={{ width: `${(local.vote_investigate / total) * 100}%`, background: 'var(--color-accent-amber)' }} />
+                        </div>
+                        <div className="flex gap-3 mt-1.5 font-mono text-[10px]">
+                            <span style={{ color: 'var(--color-brand-primary)' }}>✓ %{Math.round((local.vote_authentic / total) * 100)} Doğru</span>
+                            <span style={{ color: 'var(--color-fake-fill)' }}>✗ %{Math.round((local.vote_suspicious / total) * 100)} Şüpheli</span>
+                            <span style={{ color: 'var(--color-accent-amber)' }}>? %{Math.round((local.vote_investigate / total) * 100)} Araştır</span>
+                        </div>
+                    </div>
+                )}
 
                 {/* Etiketler */}
                 {local.tags?.length > 0 && (
