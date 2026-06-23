@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Star, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, Star, Loader2, TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
 import MarketService from '../services/market.service';
 import { useMarketPrefs } from '../hooks/useMarketPrefs';
+import { useAuth } from '../contexts/AuthContext';
 import PriceChart from '../components/features/borsa/PriceChart';
 
 const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
@@ -49,11 +50,14 @@ function Panel({ title, color, children }) {
 
 export default function BorsaDetail() {
     const { symbol } = useParams();
+    const { user } = useAuth();
     const { isActive, toggle } = useMarketPrefs();
     const [range, setRange]   = useState('1a');
     const [data, setData]     = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError]   = useState(false);
+    const [ai, setAi]         = useState(null);     // { text, available }
+    const [aiLoading, setAiLoading] = useState(false);
 
     useEffect(() => {
         let alive = true;
@@ -65,6 +69,20 @@ export default function BorsaDetail() {
         })();
         return () => { alive = false; };
     }, [symbol, range]);
+
+    useEffect(() => {
+        let alive = true;
+        setAi(null);
+        MarketService.getCommentary(symbol).then(d => { if (alive) setAi(d); }).catch(() => {});
+        return () => { alive = false; };
+    }, [symbol]);
+
+    const requestAi = async () => {
+        setAiLoading(true);
+        try { setAi(await MarketService.makeCommentary(symbol)); }
+        catch { /* 429/hata sessiz */ }
+        finally { setAiLoading(false); }
+    };
 
     const starred = isActive(symbol);
     const up = data && data.change_pct >= 0;
@@ -205,7 +223,33 @@ export default function BorsaDetail() {
                         <p className="px-4 py-3 text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{data.summary}</p>
                     </div>
 
-                    {/* AI bloğu — Task B9 */}
+                    {/* AI yorumu */}
+                    <div className="relative border" style={{ ...TS, borderLeft: '3px solid rgba(124,58,237,0.55)' }}>
+                        <Corner />
+                        <div className="flex items-center gap-2 font-mono text-[10px] font-bold tracking-widest px-4 py-3 border-b"
+                             style={{ color: '#7c3aed', borderColor: 'var(--color-terminal-border-raw)' }}>
+                            <Sparkles className="w-3.5 h-3.5" /> AI PİYASA YORUMU
+                        </div>
+                        {ai?.available ? (
+                            <p className="px-4 py-3 text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{ai.text}</p>
+                        ) : (
+                            <div className="px-4 py-4 flex items-center gap-3">
+                                <p className="text-[13px]" style={{ color: 'var(--color-text-muted)' }}>
+                                    Bu sembol için henüz AI yorumu yok.
+                                </p>
+                                {user ? (
+                                    <button type="button" onClick={requestAi} disabled={aiLoading}
+                                            className="ml-auto flex items-center gap-1.5 font-mono text-[11px] font-bold px-3 py-1.5 border transition-opacity hover:opacity-80 disabled:opacity-50"
+                                            style={{ color: '#7c3aed', borderColor: 'rgba(124,58,237,0.4)', background: 'rgba(124,58,237,0.06)' }}>
+                                        {aiLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                        Özet iste
+                                    </button>
+                                ) : (
+                                    <Link to="/login" className="ml-auto font-mono text-[11px] font-bold" style={{ color: '#7c3aed' }}>Giriş yap →</Link>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
