@@ -114,32 +114,6 @@ const ForumFeed = () => {
         <>
         <div className="flex flex-col gap-2">
 
-            {/* ── Sort sekmeleri ── */}
-            <div className="flex items-center gap-2">
-                {[
-                    { key: 'hot',           label: 'Popüler'    },
-                    { key: 'new',           label: 'Yeni'       },
-                    { key: 'controversial', label: 'Tartışmalı' },
-                ].map((o) => {
-                    const active = sort === o.key;
-                    return (
-                        <button
-                            key={o.key}
-                            type="button"
-                            onClick={() => { const n = new URLSearchParams(searchParams); n.set('sort', o.key); setSearchParams(n); }}
-                            className="px-3 py-1.5 font-mono text-xs font-bold border transition-all"
-                            style={{
-                                background:  active ? 'var(--color-brand-primary)' : 'var(--color-terminal-surface)',
-                                borderColor: active ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)',
-                                color:       active ? '#070f12' : 'var(--color-text-primary)',
-                            }}
-                        >
-                            {o.label}
-                        </button>
-                    );
-                })}
-            </div>
-
             {/* ── Yeni gönderi pill (aşağıdayken) ── */}
             {pending.length > 0 && (
                 <button
