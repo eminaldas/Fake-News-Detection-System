@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
     Calendar, MessageSquare, Settings, UserPlus, UserMinus,
-    X, ChevronLeft, ChevronRight, Loader2, Search,
+    X, Loader2, Search, ChevronRight,
     Twitter, Instagram, Github, Linkedin, Globe, Link2,
-    BarChart2, MessagesSquare, ShieldAlert, ArrowRight,
+    BarChart2, MessagesSquare, ShieldAlert, ArrowRight, TrendingUp,
 } from 'lucide-react';
 import axiosInstance from '../api/axios';
 import { useAuth } from '../contexts/AuthContext';
@@ -18,8 +17,8 @@ import { TypeBadge } from '../components/common/AnalysisBadges';
 import RecommendedUsersWidget from '../features/profile/RecommendedUsersWidget';
 import PopularThreadsWidget from '../features/profile/PopularThreadsWidget';
 
-const S  = { background: 'rgba(16,185,129,0.07)', borderColor: 'rgba(16,185,129,0.07)' };
-const BD = { borderColor: 'rgba(16,185,129,0.07)' };
+const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
+const BD = { borderColor: 'var(--color-terminal-border-raw)' };
 
 const TIER_COLOR = {
     yeni_uye:    'var(--color-text-muted)',
@@ -42,52 +41,69 @@ const PRED_ACCENT = {
     UNCERTAIN: 'var(--color-accent-amber)',
 };
 const PRED_L = { FAKE: 'Sahte İçerik', AUTHENTIC: 'Doğrulandı', UNCERTAIN: 'Belirsiz' };
-const PRED_BADGE = {
-    FAKE:      { background: 'rgba(255,115,81,0.15)', color: 'var(--color-fake-text)',      border: '1px solid rgba(255,115,81,0.3)' },
-    AUTHENTIC: { background: 'rgba(16,185,129,0.15)', color: 'var(--color-authentic-text)', border: '1px solid rgba(16,185,129,0.3)' },
-    UNCERTAIN: { background: 'rgba(245,158,11,0.15)', color: 'var(--color-iddia-text)',      border: '1px solid rgba(245,158,11,0.3)' },
-};
 const FILTER_COLOR = {
     FAKE:      'var(--color-fake-fill)',
     AUTHENTIC: 'var(--color-brand-primary)',
     UNCERTAIN: 'var(--color-accent-amber)',
 };
 
+const PAL_BG   = ['rgba(16,185,129,0.18)','rgba(59,130,246,0.18)','rgba(245,158,11,0.18)','rgba(239,68,68,0.18)','rgba(168,85,247,0.18)'];
+const PAL_TEXT = ['var(--color-brand-primary)','var(--color-accent-blue)','var(--color-accent-amber)','#ef4444','#a855f7'];
+
+/* ── Köşe çentikleri (keskin) ── */
 function Corner() {
     return (
         <>
-            {/* Alt-sol */}
-            <div className="absolute bottom-0 left-0 w-4 h-0.5 bg-brand pointer-events-none" />
-            <div className="absolute bottom-0 left-0 h-4 w-0.5 bg-brand pointer-events-none" />
-            {/* Alt-sağ */}
-            <div className="absolute bottom-0 right-0 w-4 h-0.5 bg-brand pointer-events-none" />
-            <div className="absolute bottom-0 right-0 h-4 w-0.5 bg-brand pointer-events-none" />
-            {/* Aralarında hafif bottom border */}
-            <div className="absolute bottom-0 left-4 right-4 h-px pointer-events-none"
-                 style={{ background: 'var(--color-brand-primary)', opacity: 0.12 }} />
+            <div className="absolute top-0 left-0 w-3.5 h-[2px] bg-brand pointer-events-none" />
+            <div className="absolute top-0 left-0 h-3.5 w-[2px] bg-brand pointer-events-none" />
+            <div className="absolute bottom-0 right-0 w-3.5 h-[2px] bg-brand pointer-events-none" />
+            <div className="absolute bottom-0 right-0 h-3.5 w-[2px] bg-brand pointer-events-none" />
         </>
     );
 }
 
-const PAL_BG   = ['rgba(16,185,129,0.15)','rgba(59,130,246,0.15)','rgba(245,158,11,0.15)','rgba(239,68,68,0.15)','rgba(168,85,247,0.15)'];
-const PAL_TEXT = ['var(--color-brand-primary)','var(--color-accent-blue)','var(--color-accent-amber)','#ef4444','#a855f7'];
+/* ── Sade panel başlığı ── */
+function Panel({ title, more, children }) {
+    return (
+        <div className="relative border" style={{ ...S, borderLeft: '3px solid rgba(63,255,139,0.55)' }}>
+            <Corner />
+            <div className="flex items-center px-4 py-3 border-b" style={BD}>
+                <span className="font-mono text-[11px] font-bold tracking-widest uppercase"
+                      style={{ color: 'var(--color-brand-primary)' }}>
+                    {title}
+                </span>
+                {more && (
+                    <button onClick={more.onClick}
+                            className="ml-auto flex items-center gap-1 font-mono text-[10px] transition-opacity hover:opacity-70"
+                            style={{ color: 'var(--color-brand-primary)' }}>
+                        {more.label} <ArrowRight className="w-3 h-3" />
+                    </button>
+                )}
+            </div>
+            {children}
+        </div>
+    );
+}
 
-function UserAvatar({ username, avatarUrl, onClick }) {
+/* ── Keskin kare avatar ── */
+function UserAvatar({ username, avatarUrl, tierColor, size = 96, onClick }) {
     const idx = (username?.charCodeAt(0) ?? 0) % PAL_BG.length;
     return (
-        <button onClick={onClick} className="shrink-0 cursor-zoom-in group relative rounded-full"
-                style={{ width: 128, height: 128 }}>
-            <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center font-mono font-black text-5xl"
-                 style={{ background: PAL_BG[idx], color: PAL_TEXT[idx], border: '4px solid var(--color-avatar-border)' }}>
+        <button onClick={onClick} className="shrink-0 cursor-zoom-in group relative"
+                style={{ width: size, height: size }}>
+            <div className="w-full h-full overflow-hidden flex items-center justify-center font-mono font-black"
+                 style={{ background: PAL_BG[idx], color: PAL_TEXT[idx], border: `2px solid ${tierColor}`, fontSize: size * 0.36 }}>
                 {avatarUrl
                     ? <img src={avatarUrl} alt={username} className="w-full h-full object-cover"
                            referrerPolicy="no-referrer"
                            onError={e => { e.currentTarget.style.display = 'none'; }} />
                     : (username ?? '?')[0].toUpperCase()}
             </div>
-            <div className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            <div className="absolute bottom-[-1px] right-[-1px] w-2.5 h-[2px] bg-brand pointer-events-none" />
+            <div className="absolute bottom-[-1px] right-[-1px] h-2.5 w-[2px] bg-brand pointer-events-none" />
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                  style={{ background: 'rgba(0,0,0,0.45)' }}>
-                <Search className="w-6 h-6 text-white" />
+                <Search className="w-5 h-5 text-white" />
             </div>
         </button>
     );
@@ -106,14 +122,13 @@ function FollowModal({ userId, mode, onClose }) {
     }, [userId, mode]);
 
     return createPortal(
-        <div className="fixed inset-0 z-9999 flex items-center justify-center"
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center"
              style={{ background: 'rgba(0,0,0,0.80)' }} onClick={onClose}>
             <div className="relative border w-80 max-h-[70vh] flex flex-col"
                  style={S} onClick={e => e.stopPropagation()}>
                 <Corner />
                 <div className="px-4 py-3 border-b flex items-center justify-between" style={BD}>
-                    <span className="font-manrope font-bold text-sm"
-                          style={{ color: 'var(--color-text-primary)' }}>
+                    <span className="font-manrope font-bold text-sm" style={{ color: 'var(--color-text-primary)' }}>
                         {mode === 'followers' ? 'Takipçiler' : 'Takip Edilenler'}
                     </span>
                     <button onClick={onClose} className="transition-opacity hover:opacity-60"
@@ -133,21 +148,17 @@ function FollowModal({ userId, mode, onClose }) {
                     ) : items.map(u => (
                         <button key={u.id}
                                 onClick={() => { navigate(`/users/${u.id}`); onClose(); }}
-                                className="flex items-center gap-3 w-full px-4 py-3 border-b border-l-2 transition-all text-left"
-                                style={{ borderColor: 'var(--color-terminal-border-raw)', borderLeftColor: 'transparent' }}
-                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderLeftColor = 'var(--color-brand-primary)'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
-                            <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center shrink-0 font-black text-sm"
+                                className="flex items-center gap-3 w-full px-4 py-3 border-b transition-colors hover:bg-white/[0.04] text-left"
+                                style={BD}>
+                            <div className="w-9 h-9 overflow-hidden flex items-center justify-center shrink-0 font-black text-sm"
                                  style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid var(--color-brand-primary)', color: 'var(--color-brand-primary)' }}>
                                 {u.avatar_url
                                     ? <img src={u.avatar_url} alt={u.username} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                     : u.username[0].toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                                <p className="font-manrope font-bold text-sm truncate"
-                                   style={{ color: 'var(--color-text-primary)' }}>{u.username}</p>
-                                <p className="font-mono text-[10px]"
-                                   style={{ color: TIER_COLOR[u.trust_tier] ?? 'var(--color-text-muted)' }}>
+                                <p className="font-manrope font-bold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{u.username}</p>
+                                <p className="font-mono text-[10px]" style={{ color: TIER_COLOR[u.trust_tier] ?? 'var(--color-text-muted)' }}>
                                     {u.trust_label}
                                 </p>
                             </div>
@@ -172,7 +183,7 @@ function timeAgo(d) {
 function Pagination({ page, totalPages, load }) {
     if (totalPages <= 1) return null;
     return (
-        <div className="flex items-center justify-center gap-3 pt-4">
+        <div className="flex items-center justify-center gap-3 px-4 py-3 border-t" style={BD}>
             <button disabled={page <= 1} onClick={() => load(page - 1)}
                     className="font-mono text-xs px-3 py-1.5 border transition-colors disabled:opacity-30"
                     style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)' }}>
@@ -190,21 +201,153 @@ function Pagination({ page, totalPages, load }) {
     );
 }
 
-function SectionHeader({ icon: Icon, label, onMore }) {
+/* ── Kompakt tartışma satırı ── */
+function ThreadRow({ thread }) {
+    const catColor = CAT_COLOR[thread.category] ?? 'var(--color-accent-blue)';
+    const STATUS_C = { active: 'var(--color-brand-primary)', under_review: 'var(--color-accent-amber)', resolved: 'var(--color-accent-blue)' };
     return (
-        <div className="flex items-center gap-2 mb-4">
-            <Icon className="w-4 h-4 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
-            <span className="font-manrope font-bold text-sm" style={{ color: 'var(--color-text-primary)' }}>
-                {label}
-            </span>
-            <div className="grow h-px mx-1" style={{ background: 'var(--color-terminal-border-raw)', opacity: 0.4 }} />
-            {onMore && (
-                <button onClick={onMore}
-                        className="flex items-center gap-1 font-mono text-xs font-bold transition-opacity hover:opacity-70 shrink-0"
-                        style={{ color: 'var(--color-brand-primary)' }}>
-                    tümünü gör <ArrowRight className="w-3.5 h-3.5" />
-                </button>
+        <Link to={`/forum/${thread.id}`}
+              className="flex items-center gap-3 px-4 py-3 border-b transition-colors hover:bg-white/[0.03]"
+              style={{ ...BD, textDecoration: 'none' }}>
+            <div className="w-[3px] h-9 shrink-0" style={{ background: STATUS_C[thread.status] ?? 'var(--color-brand-primary)' }} />
+            <div className="flex-1 min-w-0">
+                <p className="font-manrope font-semibold text-sm leading-snug line-clamp-1"
+                   style={{ color: 'var(--color-text-primary)' }}>
+                    {thread.title}
+                </p>
+                <div className="flex items-center gap-2 font-mono text-[10px] mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                    {thread.category && (
+                        <span className="px-1.5 py-0.5 font-bold border"
+                              style={{ color: catColor, borderColor: catColor + '40' }}>
+                            {thread.category}
+                        </span>
+                    )}
+                    <span className="flex items-center gap-1"><MessageSquare className="w-2.5 h-2.5" /> {thread.comment_count ?? 0}</span>
+                    <span>{thread.created_at ? timeAgo(thread.created_at) : ''}</span>
+                </div>
+            </div>
+            <ChevronRight className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-text-muted)' }} />
+        </Link>
+    );
+}
+
+/* ── Kompakt analiz satırı ── */
+function AnalysisRow({ item, setSelectedItem }) {
+    const accent = PRED_ACCENT[item.prediction] ?? 'var(--color-terminal-border-raw)';
+    return (
+        <div onClick={() => setSelectedItem(item)}
+             className="flex items-center gap-3 px-4 py-3 border-b border-l-2 cursor-pointer transition-colors hover:bg-white/[0.03]"
+             style={{ ...BD, borderLeftColor: accent + '70' }}
+             onMouseEnter={e => { e.currentTarget.style.borderLeftColor = accent; }}
+             onMouseLeave={e => { e.currentTarget.style.borderLeftColor = accent + '70'; }}>
+            <TypeBadge type={item.analysis_type} />
+            <p className="flex-1 min-w-0 font-mono text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>
+                {item.title ?? item.task_id ?? '—'}
+            </p>
+            {item.prediction && (
+                <span className="font-mono text-[10px] font-bold px-2 py-0.5 border shrink-0"
+                      style={{ color: accent, borderColor: accent + '40' }}>
+                    {PRED_L[item.prediction] ?? item.prediction}
+                </span>
             )}
+            <span className="font-mono text-[11px] shrink-0" style={{ color: 'var(--color-text-muted)' }}>
+                {new Date(item.created_at).toLocaleDateString('tr-TR')}
+            </span>
+        </div>
+    );
+}
+
+function EmptyRow({ icon, label }) {
+    const Icon = icon;
+    return (
+        <div className="px-4 py-10 text-center">
+            <Icon className="w-7 h-7 mx-auto mb-2 opacity-20" style={{ color: 'var(--color-text-muted)' }} />
+            <p className="font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+        </div>
+    );
+}
+
+function OverviewTab({ meStats, threads, analyses, tLoading, aLoading, setActiveTab, setSelectedItem }) {
+    return (
+        <div className="flex flex-col gap-5">
+            {meStats && (
+                <Panel title="Bu Hafta">
+                    <div className="grid grid-cols-2 divide-x" style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
+                        <div className="p-4 text-center">
+                            <p className="font-mono text-2xl font-black" style={{ color: 'var(--color-brand-primary)' }}>{meStats.week_analyzed ?? 0}</p>
+                            <p className="font-mono text-[9px] uppercase tracking-widest mt-1" style={{ color: 'var(--color-text-muted)' }}>İncelendi</p>
+                        </div>
+                        <div className="p-4 text-center" style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
+                            <p className="font-mono text-2xl font-black" style={{ color: 'var(--color-fake-fill)' }}>{meStats.week_fake ?? 0}</p>
+                            <p className="font-mono text-[9px] uppercase tracking-widest mt-1" style={{ color: 'var(--color-text-muted)' }}>Sahte</p>
+                        </div>
+                    </div>
+                </Panel>
+            )}
+
+            <Panel title="Son Tartışmalar" more={{ label: 'tümü', onClick: () => setActiveTab('threads') }}>
+                {tLoading ? (
+                    <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-brand-primary)' }} /></div>
+                ) : threads.length === 0 ? (
+                    <EmptyRow icon={MessagesSquare} label="Henüz tartışma yok" />
+                ) : threads.slice(0, 5).map(t => <ThreadRow key={t.id} thread={t} />)}
+            </Panel>
+
+            <Panel title="Son Analizler" more={{ label: 'tümü', onClick: () => setActiveTab('analyses') }}>
+                {aLoading ? (
+                    <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-brand-primary)' }} /></div>
+                ) : analyses.length === 0 ? (
+                    <EmptyRow icon={BarChart2} label="Henüz analiz yok" />
+                ) : analyses.slice(0, 5).map((a, i) => <AnalysisRow key={a.id ?? i} item={a} setSelectedItem={setSelectedItem} />)}
+            </Panel>
+        </div>
+    );
+}
+
+function ThreadsTab({ threads, loading, page, totalPages, load }) {
+    return (
+        <Panel title="Tüm Tartışmalar">
+            {loading ? (
+                <div className="py-16 flex justify-center"><Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-brand-primary)' }} /></div>
+            ) : threads.length === 0 ? (
+                <EmptyRow icon={MessageSquare} label="Henüz tartışma yok" />
+            ) : (
+                <>
+                    {threads.map(t => <ThreadRow key={t.id} thread={t} />)}
+                    <Pagination page={page} totalPages={totalPages} load={load} />
+                </>
+            )}
+        </Panel>
+    );
+}
+
+function AnalysesTab({ analyses, loading, page, totalPages, load, filter, clearFilter, setSelectedItem }) {
+    return (
+        <div className="flex flex-col gap-3">
+            {filter && (
+                <div className="flex items-center gap-3">
+                    <span className="font-mono text-[10px] px-2 py-1 border"
+                          style={{ color: FILTER_COLOR[filter], borderColor: FILTER_COLOR[filter] + '50' }}>
+                        {PRED_L[filter]} filtresi aktif
+                    </span>
+                    <button onClick={clearFilter} className="font-mono text-[10px] transition-opacity hover:opacity-60"
+                            style={{ color: 'var(--color-text-muted)' }}>
+                        × temizle
+                    </button>
+                </div>
+            )}
+            <Panel title="Analiz Geçmişi">
+                {loading ? (
+                    <div className="py-16 flex justify-center"><Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-brand-primary)' }} /></div>
+                ) : analyses.length === 0 ? (
+                    <EmptyRow icon={ShieldAlert} label={filter ? `${PRED_L[filter]} sonucu bulunamadı` : 'Henüz analiz yok'} />
+                ) : (
+                    <>
+                        {analyses.map((a, i) => <AnalysisRow key={a.id ?? i} item={a} setSelectedItem={setSelectedItem} />)}
+                        {!filter && <Pagination page={page} totalPages={totalPages} load={load} />}
+                    </>
+                )}
+            </Panel>
         </div>
     );
 }
@@ -212,10 +355,10 @@ function SectionHeader({ icon: Icon, label, onMore }) {
 export default function Profile() {
     const { userId }  = useParams();
     const { user }    = useAuth();
-    const navigate    = useNavigate();
 
     const [profile,   setProfile]   = useState(null);
     const [xpStats,   setXpStats]   = useState(null);
+    const [meStats,   setMeStats]   = useState(null);
     const [showcase,  setShowcase]  = useState([]);
     const [threads,   setThreads]   = useState([]);
     const [analyses,  setAnalyses]  = useState([]);
@@ -254,6 +397,11 @@ export default function Profile() {
           .finally(() => setLoading(false));
     }, [userId]);
 
+    useEffect(() => {
+        if (!isOwnProfile) { setMeStats(null); return; }
+        axiosInstance.get('/users/me/stats').then(r => setMeStats(r.data)).catch(() => {});
+    }, [isOwnProfile]);
+
     const loadThreads = useCallback((pg = 1) => {
         setTLoading(true);
         axiosInstance.get(`/users/${userId}/threads`, { params: { page: pg, size: SIZE } })
@@ -274,7 +422,7 @@ export default function Profile() {
                 const taskIds = items.map(i => i.task_id).filter(Boolean);
                 const found = new Set();
                 await Promise.all(taskIds.map(async tid => {
-                    try { await AnalysisService.getFullReport(tid); found.add(tid); } catch {}
+                    try { await AnalysisService.getFullReport(tid); found.add(tid); } catch { /* ignore */ }
                 }));
                 setFullReports(found);
             })
@@ -288,7 +436,7 @@ export default function Profile() {
     useEffect(() => {
         if (analysisFilter) loadAnalyses(1, true);
         else loadAnalyses(1, false);
-    }, [analysisFilter]);
+    }, [analysisFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleFollow = async () => {
         if (!user || fLoading) return;
@@ -296,11 +444,8 @@ export default function Profile() {
         try {
             await axiosInstance.post(`/users/${userId}/follow`);
             setFollowing(v => !v);
-            setProfile(prev => prev ? {
-                ...prev,
-                follower_count: prev.follower_count + (following ? -1 : 1),
-            } : prev);
-        } catch { }
+            setProfile(prev => prev ? { ...prev, follower_count: prev.follower_count + (following ? -1 : 1) } : prev);
+        } catch { /* ignore */ }
         finally { setFLoading(false); }
     };
 
@@ -319,6 +464,7 @@ export default function Profile() {
         ? new Date(profile.created_at).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' })
         : null;
     const tierColor = TIER_COLOR[profile.trust_tier ?? 'yeni_uye'];
+    const stars     = profile.trust_stars ?? 0;
 
     const threadTotalPages   = Math.ceil(threadTotal / SIZE);
     const analysisTotalPages = Math.ceil(analysisTotal / SIZE);
@@ -333,72 +479,116 @@ export default function Profile() {
         ? analyses.filter(a => a.prediction === analysisFilter)
         : analyses;
 
+    const xpPct = xpStats ? Math.max(0, Math.min(100, xpStats.xp_progress_pct ?? 0)) : 0;
+
+    const STAT_ITEMS = [
+        { label: 'Tartışma',     value: profile.thread_count,    color: 'var(--color-text-primary)' },
+        { label: 'Takipçi',      value: profile.follower_count,  color: 'var(--color-text-primary)',  onClick: () => setFollowModal('followers') },
+        { label: 'Takip',        value: profile.following_count, color: 'var(--color-text-primary)',  onClick: () => setFollowModal('following') },
+        { label: 'Analiz',       value: profile.analysis_count,  color: 'var(--color-brand-primary)', onClick: () => { setActiveTab('analyses'); setAnalysisFilter(null); } },
+        { label: 'Sahte Tespit', value: profile.fake_count,      color: 'var(--color-fake-fill)',     onClick: () => { setActiveTab('analyses'); setAnalysisFilter('FAKE'); } },
+        ...(isOwnProfile && meStats?.hygiene_score != null
+            ? [{ label: 'Hijyen', value: Math.round(meStats.hygiene_score),
+                 color: meStats.hygiene_score >= 70 ? 'var(--color-brand-primary)' : meStats.hygiene_score >= 40 ? 'var(--color-accent-amber)' : 'var(--color-fake-fill)' }]
+            : []),
+    ];
+
+    const TABS = [
+        { key: 'overview',  label: 'Genel Bakış' },
+        { key: 'threads',   label: `Tartışmalar (${threadTotal})` },
+        { key: 'analyses',  label: `Analizlerim (${analysisTotal})` },
+    ];
+
     return (
         <div className="max-w-6xl mx-auto px-4 pb-16">
 
-            {/* ══ HERO ════════════════════════════════════════════════════ */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ type: 'spring', damping: 22, stiffness: 100 }}
-            >
-            <div className="relative border mb-8"
-                 style={{
-                     borderColor: 'rgba(16,185,129,0.07)',
-                     background: 'rgba(16,185,129,0.07)',
-                 }}>
-                <Corner />
+            {/* ══ HEADER ══ */}
+            <div className="animate-fade-up">
+                <div className="relative border" style={S}>
+                    <Corner />
 
-                {/* Cover: sadece boş alan — arka plan kartın kendi gradyanından geliyor */}
-                <div className="h-48 w-full relative" />
+                    {/* Üst: avatar + kimlik + aksiyon */}
+                    <div className="flex flex-col sm:flex-row gap-5 p-6">
+                        <UserAvatar username={profile.username} avatarUrl={profile.avatar_url}
+                                    tierColor={tierColor} size={96} onClick={() => setLightbox(true)} />
 
-                {/* Avatar + bilgiler */}
-                <div className="relative z-10 px-6 md:px-10 pb-8 -mt-16 flex flex-col md:flex-row gap-6 md:items-end justify-between">
-                    <div className="flex flex-col md:flex-row gap-6 items-start md:items-end w-full">
-                        <UserAvatar
-                            username={profile.username}
-                            avatarUrl={profile.avatar_url}
-                            onClick={() => setLightbox(true)}
-                        />
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-start gap-3 flex-wrap">
+                                <div className="flex-1 min-w-0">
+                                    <h1 className="font-manrope font-black text-3xl leading-tight"
+                                        style={{ color: 'var(--color-text-primary)' }}>
+                                        {profile.username}
+                                    </h1>
+                                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                        {profile.trust_label && (
+                                            <span className="font-mono text-[10px] font-bold px-2 py-0.5 border uppercase tracking-wider"
+                                                  style={{ color: tierColor, borderColor: tierColor + '55', background: tierColor + '14' }}>
+                                                {profile.trust_label}
+                                            </span>
+                                        )}
+                                        {stars > 0 && (
+                                            <span className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--color-brand-primary)' }}>
+                                                {'★'.repeat(Math.min(stars, 5))}{'☆'.repeat(Math.max(0, 5 - stars))}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
 
-                        <div className="grow pb-2">
-                            <div className="flex items-center gap-3 mb-1 flex-wrap">
-                                <h1 className="text-3xl font-manrope font-black tracking-tight"
-                                    style={{ color: 'var(--color-text-primary)' }}>
-                                    {profile.username}
-                                </h1>
-                                {profile.trust_tier && profile.trust_tier !== 'yeni_uye' && (
-                                    <span className="font-mono text-[10px] font-bold px-2 py-0.5 border uppercase tracking-wider"
-                                          style={{ color: tierColor, borderColor: tierColor + '55', background: tierColor + '14' }}>
-                                        {profile.trust_label}
-                                    </span>
-                                )}
+                                {/* Aksiyon butonları */}
+                                <div className="flex items-center gap-2 shrink-0">
+                                    {isOwnProfile ? (
+                                        <Link to="/profile/settings"
+                                              className="flex items-center gap-2 px-4 py-2 font-mono text-xs font-bold transition-opacity hover:opacity-90"
+                                              style={{ background: 'var(--color-brand-primary)', color: 'var(--color-brand-badge-text)' }}>
+                                            <Settings className="w-3.5 h-3.5" /> Ayarlar
+                                        </Link>
+                                    ) : user && (
+                                        <>
+                                            <Link to={`/messages/${userId}`}
+                                                  className="flex items-center gap-2 px-4 py-2 font-mono text-xs font-bold border transition-opacity hover:opacity-70"
+                                                  style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}>
+                                                <MessageSquare className="w-3.5 h-3.5" /> Mesaj
+                                            </Link>
+                                            <button onClick={handleFollow} disabled={fLoading}
+                                                    className="flex items-center gap-2 px-5 py-2 font-mono text-xs font-bold transition-all disabled:opacity-50"
+                                                    style={following ? {
+                                                        border: '1px solid var(--color-terminal-border-raw)', color: 'var(--color-text-muted)', background: 'transparent',
+                                                    } : {
+                                                        background: 'var(--color-brand-primary)', color: 'var(--color-brand-badge-text)', border: '1px solid var(--color-brand-primary)',
+                                                    }}>
+                                                {fLoading
+                                                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                    : following
+                                                        ? <><UserMinus className="w-3.5 h-3.5" /> Takipte</>
+                                                        : <><UserPlus className="w-3.5 h-3.5" /> Takip Et</>}
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
 
                             {profile.bio && (
-                                <p className="text-sm leading-relaxed max-w-2xl mb-3"
-                                   style={{ color: 'var(--color-text-primary)', opacity: 0.88 }}>
+                                <p className="font-mono text-sm leading-relaxed mt-3 pl-3 border-l-2"
+                                   style={{ color: 'var(--color-text-secondary)', borderColor: 'rgba(16,185,129,0.4)' }}>
                                     {profile.bio}
                                 </p>
                             )}
 
-                            <div className="flex items-center gap-4 flex-wrap text-xs" style={{ color: 'var(--color-brand-primary)' }}>
+                            <div className="flex items-center gap-3 flex-wrap mt-3 font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
                                 {joinedDate && (
-                                    <span className="flex items-center gap-1 font-mono">
-                                        <Calendar className="w-3.5 h-3.5" />
-                                        {joinedDate} tarihinden beri üye
+                                    <span className="flex items-center gap-1.5">
+                                        <Calendar className="w-3.5 h-3.5" /> {joinedDate} tarihinden beri üye
                                     </span>
                                 )}
                                 {socialEntries.map(([key, url]) => {
                                     const Icon  = SOCIAL_ICONS[key] ?? Link2;
                                     const label = SOCIAL_LABEL[key] ?? key;
                                     return (
-                                        <a key={key}
-                                           href={url.startsWith('http') ? url : `https://${url}`}
+                                        <a key={key} href={url.startsWith('http') ? url : `https://${url}`}
                                            target="_blank" rel="noopener noreferrer"
-                                           className="flex items-center gap-1 font-mono transition-opacity hover:opacity-70"
-                                           style={{ color: 'var(--color-brand-primary)' }}>
-                                            <Icon className="w-3.5 h-3.5" /> {label}
+                                           className="flex items-center gap-1.5 px-2 py-0.5 border transition-opacity hover:opacity-70"
+                                           style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-brand-primary)' }}>
+                                            <Icon className="w-3 h-3" /> {label}
                                         </a>
                                     );
                                 })}
@@ -406,117 +596,64 @@ export default function Profile() {
                         </div>
                     </div>
 
-                    {/* Aksiyon butonları */}
-                    <div className="flex gap-3 shrink-0 pb-2">
-                        {isOwnProfile ? (
-                            <Link to="/profile/settings"
-                                  className="flex items-center gap-2 px-4 py-2 font-mono text-sm font-bold transition-all"
-                                  style={{ background: 'rgba(16,185,129,0.37)', color: '#ffffff', boxShadow: '0 0 12px rgba(16,185,129,0.2)' }}
-                                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.55)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(16,185,129,0.4)'; }}
-                                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.37)'; e.currentTarget.style.boxShadow = '0 0 12px rgba(16,185,129,0.2)'; }}>
-                                <Settings className="w-4 h-4" /> Ayarlar
-                            </Link>
-                        ) : user && (
-                            <>
-                                <Link to={`/messages/${userId}`}
-                                      className="flex items-center gap-2 px-4 py-2 font-mono text-sm font-bold border transition-colors"
-                                      style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}
-                                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-brand-primary)'; e.currentTarget.style.color = 'var(--color-brand-primary)'; }}
-                                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-terminal-border-raw)'; e.currentTarget.style.color = 'var(--color-text-primary)'; }}>
-                                    <MessageSquare className="w-4 h-4" /> Mesaj
-                                </Link>
-                                <button
-                                    onClick={handleFollow}
-                                    disabled={fLoading}
-                                    className="flex items-center gap-2 px-6 py-2 font-mono text-sm font-bold transition-all disabled:opacity-50"
-                                    style={following ? {
-                                        background: 'transparent',
-                                        border: '1px solid var(--color-terminal-border-raw)',
-                                        color: 'var(--color-text-primary)',
-                                    } : {
-                                        background: 'linear-gradient(135deg, var(--color-brand-primary) 0%, rgba(16,185,129,0.80) 100%)',
-                                        border: 'none',
-                                        color: '#070f12',
-                                        boxShadow: '0 0 15px rgba(16,185,129,0.30)',
-                                    }}
-                                    onMouseEnter={e => { if (!following) e.currentTarget.style.boxShadow = '0 0 28px rgba(16,185,129,0.55)'; }}
-                                    onMouseLeave={e => { if (!following) e.currentTarget.style.boxShadow = '0 0 15px rgba(16,185,129,0.30)'; }}
-                                >
-                                    {fLoading
-                                        ? <Loader2 className="w-4 h-4 animate-spin" />
-                                        : following
-                                            ? <><UserMinus className="w-4 h-4" /> Takipte</>
-                                            : <><UserPlus className="w-4 h-4" /> Takip Et</>
-                                    }
-                                </button>
-                            </>
-                        )}
+                    {/* Stat şeridi */}
+                    <div className="flex border-t" style={BD}>
+                        {STAT_ITEMS.map(({ label, value, color, onClick }) => (
+                            <button key={label} onClick={onClick ?? undefined}
+                                    className={`flex-1 flex flex-col items-center py-3.5 px-2 transition-colors ${onClick ? 'cursor-pointer hover:bg-white/[0.04]' : 'cursor-default'}`}
+                                    style={{ borderRight: '1px solid var(--color-terminal-border-raw)' }}>
+                                <span className="font-mono text-xl font-black" style={{ color }}>{value ?? 0}</span>
+                                <span className="font-mono text-[9px] uppercase tracking-widest mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{label}</span>
+                            </button>
+                        ))}
                     </div>
-                </div>
 
-                {/* Stats strip */}
-                <div className="border-b px-6 py-4 flex flex-wrap gap-8 justify-start md:justify-around text-center"
-                     style={{ borderColor: 'rgba(16,185,129,0.7)', background: 'var(--color-bg-base)' }}>
-                    {[
-                        { label: 'Tartışma',     value: profile.thread_count,    color: 'var(--color-text-primary)',  onClick: null },
-                        { label: 'Takipçi',      value: profile.follower_count,  color: 'var(--color-text-primary)',  onClick: () => setFollowModal('followers') },
-                        { label: 'Takip',        value: profile.following_count, color: 'var(--color-text-primary)',  onClick: () => setFollowModal('following') },
-                        { label: 'Analiz',       value: profile.analysis_count,  color: 'var(--color-brand-primary)', onClick: () => { setActiveTab('analyses'); setAnalysisFilter(null); } },
-                        { label: 'Sahte Tespit', value: profile.fake_count,      color: 'var(--color-fake-fill)',     onClick: () => { setActiveTab('analyses'); setAnalysisFilter('FAKE'); } },
-                    ].map(({ label, value, color, onClick }) => (
-                        <div key={label} onClick={onClick ?? undefined}
-                             className={`text-center${onClick ? ' cursor-pointer group' : ''}`}>
-                            <div className="text-2xl font-manrope font-bold transition-opacity group-hover:opacity-75"
-                                 style={{ color }}>{value ?? 0}</div>
-                            <div className="font-mono text-[10px] uppercase tracking-widest mt-0.5 font-semibold"
-                                 style={{ color: 'var(--color-text-muted)' }}>{label}</div>
-                        </div>
-                    ))}
-
+                    {/* Seviye / XP barı */}
                     {xpStats && (
-                        <div className="border-l pl-8 text-center" style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
-                            <div className="text-2xl font-manrope font-bold"
-                                 style={{ color: 'var(--color-text-primary)' }}>
-                                Seviye <span style={{ color: 'var(--color-brand-primary)' }}>{xpStats.level}</span>
+                        <div className="flex items-center gap-4 px-6 py-4 border-t" style={{ ...BD, background: 'rgba(16,185,129,0.03)' }}>
+                            <div className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center"
+                                 style={{ background: `conic-gradient(var(--color-brand-primary) ${xpPct * 3.6}deg, var(--color-skeleton) 0)` }}>
+                                <div className="w-9 h-9 rounded-full flex items-center justify-center font-mono font-black text-sm"
+                                     style={{ background: 'var(--color-terminal-surface)', color: 'var(--color-brand-primary)' }}>
+                                    {xpStats.level}
+                                </div>
                             </div>
-                            <div className="font-mono text-[10px] uppercase tracking-widest mt-0.5 font-semibold"
-                                 style={{ color: 'var(--color-text-muted)' }}>
-                                Toplam XP: {xpStats.total_xp}
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between font-mono text-[10px] mb-1.5">
+                                    <span className="font-bold" style={{ color: 'var(--color-brand-primary)' }}>SEVİYE {xpStats.level}</span>
+                                    <span style={{ color: 'var(--color-text-muted)' }}>
+                                        {xpStats.total_xp?.toLocaleString('tr-TR')} XP
+                                        {xpStats.xp_to_next_level > 0 ? ` · ${xpStats.xp_to_next_level} XP kaldı` : ''}
+                                    </span>
+                                </div>
+                                <div className="h-1.5 overflow-hidden" style={{ background: 'var(--color-skeleton)' }}>
+                                    <div className="h-full" style={{ width: `${xpPct}%`, background: 'var(--color-brand-primary)' }} />
+                                </div>
                             </div>
                         </div>
                     )}
                 </div>
             </div>
-            </motion.div>
 
-            {/* ══ İKİ SÜTUN ════════════════════════════════════════════════ */}
-            <div className="flex flex-col lg:flex-row gap-8">
+            {/* ══ Sekmeler ══ */}
+            <div className="flex border-b mt-5" style={BD}>
+                {TABS.map(tab => (
+                    <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                            className="px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors whitespace-nowrap"
+                            style={activeTab === tab.key
+                                ? { borderColor: 'var(--color-brand-primary)', color: 'var(--color-brand-primary)' }
+                                : { borderColor: 'transparent', color: 'var(--color-text-muted)' }}>
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
 
-                {/* Sol sütun — 2/3 */}
-                <div className="w-full lg:w-2/3 flex flex-col gap-6">
-                    {/* Tab çubuğu */}
-                    <div className="flex gap-6 border-b overflow-x-auto" style={BD}>
-                        {[
-                            { key: 'overview',  label: 'Genel Bakış' },
-                            { key: 'threads',   label: `Tartışmalar (${threadTotal})` },
-                            { key: 'analyses',  label: `Analizlerim (${analysisTotal})` },
-                        ].map(tab => (
-                            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-                                    className="pb-3 font-mono text-xs font-bold uppercase tracking-wider border-b-2 transition-colors whitespace-nowrap"
-                                    style={activeTab === tab.key ? {
-                                        borderColor: 'var(--color-brand-primary)',
-                                        color: 'var(--color-brand-primary)',
-                                    } : {
-                                        borderColor: 'transparent',
-                                        color: 'var(--color-text-muted)',
-                                    }}>
-                                {tab.label}
-                            </button>
-                        ))}
-                    </div>
-
+            {/* ══ İki sütun ══ */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 items-start mt-5">
+                <div className="min-w-0">
                     {activeTab === 'overview' && (
-                        <OverviewTab threads={threads} analyses={analyses} tLoading={tLoading} aLoading={aLoading}
+                        <OverviewTab meStats={meStats} threads={threads} analyses={analyses}
+                                     tLoading={tLoading} aLoading={aLoading}
                                      setActiveTab={setActiveTab} setSelectedItem={setSelectedItem} />
                     )}
                     {activeTab === 'threads' && (
@@ -531,42 +668,34 @@ export default function Profile() {
                     )}
                 </div>
 
-                {/* Sağ sütun — 1/3 */}
-                <div className="w-full lg:w-1/3 flex flex-col gap-6">
+                <div className="flex flex-col gap-5 lg:sticky lg:top-36 self-start">
                     <BadgeShowcase showcase={showcase} isOwnProfile={isOwnProfile} />
                     <RecommendedUsersWidget profileUserId={userId} currentUserId={user?.id} />
                     <PopularThreadsWidget />
                 </div>
             </div>
 
-            {/* ══ MODALS ══════════════════════════════════════════════════ */}
-
+            {/* ══ Modallar ══ */}
             {lightbox && createPortal(
-                <div className="fixed inset-0 z-9999 flex items-center justify-center"
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center"
                      style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)' }}
                      onClick={() => setLightbox(false)}>
                     <div className="relative" onClick={e => e.stopPropagation()}>
-                        <div className="overflow-hidden"
-                             style={{ width: 260, height: 260, borderRadius: '50%', border: `4px solid ${tierColor}` }}>
+                        <div className="overflow-hidden" style={{ width: 260, height: 260, border: `3px solid ${tierColor}` }}>
                             {profile.avatar_url
-                                ? <img src={profile.avatar_url} alt={profile.username}
-                                       className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                 : <div className="w-full h-full flex items-center justify-center font-black"
-                                       style={{
-                                           background: PAL_BG[(profile.username?.charCodeAt(0) ?? 0) % PAL_BG.length],
-                                           color: PAL_TEXT[(profile.username?.charCodeAt(0) ?? 0) % PAL_TEXT.length],
-                                           fontSize: 90
-                                       }}>
+                                       style={{ background: PAL_BG[(profile.username?.charCodeAt(0) ?? 0) % PAL_BG.length],
+                                                color: PAL_TEXT[(profile.username?.charCodeAt(0) ?? 0) % PAL_TEXT.length], fontSize: 90 }}>
                                     {profile.username?.[0]?.toUpperCase()}
                                   </div>}
                         </div>
                         <button onClick={() => setLightbox(false)}
-                                className="absolute -top-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center border"
+                                className="absolute -top-2 -right-2 w-7 h-7 flex items-center justify-center border"
                                 style={{ background: 'var(--color-bg-surface)', borderColor: 'var(--color-terminal-border-raw)' }}>
                             <X className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} />
                         </button>
-                        <p className="font-manrope font-bold text-sm text-center mt-4"
-                           style={{ color: 'var(--color-text-primary)' }}>{profile.username}</p>
+                        <p className="font-manrope font-bold text-sm text-center mt-4" style={{ color: 'var(--color-text-primary)' }}>{profile.username}</p>
                     </div>
                 </div>,
                 document.body
@@ -577,214 +706,7 @@ export default function Profile() {
             )}
 
             {selectedItem && (
-                <HistoryModal
-                    item={selectedItem}
-                    hasFullReport={fullReports.has(selectedItem.task_id)}
-                    onClose={() => setSelectedItem(null)}
-                />
-            )}
-        </div>
-    );
-}
-
-function ThreadCard({ thread }) {
-    const catColor = CAT_COLOR[thread.category] ?? 'var(--color-accent-blue)';
-    return (
-        <article className="border transition-colors cursor-pointer group"
-                 style={S}
-                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg-surface)'; }}
-                 onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-terminal-surface)'; }}>
-            <div className="p-5">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                    {thread.category && (
-                        <span className="font-mono text-[10px] font-bold px-2 py-0.5 border shrink-0"
-                              style={{ color: catColor, borderColor: catColor + '40', background: catColor + '10' }}>
-                            {thread.category}
-                        </span>
-                    )}
-                    <span className="font-mono text-[11px] shrink-0 ml-auto"
-                          style={{ color: 'var(--color-text-muted)' }}>
-                        {timeAgo(thread.created_at)}
-                    </span>
-                </div>
-
-                <Link to={`/forum/${thread.id}`}>
-                    <h3 className="font-manrope font-semibold text-base leading-snug line-clamp-2 mb-2 transition-colors group-hover:text-brand"
-                        style={{ color: 'var(--color-text-primary)' }}>
-                        {thread.title}
-                    </h3>
-                </Link>
-
-                {thread.body && (
-                    <p className="text-sm leading-relaxed line-clamp-2 mb-4"
-                       style={{ color: 'var(--color-text-secondary)' }}>
-                        {thread.body}
-                    </p>
-                )}
-
-                <div className="flex items-center gap-4 pt-3 border-t font-mono text-xs"
-                     style={{ borderColor: 'rgba(65,73,77,0.2)', color: 'var(--color-text-muted)' }}>
-                    <span className="flex items-center gap-1 hover:text-brand transition-colors cursor-pointer">
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        {thread.comment_count ?? 0} Yorum
-                    </span>
-                </div>
-            </div>
-        </article>
-    );
-}
-
-function AnalysisCard({ item, setSelectedItem }) {
-    const accentColor = PRED_ACCENT[item.prediction] ?? 'transparent';
-    return (
-        <article className="border overflow-hidden transition-colors cursor-pointer group relative"
-                 style={S}
-                 onClick={() => setSelectedItem(item)}
-                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg-surface)'; }}
-                 onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-terminal-surface)'; }}>
-            {item.prediction && (
-                <div className="absolute right-0 top-0 bottom-0 w-1"
-                     style={{ background: `linear-gradient(to bottom, ${accentColor}, transparent)`, opacity: 0.55 }} />
-            )}
-
-            <div className="p-5">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <TypeBadge type={item.analysis_type} />
-                        <span className="font-mono text-[10px] px-2 py-0.5 border"
-                              style={{ color: 'var(--color-brand-primary)', borderColor: 'rgba(16,185,129,0.25)', background: 'rgba(16,185,129,0.06)' }}>
-                            Analiz Raporu
-                        </span>
-                    </div>
-                    <span className="font-mono text-[11px] shrink-0"
-                          style={{ color: 'var(--color-text-muted)' }}>
-                        {new Date(item.created_at).toLocaleDateString('tr-TR')}
-                    </span>
-                </div>
-
-                <h3 className="font-manrope font-semibold text-base leading-snug line-clamp-2 mb-4 transition-colors group-hover:text-brand"
-                    style={{ color: 'var(--color-text-primary)' }}>
-                    {item.title ?? item.task_id ?? '—'}
-                </h3>
-
-                {item.prediction && (
-                    <div className="flex items-center justify-between pt-3 border-t"
-                         style={{ borderColor: 'rgba(65,73,77,0.2)' }}>
-                        <span className="font-mono text-[10px] font-bold px-2.5 py-1 uppercase tracking-wider"
-                              style={PRED_BADGE[item.prediction] ?? {}}>
-                            {PRED_L[item.prediction] ?? item.prediction}
-                        </span>
-                        {item.confidence != null && (
-                            <span className="font-mono text-xs"
-                                  style={{ color: 'var(--color-text-muted)' }}>
-                                %{Math.round(item.confidence * 100)} Güvenilirlik
-                            </span>
-                        )}
-                    </div>
-                )}
-            </div>
-        </article>
-    );
-}
-
-function OverviewTab({ threads, analyses, tLoading, aLoading, setActiveTab, setSelectedItem }) {
-    return (
-        <div className="flex flex-col gap-6">
-            <div>
-                <SectionHeader icon={MessagesSquare} label="Son Paylaşımlar"
-                               onMore={() => setActiveTab('threads')} />
-                {tLoading ? (
-                    <div className="py-12 flex justify-center">
-                        <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-brand-primary)' }} />
-                    </div>
-                ) : threads.length === 0 ? (
-                    <p className="font-mono text-xs py-6" style={{ color: 'var(--color-text-primary)' }}>Henüz tartışma yok</p>
-                ) : (
-                    <div className="flex flex-col gap-4">
-                        {threads.slice(0, 2).map(t => <ThreadCard key={t.id} thread={t} />)}
-                    </div>
-                )}
-            </div>
-
-            <div>
-                <SectionHeader icon={BarChart2} label="Son Analizler"
-                               onMore={() => setActiveTab('analyses')} />
-                {aLoading ? (
-                    <div className="py-12 flex justify-center">
-                        <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-brand-primary)' }} />
-                    </div>
-                ) : analyses.length === 0 ? (
-                    <p className="font-mono text-xs py-6" style={{ color: 'var(--color-text-primary)' }}>Henüz analiz yok</p>
-                ) : (
-                    <div className="flex flex-col gap-4">
-                        {analyses.slice(0, 3).map((a, i) => (
-                            <AnalysisCard key={a.id ?? i} item={a} setSelectedItem={setSelectedItem} />
-                        ))}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-
-function ThreadsTab({ threads, loading, page, totalPages, load }) {
-    return (
-        <div className="flex flex-col gap-4">
-            {loading ? (
-                <div className="py-20 flex justify-center">
-                    <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-brand-primary)' }} />
-                </div>
-            ) : threads.length === 0 ? (
-                <div className="text-center py-20">
-                    <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30"
-                                   style={{ color: 'var(--color-text-primary)' }} />
-                    <p className="font-manrope font-bold text-base" style={{ color: 'var(--color-text-primary)' }}>Henüz tartışma yok</p>
-                </div>
-            ) : (
-                <>
-                    {threads.map(t => <ThreadCard key={t.id} thread={t} />)}
-                    <Pagination page={page} totalPages={totalPages} load={load} />
-                </>
-            )}
-        </div>
-    );
-}
-
-function AnalysesTab({ analyses, loading, page, totalPages, load, filter, clearFilter, setSelectedItem }) {
-    return (
-        <div className="flex flex-col gap-4">
-            {filter && (
-                <div className="flex items-center gap-3">
-                    <span className="font-mono text-[10px] px-2 py-1 border"
-                          style={{ color: FILTER_COLOR[filter], borderColor: FILTER_COLOR[filter] + '50' }}>
-                        {PRED_L[filter]} filtresi aktif
-                    </span>
-                    <button onClick={clearFilter}
-                            className="font-mono text-[10px] transition-opacity hover:opacity-60"
-                            style={{ color: 'var(--color-text-primary)' }}>
-                        × temizle
-                    </button>
-                </div>
-            )}
-            {loading ? (
-                <div className="py-20 flex justify-center">
-                    <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-brand-primary)' }} />
-                </div>
-            ) : analyses.length === 0 ? (
-                <div className="text-center py-20">
-                    <ShieldAlert className="w-10 h-10 mx-auto mb-3 opacity-30"
-                                 style={{ color: 'var(--color-text-primary)' }} />
-                    <p className="font-manrope font-bold text-base" style={{ color: 'var(--color-text-primary)' }}>
-                        {filter ? `${PRED_L[filter]} sonucu bulunamadı` : 'Henüz analiz yok'}
-                    </p>
-                </div>
-            ) : (
-                <>
-                    {analyses.map((a, i) => (
-                        <AnalysisCard key={a.id ?? i} item={a} setSelectedItem={setSelectedItem} />
-                    ))}
-                    {!filter && <Pagination page={page} totalPages={totalPages} load={load} />}
-                </>
+                <HistoryModal item={selectedItem} hasFullReport={fullReports.has(selectedItem.task_id)} onClose={() => setSelectedItem(null)} />
             )}
         </div>
     );

@@ -1,0 +1,493 @@
+import React from 'react';
+import { createPortal } from 'react-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+    MessageSquare, Share2, Bookmark, Link as LinkIcon, Flag,
+    Copy, Check, Twitter, MessageCircle, UserPlus, ChevronUp, ChevronDown,
+} from 'lucide-react';
+import axiosInstance from '../../api/axios';
+import { useAuth } from '../../contexts/AuthContext';
+import SendToFriendModal from './SendToFriendModal';
+import AuthorAvatar from './AuthorAvatar';
+import { timeAgo, reliabilityColor } from './threadFormat';
+
+const BD = { borderColor: 'var(--color-terminal-border-raw)' };
+const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
+
+const STATUS_COLOR = {
+    active:       'var(--color-brand-primary)',
+    under_review: 'var(--color-accent-amber)',
+    resolved:     'var(--color-accent-blue)',
+};
+
+const STATUS_BADGE = {
+    active:       { label: 'AKTİF',    color: 'var(--color-brand-primary)', border: 'rgba(16,185,129,0.30)' },
+    under_review: { label: 'İNCELEME', color: 'var(--color-accent-amber)',  border: 'rgba(245,158,11,0.30)'  },
+    resolved:     { label: 'ÇÖZÜLDÜ',  color: 'var(--color-accent-blue)',   border: 'rgba(59,130,246,0.30)'  },
+};
+
+const VERDICT_BADGE = {
+    DOGRU:     { label: '✓ DOĞRU',     color: 'var(--color-brand-primary)', border: 'rgba(16,185,129,0.30)' },
+    YANLIS:    { label: '✗ YANLIŞ',    color: 'var(--color-fake-fill)',      border: 'rgba(239,68,68,0.30)'  },
+    YANILTICI: { label: '⚠ YANILTICI', color: 'var(--color-accent-amber)',   border: 'rgba(245,158,11,0.30)' },
+};
+
+export default function ThreadCard({ thread }) {
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const [local,          setLocal]          = React.useState(thread);
+    const [voting,         setVoting]         = React.useState(false);
+    const [bookmarked,     setBookmarked]     = React.useState(thread.is_bookmarked ?? false);
+    const [reportOpen,     setReportOpen]     = React.useState(false);
+    const [reportReason,   setReportReason]   = React.useState('');
+    const [reportSent,     setReportSent]     = React.useState(false);
+    const [reportSubmitting, setReportSubmitting] = React.useState(false);
+    const [shareOpen,  setShareOpen]  = React.useState(false);
+    const [copied,     setCopied]     = React.useState(false);
+    const [sendModal,  setSendModal]  = React.useState(false);
+    const shareRef = React.useRef(null);
+
+    React.useEffect(() => {
+        if (!shareOpen) return;
+        const handler = (e) => {
+            if (shareRef.current && !shareRef.current.contains(e.target)) setShareOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [shareOpen]);
+
+    const handleVote = async (voteType) => {
+        if (!user || voting || local.verdict) return;
+        setVoting(true);
+        try {
+            const { data } = await axiosInstance.post(`/forum/threads/${local.id}/vote`, { vote_type: voteType });
+            setLocal(prev => ({ ...prev, ...data }));
+        } catch { /* ignore */ }
+        finally { setVoting(false); }
+    };
+
+    const handleBookmark = async (e) => {
+        e.preventDefault(); e.stopPropagation();
+        if (!user) return;
+        try { await axiosInstance.post(`/forum/threads/${local.id}/bookmark`); setBookmarked(v => !v); } catch { /* ignore */ }
+    };
+
+    const stopNav = (e) => e.stopPropagation();
+
+    const shareUrl  = `${window.location.origin}/forum/${local.id}`;
+    const handleShare = (e) => { e.preventDefault(); e.stopPropagation(); setShareOpen(v => !v); };
+    const handleCopyLink = async (e) => {
+        e.stopPropagation();
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        setTimeout(() => { setCopied(false); setShareOpen(false); }, 1500);
+    };
+    const handleTwitter = (e) => {
+        e.stopPropagation();
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(local.title + '\n' + shareUrl)}`, '_blank');
+        setShareOpen(false);
+    };
+    const handleWhatsApp = (e) => {
+        e.stopPropagation();
+        window.open(`https://wa.me/?text=${encodeURIComponent(local.title + ' ' + shareUrl)}`, '_blank');
+        setShareOpen(false);
+    };
+    const handleFlag = (e) => { e.preventDefault(); e.stopPropagation(); if (!user) return; setReportOpen(true); };
+
+    const badge       = STATUS_BADGE[local.status] ?? STATUS_BADGE.active;
+    const verdictCfg  = local.verdict ? VERDICT_BADGE[local.verdict] : null;
+    const leftColor   = verdictCfg?.color ?? STATUS_COLOR[local.status] ?? 'var(--color-terminal-border-raw)';
+    const score       = (local.vote_authentic ?? 0) - (local.vote_suspicious ?? 0);
+    const total       = (local.vote_suspicious ?? 0) + (local.vote_authentic ?? 0) + (local.vote_investigate ?? 0);
+    const stars       = local.author?.stars ?? 0;
+    const starStr     = stars > 0 ? '▓'.repeat(Math.min(stars, 5)) + '░'.repeat(Math.max(0, 5 - stars)) : null;
+
+    return (
+        <article
+            className="relative border border-l-[3px] group transition-colors cursor-pointer flex"
+            style={{ ...TS, borderLeftColor: leftColor + '70' }}
+            onClick={() => navigate(`/forum/${local.id}`)}
+            onMouseEnter={e => e.currentTarget.style.borderLeftColor = leftColor}
+            onMouseLeave={e => e.currentTarget.style.borderLeftColor = leftColor + '70'}
+        >
+            {/* Köşe aksanları */}
+            <div className="absolute top-0 right-0 w-3 h-[2px] pointer-events-none" style={{ background: leftColor, opacity: 0.4 }} />
+            <div className="absolute top-0 right-0 h-3 w-[2px] pointer-events-none" style={{ background: leftColor, opacity: 0.4 }} />
+
+            {/* ── Sol oy rayı ── */}
+            <div className="flex flex-col items-center gap-1.5 px-2.5 py-3 shrink-0"
+                 style={{ background: 'rgba(16,185,129,0.05)', borderRight: '1px solid var(--color-terminal-border-raw)' }}
+                 onClick={stopNav}>
+                <button
+                    type="button"
+                    disabled={voting || !!local.verdict}
+                    onClick={(e) => { e.stopPropagation(); handleVote('authentic'); }}
+                    aria-label="Doğru oyu"
+                    className="transition-colors disabled:opacity-40 hover:brightness-110"
+                    style={{ color: local.current_user_vote === 'authentic' ? 'var(--color-brand-primary)' : 'rgba(16,185,129,0.55)' }}
+                >
+                    <ChevronUp className="w-5 h-5" strokeWidth={2.5} />
+                </button>
+                <span className="font-mono font-extrabold text-sm"
+                      style={{ color: score < 0 ? 'var(--color-fake-fill)' : 'var(--color-brand-primary)' }}>
+                    {score}
+                </span>
+                <button
+                    type="button"
+                    disabled={voting || !!local.verdict}
+                    onClick={(e) => { e.stopPropagation(); handleVote('suspicious'); }}
+                    aria-label="Şüpheli oyu"
+                    className="transition-colors disabled:opacity-40 hover:brightness-110"
+                    style={{ color: local.current_user_vote === 'suspicious' ? 'var(--color-fake-fill)' : 'rgba(239,68,68,0.45)' }}
+                >
+                    <ChevronDown className="w-5 h-5" strokeWidth={2.5} />
+                </button>
+            </div>
+
+            {/* ── İçerik ── */}
+            <div className="flex-1 min-w-0 p-5 flex flex-col gap-3">
+
+                {/* Yazar satırı */}
+                <div className="flex items-center gap-3">
+                    <AuthorAvatar username={local.author?.username} avatarUrl={local.author?.avatar_url} />
+                    <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                        <Link
+                            to={`/users/${local.author?.id}`}
+                            onClick={stopNav}
+                            className="font-mono text-sm font-bold transition-colors hover:text-brand hover:underline underline-offset-2"
+                            style={{ color: 'var(--color-text-primary)' }}
+                        >
+                            {local.author?.username ?? 'Anonim'}
+                        </Link>
+                        {starStr && (
+                            <span className="font-mono text-[10px] tracking-wider" style={{ color: 'var(--color-brand-primary)' }}>
+                                {starStr}
+                            </span>
+                        )}
+                        {local.author?.display_label && (
+                            <span className="font-mono text-[10px] uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
+                                {local.author.display_label}
+                            </span>
+                        )}
+                        <span className="font-mono text-xs ml-auto shrink-0" style={{ color: 'var(--color-text-muted)' }}>
+                            {timeAgo(local.created_at)}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Badges */}
+                <div className="flex items-center gap-2 flex-wrap">
+                    {local.category && (
+                        <span className="font-mono text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border"
+                              style={{ color: 'var(--color-accent-blue)', borderColor: 'rgba(59,130,246,0.30)' }}>
+                            {local.category}
+                        </span>
+                    )}
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border"
+                          style={{ color: badge.color, borderColor: badge.border }}>
+                        {badge.label}
+                    </span>
+                    {local.verdict && verdictCfg && (
+                        <span className="font-mono text-[10px] font-black uppercase tracking-widest px-2 py-0.5"
+                              style={{ color: verdictCfg.color, background: verdictCfg.border.replace('0.30', '0.12') }}>
+                            {verdictCfg.label}
+                        </span>
+                    )}
+                    {local.article_id && (
+                        <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 border"
+                              style={{ color: '#a855f7', borderColor: 'rgba(168,85,247,0.25)' }}>
+                            <LinkIcon className="w-2.5 h-2.5" /> HABERLİ
+                        </span>
+                    )}
+                </div>
+
+                {/* Görseller */}
+                {local.image_urls?.length > 0 && (
+                    <div className={`grid gap-1 overflow-hidden border ${
+                        local.image_urls.length === 1 ? 'grid-cols-1' :
+                        local.image_urls.length === 2 ? 'grid-cols-2' : 'grid-cols-3'
+                    }`} style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
+                        {local.image_urls.slice(0, 3).map((url, idx) => (
+                            <div key={idx} className="relative overflow-hidden"
+                                 style={{ height: local.image_urls.length === 1 ? 160 : 100 }}>
+                                <img src={url} alt="" className="w-full h-full object-cover"
+                                     onError={e => { e.currentTarget.parentElement.style.display = 'none'; }} />
+                                {idx === 2 && local.image_urls.length > 3 && (
+                                    <div className="absolute inset-0 flex items-center justify-center font-mono font-black text-lg"
+                                         style={{ background: 'rgba(0,0,0,0.55)', color: '#fff' }}>
+                                        +{local.image_urls.length - 3}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Başlık + gövde */}
+                <div className="flex flex-col gap-2">
+                    <h3 className="font-mono font-bold text-base leading-snug line-clamp-2 transition-colors group-hover:text-brand"
+                        style={{ color: 'var(--color-text-primary)' }}>
+                        {local.title}
+                    </h3>
+                    {local.body && (
+                        <p className="font-mono text-sm leading-relaxed line-clamp-2" style={{ color: 'var(--color-text-secondary)' }}>
+                            {local.body}
+                        </p>
+                    )}
+                </div>
+
+                {/* Opsiyonel: gömülü kaynak + güven metresi */}
+                {local.article && (
+                    <a href={local.article.source_url} target="_blank" rel="noopener noreferrer"
+                       onClick={e => e.stopPropagation()}
+                       className="flex gap-3 border p-2.5 transition-colors hover:border-brand"
+                       style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'rgba(0,0,0,0.15)', textDecoration: 'none' }}>
+                        {local.article.image_url && (
+                            <img src={local.article.image_url} alt="" className="w-14 h-14 object-cover shrink-0"
+                                 style={{ border: '1px solid var(--color-terminal-border-raw)' }}
+                                 onError={e => { e.currentTarget.style.display = 'none'; }} />
+                        )}
+                        <div className="min-w-0">
+                            <p className="text-[12.5px] font-bold leading-snug line-clamp-2" style={{ color: 'var(--color-text-primary)' }}>
+                                {local.article.title}
+                            </p>
+                            <div className="font-mono text-[10px] mt-1 flex items-center gap-2 flex-wrap" style={{ color: 'var(--color-text-muted)' }}>
+                                {local.article.nlp_score != null && (
+                                    <span style={{ color: reliabilityColor(local.article.nlp_score), fontWeight: 800 }}>
+                                        %{Math.round((1 - local.article.nlp_score) * 100)} güven
+                                    </span>
+                                )}
+                                {local.article.ai_verdict && (
+                                    <span className="px-1.5 py-0.5"
+                                          style={{
+                                              color: local.article.ai_verdict === 'FAKE' ? 'var(--color-fake-fill)' : 'var(--color-brand-primary)',
+                                              border: '1px solid var(--color-terminal-border-raw)',
+                                          }}>
+                                        AI: {local.article.ai_verdict === 'FAKE' ? 'YANLIŞ' : 'DOĞRU'}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </a>
+                )}
+
+                {/* Opsiyonel: topluluk kararı çubuğu (verdict yoksa) */}
+                {total > 0 && !local.verdict && (
+                    <div>
+                        <div className="flex h-1.5 overflow-hidden border" style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
+                            <span style={{ width: `${(local.vote_authentic   / total) * 100}%`, background: 'var(--color-brand-primary)' }} />
+                            <span style={{ width: `${(local.vote_suspicious  / total) * 100}%`, background: 'var(--color-fake-fill)' }} />
+                            <span style={{ width: `${(local.vote_investigate / total) * 100}%`, background: 'var(--color-accent-amber)' }} />
+                        </div>
+                        <div className="flex gap-3 mt-1.5 font-mono text-[10px]">
+                            <span style={{ color: 'var(--color-brand-primary)' }}>%{Math.round((local.vote_authentic / total) * 100)} Doğru</span>
+                            <span style={{ color: 'var(--color-fake-fill)' }}>%{Math.round((local.vote_suspicious / total) * 100)} Şüpheli</span>
+                            <span style={{ color: 'var(--color-accent-amber)' }}>%{Math.round((local.vote_investigate / total) * 100)} Araştır</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Etiketler */}
+                {local.tags?.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                        {local.tags.map(t => (
+                            <span key={t.id}
+                                  className="font-mono text-[10px] px-2 py-0.5 border"
+                                  style={{
+                                      color:       t.is_system ? 'var(--color-brand-primary)' : 'var(--color-text-muted)',
+                                      borderColor: t.is_system ? 'rgba(16,185,129,0.25)' : 'var(--color-terminal-border-raw)',
+                                  }}>
+                                #{t.name}
+                            </span>
+                        ))}
+                    </div>
+                )}
+
+                {/* Verdict strip */}
+                {verdictCfg && (
+                    <div className="flex items-center gap-2 px-3 py-2.5 border-l-4"
+                         style={{
+                             background: verdictCfg.color === 'var(--color-brand-primary)' ? 'rgba(16,185,129,0.08)'
+                                       : verdictCfg.color === 'var(--color-fake-fill)' ? 'rgba(239,68,68,0.08)'
+                                       : 'rgba(245,158,11,0.08)',
+                             borderLeftColor: verdictCfg.color,
+                         }}>
+                        <span className="font-mono text-xs font-black shrink-0" style={{ color: verdictCfg.color }}>
+                            {verdictCfg.label}
+                        </span>
+                        <span className="font-mono text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+                            {local.verdict_by === 'auto'
+                                ? `Topluluk bu içeriği ${verdictCfg.label.replace(/^[✓✗⚠]\s/, '')} olarak sonuçlandırdı`
+                                : `Yazar bu içeriği ${verdictCfg.label.replace(/^[✓✗⚠]\s/, '')} olarak sonuçlandırdı`}
+                        </span>
+                    </div>
+                )}
+
+                {/* Alt bar */}
+                <div className="flex items-center gap-3 pt-3 flex-wrap" style={{ borderTop: '1px solid var(--color-terminal-border-raw)' }} onClick={stopNav}>
+                    <span className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                        {total} oy
+                    </span>
+
+                    <button onClick={stopNav}
+                            className="flex items-center gap-1.5 font-mono text-xs transition-opacity hover:opacity-70"
+                            style={{ color: 'var(--color-text-muted)' }}>
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        {local.comment_count}
+                    </button>
+
+                    <div className="flex items-center gap-1 ml-auto">
+                        {/* Paylaş */}
+                        <div ref={shareRef} className="relative">
+                            <button className="p-1.5 transition-opacity hover:opacity-70"
+                                    style={{ color: shareOpen ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}
+                                    onClick={handleShare} aria-label="Paylaş">
+                                <Share2 className="w-3.5 h-3.5" />
+                            </button>
+                            {shareOpen && (
+                                <div className="absolute right-0 bottom-full mb-1 w-44 border z-50 overflow-hidden"
+                                     style={TS} onClick={e => e.stopPropagation()}>
+                                    <button onClick={handleCopyLink}
+                                            className="flex items-center gap-2.5 w-full px-3 py-2 font-mono text-xs transition-colors hover:bg-white/5"
+                                            style={{ color: 'var(--color-text-primary)' }}>
+                                        {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                        {copied ? 'Kopyalandı!' : 'Link Kopyala'}
+                                    </button>
+                                    <button onClick={handleTwitter}
+                                            className="flex items-center gap-2.5 w-full px-3 py-2 font-mono text-xs transition-colors hover:bg-white/5"
+                                            style={{ color: 'var(--color-text-primary)' }}>
+                                        <Twitter className="w-3.5 h-3.5" /> Twitter&apos;da Paylaş
+                                    </button>
+                                    <button onClick={handleWhatsApp}
+                                            className="flex items-center gap-2.5 w-full px-3 py-2 font-mono text-xs transition-colors hover:bg-white/5"
+                                            style={{ color: 'var(--color-text-primary)' }}>
+                                        <MessageCircle className="w-3.5 h-3.5" /> WhatsApp&apos;ta Paylaş
+                                    </button>
+                                    <button onClick={e => { e.stopPropagation(); setShareOpen(false); setSendModal(true); }}
+                                            className="flex items-center gap-2.5 w-full px-3 py-2 font-mono text-xs transition-colors hover:bg-white/5"
+                                            style={{ color: 'var(--color-text-primary)' }}>
+                                        <UserPlus className="w-3.5 h-3.5" /> Arkadaşa Yolla
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Kaydet */}
+                        <button className="p-1.5 transition-opacity hover:opacity-70"
+                                style={{ color: bookmarked ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}
+                                onClick={handleBookmark} aria-label={bookmarked ? 'Kaydedilenlerden çıkar' : 'Kaydet'}>
+                            <Bookmark className="w-3.5 h-3.5" fill={bookmarked ? 'currentColor' : 'none'} />
+                        </button>
+
+                        {/* Bildir */}
+                        <button className="p-1.5 transition-opacity hover:opacity-70"
+                                style={{ color: 'var(--color-text-muted)' }}
+                                onClick={handleFlag} aria-label="Bildir">
+                            <Flag className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bildir modalı */}
+            {reportOpen && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center"
+                     style={{ background: 'rgba(0,0,0,0.80)' }}
+                     onClick={() => { setReportOpen(false); setReportReason(''); setReportSent(false); }}>
+                    <div className="relative border w-96 max-w-[92vw]" style={TS} onClick={e => e.stopPropagation()}>
+                        <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand" />
+                        <div className="absolute top-0 left-0 h-4 w-[2px] bg-brand" />
+                        <div className="absolute bottom-0 right-0 w-4 h-[2px] bg-brand" />
+                        <div className="absolute bottom-0 right-0 h-4 w-[2px] bg-brand" />
+
+                        <div className="px-5 py-3 border-b flex items-center justify-between" style={BD}>
+                            <span className="font-mono text-xs tracking-widest uppercase" style={{ color: 'var(--color-brand-primary)' }}>
+                                Bildir
+                            </span>
+                            <button onClick={() => { setReportOpen(false); setReportReason(''); setReportSent(false); }}
+                                    className="font-mono text-xs transition-opacity hover:opacity-60"
+                                    style={{ color: 'var(--color-text-muted)' }}>✕</button>
+                        </div>
+
+                        <div className="p-5">
+                            {reportSent ? (
+                                <div className="flex flex-col items-center gap-3 py-4">
+                                    <div className="w-10 h-10 flex items-center justify-center"
+                                         style={{ border: '2px solid var(--color-brand-primary)', background: 'rgba(16,185,129,0.08)' }}>
+                                        <Check className="w-5 h-5" style={{ color: 'var(--color-brand-primary)' }} />
+                                    </div>
+                                    <p className="font-mono text-sm text-center" style={{ color: 'var(--color-text-primary)' }}>
+                                        {reportSent === 'already' ? 'Bu içeriği zaten bildirdiniz.' : 'Bildiriminiz alındı. Teşekkürler.'}
+                                    </p>
+                                    <p className="font-mono text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>
+                                        {reportSent !== 'already' && 'Belirli sayıda bildirim sonrası içerik incelemeye alınır.'}
+                                    </p>
+                                    <button onClick={() => { setReportOpen(false); setReportReason(''); setReportSent(false); }}
+                                            className="mt-2 px-5 py-2 font-mono text-xs font-bold transition-opacity hover:opacity-80"
+                                            style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
+                                        KAPAT
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    <p className="font-mono text-sm mb-4" style={{ color: 'var(--color-text-primary)' }}>
+                                        Bildirme nedeninizi seçin:
+                                    </p>
+                                    <div className="flex flex-col gap-1.5 mb-5">
+                                        {[
+                                            { value: 'misinformation', label: 'Yanlış / Yanıltıcı Bilgi' },
+                                            { value: 'manipulation',   label: 'Manipülasyon / Dezenformasyon' },
+                                            { value: 'hate_speech',    label: 'Nefret Söylemi' },
+                                            { value: 'harassment',     label: 'Hakaret / Saygısızlık' },
+                                            { value: 'spam',           label: 'Spam / Reklam' },
+                                            { value: 'inappropriate',  label: 'Uygunsuz İçerik' },
+                                            { value: 'off_topic',      label: 'Konu Dışı' },
+                                            { value: 'other',          label: 'Diğer' },
+                                        ].map(({ value, label }) => (
+                                            <button key={value} onClick={() => setReportReason(value)}
+                                                    className="flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
+                                                    style={{
+                                                        border: `1px solid ${reportReason === value ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)'}`,
+                                                        background: reportReason === value ? 'rgba(16,185,129,0.08)' : 'transparent',
+                                                        color: 'var(--color-text-primary)',
+                                                    }}>
+                                                <div className="w-4 h-4 flex items-center justify-center shrink-0"
+                                                     style={{ border: `1px solid ${reportReason === value ? 'var(--color-brand-primary)' : 'var(--color-terminal-border-raw)'}` }}>
+                                                    {reportReason === value && <div className="w-2 h-2 bg-brand" />}
+                                                </div>
+                                                <span className="font-mono text-xs">{label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button disabled={!reportReason || reportSubmitting}
+                                            onClick={async () => {
+                                                setReportSubmitting(true);
+                                                try {
+                                                    const { data } = await axiosInstance.post(`/forum/threads/${local.id}/report`, { reason: reportReason });
+                                                    setReportSent(data.status === 'already_reported' ? 'already' : 'ok');
+                                                } catch {
+                                                    setReportSent('ok');
+                                                } finally {
+                                                    setReportSubmitting(false);
+                                                }
+                                            }}
+                                            className="w-full py-2.5 font-mono text-sm font-bold tracking-wider transition-opacity hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                            style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
+                                        {reportSubmitting
+                                            ? <><span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> Gönderiliyor...</>
+                                            : '[ BİLDİR ]'}
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {sendModal && (
+                <SendToFriendModal threadTitle={local.title} threadUrl={shareUrl} onClose={() => setSendModal(false)} />
+            )}
+        </article>
+    );
+}
