@@ -6,61 +6,75 @@ const DEFAULT_TICKERS = ['USD', 'EUR', 'BIST 100'];
 const MAX_TICKERS     = 12;
 const LS_KEY          = 'market_tickers';
 
+// ── Paylaşımlı durum: tüm useMarketPrefs örnekleri (MarketBand + ayar UI) anında senkron ──
+let shared = null;
+const listeners = new Set();
+
+function sameList(a, b) {
+    return a && b && a.length === b.length && a.every((t, i) => t === b[i]);
+}
+
+function broadcast(next) {
+    if (sameList(shared, next)) return;
+    shared = next;
+    listeners.forEach(fn => fn(next));
+}
+
 export function useMarketPrefs() {
     const { user, isAuthenticated } = useAuth();
 
-    const getInitial = () => {
-        if (isAuthenticated && user?.preferences?.market_tickers?.length) {
-            return user.preferences.market_tickers;
-        }
-        try {
-            const stored = localStorage.getItem(LS_KEY);
-            return stored ? JSON.parse(stored) : DEFAULT_TICKERS;
-        } catch {
-            return DEFAULT_TICKERS;
-        }
-    };
-
-    const [tickers, setTickers] = useState(getInitial);
+    const [tickers, setTickers] = useState(() => shared ?? DEFAULT_TICKERS);
     const [saving,  setSaving]  = useState(false);
 
+    // Örnekler arası senkron — bir yerde toggle olunca hepsi güncellenir
     useEffect(() => {
+        const fn = (next) => setTickers(next);
+        listeners.add(fn);
+        if (shared) setTickers(shared);
+        return () => listeners.delete(fn);
+    }, []);
+
+    // Kaynak: auth ise user.preferences, değilse localStorage
+    useEffect(() => {
+        let next;
         if (isAuthenticated && user?.preferences?.market_tickers?.length) {
-            setTickers(user.preferences.market_tickers);
-        } else if (!isAuthenticated) {
+            next = user.preferences.market_tickers;
+        } else {
             try {
                 const stored = localStorage.getItem(LS_KEY);
-                setTickers(stored ? JSON.parse(stored) : DEFAULT_TICKERS);
+                next = stored ? JSON.parse(stored) : DEFAULT_TICKERS;
             } catch {
-                setTickers(DEFAULT_TICKERS);
+                next = DEFAULT_TICKERS;
             }
         }
+        broadcast(next);
     }, [user, isAuthenticated]);
 
     const toggle = useCallback(async (symbol) => {
-        const isPresent = tickers.includes(symbol);
+        const current = shared ?? tickers;
+        const isPresent = current.includes(symbol);
         const next = isPresent
-            ? tickers.filter(t => t !== symbol)
-            : tickers.length >= MAX_TICKERS
-                ? tickers
-                : [...tickers, symbol];
+            ? current.filter(t => t !== symbol)
+            : current.length >= MAX_TICKERS
+                ? current
+                : [...current, symbol];
 
-        if (next === tickers) return; // at max, no change
+        if (sameList(next, current)) return; // at max, no change
 
-        const prev = tickers;
-        setTickers(next); // optimistic update
+        const prev = current;
+        broadcast(next); // tüm örnekler (band dahil) anında — yenileme gerekmez
 
         if (isAuthenticated) {
             setSaving(true);
             try {
                 await MarketService.savePrefs(next);
             } catch {
-                setTickers(prev); // rollback on error
+                broadcast(prev); // hata → geri al
             } finally {
                 setSaving(false);
             }
         } else {
-            localStorage.setItem(LS_KEY, JSON.stringify(next));
+            try { localStorage.setItem(LS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
         }
     }, [tickers, isAuthenticated]);
 
