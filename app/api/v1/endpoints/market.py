@@ -148,6 +148,71 @@ def _fetch_stocks_sync():
     return result
 
 
+RANGE_MAP = {
+    "1g": ("1d", "15m"),
+    "1h": ("5d", "60m"),
+    "1a": ("1mo", "1d"),
+}
+
+
+def _resolve_yf(symbol):
+    """Band sembolü -> (yf_symbol, name, currency, gold_convert)."""
+    if symbol == "gram-altin":
+        return ("GC=F", "Gram Altın", "TRY", True)
+    if symbol == "USD":
+        return ("USDTRY=X", "Dolar / TL", "TRY", False)
+    if symbol == "EUR":
+        return ("EURTRY=X", "Euro / TL", "TRY", False)
+    if symbol == "BIST 100":
+        return ("XU100.IS", "BIST 100", "", False)
+    if symbol in CRYPTO_SYMBOLS:
+        return (symbol, CRYPTO_NAMES[symbol], "USD", False)
+    if symbol in STOCK_SYMBOLS:
+        return (symbol, STOCK_NAMES[symbol], "TRY", False)
+    return (None, None, None, False)
+
+
+def _fetch_detail_sync(symbol, rng):
+    import yfinance as yf
+    yf_symbol, name, currency, gold_convert = _resolve_yf(symbol)
+    if yf_symbol is None:
+        return None
+    period, interval = RANGE_MAP.get(rng, RANGE_MAP["1g"])
+
+    hist = yf.Ticker(yf_symbol).history(period=period, interval=interval, auto_adjust=True)
+    closes = hist["Close"].dropna()
+    if len(closes) == 0:
+        raise RuntimeError("no history")
+
+    mult = 1.0
+    if gold_convert:
+        # gram altın TRY = ons_usd / 31.1035 * USDTRY (sabit çarpan → sparkline şekli korunur)
+        usd = yf.Ticker("USDTRY=X").history(period="1d", interval="15m")["Close"].dropna()
+        usd_now = float(usd.iloc[-1]) if len(usd) else 1.0
+        mult = usd_now / GOLD_OZ_TO_GRAM
+
+    spark = [round(float(c) * mult, 4) for c in closes.tolist()][-60:]
+    price = spark[-1]
+    prev_close = round(float(closes.iloc[-2]) * mult, 4) if len(closes) >= 2 else price
+    change_abs = round(price - prev_close, 4)
+    change_pct = round((change_abs / prev_close) * 100, 2) if prev_close else 0.0
+
+    return {
+        "symbol":     symbol,
+        "name":       name,
+        "currency":   currency,
+        "price":      price,
+        "change_pct": change_pct,
+        "change_abs": change_abs,
+        "open":       round(float(closes.iloc[0]) * mult, 4),
+        "prev_close": prev_close,
+        "day_high":   round(float(closes.max()) * mult, 4),
+        "day_low":    round(float(closes.min()) * mult, 4),
+        "spark":      spark,
+        "range":      rng,
+    }
+
+
 class MarketPrefsRequest(BaseModel):
     tickers: List[str]
 
@@ -198,6 +263,36 @@ async def get_market_stocks(redis: Redis = Depends(get_redis)):
         await redis.setex("market:stocks", 60, json.dumps(result))
         return result
     except Exception as exc:
+        return JSONResponse(status_code=502, content={"error": str(exc)})
+
+
+@router.get("/detail/{symbol:path}", tags=["Market"])
+async def get_market_detail(symbol: str, range: str = "1g", redis: Redis = Depends(get_redis)):
+    """Tek sembol detayı (fiyat + geçmiş sparkline). Public veri, 300 sn Redis cache."""
+    rng = range if range in RANGE_MAP else "1g"
+    if symbol not in KNOWN_TICKERS:
+        return JSONResponse(status_code=404, content={"error": "bilinmeyen sembol"})
+
+    cache_key = f"market:detail:{symbol}:{rng}"
+    try:
+        cached = await redis.get(cache_key)
+        if cached:
+            return JSONResponse(content=json.loads(cached))
+    except Exception:
+        pass
+
+    try:
+        loop = asyncio.get_running_loop()
+        data = await loop.run_in_executor(_executor, _fetch_detail_sync, symbol, rng)
+        if data is None:
+            return JSONResponse(status_code=404, content={"error": "bilinmeyen sembol"})
+        try:
+            await redis.setex(cache_key, 300, json.dumps(data))
+        except Exception:
+            pass
+        return JSONResponse(content=data)
+    except Exception as exc:
+        logging.warning("market/detail %s failed: %s", symbol, exc)
         return JSONResponse(status_code=502, content={"error": str(exc)})
 
 
