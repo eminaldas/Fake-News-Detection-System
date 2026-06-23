@@ -1,11 +1,25 @@
-from app.core.config import settings as cfg
+import logging
+
+from app.core.config import settings
+
+logger = logging.getLogger(__name__)
+
+_gemini_client = None
+
+
+def _get_gemini_client():
+    global _gemini_client
+    if _gemini_client is None:
+        from google import genai
+        _gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    return _gemini_client
 
 
 def _gen(prompt: str) -> str:
-    import google.generativeai as genai
-    genai.configure(api_key=cfg.GEMINI_API_KEY)
-    model = genai.GenerativeModel("gemini-2.0-flash")
-    resp = model.generate_content(prompt)
+    if not settings.GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY ayarlanmamış")
+    client = _get_gemini_client()
+    resp = client.models.generate_content(model=settings.GEMINI_MODEL, contents=prompt)
     return (resp.text or "").strip()
 
 
