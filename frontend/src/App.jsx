@@ -42,6 +42,7 @@ const About              = lazy(() => import('./pages/About'));
 const Legal              = lazy(() => import('./pages/Legal'));
 const Gundem             = lazy(() => import('./pages/Gundem'));
 const Borsa              = lazy(() => import('./pages/Borsa'));
+const BorsaDetail        = lazy(() => import('./pages/BorsaDetail'));
 const Report             = lazy(() => import('./pages/Report'));
 const ForumLayout        = lazy(() => import('./features/forum/ForumLayout'));
 const ForumFeed          = lazy(() => import('./features/forum/ForumFeed'));
@@ -116,6 +117,7 @@ function App() {
                             <Route path="legal"      element={<Legal />} />
                             <Route path="gundem"     element={<Gundem />} />
                             <Route path="borsa"      element={<Borsa />} />
+                            <Route path="borsa/:symbol" element={<BorsaDetail />} />
                             <Route path="report"     element={<RequireAuth><Report /></RequireAuth>} />
                             <Route path="login"      element={<Login />} />
                             <Route path="register"          element={<Register />} />
