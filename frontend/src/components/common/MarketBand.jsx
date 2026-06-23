@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
 import MarketService from '../../services/market.service';
 import WeatherWidget from './WeatherWidget';
 import CornerBrackets from './CornerBrackets';
+import MarketDetailCard from './MarketDetailCard';
 import { useMarketPrefs } from '../../hooks/useMarketPrefs';
 
 const RATE_META = {
@@ -19,7 +20,7 @@ function parseChange(raw) {
     return isNaN(val) ? null : val;
 }
 
-function MarketItem({ label, unit, decimals, value, changePct }) {
+function MarketItem({ label, unit, decimals, value, changePct, symbol, onHover, onLeave }) {
     const chg      = changePct !== null && changePct !== undefined ? changePct : null;
     const isUp     = chg !== null && chg > 0;
     const isDown   = chg !== null && chg < 0;
@@ -30,7 +31,9 @@ function MarketItem({ label, unit, decimals, value, changePct }) {
             : 'var(--color-market-flat)';
 
     return (
-        <span className="flex items-center gap-1.5 font-mono shrink-0">
+        <span className="flex items-center gap-1.5 font-mono shrink-0 cursor-pointer"
+              onMouseEnter={e => onHover?.(symbol, e)}
+              onMouseLeave={onLeave}>
             <span className="text-[11px] font-bold uppercase tracking-widest"
                   style={{ color: 'var(--color-market-label)' }}>
                 {label}
@@ -60,6 +63,16 @@ const MarketBand = () => {
     const [stocks, setStocks] = React.useState([]);
     const { tickers } = useMarketPrefs();
 
+    const [hovered, setHovered] = React.useState(null);   // { symbol, left } | null
+    const closeTimer = React.useRef(null);
+    const openCard = (symbol, e) => {
+        clearTimeout(closeTimer.current);
+        const rect = e.currentTarget.getBoundingClientRect();
+        setHovered({ symbol, left: Math.min(Math.max(rect.left, 8), window.innerWidth - 308) });
+    };
+    const scheduleClose = () => { closeTimer.current = setTimeout(() => setHovered(null), 120); };
+    const keepOpen = () => clearTimeout(closeTimer.current);
+
     React.useEffect(() => {
         const load = () => {
             MarketService.getRates().then(setRates).catch(() => {});
@@ -81,6 +94,7 @@ const MarketBand = () => {
                     decimals:  meta.decimals,
                     value:     entry.sell,
                     changePct: parseChange(entry.change),
+                    symbol:    key,
                 };
             }
         }
@@ -91,6 +105,7 @@ const MarketBand = () => {
                 decimals:  2,
                 value:     s.price,
                 changePct: s.change_pct,
+                symbol:    s.symbol,
             };
         }
         return m;
@@ -132,25 +147,33 @@ const MarketBand = () => {
                         <div className="flex-1 overflow-hidden">
                             <div
                                 className="flex animate-marquee"
-                                style={{ gap: '2rem', animationDuration: duration, willChange: 'transform' }}
+                                style={{ gap: '2rem', animationDuration: duration, willChange: 'transform', animationPlayState: hovered ? 'paused' : 'running' }}
                             >
                                 {[...items, ...items].map((item, i) => (
-                                    <MarketItem key={i} {...item} />
+                                    <MarketItem key={i} {...item} onHover={openCard} onLeave={scheduleClose} />
                                 ))}
                             </div>
                         </div>
                     ) : (
                         <div className="flex items-center" style={{ gap: '1.25rem' }}>
                             {items.map((item, i) => (
-                                <MarketItem key={i} {...item} />
+                                <MarketItem key={i} {...item} onHover={openCard} onLeave={scheduleClose} />
                             ))}
                         </div>
                     )}
                 </div>
 
-                {/* SAĞ — hava durumu kutusu (kendi çentikleri + havaya göre renk) */}
+                {/* SAĞ — hava durumu kutusu */}
                 <WeatherWidget />
             </div>
+
+            {/* Hover detay kartı */}
+            {hovered && (
+                <div className="fixed z-[70]" style={{ top: 34, left: hovered.left }}
+                     onMouseEnter={keepOpen} onMouseLeave={scheduleClose}>
+                    <MarketDetailCard symbol={hovered.symbol} onEnter={keepOpen} onLeave={scheduleClose} />
+                </div>
+            )}
         </div>
     );
 };
