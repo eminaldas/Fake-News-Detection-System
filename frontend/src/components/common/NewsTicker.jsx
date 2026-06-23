@@ -41,8 +41,9 @@ const NewsTicker = () => {
         >
             <CornerBrackets color="#47b172" length={12} thickness={2} />
 
-            {/* HABER ANALİZİ — market bandı sol-etiket stili */}
-            <div className="shrink-0 h-full flex items-center gap-2 px-3 z-10">
+            {/* HABER ANALİZİ — market bandı sol-etiket stili (opak zemin: kayan yazıyı maskeler) */}
+            <div className="relative shrink-0 h-full flex items-center gap-2 pl-4 pr-3 z-20"
+                 style={{ background: 'var(--color-market-box-bg)' }}>
                 <span className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0"
                       style={{ background: 'var(--color-market-sys)' }} />
                 <span className="font-mono font-bold text-[10px] uppercase tracking-widest whitespace-nowrap"
