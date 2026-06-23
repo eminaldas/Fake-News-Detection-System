@@ -5,7 +5,7 @@ import axiosInstance from '../../api/axios';
 import Skeleton from '../../components/common/Skeleton';
 
 const BD = { borderColor: 'rgba(16,185,129,0.07)' };
-const S  = { background: 'var(--color-bg-base)', borderColor: 'rgba(16,185,129,0.07)' };
+const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 
 const CAT_COLOR = {
   Siyaset:   'var(--color-accent-blue)',
