@@ -153,6 +153,8 @@ RANGE_MAP = {
     "1g": ("1d", "15m"),
     "1h": ("5d", "60m"),
     "1a": ("1mo", "1d"),
+    "1y": ("1y", "1d"),
+    "5y": ("5y", "1wk"),
 }
 
 
@@ -211,6 +213,111 @@ def _fetch_detail_sync(symbol, rng):
         "day_low":    round(float(closes.min()) * mult, 4),
         "spark":      spark,
         "range":      rng,
+    }
+
+
+def _rsi(closes, period=14):
+    if len(closes) < period + 1:
+        return None
+    deltas = [closes[i] - closes[i - 1] for i in range(1, len(closes))]
+    gains = [d if d > 0 else 0 for d in deltas]
+    losses = [-d if d < 0 else 0 for d in deltas]
+    avg_g = sum(gains[:period]) / period
+    avg_l = sum(losses[:period]) / period
+    for i in range(period, len(deltas)):
+        avg_g = (avg_g * (period - 1) + gains[i]) / period
+        avg_l = (avg_l * (period - 1) + losses[i]) / period
+    if avg_l == 0:
+        return 100.0
+    rs = avg_g / avg_l
+    return round(100 - 100 / (1 + rs), 1)
+
+
+def _sma(values, n):
+    if len(values) < n:
+        return None
+    return round(sum(values[-n:]) / n, 4)
+
+
+def _ma_series(values, n):
+    out = []
+    for i in range(len(values)):
+        if i + 1 < n:
+            out.append(None)
+        else:
+            out.append(round(sum(values[i + 1 - n:i + 1]) / n, 4))
+    return out
+
+
+def _pct(a, b):
+    return round((a - b) / b * 100, 2) if b else 0.0
+
+
+def _fetch_analysis_sync(symbol, rng):
+    import yfinance as yf
+    yf_symbol, name, currency, gold_convert = _resolve_yf(symbol)
+    if yf_symbol is None:  # arama-kaynaklı sembol: doğrudan kullan
+        yf_symbol, name, currency, gold_convert = symbol, symbol, "", False
+    period, interval = RANGE_MAP.get(rng, RANGE_MAP["1a"])
+
+    t = yf.Ticker(yf_symbol)
+    hist = t.history(period=period, interval=interval, auto_adjust=True)
+    closes = hist["Close"].dropna()
+    if len(closes) == 0:
+        raise RuntimeError("no history")
+
+    mult = 1.0
+    if gold_convert:
+        usd = yf.Ticker("USDTRY=X").history(period="1d", interval="15m")["Close"].dropna()
+        mult = (float(usd.iloc[-1]) if len(usd) else 1.0) / GOLD_OZ_TO_GRAM
+
+    vals = [round(float(c) * mult, 4) for c in closes.tolist()]
+    times = [str(x) for x in closes.index.tolist()]
+    series = [{"t": times[i], "c": vals[i]} for i in range(len(vals))][-400:]
+
+    price = vals[-1]
+    prev_close = vals[-2] if len(vals) >= 2 else price
+    ma20 = _sma(vals, 20)
+    ma50 = _sma(vals, 50)
+    rsi = _rsi(vals)
+    ma20_series = _ma_series(vals, 20)[-400:]
+
+    week52_high = week52_low = market_cap = volume = None
+    try:
+        fi = t.fast_info
+        week52_high = round(float(fi["year_high"]) * mult, 4) if fi.get("year_high") else None
+        week52_low  = round(float(fi["year_low"]) * mult, 4)  if fi.get("year_low")  else None
+        market_cap  = float(fi["market_cap"])  if fi.get("market_cap")  else None
+        volume      = float(fi["last_volume"]) if fi.get("last_volume") else None
+    except Exception:
+        pass
+
+    pos52 = None
+    if week52_high and week52_low and week52_high > week52_low:
+        pos52 = round((price - week52_low) / (week52_high - week52_low) * 100)
+
+    def perf_for(days):
+        return _pct(price, vals[len(vals) - 1 - days]) if len(vals) > days else None
+
+    perf = {"w1": perf_for(5), "m1": perf_for(22), "y1": perf_for(252), "pos52": pos52}
+
+    dir_word = "yükseldi" if (perf["m1"] or 0) >= 0 else "düştü"
+    rsi_word = "aşırı alım" if (rsi or 50) >= 70 else "aşırı satım" if (rsi or 50) <= 30 else "nötr"
+    parts = [
+        f"{name} son 1 ayda %{abs(perf['m1']):.1f} {dir_word}" if perf["m1"] is not None else None,
+        f"RSI {rsi} ({rsi_word})" if rsi is not None else None,
+        f"52-hafta aralığının %{pos52}'inde" if pos52 is not None else None,
+    ]
+    summary = ", ".join(p for p in parts if p) + "."
+
+    return {
+        "symbol": symbol, "name": name, "currency": currency,
+        "price": price, "change_pct": _pct(price, prev_close), "change_abs": round(price - prev_close, 4),
+        "open": vals[0], "prev_close": prev_close,
+        "day_high": round(max(vals), 4), "day_low": round(min(vals), 4),
+        "volume": volume, "week52_high": week52_high, "week52_low": week52_low, "market_cap": market_cap,
+        "ma20": ma20, "ma50": ma50, "rsi": rsi, "perf": perf,
+        "series": series, "ma20_series": ma20_series, "summary": summary,
     }
 
 
@@ -294,6 +401,30 @@ async def get_market_detail(symbol: str, range: str = "1g", redis: Redis = Depen
         return JSONResponse(content=data)
     except Exception as exc:
         logging.warning("market/detail %s failed: %s", symbol, exc)
+        return JSONResponse(status_code=502, content={"error": str(exc)})
+
+
+@router.get("/analysis/{symbol:path}", tags=["Market"])
+async def get_market_analysis(symbol: str, range: str = "1a", redis: Redis = Depends(get_redis)):
+    """Sembol detay/analiz: seri + MA/RSI + istatistik + performans + metin özeti. 300 sn cache."""
+    rng = range if range in RANGE_MAP else "1a"
+    cache_key = f"market:analysis:{symbol}:{rng}"
+    try:
+        cached = await redis.get(cache_key)
+        if cached:
+            return JSONResponse(content=json.loads(cached))
+    except Exception:
+        pass
+    try:
+        loop = asyncio.get_running_loop()
+        data = await loop.run_in_executor(_executor, _fetch_analysis_sync, symbol, rng)
+        try:
+            await redis.setex(cache_key, 300, json.dumps(data))
+        except Exception:
+            pass
+        return JSONResponse(content=data)
+    except Exception as exc:
+        logging.warning("market/analysis %s failed: %s", symbol, exc)
         return JSONResponse(status_code=502, content={"error": str(exc)})
 
 
