@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axiosInstance from '../../api/axios';
+import CornerBrackets from './CornerBrackets';
 
 const MOCK_HEADLINES = [
     { id: 1, title: 'Merkez Bankası faiz kararını açıkladı',              source_domain: 'Reuters'       },
@@ -32,29 +33,28 @@ const NewsTicker = () => {
         <div
             className="fixed bottom-0 left-0 right-0 z-50 h-10 flex items-center overflow-hidden"
             style={{
-                background: 'var(--color-ticker-bg)',
+                background: 'var(--color-market-box-bg)',
                 borderTop:  '1px solid var(--color-ticker-border)',
             }}
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
         >
-            {/* ▶ HABER AKIŞI badge */}
-            <div
-                className="shrink-0 h-full flex items-center px-4 z-10"
-                style={{
-                    background:  'var(--color-ticker-badge-bg)',
-                    borderRight: '1px solid var(--color-ticker-border)',
-                }}
-            >
+            <CornerBrackets color="#47b172" length={12} thickness={2} />
+
+            {/* HABER ANALİZİ — market bandı sol-etiket stili */}
+            <div className="shrink-0 h-full flex items-center gap-2 px-3 z-10">
+                <span className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0"
+                      style={{ background: 'var(--color-market-sys)' }} />
                 <span className="font-mono font-bold text-[10px] uppercase tracking-widest whitespace-nowrap"
-                      style={{ color: 'var(--color-ticker-badge-fg)' }}>
-                    ▶ HABER AKIŞI
+                      style={{ color: 'var(--color-market-sys)' }}>
+                    HABER ANALİZİ
                 </span>
+                <span className="h-3 w-px ml-1 shrink-0" style={{ background: 'var(--color-terminal-border-raw)' }} />
             </div>
 
             {/* Sağ kenar solma */}
             <div className="absolute right-0 top-0 bottom-0 w-12 z-10 pointer-events-none"
-                 style={{ background: 'linear-gradient(to left, var(--color-ticker-bg), transparent)' }} />
+                 style={{ background: 'linear-gradient(to left, var(--color-market-box-bg), transparent)' }} />
 
             {/* Ticker */}
             <div
