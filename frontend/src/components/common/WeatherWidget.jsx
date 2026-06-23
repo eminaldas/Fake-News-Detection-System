@@ -37,6 +37,10 @@ function wmoLabel(code) {
     return 'Fırtınalı';
 }
 
+function WxIcon({ code, className, style }) {
+    return React.createElement(wmoIcon(code), { className, style });
+}
+
 // Hava durumu kutusu sabit yeşil — çentik rengiyle aynı. Havaya göre yalnızca ikon değişir.
 const WX_GREEN = '#47b172';
 
@@ -47,7 +51,6 @@ async function fetchWeather(lat, lon) {
 }
 
 function CityRow({ city, weather }) {
-    const Icon = weather ? wmoIcon(weather.code) : null;
     return (
         <div className="flex items-center justify-between px-4 py-2.5 transition-colors cursor-default"
              onMouseEnter={e => e.currentTarget.style.background = 'rgba(128,128,128,0.07)'}
@@ -61,7 +64,7 @@ function CityRow({ city, weather }) {
                         {wmoLabel(weather.code)}
                     </span>
                     <div className="flex items-center gap-1">
-                        <Icon className="w-3 h-3" style={{ color: 'var(--color-text-secondary)' }} />
+                        <WxIcon code={weather.code} className="w-3 h-3" style={{ color: 'var(--color-text-secondary)' }} />
                         <span className="text-sm font-bold" style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-primary)' }}>
                             {weather.temp}°
                         </span>
@@ -75,7 +78,10 @@ function CityRow({ city, weather }) {
 }
 
 const WeatherWidget = () => {
-    const [primary,  setPrimary]  = useState(null);   // { temp, code, city, lat, lon }
+    const [primary,  setPrimary]  = useState(() => {
+        try { const c = localStorage.getItem('weather_primary'); return c ? JSON.parse(c) : null; } catch { return null; }
+    });
+    const [, setLoaded] = useState(false);
     const [open,     setOpen]     = useState(false);
     const [cityData, setCityData] = useState({});      // id → { temp, code }
     const [fetched,  setFetched]  = useState(false);
@@ -85,9 +91,12 @@ const WeatherWidget = () => {
         const load = async (lat, lon, fallbackCity = 'İstanbul') => {
             try {
                 const w = await fetchWeather(lat, lon);
-                setPrimary({ ...w, city: w.city || fallbackCity, lat, lon });
+                const next = { ...w, city: w.city || fallbackCity, lat, lon };
+                setPrimary(next);
+                setLoaded(true);
+                try { localStorage.setItem('weather_primary', JSON.stringify(next)); } catch { /* ignore */ }
             } catch {
-                setPrimary(null);
+                setLoaded(true);
             }
         };
 
@@ -129,9 +138,16 @@ const WeatherWidget = () => {
         return () => document.removeEventListener('mousedown', handler);
     }, [open]);
 
-    if (!primary) return null;
-
-    const Icon = wmoIcon(primary.code);
+    if (!primary) {
+        return (
+            <div className="hidden md:flex shrink-0 items-center gap-2 h-full px-3.5"
+                 style={{ background: WX_GREEN }}>
+                <span className="w-4 h-4 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.35)' }} />
+                <span className="w-12 h-2.5 animate-pulse" style={{ background: 'rgba(255,255,255,0.35)' }} />
+                <span className="w-7 h-3 animate-pulse" style={{ background: 'rgba(255,255,255,0.45)' }} />
+            </div>
+        );
+    }
 
     return (
         <div ref={ref} className="relative hidden md:flex shrink-0">
@@ -141,7 +157,7 @@ const WeatherWidget = () => {
                 className="relative select-none whitespace-nowrap transition-all hover:brightness-105 flex items-center gap-2 h-full"
                 style={{ padding: '0 14px', background: WX_GREEN }}
             >
-                <Icon className="w-4 h-4 shrink-0" style={{ color: '#fff' }} />
+                <WxIcon code={primary.code} className="w-4 h-4 shrink-0" style={{ color: '#fff' }} />
                 <span style={{
                     fontFamily:    "'Elms Sans', sans-serif",
                     fontSize:      12,
@@ -198,7 +214,7 @@ const WeatherWidget = () => {
                                     {wmoLabel(primary.code)}
                                 </span>
                                 <div className="flex items-center gap-1">
-                                    <Icon className="w-3.5 h-3.5" style={{ color: WX_GREEN }} />
+                                    <WxIcon code={primary.code} className="w-3.5 h-3.5" style={{ color: WX_GREEN }} />
                                     <span className="text-base font-black" style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-primary)' }}>
                                         {primary.temp}°
                                     </span>
