@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.api.v1.endpoints import market_ai
 from app.db.redis import get_redis
 from app.db.session import get_db
 from app.models.models import User
@@ -545,6 +546,84 @@ async def get_popular(redis: Redis = Depends(get_redis), db: AsyncSession = Depe
     except Exception:
         pass
     return JSONResponse(content=top)
+
+
+@router.get("/summary", tags=["Market"])
+async def get_market_summary(redis: Redis = Depends(get_redis)):
+    """Genel günlük AI piyasa özeti. ~3 saat cache (günde ~3 üretim)."""
+    try:
+        cached = await redis.get("market:summary")
+        if cached:
+            return JSONResponse(content=json.loads(cached))
+    except Exception:
+        pass
+    try:
+        loop = asyncio.get_running_loop()
+        rates  = await loop.run_in_executor(_executor, _fetch_rates_sync)
+        stocks = await loop.run_in_executor(_executor, _fetch_stocks_sync)
+        snap = [f"{k}: {v.get('sell')} (%{v.get('change')})" for k, v in rates.items()]
+        snap += [f"{s['symbol']}: {s['price']} (%{s['change_pct']})" for s in stocks[:8]]
+        text = await loop.run_in_executor(_executor, market_ai.market_summary_text, "\n".join(snap))
+        out = {"text": text, "available": True}
+        try:
+            await redis.setex("market:summary", 10800, json.dumps(out))
+        except Exception:
+            pass
+        return JSONResponse(content=out)
+    except Exception as exc:
+        logging.warning("market/summary failed: %s", exc)
+        return JSONResponse(content={"text": "", "available": False})
+
+
+async def _commentary_cached(symbol, redis):
+    try:
+        cached = await redis.get(f"market:commentary:{symbol}")
+        if cached:
+            return json.loads(cached)
+    except Exception:
+        pass
+    return None
+
+
+@router.get("/commentary/{symbol:path}", tags=["Market"])
+async def get_commentary(symbol: str, redis: Redis = Depends(get_redis)):
+    """Cache'li AI yorumu döner; yoksa available:false."""
+    c = await _commentary_cached(symbol, redis)
+    return JSONResponse(content=c or {"text": "", "available": False})
+
+
+@router.post("/commentary/{symbol:path}", tags=["Market"])
+async def make_commentary(symbol: str,
+                          current_user: User = Depends(get_current_user),
+                          redis: Redis = Depends(get_redis)):
+    """On-demand AI yorumu üret+cache (6 saat). Kullanıcı başına 10/gün limit."""
+    c = await _commentary_cached(symbol, redis)
+    if c:
+        return JSONResponse(content=c)
+    ukey = f"market:cmt:rl:{current_user.id}"
+    try:
+        n = await redis.incr(ukey)
+        if n == 1:
+            await redis.expire(ukey, 86400)
+        if n > 10:
+            return JSONResponse(status_code=429, content={"error": "Günlük özet limiti doldu."})
+    except Exception:
+        pass
+    try:
+        loop = asyncio.get_running_loop()
+        data = await loop.run_in_executor(_executor, _fetch_analysis_sync, symbol, "1a")
+        stats = (f"Fiyat {data['price']}, 1A %{data['perf']['m1']}, RSI {data['rsi']}, "
+                 f"MA20 {data['ma20']}, MA50 {data['ma50']}, 52H konum %{data['perf']['pos52']}")
+        text = await loop.run_in_executor(_executor, market_ai.symbol_commentary_text, data["name"], stats)
+        out = {"text": text, "available": True}
+        try:
+            await redis.setex(f"market:commentary:{symbol}", 21600, json.dumps(out))
+        except Exception:
+            pass
+        return JSONResponse(content=out)
+    except Exception as exc:
+        logging.warning("commentary %s failed: %s", symbol, exc)
+        return JSONResponse(status_code=502, content={"text": "", "available": False})
 
 
 @router.put("/preferences", tags=["Market"])
