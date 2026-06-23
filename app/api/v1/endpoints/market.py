@@ -1,4 +1,5 @@
 import asyncio
+import httpx
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
@@ -294,6 +295,66 @@ async def get_market_detail(symbol: str, range: str = "1g", redis: Redis = Depen
     except Exception as exc:
         logging.warning("market/detail %s failed: %s", symbol, exc)
         return JSONResponse(status_code=502, content={"error": str(exc)})
+
+
+_YAHOO_SEARCH = "https://query1.finance.yahoo.com/v1/finance/search"
+
+
+def _yahoo_type(quote_type, exchange):
+    qt = (quote_type or "").upper()
+    ex = (exchange or "").upper()
+    if qt == "CRYPTOCURRENCY":
+        return "Kripto"
+    if qt == "CURRENCY":
+        return "Döviz"
+    if qt == "INDEX":
+        return "Endeks"
+    if qt == "FUTURE":
+        return "Emtia"
+    if ex in ("IST", "ISE"):
+        return "BIST"
+    return "Hisse"
+
+
+@router.get("/search", tags=["Market"])
+async def market_search(q: str, redis: Redis = Depends(get_redis)):
+    """Yahoo Finance sembol arama proxy'si. 60 sn cache."""
+    q = q.strip()
+    if len(q) < 2:
+        return JSONResponse(content=[])
+    cache_key = f"market:search:{q.lower()}"
+    try:
+        cached = await redis.get(cache_key)
+        if cached:
+            return JSONResponse(content=json.loads(cached))
+    except Exception:
+        pass
+    try:
+        async with httpx.AsyncClient(timeout=6.0) as client:
+            res = await client.get(_YAHOO_SEARCH,
+                                   params={"q": q, "quotesCount": 12, "newsCount": 0},
+                                   headers={"User-Agent": "NeHaber/1.0"})
+            res.raise_for_status()
+            quotes = res.json().get("quotes", [])
+        out = []
+        for it in quotes:
+            sym = it.get("symbol")
+            if not sym:
+                continue
+            out.append({
+                "symbol":   sym,
+                "name":     it.get("shortname") or it.get("longname") or sym,
+                "type":     _yahoo_type(it.get("quoteType"), it.get("exchange")),
+                "exchange": it.get("exchange") or "",
+            })
+        try:
+            await redis.setex(cache_key, 60, json.dumps(out))
+        except Exception:
+            pass
+        return JSONResponse(content=out)
+    except Exception as exc:
+        logging.warning("market/search failed: %s", exc)
+        return JSONResponse(content=[])
 
 
 @router.put("/preferences", tags=["Market"])
