@@ -20,11 +20,13 @@ const ForumLayout = () => {
     const isThreadPage = /^\/forum\/[^/]+$/.test(location.pathname) && !isSearchPage;
     const showWall = !isAuthenticated && !isThreadPage;
 
+    const storedSort = (() => { try { return localStorage.getItem('forum_sort'); } catch { return null; } })();
     const activeCategory = searchParams.get('category') ?? '';
     const activeTag      = searchParams.get('tag') ?? '';
-    const activeSort     = searchParams.get('sort') ?? 'hot';
+    const activeSort     = searchParams.get('sort') ?? storedSort ?? 'hot';
 
     const setParam = (key, val) => {
+        if (key === 'sort') { try { localStorage.setItem('forum_sort', val); } catch { /* ignore */ } }
         const next = new URLSearchParams(searchParams);
         if (val) next.set(key, val); else next.delete(key);
         if (key === 'category') next.delete('tag');
@@ -43,19 +45,19 @@ const ForumLayout = () => {
         return () => document.removeEventListener('keydown', onKey);
     }, []);
 
-    const showSides = !isSearchPage;
+    const showSides = !isSearchPage && !isThreadPage;
 
     return (
         <div className="w-full">
             {showWall && <LoginNudgeModal />}
             {searchOpen && <ForumSearchModal onClose={() => setSearchOpen(false)} />}
 
-            <div className="max-w-[1500px] mx-auto w-full px-4 md:px-6 py-6 flex flex-col lg:grid lg:gap-5"
+            <div className="max-w-[1500px] mx-auto w-full px-4 md:px-6 py-6 flex flex-col lg:grid lg:gap-5 lg:items-start"
                  style={{ gridTemplateColumns: showSides ? '236px 1fr 300px' : '1fr' }}>
 
                 {/* SOL · keşif (sabit) */}
                 {showSides && (
-                    <aside className="hidden lg:flex flex-col gap-4 sticky top-24 self-start">
+                    <aside className="hidden lg:flex flex-col gap-4 lg:sticky lg:top-36 self-start">
                         <button
                             type="button"
                             onClick={() => setSearchOpen(true)}
@@ -83,7 +85,7 @@ const ForumLayout = () => {
 
                 {/* SAĞ · topluluk (sabit) */}
                 {showSides && (
-                    <aside className="hidden lg:flex flex-col gap-4 sticky top-24 self-start">
+                    <aside className="hidden lg:flex flex-col gap-4 lg:sticky lg:top-36 self-start">
                         <PopularPostsPanel />
                         <PopularTagsPanel activeTag={activeTag} onSelect={(t) => setParam('tag', t)} />
                         <SuggestedUsersPanel />

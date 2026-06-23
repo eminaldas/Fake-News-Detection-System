@@ -48,9 +48,9 @@ export default function PopularPostsPanel() {
                                     <span>{t.total_votes ?? 0} oy</span>
                                     <span>{t.comment_count ?? 0} yorum</span>
                                     {t.is_rising && (
-                                        <span className="font-extrabold px-1"
+                                        <span className="inline-flex items-center gap-1 font-extrabold px-1"
                                               style={{ color: 'var(--color-accent-amber)', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.30)' }}>
-                                            ▲ YÜKSELİŞTE
+                                            <TrendingUp className="w-2.5 h-2.5" /> YÜKSELİŞTE
                                         </span>
                                     )}
                                 </p>

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Search, Flame, Clock, Hash, FileText, User } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 
 function Group({ label }) {
@@ -26,7 +26,7 @@ function Row({ onClick, children }) {
 function Chip({ onClick, children }) {
     return (
         <button type="button" onClick={onClick}
-                className="font-mono text-[11px] px-2.5 py-1.5 border transition-colors hover:brightness-110"
+                className="flex items-center gap-1.5 font-mono text-[11px] px-2.5 py-1.5 border transition-colors hover:brightness-110"
                 style={{ color: 'var(--color-brand-primary)', borderColor: 'rgba(16,185,129,0.30)', background: 'rgba(16,185,129,0.06)' }}>
             {children}
         </button>
@@ -124,15 +124,15 @@ export default function ForumSearchModal({ onClose }) {
                         <>
                             <Group label="HIZLI SEÇENEKLER" />
                             <div className="flex flex-wrap gap-2 px-4 py-3">
-                                <Chip onClick={() => go('/forum?sort=hot')}>🔥 Popüler</Chip>
-                                <Chip onClick={() => go('/forum?sort=new')}>🕐 Yeni</Chip>
+                                <Chip onClick={() => go('/forum?sort=hot')}><Flame className="w-3 h-3" /> Popüler</Chip>
+                                <Chip onClick={() => go('/forum?sort=new')}><Clock className="w-3 h-3" /> Yeni</Chip>
                                 {opts.cats.map(c => {
                                     const name = c.name ?? c.slug ?? c;
-                                    return <Chip key={`c-${name}`} onClick={() => go(`/forum?category=${encodeURIComponent(name)}`)}>◆ {name}</Chip>;
+                                    return <Chip key={`c-${name}`} onClick={() => go(`/forum?category=${encodeURIComponent(name)}`)}>{name}</Chip>;
                                 })}
                                 {opts.tags.map(t => {
                                     const name = t.name.replace(/^#/, '');
-                                    return <Chip key={`t-${name}`} onClick={() => go(`/forum?tag=${encodeURIComponent(name)}`)}># {name}</Chip>;
+                                    return <Chip key={`t-${name}`} onClick={() => go(`/forum?tag=${encodeURIComponent(name)}`)}><Hash className="w-3 h-3" /> {name}</Chip>;
                                 })}
                             </div>
                         </>
@@ -142,19 +142,32 @@ export default function ForumSearchModal({ onClose }) {
                             {!loading && noResults && <div className="font-mono text-[11px] px-4 py-3" style={{ color: 'var(--color-text-muted)' }}>sonuç yok</div>}
 
                             {res.posts.length > 0 && <Group label="GÖNDERİLER" />}
-                            {res.posts.map(p => <Row key={p.id} onClick={() => go(`/forum/${p.id}`)}>▤&nbsp; {p.title}</Row>)}
+                            {res.posts.map(p => (
+                                <Row key={p.id} onClick={() => go(`/forum/${p.id}`)}>
+                                    <span className="flex items-center gap-2"><FileText className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-text-muted)' }} /> {p.title}</span>
+                                </Row>
+                            ))}
 
                             {res.tags.length > 0 && <Group label="ETİKETLER" />}
                             {res.tags.map(t => {
                                 const name = (t.name ?? t).replace(/^#/, '');
-                                return <Row key={`t-${name}`} onClick={() => go(`/forum?tag=${encodeURIComponent(name)}`)}>
-                                    <span style={{ color: 'var(--color-brand-primary)' }}># {name}</span>
-                                    {t.usage_count != null && <span style={{ color: 'var(--color-text-muted)' }}> · {t.usage_count}</span>}
-                                </Row>;
+                                return (
+                                    <Row key={`t-${name}`} onClick={() => go(`/forum?tag=${encodeURIComponent(name)}`)}>
+                                        <span className="flex items-center gap-2">
+                                            <Hash className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
+                                            <span style={{ color: 'var(--color-brand-primary)' }}>{name}</span>
+                                            {t.usage_count != null && <span style={{ color: 'var(--color-text-muted)' }}>· {t.usage_count}</span>}
+                                        </span>
+                                    </Row>
+                                );
                             })}
 
                             {res.users.length > 0 && <Group label="KULLANICILAR" />}
-                            {res.users.map(u => <Row key={u.id} onClick={() => go(`/users/${u.id}`)}>⬡&nbsp; {u.username}</Row>)}
+                            {res.users.map(u => (
+                                <Row key={u.id} onClick={() => go(`/users/${u.id}`)}>
+                                    <span className="flex items-center gap-2"><User className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-text-muted)' }} /> {u.username}</span>
+                                </Row>
+                            ))}
                         </>
                     )}
                 </div>

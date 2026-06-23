@@ -15,7 +15,8 @@ const ForumFeed = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const category = searchParams.get('category') ?? '';
     const tag      = searchParams.get('tag')      ?? '';
-    const sort     = searchParams.get('sort')     ?? 'hot';
+    const storedSort = (() => { try { return localStorage.getItem('forum_sort'); } catch { return null; } })();
+    const sort     = searchParams.get('sort')     ?? storedSort ?? 'hot';
     const navigate = useNavigate();
 
     const [activeTab,   setActiveTab]   = React.useState('discover');

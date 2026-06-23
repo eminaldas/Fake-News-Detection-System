@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     MessageSquare, Share2, Bookmark, Link as LinkIcon, Flag,
-    Copy, Check, Twitter, MessageCircle, UserPlus,
+    Copy, Check, Twitter, MessageCircle, UserPlus, ChevronUp, ChevronDown,
 } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import { useAuth } from '../../contexts/AuthContext';
@@ -115,21 +115,21 @@ export default function ThreadCard({ thread }) {
             <div className="absolute top-0 right-0 h-3 w-[2px] pointer-events-none" style={{ background: leftColor, opacity: 0.4 }} />
 
             {/* ── Sol oy rayı ── */}
-            <div className="flex flex-col items-center gap-1 px-2.5 py-3 shrink-0"
-                 style={{ background: 'rgba(0,0,0,0.18)', borderRight: '1px solid var(--color-terminal-border-raw)' }}
+            <div className="flex flex-col items-center gap-1.5 px-2.5 py-3 shrink-0"
+                 style={{ background: 'rgba(16,185,129,0.05)', borderRight: '1px solid var(--color-terminal-border-raw)' }}
                  onClick={stopNav}>
                 <button
                     type="button"
                     disabled={voting || !!local.verdict}
                     onClick={(e) => { e.stopPropagation(); handleVote('authentic'); }}
                     aria-label="Doğru oyu"
-                    className="text-lg leading-none transition-colors disabled:opacity-40"
-                    style={{ color: local.current_user_vote === 'authentic' ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}
+                    className="transition-colors disabled:opacity-40 hover:brightness-110"
+                    style={{ color: local.current_user_vote === 'authentic' ? 'var(--color-brand-primary)' : 'rgba(16,185,129,0.55)' }}
                 >
-                    ▲
+                    <ChevronUp className="w-5 h-5" strokeWidth={2.5} />
                 </button>
                 <span className="font-mono font-extrabold text-sm"
-                      style={{ color: score < 0 ? 'var(--color-fake-fill)' : 'var(--color-text-primary)' }}>
+                      style={{ color: score < 0 ? 'var(--color-fake-fill)' : 'var(--color-brand-primary)' }}>
                     {score}
                 </span>
                 <button
@@ -137,10 +137,10 @@ export default function ThreadCard({ thread }) {
                     disabled={voting || !!local.verdict}
                     onClick={(e) => { e.stopPropagation(); handleVote('suspicious'); }}
                     aria-label="Şüpheli oyu"
-                    className="text-lg leading-none transition-colors disabled:opacity-40"
-                    style={{ color: local.current_user_vote === 'suspicious' ? 'var(--color-fake-fill)' : 'var(--color-text-muted)' }}
+                    className="transition-colors disabled:opacity-40 hover:brightness-110"
+                    style={{ color: local.current_user_vote === 'suspicious' ? 'var(--color-fake-fill)' : 'rgba(239,68,68,0.45)' }}
                 >
-                    ▼
+                    <ChevronDown className="w-5 h-5" strokeWidth={2.5} />
                 </button>
             </div>
 
@@ -280,9 +280,9 @@ export default function ThreadCard({ thread }) {
                             <span style={{ width: `${(local.vote_investigate / total) * 100}%`, background: 'var(--color-accent-amber)' }} />
                         </div>
                         <div className="flex gap-3 mt-1.5 font-mono text-[10px]">
-                            <span style={{ color: 'var(--color-brand-primary)' }}>✓ %{Math.round((local.vote_authentic / total) * 100)} Doğru</span>
-                            <span style={{ color: 'var(--color-fake-fill)' }}>✗ %{Math.round((local.vote_suspicious / total) * 100)} Şüpheli</span>
-                            <span style={{ color: 'var(--color-accent-amber)' }}>? %{Math.round((local.vote_investigate / total) * 100)} Araştır</span>
+                            <span style={{ color: 'var(--color-brand-primary)' }}>%{Math.round((local.vote_authentic / total) * 100)} Doğru</span>
+                            <span style={{ color: 'var(--color-fake-fill)' }}>%{Math.round((local.vote_suspicious / total) * 100)} Şüpheli</span>
+                            <span style={{ color: 'var(--color-accent-amber)' }}>%{Math.round((local.vote_investigate / total) * 100)} Araştır</span>
                         </div>
                     </div>
                 )}
