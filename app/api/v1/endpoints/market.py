@@ -2,6 +2,7 @@ import asyncio
 import httpx
 import json
 import logging
+import re
 from concurrent.futures import ThreadPoolExecutor
 from typing import List
 
@@ -331,9 +332,10 @@ class MarketPrefsRequest(BaseModel):
     def validate_tickers(cls, v: List[str]) -> List[str]:
         if len(v) > 12:
             raise ValueError("En fazla 12 ticker seçilebilir.")
-        unknown = set(v) - KNOWN_TICKERS
-        if unknown:
-            raise ValueError(f"Bilinmeyen semboller: {', '.join(sorted(unknown))}")
+        # Arama ile herhangi bir yfinance sembolü yıldızlanabilir; sadece temel format doğrula.
+        for t in v:
+            if not isinstance(t, str) or not (1 <= len(t) <= 24) or not re.fullmatch(r"[A-Za-z0-9.\-=^ ]+", t):
+                raise ValueError(f"Geçersiz sembol: {t}")
         return v
 
 
