@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, field_validator
 from redis.asyncio import Redis
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
@@ -486,6 +487,64 @@ async def market_search(q: str, redis: Redis = Depends(get_redis)):
     except Exception as exc:
         logging.warning("market/search failed: %s", exc)
         return JSONResponse(content=[])
+
+
+@router.get("/movers", tags=["Market"])
+async def get_movers(redis: Redis = Depends(get_redis)):
+    """En çok yükselen/düşen (izlenen evren). 120 sn cache."""
+    try:
+        cached = await redis.get("market:movers")
+        if cached:
+            return JSONResponse(content=json.loads(cached))
+    except Exception:
+        pass
+    items = []
+    try:
+        loop = asyncio.get_running_loop()
+        stocks = await loop.run_in_executor(_executor, _fetch_stocks_sync)
+        for s in stocks:
+            if s.get("change_pct") is not None:
+                items.append({"symbol": s["symbol"], "name": s["name"], "change_pct": s["change_pct"]})
+        rates = await loop.run_in_executor(_executor, _fetch_rates_sync)
+        for key, entry in rates.items():
+            try:
+                items.append({"symbol": key, "name": key, "change_pct": float(entry.get("change"))})
+            except (ValueError, TypeError):
+                pass
+    except Exception as exc:
+        logging.warning("movers failed: %s", exc)
+    items.sort(key=lambda x: x["change_pct"], reverse=True)
+    out = {"gainers": items[:5], "losers": list(reversed(items[-5:]))}
+    try:
+        await redis.setex("market:movers", 120, json.dumps(out))
+    except Exception:
+        pass
+    return JSONResponse(content=out)
+
+
+@router.get("/popular", tags=["Market"])
+async def get_popular(redis: Redis = Depends(get_redis), db: AsyncSession = Depends(get_db)):
+    """En çok yıldızlanan semboller (tüm kullanıcı tercihleri). 1 saat cache."""
+    try:
+        cached = await redis.get("market:popular")
+        if cached:
+            return JSONResponse(content=json.loads(cached))
+    except Exception:
+        pass
+    counts = {}
+    try:
+        rows = await db.execute(select(User.preferences))
+        for (prefs,) in rows.all():
+            for sym in (prefs or {}).get("market_tickers", []) or []:
+                counts[sym] = counts.get(sym, 0) + 1
+    except Exception as exc:
+        logging.warning("popular failed: %s", exc)
+    top = [s for s, _ in sorted(counts.items(), key=lambda x: x[1], reverse=True)][:10]
+    try:
+        await redis.setex("market:popular", 3600, json.dumps(top))
+    except Exception:
+        pass
+    return JSONResponse(content=top)
 
 
 @router.put("/preferences", tags=["Market"])
