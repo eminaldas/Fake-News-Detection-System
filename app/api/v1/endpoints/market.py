@@ -1,5 +1,4 @@
 import asyncio
-import httpx
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
@@ -18,14 +17,9 @@ from app.models.models import User
 
 router = APIRouter()
 
-TRUNCGIL_URL = "https://finans.truncgil.com/v4/today.json"
+RATE_KEYS = ["USD", "EUR", "gram-altin", "BIST 100"]
 
-KEY_MAP = {
-    "USD":         "USD",
-    "EUR":         "EUR",
-    "GREMSEALTIN": "gram-altin",
-    "XU100":       "BIST 100",
-}
+GOLD_OZ_TO_GRAM = 31.1035
 
 STOCK_SYMBOLS = [
     "THYAO.IS", "AKBNK.IS", "GARAN.IS", "SISE.IS", "KCHOL.IS",
@@ -57,9 +51,55 @@ CRYPTO_NAMES = {
 
 ALL_FETCH_SYMBOLS = STOCK_SYMBOLS + CRYPTO_SYMBOLS
 
-KNOWN_TICKERS = set(KEY_MAP.values()) | set(STOCK_SYMBOLS) | set(CRYPTO_SYMBOLS)
+KNOWN_TICKERS = set(RATE_KEYS) | set(STOCK_SYMBOLS) | set(CRYPTO_SYMBOLS)
 
 _executor = ThreadPoolExecutor(max_workers=2)
+
+
+def _last_prev_from(raw, sym, multi):
+    try:
+        closes = (raw[sym]["Close"] if multi else raw["Close"]).dropna()
+        if len(closes) >= 2:
+            return float(closes.iloc[-1]), float(closes.iloc[-2])
+        if len(closes) == 1:
+            v = float(closes.iloc[-1])
+            return v, v
+    except Exception as exc:
+        logging.warning("rates parse error for %s: %s", sym, exc)
+    return None, None
+
+
+def _fetch_rates_sync():
+    """USD, EUR, BIST 100, gram-altın'ı yfinance'ten döner. Çıktı eski Truncgil şekliyle aynı."""
+    import yfinance as yf
+    syms = ["USDTRY=X", "EURTRY=X", "XU100.IS", "GC=F"]
+    raw = yf.download(" ".join(syms), period="2d", auto_adjust=True,
+                      group_by="ticker", progress=False, threads=True)
+    multi = len(syms) > 1
+
+    out = {}
+
+    def put(key, last, prev):
+        if last is None:
+            return
+        chg = round((last - prev) / prev * 100, 2) if prev else 0.0
+        out[key] = {"buy": round(last, 4), "sell": round(last, 4), "change": str(chg)}
+
+    usd_l, usd_p = _last_prev_from(raw, "USDTRY=X", multi)
+    eur_l, eur_p = _last_prev_from(raw, "EURTRY=X", multi)
+    bist_l, bist_p = _last_prev_from(raw, "XU100.IS", multi)
+    gold_l, gold_p = _last_prev_from(raw, "GC=F", multi)
+
+    put("USD", usd_l, usd_p)
+    put("EUR", eur_l, eur_p)
+    put("BIST 100", bist_l, bist_p)
+
+    if gold_l is not None and usd_l is not None:
+        gram_l = gold_l / GOLD_OZ_TO_GRAM * usd_l
+        gram_p = (gold_p / GOLD_OZ_TO_GRAM * usd_p) if (gold_p and usd_p) else gram_l
+        put("gram-altin", gram_l, gram_p)
+
+    return out
 
 
 def _fetch_stocks_sync():
@@ -124,7 +164,7 @@ class MarketPrefsRequest(BaseModel):
 
 @router.get("/rates", tags=["Market"])
 async def get_market_rates(redis: Redis = Depends(get_redis)):
-    """USD, EUR, Gram Altın ve BIST 100 verilerini Truncgil üzerinden proxy eder. 5 dk Redis cache."""
+    """USD, EUR, Gram Altın, BIST 100 — yfinance üzerinden. 5 dk Redis cache."""
     try:
         cached = await redis.get("market:rates")
         if cached:
@@ -133,31 +173,13 @@ async def get_market_rates(redis: Redis = Depends(get_redis)):
         pass  # Redis unavailable — cache atlanır, canlı veriye geç
 
     try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
-            res = await client.get(TRUNCGIL_URL, headers={"User-Agent": "BiHaber/1.0"})
-            res.raise_for_status()
-            raw = res.json()
-
-        def parse(v):
-            try:
-                return float(v) if v is not None else None
-            except (ValueError, TypeError):
-                return None
-
-        data = {}
-        for api_key, out_key in KEY_MAP.items():
-            entry = raw.get(api_key, {})
-            data[out_key] = {
-                "buy":    parse(entry.get("Buying")),
-                "sell":   parse(entry.get("Selling")),
-                "change": str(entry.get("Change", "")),
-            }
+        loop = asyncio.get_running_loop()
+        data = await loop.run_in_executor(_executor, _fetch_rates_sync)
         try:
             await redis.setex("market:rates", 300, json.dumps(data))
         except Exception:
             pass  # Redis write hatası — veri yine de dönebilir
         return JSONResponse(content=data)
-
     except Exception as exc:
         logging.warning("market/rates fetch failed: %s", exc)
         return JSONResponse(content={"error": str(exc), "unavailable": True})
