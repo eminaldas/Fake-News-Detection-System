@@ -209,10 +209,9 @@ function DesktopNav() {
                         key={item.path}
                         to={item.path}
                         ref={el => { linkRefs.current[item.path] = el; }}
-                        className="relative px-3.5 py-1.5 text-[15px] font-medium transition-colors"
+                        className="relative px-3.5 py-1.5 text-[16px] font-medium leading-none transition-colors"
                         style={{
-                            fontFamily: "'Elms Sans', sans-serif",
-                            color:      active ? 'var(--color-brand-primary)' : 'var(--color-text-primary)',
+                            color: active ? 'var(--color-brand-primary)' : 'var(--color-text-primary)',
                         }}
                     >
                         {item.name}
@@ -364,12 +363,10 @@ const Navbar = () => {
                                 className="flex items-center gap-1.5 pl-1 transition-opacity hover:opacity-80"
                             >
                                 <div
-                                    className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center font-mono font-black text-xs shrink-0"
+                                    className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center font-mono font-black text-xs shrink-0"
                                     style={{
                                         background: 'var(--color-brand-primary)',
                                         color:      'var(--color-bg-base)',
-                                        border:     '2px solid var(--color-brand-primary)',
-                                        boxShadow:  '0 0 0 1.5px var(--color-bg-base)',
                                     }}
                                 >
                                     {user.avatar_url ? (
