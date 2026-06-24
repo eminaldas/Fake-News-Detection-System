@@ -39,10 +39,10 @@ export default function WatchlistPanel() {
             <div className="absolute top-0 left-0 w-3.5 h-[2px] bg-brand pointer-events-none" />
             <div className="absolute top-0 left-0 h-3.5 w-[2px] bg-brand pointer-events-none" />
             <div className="flex items-center px-4 py-3 border-b" style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
-                <span className="font-mono text-[10px] font-bold tracking-widest" style={{ color: 'var(--color-brand-primary)' }}>★ İZLEME LİSTEM</span>
+                <span className="font-mono text-[11px] font-bold tracking-widest" style={{ color: 'var(--color-brand-primary)' }}>★ İZLEME LİSTEM</span>
                 {tickers.length > 3 && (
                     <button type="button" onClick={() => setModal(true)}
-                            className="ml-auto font-mono text-[10px]" style={{ color: 'var(--color-brand-primary)' }}>
+                            className="ml-auto font-mono text-[11px]" style={{ color: 'var(--color-brand-primary)' }}>
                         Tümü ({tickers.length}) →
                     </button>
                 )}

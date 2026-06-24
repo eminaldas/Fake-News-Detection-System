@@ -10,7 +10,7 @@ function MoverList({ title, color, items }) {
         <div className="relative border" style={{ ...TS, borderLeft: '3px solid rgba(63,255,139,0.45)' }}>
             <div className="absolute top-0 left-0 w-3 h-[2px] bg-brand pointer-events-none" />
             <div className="absolute top-0 left-0 h-3 w-[2px] bg-brand pointer-events-none" />
-            <div className="font-mono text-[10px] font-bold tracking-widest px-4 py-3 border-b"
+            <div className="font-mono text-[11px] font-bold tracking-widest px-4 py-3 border-b"
                  style={{ color, borderColor: 'var(--color-terminal-border-raw)' }}>{title}</div>
             {items.length === 0 ? (
                 <div className="px-4 py-4 font-mono text-[11px]" style={{ color: 'var(--color-text-muted)' }}>—</div>
@@ -20,10 +20,10 @@ function MoverList({ title, color, items }) {
                     <div key={m.symbol} onClick={() => navigate(`/borsa/${encodeURIComponent(m.symbol)}`)}
                          className="flex items-center gap-2 px-4 py-2.5 cursor-pointer transition-colors hover:bg-white/[0.03]"
                          style={{ borderBottom: i < items.length - 1 ? '1px solid var(--color-terminal-border-raw)' : 'none' }}>
-                        <span className="font-mono font-bold text-[12px]" style={{ color: 'var(--color-text-secondary)' }}>
+                        <span className="font-mono font-bold text-[13.5px]" style={{ color: 'var(--color-text-secondary)' }}>
                             {(m.name || m.symbol).replace('.IS', '').replace('-USD', '')}
                         </span>
-                        <span className="ml-auto font-mono text-[12px] font-bold"
+                        <span className="ml-auto font-mono text-[13.5px] font-bold"
                               style={{ color: up ? 'var(--color-brand-primary)' : 'var(--color-fake-fill)' }}>
                             {up ? '+' : ''}{Number(m.change_pct).toFixed(2)}%
                         </span>

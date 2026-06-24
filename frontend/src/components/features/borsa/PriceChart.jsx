@@ -18,22 +18,25 @@ function ChartTooltip({ active, payload, currency }) {
 export default function PriceChart({ series, ma20Series, currency }) {
     const data = (series || []).map((p, i) => ({ t: p.t, c: p.c, ma: ma20Series?.[i] ?? null }));
     if (data.length < 2) return <div style={{ height: 240 }} />;
+    // Dönem yönüne göre renk: ilk→son artmışsa yeşil, azalmışsa kırmızı
+    const up = data[data.length - 1].c >= data[0].c;
+    const col = up ? 'var(--color-brand-primary)' : 'var(--color-fake-fill)';
     return (
         <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
                 <defs>
                     <linearGradient id="px" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--color-brand-primary)" stopOpacity={0.22} />
-                        <stop offset="100%" stopColor="var(--color-brand-primary)" stopOpacity={0} />
+                        <stop offset="0%" stopColor={col} stopOpacity={0.22} />
+                        <stop offset="100%" stopColor={col} stopOpacity={0} />
                     </linearGradient>
                 </defs>
                 <CartesianGrid stroke="var(--color-terminal-border-raw)" strokeOpacity={0.4} vertical={false} />
                 <XAxis dataKey="t" hide />
                 <YAxis domain={['auto', 'auto']} width={48} tickFormatter={fmtAxis}
-                       tick={{ fontSize: 9, fontFamily: 'JetBrains Mono', fill: 'var(--color-text-muted)' }}
+                       tick={{ fontSize: 10, fontFamily: 'JetBrains Mono', fill: 'var(--color-text-muted)' }}
                        axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltip currency={currency} />} />
-                <Area type="monotone" dataKey="c" stroke="var(--color-brand-primary)" strokeWidth={2}
+                <Area type="monotone" dataKey="c" stroke={col} strokeWidth={2}
                       fill="url(#px)" isAnimationActive animationDuration={600} />
                 <Line type="monotone" dataKey="ma" stroke="#7c3aed" strokeWidth={1.4}
                       strokeDasharray="5 4" dot={false} isAnimationActive={false} />

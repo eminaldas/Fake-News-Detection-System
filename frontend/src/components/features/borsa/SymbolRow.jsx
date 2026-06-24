@@ -24,20 +24,20 @@ export default function SymbolRow({ symbol, name, type = 'Hisse', value, currenc
         <div onClick={() => navigate(`/borsa/${encodeURIComponent(symbol)}`)}
              className="flex items-center gap-3 px-4 py-3 border-b cursor-pointer transition-colors hover:bg-white/[0.03]"
              style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
-            <div className="w-7 h-7 shrink-0 flex items-center justify-center font-extrabold text-[11px] text-white"
+            <div className="w-8 h-8 shrink-0 flex items-center justify-center font-extrabold text-[12px] text-white"
                  style={{ background: ICON_BG[type] ?? '#23292f' }}>
                 {(name || symbol)[0]}
             </div>
             <div className="min-w-0">
-                <div className="font-bold text-[13.5px] truncate" style={{ color: 'var(--color-text-primary)' }}>{name}</div>
-                <div className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{symbol}</div>
+                <div className="font-bold text-[15px] truncate" style={{ color: 'var(--color-text-primary)' }}>{name}</div>
+                <div className="font-mono text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{symbol}</div>
             </div>
             <div className="ml-auto"><MiniSpark data={spark} /></div>
-            <div className="text-right min-w-[92px]">
-                <div className="font-mono font-bold text-[13px]" style={{ color: 'var(--color-text-primary)' }}>
+            <div className="text-right min-w-[96px]">
+                <div className="font-mono font-bold text-[15px]" style={{ color: 'var(--color-text-primary)' }}>
                     {value != null ? `${unit}${Number(value).toLocaleString('tr-TR', { maximumFractionDigits: 2 })}` : '—'}
                 </div>
-                <div className="font-mono text-[11px] font-bold"
+                <div className="font-mono text-[12.5px] font-bold"
                      style={{ color: up ? 'var(--color-brand-primary)' : 'var(--color-fake-fill)' }}>
                     {changePct != null ? `${up ? '▲' : '▼'}${Math.abs(changePct).toFixed(2)}%` : ''}
                 </div>
