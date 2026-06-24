@@ -117,7 +117,39 @@ const MarketBand = () => {
     React.useEffect(() => {
         if (items.length > 0 && stableCount === 0) setStableCount(items.length);
     }, [items.length, stableCount]);
-    const duration = `${Math.max((stableCount || items.length) * 3, 12)}s`;
+
+    // Kesintisiz akış (piksel tabanlı): bir "grubun" gerçek genişliğini ölç,
+    // animasyonu tam o kadar kaydır (translateX(-gw)). Kayma mesafesi her zaman
+    // tam bir grup olduğundan, grup #2 grup #1'in başladığı yere birebir oturur
+    // → tur dönüşünde ne boşluk ne zıplama olur. Görünür alanı garanti doldurmak
+    // için yeterli sayıda grup basılır; kopya sayısı dikişi etkilemez.
+    const viewportRef = React.useRef(null);
+    const groupRef    = React.useRef(null);     // ilk grup — genişlik ölçümü için
+    const [shift, setShift] = React.useState(0); // bir grubun px genişliği
+    const [reps,  setReps]  = React.useState(2); // görünür alanı dolduran grup sayısı
+
+    React.useLayoutEffect(() => {
+        if (!useMarquee) return;
+        const measure = () => {
+            const vp = viewportRef.current;
+            const g  = groupRef.current;
+            if (!vp || !g) return;
+            const gw = g.getBoundingClientRect().width;   // trailing margin dahil
+            if (!gw) return;
+            setShift(gw);
+            setReps(Math.max(2, Math.ceil(vp.clientWidth / gw) + 1));
+        };
+        measure();
+        const t = setTimeout(measure, 300);               // fontlar geç yüklenirse
+        window.addEventListener('resize', measure);
+        if (document.fonts?.ready) document.fonts.ready.then(measure).catch(() => {});
+        return () => { clearTimeout(t); window.removeEventListener('resize', measure); };
+    }, [items.length, useMarquee]);
+
+    // Süre öğe sayısına bağlı (sabit) — değişmediği için animasyon yeniden
+    // başlamaz; hız ~grup genişliğiyle orantılı kaldığı için tutarlı görünür.
+    const baseCount = stableCount || items.length;
+    const duration  = `${Math.max(baseCount * 3, 12)}s`;
 
     return (
         <div
@@ -144,13 +176,19 @@ const MarketBand = () => {
                           style={{ background: 'var(--color-terminal-border-raw)' }} />
 
                     {useMarquee ? (
-                        <div className="flex-1 overflow-hidden">
+                        <div ref={viewportRef} className="flex-1 overflow-hidden">
                             <div
                                 className="flex animate-marquee"
-                                style={{ gap: '2rem', animationDuration: duration, willChange: 'transform', animationPlayState: hovered ? 'paused' : 'running' }}
+                                style={{ '--mq-shift': `${shift}px`, animationDuration: duration, willChange: 'transform', animationPlayState: hovered ? 'paused' : 'running' }}
                             >
-                                {[...items, ...items].map((item, i) => (
-                                    <MarketItem key={i} {...item} onHover={openCard} onLeave={scheduleClose} />
+                                {Array.from({ length: reps }).map((_, c) => (
+                                    <div key={c} ref={c === 0 ? groupRef : undefined} className="flex shrink-0">
+                                        {items.map((item, i) => (
+                                            <div key={i} className="shrink-0" style={{ marginRight: '2rem' }}>
+                                                <MarketItem {...item} onHover={openCard} onLeave={scheduleClose} />
+                                            </div>
+                                        ))}
+                                    </div>
                                 ))}
                             </div>
                         </div>
