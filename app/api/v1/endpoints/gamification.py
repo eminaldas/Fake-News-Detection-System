@@ -22,7 +22,7 @@ from app.api.deps import get_current_user
 from app.db.redis import get_redis
 from app.db.session import get_db
 from app.models.gamification import UserBadge, UserXPEvent, XPActionType
-from app.models.models import User
+from app.models.models import User, Notification
 from app.services.xp_service import xp_for_level, _collect_stats
 from workers.badge_definitions import BADGE_BY_KEY, BADGE_DEFS, BADGE_PROGRESS_HINTS
 
@@ -258,3 +258,41 @@ async def leaderboard(
     result = {"period": period, "type": type, "entries": entries}
     await redis.setex(cache_key, 300, json.dumps(result, default=str))
     return result
+
+
+@router.get("/me/rewards")
+async def my_rewards(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Kullanıcının okunmamış liderlik ödül bildirimleri (açılış kutlaması için)."""
+    rows = (await db.execute(
+        select(Notification)
+        .where(
+            Notification.user_id == current_user.id,
+            Notification.type == "leaderboard_reward",
+            Notification.read_at.is_(None),
+        )
+        .order_by(desc(Notification.created_at))
+        .limit(10)
+    )).scalars().all()
+    return {"items": [{"id": str(n.id), "payload": n.payload, "created_at": n.created_at} for n in rows]}
+
+
+@router.post("/me/rewards/{notification_id}/seen", status_code=204)
+async def mark_reward_seen(
+    notification_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Ödül bildirimini okundu (read_at) işaretle."""
+    notif = (await db.execute(
+        select(Notification).where(
+            Notification.id == notification_id,
+            Notification.user_id == current_user.id,
+        )
+    )).scalar_one_or_none()
+    if notif and notif.read_at is None:
+        notif.read_at = datetime.now(timezone.utc)
+        await db.commit()
+    return None
