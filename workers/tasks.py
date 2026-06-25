@@ -335,4 +335,15 @@ celery_app.conf.beat_schedule = {
         "task":     "workers.daily_digest_task.generate_daily_digest",
         "schedule": crontab(hour=18, minute=0),  # 18:00 UTC = 21:00 TRT
     },
+    "leaderboard-weekly-monday": {
+        "task":     "workers.leaderboard_task.weekly_leaderboard_rewards",
+        "schedule": crontab(hour=21, minute=15, day_of_week=0),  # Pazar 21:15 UTC = Pzt 00:15 TRT
+    },
+    "leaderboard-monthly-first": {
+        "task":     "workers.leaderboard_task.monthly_leaderboard_rewards",
+        "schedule": crontab(hour=0, minute=20, day_of_month=1),  # ayın 1'i 00:20 UTC = 03:20 TRT (biten ayı işler)
+    },
 }
+
+# Celery task kaydı (circular import'tan kaçınmak için en sonda; celery_app yukarıda tanımlı)
+import workers.leaderboard_task  # noqa: E402,F401
