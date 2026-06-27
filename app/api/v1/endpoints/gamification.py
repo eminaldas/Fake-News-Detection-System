@@ -265,18 +265,18 @@ async def my_rewards(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Kullanıcının okunmamış liderlik ödül bildirimleri (açılış kutlaması için)."""
+    """Kullanıcının okunmamış kutlama bildirimleri (leaderboard ödülü, rozet, seviye)."""
     rows = (await db.execute(
         select(Notification)
         .where(
             Notification.user_id == current_user.id,
-            Notification.type == "leaderboard_reward",
+            Notification.type.in_(["leaderboard_reward", "badge_earned", "level_up"]),
             Notification.read_at.is_(None),
         )
         .order_by(desc(Notification.created_at))
         .limit(10)
     )).scalars().all()
-    return {"items": [{"id": str(n.id), "payload": n.payload, "created_at": n.created_at} for n in rows]}
+    return {"items": [{"id": str(n.id), "type": n.type, "payload": n.payload, "created_at": n.created_at} for n in rows]}
 
 
 @router.post("/me/rewards/{notification_id}/seen", status_code=204)

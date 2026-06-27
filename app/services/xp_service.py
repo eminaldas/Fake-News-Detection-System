@@ -242,5 +242,12 @@ async def award_xp(
                 "xp_gained": xp_amount,
             },
         )
+        # Kalıcı bildirim: bağlantı koptuysa bile açılışta kutlama gösterilsin.
+        from app.core.notifications import send_notification
+        for b in new_badges:
+            await send_notification(db, user_id, "badge_earned",
+                                    {"key": b["key"], "name": b["name"], "description": b["description"]})
+        if level_up:
+            await send_notification(db, user_id, "level_up", {"level": level_up})
 
     return {"xp_gained": xp_amount, "new_badges": new_badges}
