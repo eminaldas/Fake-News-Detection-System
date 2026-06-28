@@ -21,7 +21,7 @@ services:
   app:
       build: .
       ports:
-        - "8000:8000"
+        - "127.0.0.1:8000:8000"
       volumes:
         - .:/workspace
       env_file:
@@ -204,8 +204,12 @@ services:
     mem_limit: 700m
     memswap_limit: 700m
 
+  # Frontend yalnızca LOKAL geliştirme içindir (prod'da Vercel deploy eder).
+  # 'dev' profile'ında olduğu için `docker compose up` ile başlamaz;
+  # lokalde çalıştırmak için: `docker compose --profile dev up`
   frontend:
     image: node:20-alpine
+    profiles: ["dev"]
     working_dir: /app
     volumes:
       - ./frontend:/app
