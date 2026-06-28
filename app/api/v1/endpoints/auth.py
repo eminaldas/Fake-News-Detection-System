@@ -111,9 +111,15 @@ async def login(
             ip=ip, severity="WARNING",
             details={"reason": "inactive_account"},
         )
+        # Şifre zaten doğrulandı (bu kontrol doğrulamadan sonra) → meşru sahibe
+        # net bilgi vermek account-enumeration sızıntısı değil.
+        detail = "Hesabınız askıya alındı."
+        if user.restriction_reason:
+            detail += f" Sebep: {user.restriction_reason}"
+        detail += " İtiraz için bizimle iletişime geçebilirsiniz."
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=_GENERIC_AUTH_ERROR,
+            detail=detail,
         )
 
     await clear_login_limit(ip, redis)
@@ -1090,6 +1096,8 @@ async def update_me(
         current_user.avatar_url = body.avatar_url
     if body.social_links is not None:
         current_user.social_links = body.social_links
+    if body.is_private is not None:
+        current_user.is_private = body.is_private
 
     await db.commit()
     await db.refresh(current_user)

@@ -440,7 +440,7 @@ const Navbar = () => {
                                                     )}
                                                 </div>
                                                 <p className="font-mono text-xs mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>
-                                                    {user.email ?? 'Kullanıcı'}
+                                                    @{user.username ?? 'kullanici'}
                                                 </p>
                                             </div>
                                         </div>

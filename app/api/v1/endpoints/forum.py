@@ -37,6 +37,7 @@ from app.models.models import (
     Article, AnalysisResult, Bookmark, ForumComment, ForumCommentVote,
     ForumCommentVerification,
     ForumReport, ForumThread, ForumThreadReport, ForumVote, Tag, ThreadTag, User,
+    UserRole,
 )
 from app.schemas.schemas import (
     ForumArticleSummary, ForumCommentCreate, ForumCommentItem, ForumCommentUpdate,
@@ -48,6 +49,8 @@ from app.schemas.schemas import (
 )
 
 router = APIRouter()
+
+_MOD_ROLES = {UserRole.admin, UserRole.superadmin, UserRole.moderator}
 
 _MIN_VOTES_FOR_REVIEW        = 5
 _SUSPICIOUS_REVIEW_THRESHOLD = 0.60
@@ -578,7 +581,7 @@ async def delete_thread(
 
     if not thread:
         raise HTTPException(status_code=404, detail="Tartışma bulunamadı")
-    if thread.user_id != current_user.id:
+    if thread.user_id != current_user.id and current_user.role not in _MOD_ROLES:
         raise HTTPException(status_code=403, detail="Bu tartışmayı silemezsiniz")
 
     await db.delete(thread)
@@ -1253,7 +1256,7 @@ async def delete_comment(
 
     if not comment:
         raise HTTPException(status_code=404, detail="Yorum bulunamadı")
-    if comment.user_id != current_user.id:
+    if comment.user_id != current_user.id and current_user.role not in _MOD_ROLES:
         raise HTTPException(status_code=403, detail="Bu yorumu silemezsiniz")
 
     thread = (await db.execute(

@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useCookie } from '../../contexts/CookieContext';
+import { useAuth } from '../../contexts/AuthContext';
+import axiosInstance from '../../api/axios';
+import toast from '../../services/toast';
 import SettingsPanelShell from './SettingsPanelShell';
 
 const S = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
@@ -68,10 +71,27 @@ const Row = ({ title, desc, locked = false, value = false, onChange = () => {} }
 
 export default function ProfilePrivacy() {
     const { consent, saveConsent } = useCookie();
+    const { user, refreshUser } = useAuth();
     const [analytics, setAnalytics] = useState(consent.analytics);
     const [personalization, setPersonalization] = useState(consent.personalization);
+    const [isPrivate, setIsPrivate] = useState(false);
     const [saved, setSaved] = useState(false);
     const timerRef = useRef(null);
+
+    useEffect(() => {
+        if (user?.is_private != null) setIsPrivate(user.is_private);
+    }, [user?.is_private]);
+
+    const togglePrivate = async (next) => {
+        setIsPrivate(next);
+        try {
+            await axiosInstance.patch('/auth/me', { is_private: next });
+            refreshUser?.();
+        } catch {
+            setIsPrivate(!next);
+            toast.error('Gizlilik ayarı güncellenemedi.');
+        }
+    };
 
     useEffect(() => {
         setAnalytics(consent.analytics);
@@ -101,6 +121,24 @@ export default function ProfilePrivacy() {
             <div>
                 <p className="font-mono text-[10px] uppercase tracking-widest mb-1"
                    style={{ color: 'var(--color-brand-primary)' }}>// GİZLİLİK</p>
+                <h2 className="font-bold text-lg" style={{ color: 'var(--color-text-primary)' }}>
+                    Hesap Gizliliği
+                </h2>
+                <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                    Profilini kimlerin görebileceğini belirle.
+                </p>
+            </div>
+
+            <Block title="Profil Görünürlüğü">
+                <Row
+                    title="Gizli Hesap"
+                    desc="Açıkken profilin (biyografi, bağlantılar, takipçiler ve aktivite) yalnızca seni takip edenlere görünür. Takip etmeyenler sadece kullanıcı adın ve profil fotoğrafını görür."
+                    value={isPrivate}
+                    onChange={togglePrivate}
+                />
+            </Block>
+
+            <div>
                 <h2 className="font-bold text-lg" style={{ color: 'var(--color-text-primary)' }}>
                     Çerez Tercihleri
                 </h2>
