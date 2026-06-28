@@ -3,27 +3,15 @@ import axiosInstance from '../../api/axios';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 
 export const TYPE_LABELS = {
-    new_comment:        'Yorumunuza yeni bir yorum geldi',
-    reply:              'Yorumunuza yanıt geldi',
-    mention:            'Bir tartışmada bahsedildiniz',
-    under_review:       'Tartışmanız inceleme altında',
-    fact_check_started: 'Haber kontrolü başlatıldı',
-    fact_check_done:    'Haber kontrolü tamamlandı',
+    new_comment:        'Yorumuna yeni bir yorum geldi',
+    reply:              'Yorumuna yanıt geldi',
+    mention:            'Bir tartışmada senden bahsedildi',
+    under_review:       'Tartışman inceleme altında',
+    fact_check_started: 'Haber doğrulaması başlatıldı',
+    fact_check_done:    'Haber doğrulaması tamamlandı',
     report_ready:       'Tam rapor hazır',
-    new_follower:       'Sizi takip eden biri var',
-    dm:                 'size mesaj gönderdi',
-};
-
-export const TYPE_PREFIX = {
-    new_comment:        '💬',
-    reply:              '↩',
-    mention:            '@',
-    under_review:       '🔍',
-    fact_check_started: '📰',
-    fact_check_done:    '✓',
-    report_ready:       '📄',
-    new_follower:       '→',
-    dm:                 '📩',
+    new_follower:       'Yeni bir takipçin var',
+    dm:                 'Sana mesaj gönderdi',
 };
 
 export function relativeTime(isoString) {
@@ -97,35 +85,40 @@ export function useForumNotifications() {
     }, [subscribe]);
 
     // İçerik boşsa sunucudan çek (dropdown ilk açılışında).
+    // Yalnızca okunmamışları göster — okunan bildirim listeden gider.
     const loadIfEmpty = useCallback(() => {
         if (items.length > 0 || loading) return;
         setLoading(true);
         axiosInstance.get('/notifications/forum')
-            .then(r => { setItems(r.data.items ?? []); setUnread(r.data.unread ?? 0); })
+            .then(r => {
+                setItems((r.data.items ?? []).filter(n => !n.read_at));
+                setUnread(r.data.unread ?? 0);
+            })
             .catch(() => {})
             .finally(() => setLoading(false));
     }, [items.length, loading]);
 
-    // Tek bildirimi okundu işaretler, varsa hedef linki döner.
+    // Tek bildirimi okundu işaretler ve listeden kaldırır; varsa hedef linki döner.
     const markOne = useCallback(async (notif) => {
         if (!notif.read_at) {
-            setItems(prev => prev.map(n => n.id === notif.id ? { ...n, read_at: new Date().toISOString() } : n));
+            setItems(prev => prev.filter(n => n.id !== notif.id));
             setUnread(prev => Math.max(0, prev - 1));
             try {
                 await axiosInstance.put(`/notifications/forum/${notif.id}/read`);
             } catch {
-                setItems(prev => prev.map(n => n.id === notif.id ? { ...n, read_at: null } : n));
+                // Hata: geri ekle (en üste)
+                setItems(prev => [{ ...notif }, ...prev]);
                 setUnread(prev => prev + 1);
             }
         }
         return resolveLink(notif);
     }, []);
 
+    // Tümünü okundu işaretle → listeyi boşalt.
     const markAll = useCallback(async () => {
-        const now = new Date().toISOString();
-        setItems(prev => prev.map(n => ({ ...n, read_at: n.read_at ?? now })));
+        setItems([]);
         setUnread(0);
-        try { await axiosInstance.put('/notifications/forum/read-all'); } catch {}
+        try { await axiosInstance.put('/notifications/forum/read-all'); } catch { /* sessizce geç */ }
     }, []);
 
     return { items, unread, loading, loadIfEmpty, markOne, markAll };

@@ -49,6 +49,7 @@ class User(Base):
     social_links    = Column(JSONB, nullable=True)  # {"twitter":"...","linkedin":"...","website":"..."}
     follower_count  = Column(Integer, default=0, nullable=False)
     following_count = Column(Integer, default=0, nullable=False)
+    is_private      = Column(Boolean, nullable=False, server_default="false", default=False)  # gizli profil: detayları sadece takipçiler görür
 
     forum_trust_score    = Column(Float, nullable=False, server_default="0.0")
     forum_trust_tier     = Column(String(20), nullable=False, server_default="yeni_uye")
@@ -76,6 +77,11 @@ class User(Base):
     )
 
     analysis_requests = relationship("AnalysisRequest", back_populates="user")
+
+    @property
+    def has_password(self) -> bool:
+        """Parola ile giriş yapabilir mi? (Google-only kullanıcılarda False)"""
+        return self.hashed_password is not None
 
 
 class AnalysisRequest(Base):

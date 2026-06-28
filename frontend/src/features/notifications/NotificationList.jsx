@@ -1,7 +1,23 @@
 import React from 'react';
-import { TYPE_LABELS, TYPE_PREFIX, relativeTime } from './useForumNotifications';
+import {
+    MessageSquare, CornerDownRight, AtSign, Search,
+    Newspaper, BadgeCheck, FileText, UserPlus, Mail, Bell,
+} from 'lucide-react';
+import { TYPE_LABELS, relativeTime } from './useForumNotifications';
 
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
+
+const TYPE_ICONS = {
+    new_comment:        MessageSquare,
+    reply:              CornerDownRight,
+    mention:            AtSign,
+    under_review:       Search,
+    fact_check_started: Newspaper,
+    fact_check_done:    BadgeCheck,
+    report_ready:       FileText,
+    new_follower:       UserPlus,
+    dm:                 Mail,
+};
 
 /**
  * Bildirim listesi — profil menüsü içindeki açılır bölümde kullanılır.
@@ -22,10 +38,13 @@ export default function NotificationList({ items, loading, onSelect }) {
             )}
             {items.map((n, idx) => {
                 const label  = TYPE_LABELS[n.type] ?? n.type;
-                const prefix = TYPE_PREFIX[n.type] ?? '·';
+                const Icon   = TYPE_ICONS[n.type] ?? Bell;
                 const isRead = !!n.read_at;
-                const displayLabel = n.type === 'dm' && n.payload?.sender_name
-                    ? `${n.payload.sender_name} size mesaj gönderdi`
+                const displayLabel =
+                    n.type === 'dm' && n.payload?.sender_name
+                        ? `${n.payload.sender_name} sana mesaj gönderdi`
+                    : n.type === 'new_follower' && n.payload?.actor
+                        ? `${n.payload.actor} seni takip etmeye başladı`
                     : label;
                 return (
                     <button
@@ -39,9 +58,7 @@ export default function NotificationList({ items, loading, onSelect }) {
                         }}
                     >
                         <div className="flex items-start gap-3">
-                            <span className="font-mono text-sm shrink-0 mt-0.5" style={{ color: 'var(--color-brand-primary)' }}>
-                                {prefix}
-                            </span>
+                            <Icon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--color-brand-primary)' }} />
                             <div className="flex-1 min-w-0">
                                 <p className="font-mono text-sm font-semibold leading-snug" style={{ color: 'var(--color-text-primary)' }}>
                                     {displayLabel}

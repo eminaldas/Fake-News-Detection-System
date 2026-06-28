@@ -76,6 +76,8 @@ class UserResponse(BaseModel):
     is_email_verified:    bool                = False
     onboarding_completed: bool                = False
     preferences:          Optional[dict]      = None
+    has_password:         bool                = True
+    is_private:           bool                = False
 
     class Config:
         from_attributes = True
@@ -150,6 +152,7 @@ class UpdateProfileRequest(BaseModel):
     bio:              Optional[str]   = Field(None, max_length=500)
     avatar_url:       Optional[str]   = None
     social_links:     Optional[dict]  = None
+    is_private:       Optional[bool]  = None
     current_password: Optional[str]   = None
     new_password:     Optional[str]   = Field(None, min_length=8)
 
@@ -960,6 +963,8 @@ class UserProfileResponse(BaseModel):
     trust_label:       str            = "Yeni Üye"
     analysis_count:    int            = 0
     fake_count:        int            = 0
+    is_private:        bool           = False
+    is_limited:        bool           = False   # gizli profil + takip etmeyen → kısıtlı görünüm
     model_config = ConfigDict(from_attributes=True)
 
 

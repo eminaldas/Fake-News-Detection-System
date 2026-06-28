@@ -86,7 +86,8 @@ const ForumThread = () => {
     const [voting,   setVoting]   = React.useState(false);
     const [bodyOpen, setBodyOpen] = React.useState(true);
 
-    const isAuthor = user?.id === thread?.author?.id;
+    const isAuthor    = user?.id === thread?.author?.id;
+    const canModerate = ['admin', 'superadmin', 'moderator'].includes(user?.role);
 
     const [editMode,  setEditMode]  = React.useState(false);
     const [editTitle, setEditTitle] = React.useState('');
@@ -274,22 +275,23 @@ const ForumThread = () => {
                                         onSendToFriend={() => setSendModal(true)}
                                     />
                                     {isAuthor && (
-                                        <>
-                                            <button
-                                                onClick={() => { setEditTitle(thread.title); setEditBody(thread.body ?? ''); setEditMode(true); }}
-                                                className="font-mono text-[10px] font-bold px-2.5 py-1.5 border transition-all hover:opacity-80 tracking-wider uppercase"
-                                                style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)', background: 'transparent' }}
-                                            >
-                                                Düzenle
-                                            </button>
-                                            <button
-                                                onClick={handleDelete}
-                                                className="font-mono text-[10px] font-bold px-2.5 py-1.5 border transition-all hover:opacity-80 tracking-wider uppercase"
-                                                style={{ borderColor: 'rgba(239,68,68,0.40)', color: '#ef4444', background: 'rgba(239,68,68,0.06)' }}
-                                            >
-                                                Sil
-                                            </button>
-                                        </>
+                                        <button
+                                            onClick={() => { setEditTitle(thread.title); setEditBody(thread.body ?? ''); setEditMode(true); }}
+                                            className="font-mono text-[10px] font-bold px-2.5 py-1.5 border transition-all hover:opacity-80 tracking-wider uppercase"
+                                            style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)', background: 'transparent' }}
+                                        >
+                                            Düzenle
+                                        </button>
+                                    )}
+                                    {(isAuthor || canModerate) && (
+                                        <button
+                                            onClick={handleDelete}
+                                            title={!isAuthor && canModerate ? 'Moderatör olarak sil' : undefined}
+                                            className="font-mono text-[10px] font-bold px-2.5 py-1.5 border transition-all hover:opacity-80 tracking-wider uppercase"
+                                            style={{ borderColor: 'rgba(239,68,68,0.40)', color: '#ef4444', background: 'rgba(239,68,68,0.06)' }}
+                                        >
+                                            Sil
+                                        </button>
                                     )}
                                     {isAuthor && !thread.verdict && (
                                         thread.featured_comment_id ? (

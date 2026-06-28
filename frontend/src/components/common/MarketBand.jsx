@@ -113,10 +113,6 @@ const MarketBand = () => {
 
     const items      = tickers.map(sym => dataMap[sym]).filter(Boolean);
     const useMarquee = items.length > 4;
-    const [stableCount, setStableCount] = React.useState(0);
-    React.useEffect(() => {
-        if (items.length > 0 && stableCount === 0) setStableCount(items.length);
-    }, [items.length, stableCount]);
 
     // Kesintisiz akış (piksel tabanlı): bir "grubun" gerçek genişliğini ölç,
     // animasyonu tam o kadar kaydır (translateX(-gw)). Kayma mesafesi her zaman
@@ -146,10 +142,11 @@ const MarketBand = () => {
         return () => { clearTimeout(t); window.removeEventListener('resize', measure); };
     }, [items.length, useMarquee]);
 
-    // Süre öğe sayısına bağlı (sabit) — değişmediği için animasyon yeniden
-    // başlamaz; hız ~grup genişliğiyle orantılı kaldığı için tutarlı görünür.
-    const baseCount = stableCount || items.length;
-    const duration  = `${Math.max(baseCount * 3, 12)}s`;
+    // Hız sabit (px/sn) → süre, ölçülen grup genişliğiyle (shift) orantılı.
+    // Eski bug: süre ilk öğe sayısına sabitliydi; öğeler sonradan yüklenip grup
+    // genişleyince mesafe büyüyor ama süre aynı kalıyor → marquee hızlanıyordu.
+    const SPEED_PX_S = 45;
+    const duration   = `${Math.max((shift || 600) / SPEED_PX_S, 12)}s`;
 
     return (
         <div

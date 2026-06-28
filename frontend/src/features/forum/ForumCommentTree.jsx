@@ -35,7 +35,7 @@ function depthBorderColor(depth, highlighted) {
     return 'rgba(16,185,129,0.08)';
 }
 
-function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewComment, onVerify, currentUserId, depth = 0 }) {
+function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewComment, onVerify, currentUserId, canModerate = false, depth = 0 }) {
     const [showReplies,  setShowReplies]  = React.useState(false);
     const [visibleCount, setVisibleCount] = React.useState(REPLIES_INITIAL);
     const [editMode,     setEditMode]     = React.useState(false);
@@ -237,22 +237,23 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                     )}
 
                     {isAuthor && !editMode && (
-                        <>
-                            <button
-                                onClick={() => { setEditBody(comment.body); setEditMode(true); }}
-                                className="px-2 py-1 font-mono text-xs transition-opacity hover:opacity-60"
-                                style={{ color: 'var(--color-text-muted)' }}
-                            >
-                                düzenle
-                            </button>
-                            <button
-                                onClick={handleDelete}
-                                className="px-2 py-1 font-mono text-xs transition-opacity hover:opacity-60"
-                                style={{ color: '#ef4444' }}
-                            >
-                                sil
-                            </button>
-                        </>
+                        <button
+                            onClick={() => { setEditBody(comment.body); setEditMode(true); }}
+                            className="px-2 py-1 font-mono text-xs transition-opacity hover:opacity-60"
+                            style={{ color: 'var(--color-text-muted)' }}
+                        >
+                            düzenle
+                        </button>
+                    )}
+                    {(isAuthor || canModerate) && !editMode && (
+                        <button
+                            onClick={handleDelete}
+                            title={!isAuthor && canModerate ? 'Moderatör olarak sil' : undefined}
+                            className="px-2 py-1 font-mono text-xs transition-opacity hover:opacity-60"
+                            style={{ color: '#ef4444' }}
+                        >
+                            sil
+                        </button>
                     )}
 
                     {comment.user_id !== currentUserId && (
@@ -295,6 +296,7 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
                             onReport={onReport}
                             onNewComment={onNewComment}
                             currentUserId={currentUserId}
+                            canModerate={canModerate}
                             depth={depth + 1}
                         />
                     ))}
@@ -316,6 +318,7 @@ function CommentNode({ comment, threadId, onReply, onHelpful, onReport, onNewCom
 const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
     const { user } = useAuth();
     const currentUserId = user?.id;
+    const canModerate   = ['admin', 'superadmin', 'moderator'].includes(user?.role);
 
     const [reportTarget, setReportTarget] = React.useState(null);
     const [reportReason, setReportReason] = React.useState('spam');
@@ -346,6 +349,7 @@ const ForumCommentTree = ({ comments, threadId, onReply, onNewComment }) => {
                     onReport={handleReport}
                     onNewComment={onNewComment}
                     currentUserId={currentUserId}
+                    canModerate={canModerate}
                 />
             ))}
 

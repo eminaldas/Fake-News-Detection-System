@@ -21,7 +21,7 @@ services:
   app:
       build: .
       ports:
-        - "127.0.0.1:8000:8000"
+        - "8000:8000"
       volumes:
         - .:/workspace
       env_file:
@@ -125,6 +125,45 @@ services:
     mem_limit: 100m
     memswap_limit: 100m
 
+  category-worker:
+    image: fake-news-detection-system-app
+    env_file:
+      - .env
+    environment:
+      - EMBEDDING_SERVICE_URL=http://embedding-service:8001
+      - PYTHONPATH=/workspace
+    volumes:
+      - .:/workspace
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      embedding-service:
+        condition: service_healthy
+    command: celery -A workers.category_tasks worker --loglevel=info --concurrency=1 -Q classify
+    restart: unless-stopped
+    mem_limit: 300m
+    memswap_limit: 300m
+
+  category-beat:
+    image: fake-news-detection-system-app
+    env_file:
+      - .env
+    environment:
+      - EMBEDDING_SERVICE_URL=http://embedding-service:8001
+      - PYTHONPATH=/workspace
+    volumes:
+      - .:/workspace
+      - category_beat_data:/beat
+    depends_on:
+      - redis
+      - category-worker
+    command: celery -A workers.category_tasks beat --loglevel=info --schedule=/beat/celerybeat-schedule
+    restart: unless-stopped
+    mem_limit: 100m
+    memswap_limit: 100m
+
   audit-beat:
     image: fake-news-detection-system-app
     env_file:
@@ -166,12 +205,18 @@ services:
     memswap_limit: 700m
 
   frontend:
-    build: ./frontend
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - frontend_nm:/app/node_modules
     ports:
-      - "80:80"
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000/api/v1
+    command: sh -c "npm install && npm run dev"
     depends_on:
       - app
-    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
@@ -188,3 +233,5 @@ volumes:
   redis_data:
   hf_cache:
   rss_beat_data:
+  category_beat_data:
+  frontend_nm:

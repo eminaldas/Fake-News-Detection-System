@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Lock, Monitor, Smartphone, AlertTriangle, Download, Eye, EyeOff } from 'lucide-react';
 import axiosInstance from '../../api/axios';
+import { useAuth } from '../../contexts/AuthContext';
 import SettingsPanelShell from './SettingsPanelShell';
 
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
@@ -64,6 +65,8 @@ const TerminalInput = ({ placeholder, value, onChange, required, type = 'passwor
 };
 
 const ProfileSecurity = () => {
+    const { user }                  = useAuth();
+    const isGoogleUser              = user && user.has_password === false;
     const [pwForm, setPwForm]       = useState({ current_password: '', new_password: '', confirm: '' });
     const [pwLoading, setPwLoading] = useState(false);
     const [pwError, setPwError]     = useState('');
@@ -139,6 +142,22 @@ const ProfileSecurity = () => {
         <div className="space-y-6">
 
             {/* ── Şifre Değiştir ── */}
+            {isGoogleUser ? (
+                <Block title="// passwd_change">
+                    <div className="flex items-start gap-3">
+                        <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--color-brand-primary)' }} />
+                        <div>
+                            <p className="font-mono text-sm font-bold mb-1" style={{ color: 'var(--color-text-primary)' }}>
+                                Google ile giriş yapıyorsun
+                            </p>
+                            <p className="font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                                Hesabın Google ile bağlı olduğu için burada şifre belirlenmez.
+                                Şifreni Google hesap ayarlarından yönetebilirsin.
+                            </p>
+                        </div>
+                    </div>
+                </Block>
+            ) : (
             <Block
                 title="// passwd_change"
                 sub="yeni şifren en az 8 karakter olmalı"
@@ -188,6 +207,7 @@ const ProfileSecurity = () => {
                     </button>
                 </form>
             </Block>
+            )}
 
             {/* ── Aktif Oturumlar ── */}
             <Block
@@ -215,7 +235,7 @@ const ProfileSecurity = () => {
                                 [ ! ] ANOMALY_DETECTED
                             </p>
                             <p className="font-mono text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                                Son 7 gün içinde alışılmadık bir konumdan giriş tespit edildi. Şifreni değiştirmeni öneririz.
+                                Son 7 gün içinde tanımadığımız yeni bir cihaz veya ağ üzerinden giriş yapıldı. Sen değilsen şifreni değiştirmeni öneririz.
                             </p>
                         </div>
                     </div>

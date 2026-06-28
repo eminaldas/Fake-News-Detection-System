@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import re
 import secrets
@@ -11,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.email import send_mail
 from app.core.logging import get_logger
 from app.core.audit import audit_log, check_credential_stuffing, update_ip_history
 from app.core.rate_limit import check_login_limit, clear_login_limit, record_failed_login
@@ -30,8 +32,10 @@ from app.api.deps import get_current_user
 from app.models.models import AnalysisRequest, User, UserRole
 from app.schemas.schemas import (
     DeleteAccountRequest,
+    EmailVerifyCodeRequest,
     EmailVerifyRequest,
     ForgotPasswordRequest,
+    ResetPasswordCodeRequest,
     GoogleAuthRequest,
     GoogleAuthResponse,
     OnboardingRequest,
@@ -107,9 +111,15 @@ async def login(
             ip=ip, severity="WARNING",
             details={"reason": "inactive_account"},
         )
+        # Şifre zaten doğrulandı (bu kontrol doğrulamadan sonra) → meşru sahibe
+        # net bilgi vermek account-enumeration sızıntısı değil.
+        detail = "Hesabınız askıya alındı."
+        if user.restriction_reason:
+            detail += f" Sebep: {user.restriction_reason}"
+        detail += " İtiraz için bizimle iletişime geçebilirsiniz."
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=_GENERIC_AUTH_ERROR,
+            detail=detail,
         )
 
     await clear_login_limit(ip, redis)
@@ -184,7 +194,7 @@ async def register(
     elif existing_uname:
         raise HTTPException(status_code=422, detail="username:Bu kullanıcı adı zaten kullanılıyor.")
 
-    email_configured = bool(settings.BREVO_API_KEY)
+    email_configured = bool(settings.BREVO_API_KEY or settings.SMTP_HOST)
 
     now_iso = datetime.now(timezone.utc).isoformat()
     user = User(
@@ -475,6 +485,144 @@ async def verify_email(
     return user
 
 
+# ═══════════════════════════════════════════════════════════════════
+#  MOBİL: 6 haneli kod tabanlı akışlar
+#  (Web'in link tabanlı akışını bozmadan, paralel uçlar.)
+# ═══════════════════════════════════════════════════════════════════
+
+@router.post("/password/send-code")
+async def send_password_reset_code(
+    body:             ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db:               AsyncSession = Depends(get_db),
+    redis             = Depends(get_redis),
+):
+    """E-postaya 6 haneli şifre sıfırlama kodu gönderir (mobil)."""
+    result = await db.execute(select(User).where(User.email == body.email))
+    user   = result.scalar_one_or_none()
+
+    if user:
+        cd_key = f"pwd_code_cd:{user.id}"
+        if await redis.ttl(cd_key) <= 0:  # cooldown yoksa üret
+            code = _gen_code()
+            await redis.setex(f"pwd_reset_code:{user.id}", 900, code)  # 15 dk
+            await redis.delete(f"pwd_reset_attempts:{user.id}")
+            await redis.setex(cd_key, _RESEND_COOLDOWN_SECS, "1")
+            if settings.BREVO_API_KEY or settings.SMTP_HOST:
+                background_tasks.add_task(_send_reset_code_email, user.email, code, user.username)
+            else:
+                log.warning("DEV_PWD_RESET_CODE: %s | %s", code, user.email)
+                return {"message": "Kod gönderildi.", "dev_code": code}
+
+    # Hesap enumeration önlemi: her durumda aynı yanıt
+    return {"message": "Kod gönderildi."}
+
+
+@router.post("/password/reset-with-code")
+async def reset_password_with_code(
+    body:  ResetPasswordCodeRequest,
+    db:    AsyncSession = Depends(get_db),
+    redis  = Depends(get_redis),
+):
+    """E-posta + 6 haneli kod ile şifreyi sıfırlar (mobil)."""
+    invalid = HTTPException(status_code=400, detail="Kod geçersiz veya süresi dolmuş.")
+
+    result = await db.execute(select(User).where(User.email == body.email))
+    user   = result.scalar_one_or_none()
+    if not user:
+        raise invalid
+
+    key    = f"pwd_reset_code:{user.id}"
+    stored = await redis.get(key)
+    if not stored:
+        raise invalid
+    stored = stored.decode() if isinstance(stored, bytes) else stored
+
+    # Brute-force koruması: 5 yanlış denemeden sonra kodu iptal et
+    att_key  = f"pwd_reset_attempts:{user.id}"
+    attempts = await redis.incr(att_key)
+    if attempts == 1:
+        await redis.expire(att_key, 900)
+    if attempts > 5:
+        await redis.delete(key)
+        raise HTTPException(status_code=429, detail="Çok fazla deneme. Yeni kod iste.")
+
+    if not secrets.compare_digest(stored, body.code):
+        raise invalid
+
+    user.hashed_password = get_password_hash(body.new_password)
+    await redis.delete(key)
+    await redis.delete(att_key)
+    await db.commit()
+    return {"message": "Şifreniz başarıyla güncellendi."}
+
+
+@router.post("/email/send-code", status_code=200)
+async def send_email_verify_code(
+    background_tasks: BackgroundTasks,
+    current_user:     User = Depends(get_current_user),
+    redis             = Depends(get_redis),
+):
+    """Giriş yapmış kullanıcıya 6 haneli e-posta doğrulama kodu gönderir (mobil)."""
+    if current_user.is_email_verified:
+        return {"detail": "Email zaten doğrulandı"}
+
+    cd_key = f"resend_cooldown:{current_user.id}"
+    ttl    = await redis.ttl(cd_key)
+    if ttl > 0:
+        raise HTTPException(
+            status_code=429,
+            detail={"message": "Çok sık gönderim.", "retry_after": int(ttl)},
+        )
+
+    code = _gen_code()
+    await redis.setex(f"email_verify_code:{current_user.id}", 3600, code)  # 1 saat
+    await redis.delete(f"email_verify_attempts:{current_user.id}")
+    await redis.setex(cd_key, _RESEND_COOLDOWN_SECS, "1")
+
+    if settings.BREVO_API_KEY or settings.SMTP_HOST:
+        background_tasks.add_task(_send_verification_code_email, current_user.email, code, current_user.username)
+        return {"detail": "Doğrulama kodu gönderildi"}
+    log.warning("DEV_EMAIL_VERIFY_CODE: %s | %s", code, current_user.email)
+    return {"detail": "dev_mode", "dev_code": code}
+
+
+@router.post("/email/verify-code", response_model=UserResponse)
+async def verify_email_with_code(
+    body:         EmailVerifyCodeRequest,
+    current_user: User = Depends(get_current_user),
+    db:           AsyncSession = Depends(get_db),
+    redis         = Depends(get_redis),
+):
+    """Giriş yapmış kullanıcının e-postasını 6 haneli kod ile doğrular (mobil)."""
+    if current_user.is_email_verified:
+        return current_user
+
+    invalid = HTTPException(status_code=400, detail="Kod geçersiz veya süresi dolmuş.")
+    key     = f"email_verify_code:{current_user.id}"
+    stored  = await redis.get(key)
+    if not stored:
+        raise invalid
+    stored = stored.decode() if isinstance(stored, bytes) else stored
+
+    att_key  = f"email_verify_attempts:{current_user.id}"
+    attempts = await redis.incr(att_key)
+    if attempts == 1:
+        await redis.expire(att_key, 3600)
+    if attempts > 5:
+        await redis.delete(key)
+        raise HTTPException(status_code=429, detail="Çok fazla deneme. Yeni kod iste.")
+
+    if not secrets.compare_digest(stored, body.code):
+        raise invalid
+
+    current_user.is_email_verified = True
+    await redis.delete(key)
+    await redis.delete(att_key)
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
+
 
 @router.put("/complete-onboarding", response_model=UserResponse)
 async def complete_onboarding(
@@ -646,6 +794,47 @@ def _build_reset_html(username: str, reset_url: str) -> str:
     return _email_base().replace("{{BODY}}", body)
 
 
+def _gen_code() -> str:
+    """Kriptografik güvenli 6 haneli doğrulama kodu."""
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def _build_code_html(username: str, code: str, eyebrow: str, minutes: int) -> str:
+    spaced = " ".join(list(code))
+    body = f"""
+      <p style="margin:0 0 6px;font-size:11px;color:#10b981;
+                letter-spacing:2px;text-transform:uppercase;">
+        &gt; {eyebrow}
+      </p>
+      <h1 style="margin:0 0 24px;font-size:30px;font-weight:900;
+                 color:#ffffff;line-height:1.2;">Merhaba, {username}</h1>
+      <p style="margin:0 0 20px;font-size:15px;color:#ffffff;line-height:1.8;">
+        Aşağıdaki doğrulama kodunu uygulamaya gir:
+      </p>
+      <div style="margin:0 0 24px;padding:18px 24px;background:#0a1418;
+                  border:1px solid #10b981;display:inline-block;">
+        <span style="font-size:34px;font-weight:900;color:#10b981;
+                     letter-spacing:10px;font-family:monospace;">{spaced}</span>
+      </div>
+      <div style="border-top:1px solid #1c3344;margin:8px 0 20px;"></div>
+      <p style="margin:0;font-size:12px;color:#3a5566;line-height:1.8;">
+        &#9888; Bu kod <strong style="color:#ffffff;">{minutes} dakika</strong> geçerlidir.<br>
+        Bu talebi siz yapmadıysanız bu e-postayı dikkate almayın.
+      </p>
+    """
+    return _email_base().replace("{{BODY}}", body)
+
+
+def _send_reset_code_email(to_email: str, code: str, username: str = "") -> None:
+    _code_send(to_email, "Şifre Sıfırlama Kodu — Ne Haber",
+               _build_code_html(username or to_email.split("@")[0], code, "ŞİFRE_SIFIRLAMA_KODU", 15))
+
+
+def _send_verification_code_email(to_email: str, code: str, username: str = "") -> None:
+    _code_send(to_email, "E-posta Doğrulama Kodu — Ne Haber",
+               _build_code_html(username or to_email.split("@")[0], code, "E-POSTA_DOĞRULAMA_KODU", 60))
+
+
 def _brevo_send(to_email: str, subject: str, html: str) -> None:
     try:
         resp = httpx.post(
@@ -665,6 +854,17 @@ def _brevo_send(to_email: str, subject: str, html: str) -> None:
             log.error("brevo.failed", to=to_email, status=resp.status_code, body=resp.text[:200])
     except Exception as exc:
         log.error("brevo.failed", to=to_email, error=str(exc))
+
+
+def _code_send(to_email: str, subject: str, html: str) -> None:
+    """Kod/doğrulama maili: Brevo varsa Brevo, yoksa SMTP (Gmail) ile gönder."""
+    if settings.BREVO_API_KEY:
+        _brevo_send(to_email, subject, html)
+    elif settings.SMTP_HOST:
+        try:
+            asyncio.run(send_mail(to_email, subject, html))
+        except Exception as exc:
+            log.error("smtp_code.failed", to=to_email, error=str(exc))
 
 
 def _email_base() -> str:
@@ -896,6 +1096,8 @@ async def update_me(
         current_user.avatar_url = body.avatar_url
     if body.social_links is not None:
         current_user.social_links = body.social_links
+    if body.is_private is not None:
+        current_user.is_private = body.is_private
 
     await db.commit()
     await db.refresh(current_user)

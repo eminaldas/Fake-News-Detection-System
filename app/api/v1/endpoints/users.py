@@ -337,7 +337,7 @@ async def my_sessions(
             ip_hash=log.ip_hash or "",
             created_at=log.created_at,
             is_current=(log.ip_hash == current_ip_hash),
-            label="Bu cihaz" if log.ip_hash == current_ip_hash else "Başka cihaz",
+            label="Bu cihaz / ağ" if log.ip_hash == current_ip_hash else "Farklı cihaz veya ağ",
         )
         for log in logs
     ]
@@ -481,16 +481,57 @@ async def toggle_follow(
     return Response(status_code=204)
 
 
+async def _profile_visible(
+    target: User, viewer: Optional[User], db: AsyncSession
+) -> bool:
+    """Gizli profilde detaylar yalnızca sahibe ve takipçilere açıktır."""
+    if not target.is_private:
+        return True
+    if viewer is None:
+        return False
+    if viewer.id == target.id:
+        return True
+    return (await db.get(UserFollow, (viewer.id, target.id))) is not None
+
+
 @router.get("/{user_id}/profile", response_model=UserProfileResponse)
 async def get_user_profile(
     user_id:      _uuid.UUID,
     current_user: Optional[User] = Depends(get_optional_user),
     db: AsyncSession             = Depends(get_db),
 ):
-    """Kullanıcının genel profili: bio, takipçi/takip sayısı, thread sayısı."""
+    """Kullanıcının genel profili: bio, takipçi/takip sayısı, thread sayısı.
+
+    Gizli profilde (is_private) detaylar yalnızca takipçilere ve kullanıcının
+    kendisine açıktır; takip etmeyenler kısıtlı (is_limited) görünüm alır.
+    """
     user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+
+    is_self = current_user is not None and current_user.id == user_id
+    is_following = False
+    if current_user is not None and not is_self:
+        is_following = (await db.get(UserFollow, (current_user.id, user_id))) is not None
+
+    trust = ForumTrustInfo.from_user(user)
+
+    # Gizli profil + kendisi değil + takip etmiyor → kısıtlı görünüm
+    if user.is_private and not is_self and not is_following:
+        return UserProfileResponse(
+            id=user.id,
+            username=user.username,
+            avatar_url=user.avatar_url,
+            follower_count=user.follower_count,
+            following_count=user.following_count,
+            is_following=is_following,
+            created_at=user.created_at,
+            trust_tier=trust.tier,
+            trust_stars=trust.stars,
+            trust_label=trust.display_label,
+            is_private=True,
+            is_limited=True,
+        )
 
     thread_count = (await db.execute(
         select(func.count()).select_from(ForumThread).where(ForumThread.user_id == user_id)
@@ -508,11 +549,6 @@ async def get_user_profile(
         .where(AnalysisRequest.user_id == user_id, AnalysisResult.status == "FAKE")
     )).scalar_one()
 
-    is_following = False
-    if current_user is not None:
-        is_following = (await db.get(UserFollow, (current_user.id, user_id))) is not None
-
-    trust = ForumTrustInfo.from_user(user)
     return UserProfileResponse(
         id=user.id,
         username=user.username,
@@ -530,6 +566,7 @@ async def get_user_profile(
         trust_label=trust.display_label,
         analysis_count=analysis_count,
         fake_count=fake_count,
+        is_private=user.is_private,
     )
 
 
@@ -538,8 +575,15 @@ async def get_followers(
     user_id: _uuid.UUID,
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=50),
+    current_user: Optional[User] = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db),
 ):
+    target = await db.get(User, user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    if not await _profile_visible(target, current_user, db):
+        return {"items": [], "total": 0, "page": page, "private": True}
+
     q = (
         select(User)
         .join(UserFollow, UserFollow.follower_id == User.id)
@@ -567,8 +611,15 @@ async def get_following(
     user_id: _uuid.UUID,
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=50),
+    current_user: Optional[User] = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db),
 ):
+    target = await db.get(User, user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    if not await _profile_visible(target, current_user, db):
+        return {"items": [], "total": 0, "page": page, "private": True}
+
     q = (
         select(User)
         .join(UserFollow, UserFollow.followed_id == User.id)
@@ -603,6 +654,8 @@ async def get_user_threads(
     target = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
     if not target:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    if not await _profile_visible(target, current_user, db):
+        return ForumThreadListResponse(items=[], total=0, page=page, size=size)
 
     q = (
         select(ForumThread)
@@ -638,12 +691,15 @@ async def get_user_analyses(
     user_id: _uuid.UUID,
     page:    int = Query(1, ge=1),
     size:    int = Query(10, ge=1, le=50),
+    current_user: Optional[User] = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Kullanıcının herkese açık analiz geçmişi."""
     target = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
     if not target:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    if not await _profile_visible(target, current_user, db):
+        return {"total": 0, "page": page, "size": size, "items": [], "private": True}
 
     offset = (page - 1) * size
 

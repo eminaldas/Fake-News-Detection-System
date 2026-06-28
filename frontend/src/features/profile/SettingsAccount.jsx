@@ -267,8 +267,10 @@ function linksToObj(links) {
 }
 
 export default function SettingsAccount() {
-  const { user: authUser, logout } = useAuth();
+  const { user: authUser, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
+
+  const [isPrivate, setIsPrivate] = useState(false);
 
   const [username,  setUsername]  = useState('');
   const [bio,       setBio]       = useState('');
@@ -286,7 +288,7 @@ export default function SettingsAccount() {
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteLoading,  setDeleteLoading]  = useState(false);
   const [deleteError,    setDeleteError]    = useState('');
-  const isGoogleUser = authUser && !authUser.hashed_password && authUser.google_id;
+  const isGoogleUser = authUser && authUser.has_password === false;
   const [saveError, setSaveError] = useState('');
 
   const [original, setOriginal] = useState(null);
@@ -305,6 +307,7 @@ export default function SettingsAccount() {
       setUsername(d.username || '');
       setBio(d.bio || '');
       setAvatarUrl(d.avatar_url || '');
+      setIsPrivate(d.is_private ?? false);
       const loaded = objToLinks(d.social_links);
       setLinks(loaded);
       setOriginal({ username: d.username || '', bio: d.bio || '', avatarUrl: d.avatar_url || '', links: JSON.stringify(loaded) });
@@ -364,6 +367,17 @@ export default function SettingsAccount() {
     };
     img.src = objectUrl;
     e.target.value = '';
+  };
+
+  const togglePrivate = async (next) => {
+    setIsPrivate(next);
+    try {
+      await axiosInstance.patch('/auth/me', { is_private: next });
+      refreshUser?.();
+    } catch {
+      setIsPrivate(!next);
+      toast.error('Gizlilik ayarı güncellenemedi.');
+    }
   };
 
   const toggleCategory = async (cat) => {
@@ -506,6 +520,48 @@ export default function SettingsAccount() {
             rows={3}
             maxLength={500}
           />
+        </Section>
+
+        {/* ── HESAP DURUMU ── */}
+        <Section title="Hesap Durumu">
+          {/* Gizli hesap */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'1rem' }}>
+            <div style={{ flex:1, minWidth:0 }}>
+              <p style={{ fontFamily:'monospace', fontSize:'0.85rem', fontWeight:700, color:W }}>Gizli Hesap</p>
+              <p style={{ fontFamily:'monospace', fontSize:'0.7rem', color:W30, marginTop:2 }}>
+                Açıkken biyografi, bağlantılar ve aktiviten yalnızca seni takip edenlere görünür.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isPrivate}
+              onClick={() => togglePrivate(!isPrivate)}
+              style={{ position:'relative', width:38, height:20, flexShrink:0, border:'none', cursor:'pointer',
+                       borderRadius:10, transition:'background 0.2s',
+                       background: isPrivate ? 'var(--color-brand-primary)' : DIV_S }}
+            >
+              <span style={{ position:'absolute', top:2, left: isPrivate ? 20 : 2, width:16, height:16,
+                             borderRadius:'50%', background:'#fff', transition:'left 0.2s' }} />
+            </button>
+          </div>
+
+          {/* Durum satırları */}
+          <div style={{ display:'flex', flexWrap:'wrap', gap:'0.5rem', marginTop:'0.25rem' }}>
+            <span style={{ fontFamily:'monospace', fontSize:'0.7rem', fontWeight:700, padding:'0.25rem 0.625rem',
+                           border:`1px solid ${DIV_S}`, color:'var(--color-brand-primary)' }}>
+              ● Hesap aktif
+            </span>
+            <span style={{ fontFamily:'monospace', fontSize:'0.7rem', fontWeight:700, padding:'0.25rem 0.625rem',
+                           border:`1px solid ${DIV_S}`,
+                           color: authUser?.is_email_verified ? 'var(--color-brand-primary)' : 'rgba(245,158,11,0.9)' }}>
+              {authUser?.is_email_verified ? '✓ E-posta doğrulandı' : '! E-posta doğrulanmadı'}
+            </span>
+            <span style={{ fontFamily:'monospace', fontSize:'0.7rem', fontWeight:700, padding:'0.25rem 0.625rem',
+                           border:`1px solid ${DIV_S}`, color: isPrivate ? 'var(--color-brand-primary)' : W30 }}>
+              {isPrivate ? 'Gizli profil' : 'Herkese açık profil'}
+            </span>
+          </div>
         </Section>
 
         {/* ── İLGİ ALANLARI ── */}

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
     Calendar, MessageSquare, Settings, UserPlus, UserMinus,
-    X, Loader2, Search, ChevronRight,
+    X, Loader2, Search, ChevronRight, Lock,
     Twitter, Instagram, Github, Linkedin, Globe, Link2,
     BarChart2, MessagesSquare, ShieldAlert, ArrowRight, TrendingUp,
 } from 'lucide-react';
@@ -460,6 +460,53 @@ export default function Profile() {
         </div>
     );
 
+    // ── Gizli profil: takip etmeyen ziyaretçi için kısıtlı görünüm ──
+    if (profile.is_limited) {
+        const tc = TIER_COLOR[profile.trust_tier ?? 'yeni_uye'];
+        return (
+            <div className="max-w-2xl mx-auto px-4 pt-6 pb-16">
+                <div className="relative border animate-fade-up" style={S}>
+                    <Corner />
+                    <div className="p-6 md:p-8 flex flex-col items-center text-center gap-4">
+                        <UserAvatar username={profile.username} avatarUrl={profile.avatar_url} tierColor={tc} size={96} />
+                        <div>
+                            <h1 className="font-manrope font-black text-3xl leading-tight" style={{ color: 'var(--color-text-primary)' }}>
+                                {profile.username}
+                            </h1>
+                            {profile.trust_label && (
+                                <span className="inline-block mt-2 font-mono text-[10px] font-bold px-2 py-0.5 border uppercase tracking-wider"
+                                      style={{ color: tc, borderColor: tc + '55', background: tc + '14' }}>
+                                    {profile.trust_label}
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-6 font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                            <span><strong style={{ color: 'var(--color-text-primary)' }}>{profile.follower_count}</strong> takipçi</span>
+                            <span><strong style={{ color: 'var(--color-text-primary)' }}>{profile.following_count}</strong> takip</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 font-mono text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                            <Lock className="w-4 h-4 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
+                            Bu hesap gizli
+                        </div>
+                        <p className="font-mono text-xs max-w-sm" style={{ color: 'var(--color-text-muted)' }}>
+                            Biyografi, bağlantılar ve aktivite yalnızca takipçilere açıktır. Görmek için takip et.
+                        </p>
+                        {user && !isOwnProfile && (
+                            <button onClick={handleFollow} disabled={fLoading}
+                                className="flex items-center gap-2 px-5 py-2 mt-1 font-mono text-xs font-bold transition-all disabled:opacity-50"
+                                style={following ? { border: '1px solid var(--color-terminal-border-raw)', color: 'var(--color-text-muted)', background: 'transparent' }
+                                                 : { background: 'var(--color-brand-primary)', color: '#070f12', border: '1px solid var(--color-brand-primary)' }}>
+                                {fLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                          : following ? <><UserMinus className="w-3.5 h-3.5" /> Takibi Bırak</>
+                                                      : <><UserPlus className="w-3.5 h-3.5" /> Takip Et</>}
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     const joinedDate = profile.created_at
         ? new Date(profile.created_at).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' })
         : null;
@@ -677,25 +724,33 @@ export default function Profile() {
 
             {/* ══ Modallar ══ */}
             {lightbox && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center"
-                     style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)' }}
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+                     style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(10px)' }}
                      onClick={() => setLightbox(false)}>
-                    <div className="relative" onClick={e => e.stopPropagation()}>
-                        <div className="overflow-hidden" style={{ width: 260, height: 260, border: `3px solid ${tierColor}` }}>
+                    <button onClick={() => setLightbox(false)} aria-label="Kapat"
+                            className="absolute top-5 right-5 w-9 h-9 flex items-center justify-center border opacity-60 hover:opacity-100 transition-opacity"
+                            style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}>
+                        <X className="w-4 h-4" />
+                    </button>
+                    <div className="relative border overflow-hidden animate-fade-up" style={{ ...S, maxWidth: 340, width: '100%' }}
+                         onClick={e => e.stopPropagation()}>
+                        <Corner />
+                        <div className="w-full aspect-square overflow-hidden">
                             {profile.avatar_url
                                 ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                 : <div className="w-full h-full flex items-center justify-center font-black"
                                        style={{ background: PAL_BG[(profile.username?.charCodeAt(0) ?? 0) % PAL_BG.length],
-                                                color: PAL_TEXT[(profile.username?.charCodeAt(0) ?? 0) % PAL_TEXT.length], fontSize: 90 }}>
+                                                color: PAL_TEXT[(profile.username?.charCodeAt(0) ?? 0) % PAL_TEXT.length], fontSize: 120 }}>
                                     {profile.username?.[0]?.toUpperCase()}
                                   </div>}
                         </div>
-                        <button onClick={() => setLightbox(false)}
-                                className="absolute -top-2 -right-2 w-7 h-7 flex items-center justify-center border"
-                                style={{ background: 'var(--color-bg-surface)', borderColor: 'var(--color-terminal-border-raw)' }}>
-                            <X className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} />
-                        </button>
-                        <p className="font-manrope font-bold text-sm text-center mt-4" style={{ color: 'var(--color-text-primary)' }}>{profile.username}</p>
+                        <div className="flex items-center justify-between gap-3 px-4 py-3 border-t" style={BD}>
+                            <p className="font-manrope font-black text-lg truncate" style={{ color: 'var(--color-text-primary)' }}>{profile.username}</p>
+                            {profile.trust_label && (
+                                <span className="font-mono text-[10px] px-2 py-0.5 border font-bold shrink-0"
+                                      style={{ color: tierColor, borderColor: tierColor + '60' }}>{profile.trust_label}</span>
+                            )}
+                        </div>
                     </div>
                 </div>,
                 document.body

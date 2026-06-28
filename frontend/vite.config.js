@@ -10,6 +10,16 @@ export default defineConfig({
     compression({ algorithm: 'gzip' }),
     compression({ algorithm: 'brotliCompress', ext: '.br' }),
   ],
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    // Windows + Docker bind-mount: inotify host'tan container'a iletilmez,
+    // bu yüzden HMR tetiklenmez. Polling ile dosya değişikliği güvenilir algılanır.
+    watch: {
+      usePolling: true,
+      interval: 300,
+    },
+  },
   build: {
     rollupOptions: {
       output: {

@@ -15,7 +15,9 @@ export function useDigest() {
             setError(null);
         } catch (err) {
             if (err.status === 404) {
-                setData(null);
+                // Yeni slot henüz hazır değil → mevcut (önceki) özeti koru,
+                // yalnızca hiç özet yokken boş durumu göster.
+                setData(prev => prev);
                 setError(null);
             } else {
                 setError('Özet yüklenemedi.');
