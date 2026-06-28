@@ -147,6 +147,51 @@ class EmailVerifyRequest(BaseModel):
     token: str
 
 
+# ─── Mobil: 6 haneli kod tabanlı akışlar (web link akışından ayrı) ───
+
+class ResetPasswordCodeRequest(BaseModel):
+    email:        str = Field(..., max_length=255)
+    code:         str = Field(..., min_length=6, max_length=6)
+    new_password: str = Field(..., min_length=8)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        v = v.strip().lower()
+        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v):
+            raise ValueError("Geçersiz email formatı")
+        return v
+
+    @field_validator("code")
+    @classmethod
+    def validate_code(cls, v: str) -> str:
+        v = v.strip()
+        if not v.isdigit() or len(v) != 6:
+            raise ValueError("Kod 6 haneli olmalıdır")
+        return v
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if not any(c.isdigit() for c in v):
+            raise ValueError("Şifre en az bir rakam içermelidir")
+        if not any(c.isalpha() for c in v):
+            raise ValueError("Şifre en az bir harf içermelidir")
+        return v
+
+
+class EmailVerifyCodeRequest(BaseModel):
+    code: str = Field(..., min_length=6, max_length=6)
+
+    @field_validator("code")
+    @classmethod
+    def validate_code(cls, v: str) -> str:
+        v = v.strip()
+        if not v.isdigit() or len(v) != 6:
+            raise ValueError("Kod 6 haneli olmalıdır")
+        return v
+
+
 class UpdateProfileRequest(BaseModel):
     username:         Optional[str]   = Field(None, min_length=3, max_length=50)
     bio:              Optional[str]   = Field(None, max_length=500)
