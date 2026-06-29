@@ -9,7 +9,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import Avatar from '../features/messages/shared/Avatar';
 import { formatDateLabel, timeStr } from '../features/messages/shared/format';
-import { FORUM_RE, extractForumId, splitLinkParts } from '../features/messages/shared/linkify';
+import { extractForumId } from '../features/messages/shared/linkify';
+import LinkedText from '../features/messages/shared/LinkedText';
+import ForumCard from '../features/messages/components/ForumCard';
+import ReplyQuote from '../features/messages/components/ReplyQuote';
+import DateSeparator from '../features/messages/components/DateSeparator';
+import EmojiPicker, { EMOJIS } from '../features/messages/components/EmojiPicker';
 
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
@@ -21,140 +26,6 @@ const TIER_COLOR = {
     dedektif:    'var(--color-brand-primary)',
 };
 
-const EMOJIS = [
-    '😀','😂','🥲','😍','🤔','😮','😢','😡','👍','👎',
-    '❤️','🔥','✅','❌','⚡','🎯','💡','🛡️','📰','🔍',
-    '👀','🙏','💪','🤝','👋','🎉','🚀','⚠️','📌','💬',
-    '😎','🥳','😴','🤯','🫡','💀','👻','🫶','🧠','🕵️',
-];
-
-
-function LinkedText({ text: txt }) {
-    const parts = splitLinkParts(txt);
-    return (
-        <>
-            {parts.map((p, i) =>
-                p.type === 'url'
-                    ? <a key={i} href={p.value} target="_blank" rel="noopener noreferrer"
-                         className="underline break-all"
-                         style={{ color: 'inherit', opacity: 0.85 }}>
-                          {p.value}
-                      </a>
-                    : <React.Fragment key={i}>{p.value}</React.Fragment>
-            )}
-        </>
-    );
-}
-
-function ForumCard({ threadId, isMine }) {
-    const [thread, setThread] = useState(null);
-    const [err,    setErr]    = useState(false);
-
-    useEffect(() => {
-        axiosInstance.get(`/forum/threads/${threadId}`)
-            .then(r => setThread(r.data))
-            .catch(() => setErr(true));
-    }, [threadId]);
-
-    if (err) return null;
-    if (!thread) return (
-        <div className="mt-2 border p-3 flex items-center gap-2"
-             style={{ borderColor: isMine ? 'rgba(7,15,18,0.25)' : 'var(--color-terminal-border-raw)' }}>
-            <Loader2 className="w-3 h-3 animate-spin shrink-0"
-                     style={{ color: isMine ? '#070f12' : 'var(--color-brand-primary)' }} />
-            <span className="font-mono text-xs" style={{ color: isMine ? '#070f1280' : 'var(--color-text-muted)' }}>
-            </span>
-        </div>
-    );
-
-    const bg  = isMine ? 'rgba(7,15,18,0.15)' : 'rgba(16,185,129,0.04)';
-    const bdC = isMine ? 'rgba(7,15,18,0.25)' : 'var(--color-brand-primary)';
-    const tc  = isMine ? '#070f12'            : 'var(--color-text-primary)';
-    const mc  = isMine ? '#070f1280'          : 'var(--color-text-muted)';
-    const bc  = isMine ? '#070f12'            : 'var(--color-brand-primary)';
-
-    return (
-        <Link to={`/forum/${threadId}`}
-              className="mt-2 block border-l-2 pl-3 pr-2 py-2 transition-opacity hover:opacity-80"
-              style={{ background: bg, borderColor: bdC }}>
-            <p className="font-mono text-[9px] uppercase tracking-widest mb-1" style={{ color: mc }}>
-            </p>
-            <p className="font-mono text-xs font-bold leading-snug line-clamp-2" style={{ color: tc }}>
-                {thread.title}
-            </p>
-            {thread.category && (
-                <p className="font-mono text-[10px] mt-1" style={{ color: bc }}>
-                    #{thread.category}
-                </p>
-            )}
-            <div className="flex items-center gap-3 mt-1.5">
-                <span className="font-mono text-[9px]" style={{ color: mc }}>
-                    ↑ {thread.upvote_count ?? 0}
-                </span>
-                <span className="font-mono text-[9px]" style={{ color: mc }}>
-                    💬 {thread.reply_count ?? 0}
-                </span>
-                <ExternalLink className="w-2.5 h-2.5 ml-auto" style={{ color: mc }} />
-            </div>
-        </Link>
-    );
-}
-
-
-function EmojiPicker({ onSelect, onClose }) {
-    const ref = useRef(null);
-    useEffect(() => {
-        const h = e => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
-        document.addEventListener('mousedown', h);
-        return () => document.removeEventListener('mousedown', h);
-    }, [onClose]);
-    return (
-        <div ref={ref}
-             className="absolute bottom-full mb-2 left-0 z-50 border p-3 shadow-xl"
-             style={S} onClick={e => e.stopPropagation()}>
-            <div className="grid grid-cols-10 gap-1">
-                {EMOJIS.map(e => (
-                    <button key={e} onClick={() => onSelect(e)}
-                            className="w-8 h-8 flex items-center justify-center text-lg hover:bg-white/10 transition-colors">
-                        {e}
-                    </button>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-function DateSeparator({ label }) {
-    return (
-        <div className="flex items-center gap-3 my-4 px-4">
-            <div className="flex-1 h-px" style={{ background: 'var(--color-terminal-border-raw)' }} />
-            <span className="font-mono text-[10px] tracking-widest uppercase shrink-0"
-                  style={{ color: 'var(--color-text-muted)', opacity: 0.55 }}>
-                {label}
-            </span>
-            <div className="flex-1 h-px" style={{ background: 'var(--color-terminal-border-raw)' }} />
-        </div>
-    );
-}
-
-function ReplyQuote({ replyTo, isMine, meId }) {
-    if (!replyTo) return null;
-    const isMyReply = replyTo.sender_id === meId;
-    const bg  = isMine ? 'rgba(7,15,18,0.18)' : 'rgba(16,185,129,0.07)';
-    const bc  = isMine ? 'rgba(7,15,18,0.35)' : 'var(--color-brand-primary)';
-    const tc  = isMine ? '#070f12'            : 'var(--color-text-secondary)';
-    return (
-        <div className="border-l-2 pl-2 pb-1.5 mb-2" style={{ borderColor: bc, background: bg }}>
-            <p className="font-mono text-[9px] uppercase tracking-widest mb-0.5"
-               style={{ color: isMine ? '#070f1260' : 'var(--color-text-muted)' }}>
-                {isMyReply ? 'Sen' : 'Karşı taraf'}
-            </p>
-            <p className="font-mono text-xs line-clamp-2" style={{ color: tc }}>
-                {replyTo.content}
-            </p>
-        </div>
-    );
-}
 
 function MessageBubble({ msg, isMine, isFirst, isLast, onReply, onDelete, meId }) {
     const [hover, setHover] = useState(false);
