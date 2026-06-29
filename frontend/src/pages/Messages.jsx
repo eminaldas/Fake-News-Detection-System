@@ -7,6 +7,9 @@ import {
 import axiosInstance from '../api/axios';
 import { useAuth } from '../contexts/AuthContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
+import Avatar from '../features/messages/shared/Avatar';
+import { formatDateLabel, timeStr } from '../features/messages/shared/format';
+import { FORUM_RE, extractForumId, splitLinkParts } from '../features/messages/shared/linkify';
 
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
@@ -25,42 +28,9 @@ const EMOJIS = [
     '😎','🥳','😴','🤯','🫡','💀','👻','🫶','🧠','🕵️',
 ];
 
-const FORUM_RE  = /https?:\/\/(?:www\.)?nehaber\.dev\/forum\/([0-9a-f-]{36})/i;
-const GENERAL_RE = /https?:\/\/[^\s<>"]+/gi;
-
-function extractForumId(text) {
-    const m = text.match(FORUM_RE);
-    return m ? m[1] : null;
-}
-
-function formatDateLabel(isoString) {
-    if (!isoString) return '';
-    const dt        = new Date(isoString);
-    const now       = new Date();
-    const today     = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterday = new Date(today - 86400000);
-    const msgDay    = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
-    if (msgDay.getTime() === today.getTime())     return 'Bugün';
-    if (msgDay.getTime() === yesterday.getTime()) return 'Dün';
-    return dt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
-}
-
-function timeStr(d) {
-    if (!d) return '';
-    return new Date(d).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-}
 
 function LinkedText({ text: txt }) {
-    const parts = [];
-    let last = 0;
-    let m;
-    const re = /https?:\/\/[^\s<>"]+/gi;
-    while ((m = re.exec(txt)) !== null) {
-        if (m.index > last) parts.push({ type: 'text', value: txt.slice(last, m.index) });
-        parts.push({ type: 'url', value: m[0] });
-        last = m.index + m[0].length;
-    }
-    if (last < txt.length) parts.push({ type: 'text', value: txt.slice(last) });
+    const parts = splitLinkParts(txt);
     return (
         <>
             {parts.map((p, i) =>
@@ -130,23 +100,6 @@ function ForumCard({ threadId, isMine }) {
     );
 }
 
-function Avatar({ user, size = 36 }) {
-    const c = ['rgba(16,185,129,0.15)','rgba(59,130,246,0.15)','rgba(245,158,11,0.15)','rgba(239,68,68,0.15)'];
-    const t = ['var(--color-brand-primary)','var(--color-accent-blue)','var(--color-accent-amber)','#ef4444'];
-    const i = (user?.username?.charCodeAt(0) ?? 0) % c.length;
-    return (
-        <div className="rounded-full overflow-hidden flex items-center justify-center font-mono font-black shrink-0"
-             style={{ width: size, height: size, background: c[i], color: t[i],
-                      fontSize: size * 0.38, border: `2px solid ${t[i]}40`, minWidth: size }}>
-            {user?.avatar_url
-                ? <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover"
-                       referrerPolicy="no-referrer"
-                       onError={e => { e.currentTarget.style.display = 'none'; }} />
-                : (user?.username?.[0] ?? '?').toUpperCase()
-            }
-        </div>
-    );
-}
 
 function EmojiPicker({ onSelect, onClose }) {
     const ref = useRef(null);
