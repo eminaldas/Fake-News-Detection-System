@@ -4,7 +4,7 @@ import NewsService from '../services/news.service';
 const PAGE_SIZE = 10;
 const POLL_MS   = 3 * 60 * 1000;
 
-export function usePopularNews(category, dateFrom, dateTo) {
+export function usePopularNews(category, subcategory, dateFrom, dateTo) {
     const [featured,    setFeatured]    = useState(null);
     const [articles,    setArticles]    = useState([]);
     const [loading,     setLoading]     = useState(true);
@@ -21,12 +21,13 @@ export function usePopularNews(category, dateFrom, dateTo) {
         const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
         try {
             const todayData = await NewsService.getNews({
-                sort:      'popular',
-                size:      1,
-                page:      1,
-                category:  category || undefined,
-                date_from: today,
-                date_to:   today,
+                sort:        'popular',
+                size:        1,
+                page:        1,
+                category:    category    || undefined,
+                subcategory: subcategory || undefined,
+                date_from:   today,
+                date_to:     today,
             });
             const todayItem = todayData.items?.[0] ?? null;
             if (todayItem) {
@@ -35,10 +36,11 @@ export function usePopularNews(category, dateFrom, dateTo) {
                 return;
             }
             const fallbackData = await NewsService.getNews({
-                sort:     'popular',
-                size:     1,
-                page:     1,
-                category: category || undefined,
+                sort:        'popular',
+                size:        1,
+                page:        1,
+                category:    category    || undefined,
+                subcategory: subcategory || undefined,
             });
             const fallbackItem = fallbackData.items?.[0] ?? null;
             if (fallbackItem && (fallbackItem.source_count ?? 0) >= 3) {
@@ -52,18 +54,19 @@ export function usePopularNews(category, dateFrom, dateTo) {
             setFeatured(null);
             featuredIdRef.current = null;
         }
-    }, [category]);
+    }, [category, subcategory]);
 
     const fetchPage = useCallback(async (page, append = false) => {
         if (page === 1) setLoading(true); else setLoadingMore(true);
         setError(null);
         try {
             const data = await NewsService.getNews({
-                size:      PAGE_SIZE + 1,   // featured çıkabilir diye 1 ekstra al
+                size:        PAGE_SIZE + 1,   // featured çıkabilir diye 1 ekstra al
                 page,
-                category:  category  || undefined,
-                date_from: dateFrom  || undefined,
-                date_to:   dateTo    || undefined,
+                category:    category    || undefined,
+                subcategory: subcategory || undefined,
+                date_from:   dateFrom    || undefined,
+                date_to:     dateTo      || undefined,
             });
             const total = data.total || 0;
             totalRef.current = total;
@@ -79,7 +82,7 @@ export function usePopularNews(category, dateFrom, dateTo) {
         } finally {
             if (page === 1) setLoading(false); else setLoadingMore(false);
         }
-    }, [category, dateFrom, dateTo]);
+    }, [category, subcategory, dateFrom, dateTo]);
 
     useEffect(() => {
         pageRef.current = 1;
@@ -93,7 +96,8 @@ export function usePopularNews(category, dateFrom, dateTo) {
             try {
                 const data = await NewsService.getNews({
                     size: PAGE_SIZE, page: 1,
-                    category: category || undefined,
+                    category:    category    || undefined,
+                    subcategory: subcategory || undefined,
                 });
                 const diff = (data.total || 0) - totalRef.current;
                 if (diff > 0) {
@@ -103,7 +107,7 @@ export function usePopularNews(category, dateFrom, dateTo) {
             } catch { /* sessizce geç */ }
         }, POLL_MS);
         return () => clearInterval(id);
-    }, [category]);
+    }, [category, subcategory]);
 
     const loadMore = useCallback(() => {
         if (loadingMore || !hasMore) return;

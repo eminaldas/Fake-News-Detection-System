@@ -10,13 +10,14 @@ import { RefreshCw } from 'lucide-react';
 export default function Gundem() {
     const [searchParams] = useSearchParams();
     const { subscribe } = useWebSocket();
-    const category = searchParams.get('category');
+    const category    = searchParams.get('category');
+    const subcategory = searchParams.get('subcategory');
 
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo,   setDateTo]   = useState('');
 
     const { featured, articles, loading, loadingMore, error, newCount, hasMore, refresh, loadMore } =
-        usePopularNews(category, dateFrom, dateTo);
+        usePopularNews(category, subcategory, dateFrom, dateTo);
 
     useEffect(() => {
         const unsub = subscribe('recommendations_updated', refresh);
