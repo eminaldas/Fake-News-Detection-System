@@ -1,15 +1,7 @@
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Avatar from '../shared/Avatar';
-
-const BD = { borderColor: 'var(--color-terminal-border-raw)' };
-
-const TIER_COLOR = {
-    yeni_uye:    'var(--color-text-muted)',
-    dogrulayici: 'var(--color-accent-blue)',
-    analist:     'var(--color-accent-amber)',
-    dedektif:    'var(--color-brand-primary)',
-};
+import { C, BD } from '../shared/ui';
 
 export default function ChatHeader({ partner, onBack }) {
     return (
@@ -17,30 +9,34 @@ export default function ChatHeader({ partner, onBack }) {
             <button
                 onClick={onBack}
                 className="md:hidden p-1 transition-opacity hover:opacity-60"
-                style={{ color: 'var(--color-text-muted)' }}
+                style={{ color: C.textMuted }}
             >
                 <ArrowLeft className="w-4 h-4" />
             </button>
             <Link to={`/users/${partner.id}`}>
-                <Avatar user={partner} size={32} />
+                <Avatar user={partner} size={34} />
             </Link>
             <div className="flex-1 min-w-0">
                 <Link
                     to={`/users/${partner.id}`}
-                    className="font-mono text-sm font-bold transition-opacity hover:opacity-70 block truncate"
-                    style={{ color: 'var(--color-text-primary)' }}
+                    className="font-mono text-sm font-semibold transition-opacity hover:opacity-70 block truncate"
+                    style={{ color: C.textPrimary }}
                 >
                     {partner.username}
                 </Link>
                 {partner.trust_label && (
-                    <p
-                        className="font-mono text-[10px]"
-                        style={{ color: TIER_COLOR[partner.trust_tier] ?? 'var(--color-text-muted)' }}
-                    >
+                    <p className="font-mono text-[10px]" style={{ color: C.textSecondary }}>
                         {partner.trust_label}
                     </p>
                 )}
             </div>
+            <span
+                className="p-1 opacity-40"
+                style={{ color: C.textSecondary, pointerEvents: 'none' }}
+                aria-hidden="true"
+            >
+                <Info className="w-4 h-4" />
+            </span>
         </div>
     );
 }
