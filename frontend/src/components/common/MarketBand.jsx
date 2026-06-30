@@ -58,9 +58,20 @@ function MarketItem({ label, unit, decimals, value, changePct, symbol, onHover, 
     );
 }
 
+function MarketItemSkeleton() {
+    return (
+        <span className="flex items-center gap-1.5 shrink-0">
+            <span className="h-[9px] w-[48px] bg-brutal-border/20 animate-pulse" />
+            <span className="h-[9px] w-[54px] bg-brutal-border/30 animate-pulse" />
+            <span className="h-[9px] w-[38px] bg-brutal-border/20 animate-pulse" />
+        </span>
+    );
+}
+
 const MarketBand = () => {
     const [rates,  setRates]  = React.useState({});
     const [stocks, setStocks] = React.useState([]);
+    const [loaded, setLoaded] = React.useState(false);
     const { tickers } = useMarketPrefs();
 
     const [hovered, setHovered] = React.useState(null);   // { symbol, left } | null
@@ -74,12 +85,16 @@ const MarketBand = () => {
     const keepOpen = () => clearTimeout(closeTimer.current);
 
     React.useEffect(() => {
-        const load = () => {
-            MarketService.getRates().then(setRates).catch(() => {});
-            MarketService.getStocks().then(setStocks).catch(() => {});
+        const load = (markLoaded) => {
+            Promise.allSettled([MarketService.getRates(), MarketService.getStocks()])
+                .then(([r, s]) => {
+                    if (r.status === 'fulfilled') setRates(r.value);
+                    if (s.status === 'fulfilled') setStocks(s.value);
+                    if (markLoaded) setLoaded(true);
+                });
         };
-        load();
-        const id = setInterval(load, 60_000);
+        load(true);
+        const id = setInterval(() => load(false), 60_000);
         return () => clearInterval(id);
     }, []);
 
@@ -172,7 +187,13 @@ const MarketBand = () => {
                     <span className="h-3 w-px shrink-0"
                           style={{ background: 'var(--color-terminal-border-raw)' }} />
 
-                    {useMarquee ? (
+                    {!loaded ? (
+                        <div className="flex items-center" style={{ gap: '1.25rem' }}>
+                            {Array.from({ length: 4 }).map((_, i) => (
+                                <MarketItemSkeleton key={i} />
+                            ))}
+                        </div>
+                    ) : useMarquee ? (
                         <div ref={viewportRef} className="flex-1 overflow-hidden">
                             <div
                                 className="flex animate-marquee"
