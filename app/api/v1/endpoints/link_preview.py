@@ -10,7 +10,7 @@ Redis cache: 24 saat, key = link_preview:{sha256(url)}.
 import hashlib
 import json
 import re
-from urllib.parse import urljoin, urlparse, urlencode
+from urllib.parse import urljoin, urlencode
 
 import httpx
 from bs4 import BeautifulSoup
@@ -35,6 +35,13 @@ _EMPTY = {
     "image": None,
     "site": None,
 }
+
+
+def _check_redirect(request, response):
+    if response.is_redirect:
+        loc = response.headers.get("location", "")
+        if loc and not _is_safe_url(loc):
+            raise httpx.RequestError("Redirect to unsafe URL blocked")
 
 
 def parse_og(html: str, base_url: str) -> dict:
@@ -115,8 +122,8 @@ async def get_link_preview(
     try:
         yt = youtube_id(url)
         if yt:
-            oembed_url = f"https://www.youtube.com/oembed?url={url}&format=json"
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            oembed_url = "https://www.youtube.com/oembed?" + urlencode({"url": url, "format": "json"})
+            async with httpx.AsyncClient(timeout=5.0, event_hooks={"response": [_check_redirect]}) as client:
                 r = await client.get(oembed_url, follow_redirects=True)
             if r.status_code == 200:
                 data = r.json()
@@ -129,10 +136,17 @@ async def get_link_preview(
                     "url": url,
                 }
         else:
-            async with httpx.AsyncClient(timeout=5.0, follow_redirects=True) as client:
-                r = await client.get(url)
-            body = r.text[: 512 * 1024]
-            og = parse_og(body, url)
+            async with httpx.AsyncClient(timeout=5.0, follow_redirects=True, event_hooks={"response": [_check_redirect]}) as client:
+                async with client.stream("GET", url) as r:
+                    chunks, size = [], 0
+                    async for chunk in r.aiter_bytes(chunk_size=65536):
+                        size += len(chunk)
+                        if size > 512 * 1024:
+                            break
+                        chunks.append(chunk)
+                    final_url = str(r.url)
+            body = b"".join(chunks).decode("utf-8", errors="replace")
+            og = parse_og(body, final_url)
             img_type = "image" if og.get("image") else "basic"
             result = {
                 "type": img_type,
@@ -145,5 +159,8 @@ async def get_link_preview(
     except Exception:
         result = {**_EMPTY, "url": url}
 
-    await redis.setex(key, 86400, json.dumps(result))
+    try:
+        await redis.setex(key, 86400, json.dumps(result))
+    except Exception:
+        pass  # cache yazımı kritik değil
     return result
