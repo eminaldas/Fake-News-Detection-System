@@ -21,3 +21,11 @@ export function splitLinkParts(text) {
     if (last < txt.length) parts.push({ type: 'text', value: txt.slice(last) });
     return parts;
 }
+
+// İlk önizlenebilir URL'yi döndürür. Forum linki ise null döner (ForumCard halleder).
+export function firstPreviewableUrl(text) {
+    const parts = splitLinkParts(text);
+    const url = parts.find(p => p.type === 'url')?.value ?? null;
+    if (!url) return null;
+    return FORUM_RE.test(url) ? null : url;
+}

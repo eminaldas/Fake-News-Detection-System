@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Reply, Trash2, Check, CheckCheck } from 'lucide-react';
-import { extractForumId } from '../shared/linkify';
+import { extractForumId, firstPreviewableUrl } from '../shared/linkify';
 import { timeStr } from '../shared/format';
 import LinkedText from '../shared/LinkedText';
 import ForumCard from './ForumCard';
+import LinkPreview from './LinkPreview';
 import ReplyQuote from './ReplyQuote';
 import { C, RADIUS } from '../shared/ui';
 
@@ -15,7 +16,8 @@ export default function MessageBubble({ msg, isMine, isFirst, isLast, onReply, o
     const [hover, setHover] = useState(false);
     const isGif   = msg.msg_type === 'gif';
     const isEmoji = msg.msg_type === 'emoji';
-    const forumId = !isGif && !isEmoji ? extractForumId(msg.content) : null;
+    const forumId    = !isGif && !isEmoji ? extractForumId(msg.content)    : null;
+    const previewUrl = !isGif && !isEmoji && !forumId ? firstPreviewableUrl(msg.content) : null;
     const mb = isLast ? 'mb-4' : 'mb-[2px]';
 
     // Bubble border-radius — tail at bottom-right for outgoing, bottom-left for incoming.
@@ -88,7 +90,8 @@ export default function MessageBubble({ msg, isMine, isFirst, isLast, onReply, o
                         <p className="font-mono text-[14px] leading-relaxed whitespace-pre-wrap wrap-break-word">
                             <LinkedText text={msg.content} />
                         </p>
-                        {forumId && <ForumCard threadId={forumId} isMine={isMine} />}
+                        {forumId    && <ForumCard    threadId={forumId}    isMine={isMine} />}
+                        {previewUrl && <LinkPreview url={previewUrl} isMine={isMine} />}
                     </div>
                     {isLast && (
                         <p className={`font-mono text-[10px] mt-1 flex items-center gap-0.5 ${isMine ? 'justify-end' : 'justify-start'}`}
