@@ -1,20 +1,21 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-    Send, Search, Smile, ArrowLeft, Loader2,
-    Plus, X, Reply, ExternalLink,
+    Send, Smile, ArrowLeft, Loader2,
+    X, Reply, ExternalLink,
 } from 'lucide-react';
 import axiosInstance from '../api/axios';
 import { useAuth } from '../contexts/AuthContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import Avatar from '../features/messages/shared/Avatar';
-import { formatDateLabel, timeStr } from '../features/messages/shared/format';
+import { formatDateLabel } from '../features/messages/shared/format';
 import LinkedText from '../features/messages/shared/LinkedText';
 import ForumCard from '../features/messages/components/ForumCard';
 import ReplyQuote from '../features/messages/components/ReplyQuote';
 import DateSeparator from '../features/messages/components/DateSeparator';
 import EmojiPicker, { EMOJIS } from '../features/messages/components/EmojiPicker';
 import MessageBubble from '../features/messages/components/MessageBubble';
+import ConversationList from '../features/messages/components/ConversationList';
 
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
@@ -27,124 +28,6 @@ const TIER_COLOR = {
 };
 
 
-function ConvItem({ conv, active, onClick }) {
-    return (
-        <button
-            onClick={onClick}
-            className="w-full flex items-center gap-3 px-4 py-3.5 border-b text-left transition-colors hover:bg-white/5"
-            style={{
-                ...BD,
-                background: active ? 'rgba(16,185,129,0.06)' : 'transparent',
-                borderLeft: active ? '2px solid var(--color-brand-primary)' : '2px solid transparent',
-            }}
-        >
-            <div className="relative shrink-0">
-                <Avatar user={{ username: conv.partner_name, avatar_url: conv.partner_avatar }} size={38} />
-                {conv.unread_count > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center font-mono text-[9px] font-black"
-                          style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
-                        {conv.unread_count > 9 ? '9+' : conv.unread_count}
-                    </span>
-                )}
-            </div>
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                    <span className="font-mono text-sm font-bold truncate"
-                          style={{ color: conv.unread_count > 0 ? 'var(--color-brand-primary)' : 'var(--color-text-primary)' }}>
-                        {conv.partner_name}
-                    </span>
-                    <span className="font-mono text-[9px] shrink-0 ml-2"
-                          style={{ color: 'var(--color-text-muted)' }}>
-                        {timeStr(conv.last_at)}
-                    </span>
-                </div>
-                <p className="font-mono text-xs truncate mt-0.5"
-                   style={{ color: 'var(--color-text-muted)', fontWeight: conv.unread_count > 0 ? 700 : 400 }}>
-                    {conv.last_msg_type === 'gif' ? '🖼️ GIF' : conv.last_message}
-                </p>
-            </div>
-        </button>
-    );
-}
-
-function NewConversation({ onSelect, onClose }) {
-    const [query,   setQuery]   = useState('');
-    const [results, setResults] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const inputRef = useRef(null);
-
-    useEffect(() => { inputRef.current?.focus(); }, []);
-
-    useEffect(() => {
-        if (!query.trim()) { setResults([]); return; }
-        const t = setTimeout(async () => {
-            setLoading(true);
-            try {
-                const { data } = await axiosInstance.get('/users/search', { params: { q: query, size: 10 } });
-                setResults(data.items ?? []);
-            } catch { /* sessiz */ }
-            finally { setLoading(false); }
-        }, 300);
-        return () => clearTimeout(t);
-    }, [query]);
-
-    return (
-        <div className="absolute inset-0 z-20 flex flex-col" style={S}>
-            <div className="flex items-center gap-2 px-4 py-3 border-b" style={BD}>
-                <button onClick={onClose} className="p-1 transition-opacity hover:opacity-60"
-                        style={{ color: 'var(--color-text-muted)' }}>
-                    <X className="w-4 h-4" />
-                </button>
-                <span className="font-mono text-xs tracking-widest uppercase flex-1"
-                      style={{ color: 'var(--color-brand-primary)' }}>// YENİ MESAJ</span>
-            </div>
-            <div className="px-3 py-2 border-b" style={BD}>
-                <div className="flex items-center gap-2 border px-3 py-2"
-                     style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'var(--color-bg-base)' }}>
-                    <Search className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
-                    <input
-                        ref={inputRef}
-                        value={query}
-                        onChange={e => setQuery(e.target.value)}
-                        placeholder="Kullanıcı adı ara..."
-                        className="flex-1 bg-transparent font-mono text-sm outline-none"
-                        style={{ color: 'var(--color-text-primary)' }}
-                    />
-                    {loading && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0"
-                                        style={{ color: 'var(--color-brand-primary)' }} />}
-                </div>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-                {results.length === 0 && query.trim() && !loading ? (
-                    <p className="font-mono text-xs text-center pt-8"
-                       style={{ color: 'var(--color-text-muted)' }}>// kullanıcı bulunamadı</p>
-                ) : results.map(u => (
-                    <button key={u.id} onClick={() => onSelect(u)}
-                            className="w-full flex items-center gap-3 px-4 py-3 border-b text-left transition-colors hover:bg-white/5"
-                            style={BD}>
-                        <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center font-mono font-black shrink-0"
-                             style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid var(--color-brand-primary)',
-                                      color: 'var(--color-brand-primary)', fontSize: 14 }}>
-                            {u.avatar_url
-                                ? <img src={u.avatar_url} alt={u.username} className="w-full h-full object-cover"
-                                       referrerPolicy="no-referrer" />
-                                : u.username[0].toUpperCase()
-                            }
-                        </div>
-                        <div className="min-w-0">
-                            <p className="font-mono text-sm font-bold truncate"
-                               style={{ color: 'var(--color-text-primary)' }}>{u.username}</p>
-                            <p className="font-mono text-[10px]"
-                               style={{ color: TIER_COLOR[u.trust_tier] ?? 'var(--color-text-muted)' }}>
-                                {'★'.repeat(u.trust_stars ?? 0)} {u.trust_label}
-                            </p>
-                        </div>
-                    </button>
-                ))}
-            </div>
-        </div>
-    );
-}
 
 export default function Messages() {
     const { userId: paramUserId } = useParams();
@@ -330,10 +213,6 @@ export default function Messages() {
         });
     }, [messages]);
 
-    const filteredConv = conversations.filter(c =>
-        c.partner_name.toLowerCase().includes(convSearch.toLowerCase())
-    );
-
     return (
         <>
             <style>{`.msg-textarea::-webkit-scrollbar { display: none; }`}</style>
@@ -343,60 +222,18 @@ export default function Messages() {
                 <div className="flex h-full overflow-hidden border" style={S}>
 
                     {/* ── SOL: Konuşma listesi ── */}
-                    <div className={`flex flex-col ${activeId ? 'hidden md:flex' : 'flex'} w-full md:w-72 shrink-0 relative`}
-                         style={{ borderRight: '1px solid var(--color-terminal-border-raw)' }}>
-
-                        {showNewConv && (
-                            <NewConversation
-                                onClose={() => setShowNewConv(false)}
-                                onSelect={u => {
-                                    setShowNewConv(false);
-                                    setActiveId(u.id);
-                                    navigate(`/messages/${u.id}`, { replace: true });
-                                }}
-                            />
-                        )}
-
-                        <div className="px-4 py-3 border-b flex items-center justify-between shrink-0" style={BD}>
-                            <span className="font-mono text-xs tracking-widest uppercase"
-                                  style={{ color: 'var(--color-brand-primary)' }}>// MESAJLAR</span>
-                            <button onClick={() => setShowNewConv(true)}
-                                    className="p-1.5 transition-opacity hover:opacity-70"
-                                    style={{ color: 'var(--color-brand-primary)', border: '1px solid rgba(16,185,129,0.30)' }}>
-                                <Plus className="w-3.5 h-3.5" />
-                            </button>
-                        </div>
-
-                        <div className="px-3 py-2 border-b shrink-0" style={BD}>
-                            <div className="flex items-center gap-2 border px-3 py-2"
-                                 style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'var(--color-bg-base)' }}>
-                                <Search className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-text-muted)' }} />
-                                <input value={convSearch} onChange={e => setConvSearch(e.target.value)}
-                                       placeholder="Kişi ara..."
-                                       className="flex-1 bg-transparent font-mono text-xs outline-none"
-                                       style={{ color: 'var(--color-text-primary)' }} />
-                            </div>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto min-h-0">
-                            {convLoad ? (
-                                <div className="p-6 flex justify-center">
-                                    <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-brand-primary)' }} />
-                                </div>
-                            ) : filteredConv.length === 0 ? (
-                                <div className="p-6 text-center">
-                                    <p className="font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                                    </p>
-                                </div>
-                            ) : filteredConv.map(c => (
-                                <ConvItem key={c.partner_id} conv={c} active={activeId === c.partner_id}
-                                          onClick={() => {
-                                              setActiveId(c.partner_id);
-                                              navigate(`/messages/${c.partner_id}`, { replace: true });
-                                          }} />
-                            ))}
-                        </div>
-                    </div>
+                    <ConversationList
+                        conversations={conversations}
+                        loading={convLoad}
+                        activeId={activeId}
+                        search={convSearch}
+                        onSearchChange={e => setConvSearch(e.target.value)}
+                        onSelectConv={id => { setActiveId(id); navigate(`/messages/${id}`, { replace: true }); }}
+                        onNewClick={() => setShowNewConv(true)}
+                        showNewConv={showNewConv}
+                        onNewClose={() => setShowNewConv(false)}
+                        onNewSelect={u => { setShowNewConv(false); setActiveId(u.id); navigate(`/messages/${u.id}`, { replace: true }); }}
+                    />
 
                     {/* ── SAĞ: Sohbet alanı ── */}
                     {activeId && partner ? (
