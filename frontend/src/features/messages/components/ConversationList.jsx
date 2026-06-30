@@ -2,7 +2,7 @@ import React from 'react';
 import { Plus, Search, Loader2 } from 'lucide-react';
 import ConversationItem from './ConversationItem';
 import NewConversation from './NewConversation';
-import { C, RADIUS, BD } from '../shared/ui';
+import { C, RADIUS } from '../shared/ui';
 
 export default function ConversationList({
     conversations,
@@ -22,7 +22,7 @@ export default function ConversationList({
 
     return (
         <div className={`flex flex-col ${activeId ? 'hidden md:flex' : 'flex'} w-full md:w-72 shrink-0 relative`}
-             style={{ borderRight: `1px solid ${C.border}` }}>
+             style={{ borderRight: `1.5px solid ${C.borderStrong}` }}>
 
             {showNewConv && (
                 <NewConversation
@@ -31,7 +31,8 @@ export default function ConversationList({
                 />
             )}
 
-            <div className="px-4 py-3 border-b flex items-center justify-between shrink-0" style={BD}>
+            <div className="px-4 py-3 flex items-center justify-between shrink-0"
+                 style={{ borderBottom: `1.5px solid ${C.borderStrong}` }}>
                 <span className="text-[17px] font-bold" style={{ color: C.textPrimary }}>Mesajlar</span>
                 <button onClick={onNewClick}
                         className="p-1.5 transition-opacity hover:opacity-70"
@@ -40,7 +41,8 @@ export default function ConversationList({
                 </button>
             </div>
 
-            <div className="px-3 py-2 border-b shrink-0" style={BD}>
+            <div className="px-3 py-2 shrink-0"
+                 style={{ borderBottom: `1.5px solid ${C.borderStrong}` }}>
                 <div className="flex items-center gap-2 border px-3 py-2"
                      style={{ borderColor: C.border, background: 'var(--color-bg-base)', borderRadius: RADIUS.field }}>
                     <Search className="w-3.5 h-3.5 shrink-0" style={{ color: C.green }} />

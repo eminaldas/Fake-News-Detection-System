@@ -26,6 +26,10 @@ export const C = {
     greenSoft:       'rgba(16,185,129,0.12)',
     greenSoftBorder: 'rgba(16,185,129,0.30)',
     onGreen:         '#062018',              // koyu metin — brand-green rozet/düğme üzerinde
+    // Phase 1.5 — görsel canlılık
+    accent:          'linear-gradient(90deg, var(--color-brand-primary), #10b981)',
+    borderStrong:    'rgba(16,185,129,0.30)',
+    cardShadow:      '0 8px 30px -12px rgba(16,185,129,0.25), 0 2px 6px -2px rgba(0,0,0,0.08)',
 };
 
 export const BD   = { borderColor: C.border };                              // ortak border yardımcısı

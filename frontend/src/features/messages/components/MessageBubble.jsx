@@ -7,22 +7,23 @@ import ForumCard from './ForumCard';
 import ReplyQuote from './ReplyQuote';
 import { C, RADIUS } from '../shared/ui';
 
-const R = RADIUS.bubble; // 16
-const T = RADIUS.tail;   // 5
+const R  = RADIUS.bubble; // 16
+const T  = RADIUS.tail;   // 5  — outer tail (single-bubble / group-end corner)
+const TC = 4;             // connecting corners between consecutive grouped bubbles
 
 export default function MessageBubble({ msg, isMine, isFirst, isLast, onReply, onDelete, meId }) {
     const [hover, setHover] = useState(false);
     const isGif   = msg.msg_type === 'gif';
     const isEmoji = msg.msg_type === 'emoji';
     const forumId = !isGif && !isEmoji ? extractForumId(msg.content) : null;
-    const mb = isLast ? 'mb-4' : 'mb-0.5';
+    const mb = isLast ? 'mb-4' : 'mb-[2px]';
 
     // Bubble border-radius — tail at bottom-right for outgoing, bottom-left for incoming.
     // isFirst grouping uses the "inner" side (left for outgoing, right for incoming) matching
     // the side the old 2px corners were on, mapped to the new T (5px) radius.
     const bubbleRadius = isMine
-        ? `${isFirst ? R : T}px ${R}px ${isLast ? T : R}px ${R}px`
-        : `${R}px ${isFirst ? R : T}px ${R}px ${isLast ? T : R}px`;
+        ? `${isFirst ? R : TC}px ${R}px ${isLast ? T : R}px ${R}px`
+        : `${R}px ${isFirst ? R : TC}px ${R}px ${isLast ? T : R}px`;
 
     const actions = (
         <div className={`absolute top-0 flex items-center gap-1 ${isMine ? 'right-full mr-2' : 'left-full ml-2'}`}
@@ -84,7 +85,7 @@ export default function MessageBubble({ msg, isMine, isFirst, isLast, onReply, o
                         {msg.reply_to && (
                             <ReplyQuote replyTo={msg.reply_to} isMine={isMine} meId={meId} />
                         )}
-                        <p className="font-mono text-[13px] leading-relaxed whitespace-pre-wrap wrap-break-word">
+                        <p className="font-mono text-[14px] leading-relaxed whitespace-pre-wrap wrap-break-word">
                             <LinkedText text={msg.content} />
                         </p>
                         {forumId && <ForumCard threadId={forumId} isMine={isMine} />}

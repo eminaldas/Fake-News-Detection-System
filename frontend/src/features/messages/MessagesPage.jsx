@@ -5,7 +5,7 @@ import ConversationList from './components/ConversationList';
 import ChatPanel from './components/ChatPanel';
 import { useConversations } from './hooks/useConversations';
 import { useChat } from './hooks/useChat';
-import { RADIUS, SURF } from './shared/ui';
+import { RADIUS, C } from './shared/ui';
 
 
 
@@ -62,45 +62,59 @@ export default function MessagesPage() {
     // Inner box: Soft Modern — SURF surface + theme-aware border + RADIUS.card rounded corners.
     return (
         <div className="h-[calc(100dvh-8rem)] md:h-[calc(100dvh-9rem)] px-4 pb-4 md:px-6 md:pb-6">
-            <div className="flex h-full overflow-hidden border" style={{ ...SURF, borderRadius: RADIUS.card }}>
+            <div className="flex flex-col h-full overflow-hidden"
+                 style={{
+                     background:   C.surface,
+                     border:       `1.5px solid ${C.borderStrong}`,
+                     borderRadius: RADIUS.card,
+                     boxShadow:    C.cardShadow,
+                 }}>
 
-                {/* ── SOL: Konuşma listesi ── */}
-                <ConversationList
-                    conversations={conversations}
-                    loading={convLoad}
-                    activeId={activeId}
-                    search={convSearch}
-                    onSearchChange={e => setConvSearch(e.target.value)}
-                    onSelectConv={id => { setActiveId(id); navigate(`/messages/${id}`, { replace: true }); }}
-                    onNewClick={() => setShowNewConv(true)}
-                    showNewConv={showNewConv}
-                    onNewClose={() => setShowNewConv(false)}
-                    onNewSelect={u => { setShowNewConv(false); setActiveId(u.id); navigate(`/messages/${u.id}`, { replace: true }); }}
-                />
+                {/* ── YEŞİL İMZA BARI ── */}
+                <div style={{ height: 3, background: C.accent, flexShrink: 0 }} />
 
-                {/* ── SAĞ: Sohbet alanı ── */}
-                <ChatPanel
-                    partner={partner}
-                    activeId={activeId}
-                    msgLoad={msgLoad}
-                    onBack={() => { setActiveId(null); navigate('/messages', { replace: true }); }}
-                    messages={messages}
-                    meId={me?.id}
-                    onReply={setReplyTo}
-                    onDelete={handleDelete}
-                    containerRef={msgContainerRef}
-                    text={text}
-                    onTextChange={setText}
-                    onSend={handleSend}
-                    sending={sending}
-                    replyTo={replyTo}
-                    onCancelReply={() => setReplyTo(null)}
-                    showEmoji={showEmoji}
-                    onToggleEmoji={setShowEmoji}
-                    onEmojiInsert={handleEmojiInsert}
-                    inputRef={inputRef}
-                    onRetry={() => loadConversation(activeId)}
-                />
+                {/* ── PANELLER ── */}
+                <div className="flex flex-1 min-h-0">
+
+                    {/* ── SOL: Konuşma listesi ── */}
+                    <ConversationList
+                        conversations={conversations}
+                        loading={convLoad}
+                        activeId={activeId}
+                        search={convSearch}
+                        onSearchChange={e => setConvSearch(e.target.value)}
+                        onSelectConv={id => { setActiveId(id); navigate(`/messages/${id}`, { replace: true }); }}
+                        onNewClick={() => setShowNewConv(true)}
+                        showNewConv={showNewConv}
+                        onNewClose={() => setShowNewConv(false)}
+                        onNewSelect={u => { setShowNewConv(false); setActiveId(u.id); navigate(`/messages/${u.id}`, { replace: true }); }}
+                    />
+
+                    {/* ── SAĞ: Sohbet alanı ── */}
+                    <ChatPanel
+                        partner={partner}
+                        activeId={activeId}
+                        msgLoad={msgLoad}
+                        onBack={() => { setActiveId(null); navigate('/messages', { replace: true }); }}
+                        messages={messages}
+                        meId={me?.id}
+                        onReply={setReplyTo}
+                        onDelete={handleDelete}
+                        containerRef={msgContainerRef}
+                        text={text}
+                        onTextChange={setText}
+                        onSend={handleSend}
+                        sending={sending}
+                        replyTo={replyTo}
+                        onCancelReply={() => setReplyTo(null)}
+                        showEmoji={showEmoji}
+                        onToggleEmoji={setShowEmoji}
+                        onEmojiInsert={handleEmojiInsert}
+                        inputRef={inputRef}
+                        onRetry={() => loadConversation(activeId)}
+                    />
+
+                </div>
             </div>
         </div>
     );

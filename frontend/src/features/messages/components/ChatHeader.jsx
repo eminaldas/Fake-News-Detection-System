@@ -1,11 +1,12 @@
 import { ArrowLeft, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Avatar from '../shared/Avatar';
-import { C, BD } from '../shared/ui';
+import { C } from '../shared/ui';
 
 export default function ChatHeader({ partner, onBack }) {
     return (
-        <div className="flex items-center gap-3 px-4 py-3 border-b shrink-0" style={BD}>
+        <div className="flex items-center gap-3 px-4 py-3 shrink-0"
+             style={{ borderBottom: `1.5px solid ${C.borderStrong}` }}>
             <button
                 onClick={onBack}
                 className="md:hidden p-1 transition-opacity hover:opacity-60"
@@ -19,7 +20,7 @@ export default function ChatHeader({ partner, onBack }) {
             <div className="flex-1 min-w-0">
                 <Link
                     to={`/users/${partner.id}`}
-                    className="font-mono text-sm font-semibold transition-opacity hover:opacity-70 block truncate"
+                    className="font-mono text-[15px] font-semibold transition-opacity hover:opacity-70 block truncate"
                     style={{ color: C.textPrimary }}
                 >
                     {partner.username}

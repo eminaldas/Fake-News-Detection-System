@@ -16,6 +16,7 @@ export default function ConversationItem({ conv, active, onClick }) {
                 ...BD,
                 background: active || hovered ? C.greenSoft : 'transparent',
                 borderRadius: RADIUS.field,
+                boxShadow: active ? 'inset 3px 0 0 var(--color-brand-primary)' : 'none',
             }}
         >
             <div className="relative shrink-0">
@@ -38,7 +39,7 @@ export default function ConversationItem({ conv, active, onClick }) {
             <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                     <span
-                        className="text-[13.5px] font-semibold truncate"
+                        className="text-[14.5px] font-semibold truncate"
                         style={{ color: C.textPrimary }}
                     >
                         {conv.partner_name}
