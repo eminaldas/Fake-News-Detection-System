@@ -25,7 +25,7 @@ export default function ConversationItem({ conv, active, onClick }) {
                         className="absolute -top-1 -right-1 flex items-center justify-center font-mono text-[9px] font-black px-1.5"
                         style={{
                             background: C.green,
-                            color: '#070f12',
+                            color: C.onGreen,
                             borderRadius: RADIUS.pill,
                             minWidth: 16,
                             height: 16,

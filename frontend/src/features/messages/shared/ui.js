@@ -25,6 +25,7 @@ export const C = {
     outBubbleText:   'var(--color-text-primary)',     // muted-green tint üzerinde tema-duyarlı, okunur
     greenSoft:       'rgba(16,185,129,0.12)',
     greenSoftBorder: 'rgba(16,185,129,0.30)',
+    onGreen:         '#062018',              // koyu metin — brand-green rozet/düğme üzerinde
 };
 
 export const BD   = { borderColor: C.border };                              // ortak border yardımcısı

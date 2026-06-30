@@ -11,9 +11,10 @@ const TIER_COLOR = {
 };
 
 export default function NewConversation({ onSelect, onClose }) {
-    const [query,   setQuery]   = useState('');
-    const [results, setResults] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [query,     setQuery]     = useState('');
+    const [results,   setResults]   = useState([]);
+    const [loading,   setLoading]   = useState(false);
+    const [hoveredId, setHoveredId] = useState(null);
     const inputRef = useRef(null);
 
     useEffect(() => { inputRef.current?.focus(); }, []);
@@ -61,8 +62,10 @@ export default function NewConversation({ onSelect, onClose }) {
                     <p className="text-xs text-center pt-8" style={{ color: C.textMuted }}>kullanıcı bulunamadı</p>
                 ) : results.map(u => (
                     <button key={u.id} onClick={() => onSelect(u)}
-                            className="w-full flex items-center gap-3 px-4 py-3 border-b text-left transition-colors hover:bg-white/5"
-                            style={{ ...BD, borderRadius: RADIUS.field }}>
+                            onMouseEnter={() => setHoveredId(u.id)}
+                            onMouseLeave={() => setHoveredId(null)}
+                            className="w-full flex items-center gap-3 px-4 py-3 border-b text-left transition-colors"
+                            style={{ ...BD, borderRadius: RADIUS.field, background: hoveredId === u.id ? C.greenSoft : 'transparent' }}>
                         <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center font-bold shrink-0"
                              style={{ background: C.greenSoft, border: `1px solid ${C.green}`,
                                       color: C.green, fontSize: 14 }}>
