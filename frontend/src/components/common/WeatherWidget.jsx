@@ -50,28 +50,32 @@ async function fetchWeather(lat, lon) {
     return { temp: data.temp, code: data.code, city: data.city };
 }
 
-function CityRow({ city, weather }) {
+function CityRow({ city, weather, loading }) {
     return (
-        <div className="flex items-center justify-between px-4 py-2.5 transition-colors cursor-default"
-             onMouseEnter={e => e.currentTarget.style.background = 'rgba(128,128,128,0.07)'}
-             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            <span className="text-xs font-semibold" style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-primary)' }}>
+        <div className="flex items-center justify-between px-3.5 py-2 border-t"
+             style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
+            <span className="font-mono text-[11px] font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
                 {city.name}
             </span>
             {weather ? (
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px]" style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-muted)' }}>
+                    <span className="font-mono text-[9px]" style={{ color: 'var(--color-text-muted)' }}>
                         {wmoLabel(weather.code)}
                     </span>
                     <div className="flex items-center gap-1">
                         <WxIcon code={weather.code} className="w-3 h-3" style={{ color: 'var(--color-text-secondary)' }} />
-                        <span className="text-sm font-bold" style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-primary)' }}>
+                        <span className="font-mono text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>
                             {weather.temp}°
                         </span>
                     </div>
                 </div>
+            ) : loading ? (
+                <div className="flex items-center gap-2">
+                    <span className="h-[9px] w-[44px] bg-brutal-border/20 animate-pulse" />
+                    <span className="h-[9px] w-[24px] bg-brutal-border/30 animate-pulse" />
+                </div>
             ) : (
-                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>—</span>
+                <span className="font-mono text-[11px]" style={{ color: 'var(--color-text-muted)' }}>—</span>
             )}
         </div>
     );
@@ -82,9 +86,10 @@ const WeatherWidget = () => {
         try { const c = localStorage.getItem('weather_primary'); return c ? JSON.parse(c) : null; } catch { return null; }
     });
     const [, setLoaded] = useState(false);
-    const [open,     setOpen]     = useState(false);
-    const [cityData, setCityData] = useState({});      // id → { temp, code }
-    const [fetched,  setFetched]  = useState(false);
+    const [open,          setOpen]          = useState(false);
+    const [cityData,      setCityData]      = useState({});      // id → { temp, code }
+    const [fetched,       setFetched]       = useState(false);
+    const [citiesLoading, setCitiesLoading] = useState(false);
     const ref = useRef(null);
 
     useEffect(() => {
@@ -114,6 +119,7 @@ const WeatherWidget = () => {
     const loadCities = useCallback(async () => {
         if (fetched) return;
         setFetched(true);
+        setCitiesLoading(true);
         const results = await Promise.allSettled(
             CITIES.map(c => fetchWeather(c.lat, c.lon).then(w => ({ id: c.id, ...w })))
         );
@@ -122,6 +128,7 @@ const WeatherWidget = () => {
             if (r.status === 'fulfilled') map[r.value.id] = { temp: r.value.temp, code: r.value.code };
         });
         setCityData(map);
+        setCitiesLoading(false);
     }, [fetched]);
 
     const toggleOpen = () => {
@@ -188,50 +195,55 @@ const WeatherWidget = () => {
             {/* Dropdown */}
             {open && (
                 <div
-                    className="absolute right-0 top-full mt-1 min-w-57.5 z-50 overflow-hidden animate-fade-up"
+                    className="absolute right-0 top-full mt-1 z-50 overflow-hidden animate-fade-up"
                     style={{
-                        background:   'var(--color-navbar-bg)',
-                        border:       `1px solid ${WX_GREEN}`,
-                        borderRadius: 14,
-                        boxShadow:    '0 12px 40px rgba(0,0,0,0.30)',
-                        minWidth:     '280px',
-                        backdropFilter: 'blur(20px)',
-                        WebkitBackdropFilter: 'blur(20px)',
+                        width:      300,
+                        background: 'var(--color-terminal-surface)',
+                        border:     '1px solid var(--color-terminal-border-raw)',
+                        boxShadow:  '0 16px 40px rgba(0,0,0,0.25)',
                     }}
                 >
-                    {/* Konum başlığı — gradient yok, sadece border */}
-                    <div style={{ borderBottom: `1px solid ${WX_GREEN}`, padding: '12px 16px' }}>
-                        <p className="text-[9px] uppercase tracking-widest mb-2"
-                           style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-muted)' }}>
-                            Konumun
-                        </p>
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm font-bold" style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-primary)' }}>
+                    <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand pointer-events-none" />
+                    <div className="absolute top-0 left-0 h-4 w-[2px] bg-brand pointer-events-none" />
+
+                    {/* Konum başlığı */}
+                    <div className="flex items-center gap-2.5 px-4 py-3">
+                        <div className="min-w-0">
+                            <div className="font-bold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>
                                 {primary.city}
-                            </span>
-                            <div className="flex items-center gap-2">
-                                <span className="text-[10px]" style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-secondary)' }}>
-                                    {wmoLabel(primary.code)}
-                                </span>
-                                <div className="flex items-center gap-1">
-                                    <WxIcon code={primary.code} className="w-3.5 h-3.5" style={{ color: WX_GREEN }} />
-                                    <span className="text-base font-black" style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-primary)' }}>
-                                        {primary.temp}°
-                                    </span>
-                                </div>
                             </div>
+                            <div className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                                Konumun
+                            </div>
+                        </div>
+                        <div className="ml-auto text-right">
+                            <div className="font-mono font-black text-base" style={{ color: 'var(--color-text-primary)' }}>
+                                {primary.temp}°
+                            </div>
+                            <span className="font-mono text-[11px] font-bold inline-flex items-center gap-1 justify-end"
+                                  style={{ color: WX_GREEN }}>
+                                <WxIcon code={primary.code} className="w-3 h-3" />
+                                {wmoLabel(primary.code)}
+                            </span>
                         </div>
                     </div>
 
                     {/* Diğer şehirler */}
-                    <div className="pb-2">
-                        <p className="text-[9px] uppercase tracking-widest px-4 pt-3 pb-1"
-                           style={{ fontFamily: "'Elms Sans',sans-serif", color: 'var(--color-text-muted)' }}>
+                    <div>
+                        <p className="font-mono text-[9px] uppercase tracking-widest px-4 py-2 border-t"
+                           style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-terminal-border-raw)' }}>
                             Diğer Şehirler
                         </p>
                         {CITIES.map(city => (
-                            <CityRow key={city.id} city={city} weather={cityData[city.id] ?? null} />
+                            <CityRow key={city.id} city={city} weather={cityData[city.id] ?? null} loading={citiesLoading} />
                         ))}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between px-4 py-2 border-t font-mono text-[10px]"
+                         style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-terminal-border-raw)' }}>
+                        <span>Open-Meteo</span>
+                        <span>gecikmesiz</span>
                     </div>
                 </div>
             )}
