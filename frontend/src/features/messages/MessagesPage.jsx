@@ -5,8 +5,7 @@ import ConversationList from './components/ConversationList';
 import ChatPanel from './components/ChatPanel';
 import { useConversations } from './hooks/useConversations';
 import { useChat } from './hooks/useChat';
-
-const S = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
+import { RADIUS, SURF } from './shared/ui';
 
 
 
@@ -58,10 +57,12 @@ export default function MessagesPage() {
         setShowEmoji(false);
     }, [text]);
 
-    // pt-32=8rem mobile, pt-36=9rem md+, NewsTicker gizli
+    // Layout <main>: pt-32 md:pt-36 (8/9rem) already seats content below fixed navbar+marketband.
+    // Outer wrapper keeps the matching height calc; px + pb give horizontal/bottom breathing room.
+    // Inner box: Soft Modern — SURF surface + theme-aware border + RADIUS.card rounded corners.
     return (
-        <div className="h-[calc(100dvh-8rem)] md:h-[calc(100dvh-9rem)]">
-            <div className="flex h-full overflow-hidden border" style={S}>
+        <div className="h-[calc(100dvh-8rem)] md:h-[calc(100dvh-9rem)] px-4 pb-4 md:px-6 md:pb-6">
+            <div className="flex h-full overflow-hidden border" style={{ ...SURF, borderRadius: RADIUS.card }}>
 
                 {/* ── SOL: Konuşma listesi ── */}
                 <ConversationList
