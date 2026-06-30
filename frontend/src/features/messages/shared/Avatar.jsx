@@ -1,5 +1,5 @@
 // frontend/src/features/messages/shared/Avatar.jsx
-export default function Avatar({ user, size = 36 }) {
+export default function Avatar({ user, size = 40 }) {
     const c = ['rgba(16,185,129,0.15)','rgba(59,130,246,0.15)','rgba(245,158,11,0.15)','rgba(239,68,68,0.15)'];
     const t = ['var(--color-brand-primary)','var(--color-accent-blue)','var(--color-accent-amber)','#ef4444'];
     const i = (user?.username?.charCodeAt(0) ?? 0) % c.length;
