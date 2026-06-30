@@ -4,9 +4,7 @@ import {
     Send, Smile, ArrowLeft, Loader2,
     X, Reply, ExternalLink,
 } from 'lucide-react';
-import axiosInstance from '../api/axios';
 import { useAuth } from '../contexts/AuthContext';
-import { useWebSocket } from '../contexts/WebSocketContext';
 import Avatar from '../features/messages/shared/Avatar';
 import { formatDateLabel } from '../features/messages/shared/format';
 import LinkedText from '../features/messages/shared/LinkedText';
@@ -16,6 +14,8 @@ import DateSeparator from '../features/messages/components/DateSeparator';
 import EmojiPicker, { EMOJIS } from '../features/messages/components/EmojiPicker';
 import MessageBubble from '../features/messages/components/MessageBubble';
 import ConversationList from '../features/messages/components/ConversationList';
+import { useConversations } from '../features/messages/hooks/useConversations';
+import { useChat } from '../features/messages/hooks/useChat';
 
 const S  = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
@@ -32,148 +32,36 @@ const TIER_COLOR = {
 export default function Messages() {
     const { userId: paramUserId } = useParams();
     const { user: me }            = useAuth();
-    const { subscribe }           = useWebSocket();
     const navigate                = useNavigate();
 
-    const [conversations, setConversations] = useState([]);
-    const [convLoad,      setConvLoad]      = useState(true);
-    const [activeId,      setActiveId]      = useState(paramUserId ?? null);
-    const [partner,       setPartner]       = useState(null);
-    const [messages,      setMessages]      = useState([]);
-    const [msgLoad,       setMsgLoad]       = useState(false);
-    const [text,          setText]          = useState('');
-    const [sending,       setSending]       = useState(false);
-    const [showEmoji,     setShowEmoji]     = useState(false);
-    const [showNewConv,   setShowNewConv]   = useState(false);
-    const [convSearch,    setConvSearch]    = useState('');
-    const [replyTo,       setReplyTo]       = useState(null); // yanıt verilen mesaj
+    /* UI state — stays in page */
+    const [activeId,    setActiveId]    = useState(paramUserId ?? null);
+    const [text,        setText]        = useState('');
+    const [showEmoji,   setShowEmoji]   = useState(false);
+    const [showNewConv, setShowNewConv] = useState(false);
+    const [convSearch,  setConvSearch]  = useState('');
+    const [replyTo,     setReplyTo]     = useState(null);
 
     const msgContainerRef = useRef(null);
     const inputRef        = useRef(null);
-    const convReqIdRef    = useRef(0);
 
-    const loadConversations = useCallback(async (silent = false) => {
-        const reqId = ++convReqIdRef.current;
-        if (!silent) setConvLoad(true);
-        try {
-            const { data } = await axiosInstance.get('/messages/conversations');
-            if (reqId !== convReqIdRef.current) return;
-            setConversations(data.conversations ?? []);
-        } catch { /* sessiz */ }
-        finally { if (reqId === convReqIdRef.current) setConvLoad(false); }
-    }, []);
+    /* ── Data hooks ── */
+    const { conversations, setConversations, convLoad, loadConversations } =
+        useConversations({ activeId });
 
-    useEffect(() => { loadConversations(); }, [loadConversations]);
+    const { partner, messages, msgLoad, loadConversation, handleSend, handleDelete, sending } =
+        useChat({ activeId, me, setConversations, replyTo, setText, setReplyTo, inputRef, loadConversations });
 
-    const loadConversation = useCallback(async (uid) => {
-        if (!uid) return;
-        setMsgLoad(true);
-        try {
-            const { data } = await axiosInstance.get(`/messages/${uid}`);
-            setMessages(data.messages ?? []);
-            setPartner(data.partner);
-            setConversations(prev => prev.map(c =>
-                c.partner_id === uid ? { ...c, unread_count: 0 } : c
-            ));
-        } catch { /* sessiz */ }
-        finally { setMsgLoad(false); }
-    }, []);
-
-    useEffect(() => {
-        if (activeId) loadConversation(activeId);
-    }, [activeId, loadConversation]);
-
+    /* URL param → activeId sync */
     useEffect(() => {
         if (paramUserId && paramUserId !== activeId) setActiveId(paramUserId);
     }, [paramUserId, activeId]);
 
+    /* Auto-scroll on new messages */
     useEffect(() => {
         const el = msgContainerRef.current;
         if (el) el.scrollTop = el.scrollHeight;
     }, [messages]);
-
-    useEffect(() => {
-        const unsub = subscribe('dm.new_message', (payload) => {
-            if (payload.sender_id === activeId) {
-                setMessages(prev => [...prev, {
-                    id:          payload.id,
-                    sender_id:   payload.sender_id,
-                    receiver_id: me?.id,
-                    content:     payload.content,
-                    msg_type:    payload.msg_type,
-                    is_read:     true,
-                    reply_to_id: payload.reply_to_id ?? null,
-                    reply_to:    payload.reply_to ?? null,
-                    created_at:  payload.created_at,
-                }]);
-            } else {
-                setConversations(prev => {
-                    const exists = prev.find(c => c.partner_id === payload.sender_id);
-                    if (exists) {
-                        return prev.map(c => c.partner_id === payload.sender_id
-                            ? { ...c, unread_count: (c.unread_count || 0) + 1, last_message: payload.content, last_at: payload.created_at }
-                            : c
-                        );
-                    }
-                    return [{
-                        partner_id:     payload.sender_id,
-                        partner_name:   payload.sender_name,
-                        partner_avatar: payload.sender_avatar,
-                        last_message:   payload.content,
-                        last_msg_type:  payload.msg_type,
-                        last_at:        payload.created_at,
-                        unread_count:   1,
-                    }, ...prev];
-                });
-            }
-        });
-        return unsub;
-    }, [subscribe, activeId, me?.id]);
-
-    const handleSend = async (content, type = 'text') => {
-        if (!content.trim() || !activeId || sending) return;
-        setSending(true);
-        try {
-            const { data } = await axiosInstance.post(`/messages/${activeId}`, {
-                content:     content.trim(),
-                msg_type:    type,
-                reply_to_id: replyTo?.id ?? null,
-            });
-            setMessages(prev => [...prev, data]);
-            setConversations(prev => {
-                const updated = prev.map(c =>
-                    c.partner_id === activeId
-                        ? { ...c, last_message: data.content, last_msg_type: data.msg_type, last_at: data.created_at }
-                        : c
-                );
-                if (!updated.find(c => c.partner_id === activeId) && partner) {
-                    return [{
-                        partner_id:     activeId,
-                        partner_name:   partner.username,
-                        partner_avatar: partner.avatar_url,
-                        last_message:   data.content,
-                        last_msg_type:  data.msg_type,
-                        last_at:        data.created_at,
-                        unread_count:   0,
-                    }, ...updated];
-                }
-                return updated;
-            });
-            setText('');
-            setReplyTo(null);
-            if (inputRef.current) inputRef.current.style.height = 'auto';
-            inputRef.current?.focus();
-            loadConversations(true);
-        } catch { /* sessiz */ }
-        finally { setSending(false); }
-    };
-
-    const handleDelete = useCallback(async (messageId) => {
-        try {
-            await axiosInstance.delete(`/messages/${messageId}`);
-            setMessages(prev => prev.filter(m => m.id !== messageId));
-        } catch { /* sessiz */ }
-    }, []);
 
     const handleEmojiInsert = useCallback((emoji) => {
         const ta = inputRef.current;
