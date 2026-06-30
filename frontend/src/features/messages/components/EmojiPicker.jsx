@@ -1,6 +1,7 @@
 // frontend/src/features/messages/components/EmojiPicker.jsx
 /* eslint-disable react-refresh/only-export-components */
 import React, { useRef, useEffect } from 'react';
+import { RADIUS, SURF } from '../shared/ui';
 
 export const EMOJIS = [
     '😀','😂','🥲','😍','🤔','😮','😢','😡','👍','👎',
@@ -8,8 +9,6 @@ export const EMOJIS = [
     '👀','🙏','💪','🤝','👋','🎉','🚀','⚠️','📌','💬',
     '😎','🥳','😴','🤯','🫡','💀','👻','🫶','🧠','🕵️',
 ];
-
-const S = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 
 export default function EmojiPicker({ onSelect, onClose }) {
     const ref = useRef(null);
@@ -21,7 +20,8 @@ export default function EmojiPicker({ onSelect, onClose }) {
     return (
         <div ref={ref}
              className="absolute bottom-full mb-2 left-0 z-50 border p-3 shadow-xl"
-             style={S} onClick={e => e.stopPropagation()}>
+             style={{ ...SURF, borderRadius: RADIUS.panel }}
+             onClick={e => e.stopPropagation()}>
             <div className="grid grid-cols-10 gap-1">
                 {EMOJIS.map(e => (
                     <button key={e} onClick={() => onSelect(e)}

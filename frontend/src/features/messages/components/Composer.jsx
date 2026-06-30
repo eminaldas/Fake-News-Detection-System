@@ -1,7 +1,6 @@
-import { Smile, Send, Loader2, Reply, X } from 'lucide-react';
+import { Smile, Send, Loader2, Reply, X, Image } from 'lucide-react';
 import EmojiPicker from './EmojiPicker';
-
-const BD = { borderColor: 'var(--color-terminal-border-raw)' };
+import { RADIUS, C, BD } from '../shared/ui';
 
 export default function Composer({
     text, onTextChange, onSend, sending,
@@ -26,24 +25,28 @@ export default function Composer({
             {replyTo && (
                 <div
                     className="px-4 pt-2 pb-1 flex items-start gap-2 border-b"
-                    style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'rgba(16,185,129,0.04)' }}
+                    style={{
+                        borderColor: C.border,
+                        background: C.greenSoft,
+                        borderRadius: `${RADIUS.field}px ${RADIUS.field}px 0 0`,
+                    }}
                 >
-                    <Reply className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
+                    <Reply className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: C.green }} />
                     <div className="flex-1 min-w-0">
                         <p
                             className="font-mono text-[9px] uppercase tracking-widest"
-                            style={{ color: 'var(--color-brand-primary)' }}
+                            style={{ color: C.green }}
                         >
                             {replyTo.sender_id === meId ? 'Kendine' : partner?.username + "'e"} yanıt
                         </p>
-                        <p className="font-mono text-xs truncate" style={{ color: 'var(--color-text-muted)' }}>
+                        <p className="font-mono text-xs truncate" style={{ color: C.textSecondary }}>
                             {replyTo.content}
                         </p>
                     </div>
                     <button
                         onClick={onCancelReply}
-                        className="p-0.5 shrink-0 transition-opacity hover:opacity-60"
-                        style={{ color: 'var(--color-text-muted)' }}
+                        className="p-1 shrink-0 transition-opacity hover:opacity-60"
+                        style={{ color: C.textMuted }}
                     >
                         <X className="w-3.5 h-3.5" />
                     </button>
@@ -57,10 +60,28 @@ export default function Composer({
                 <div className="flex items-end gap-2">
                     <button
                         onClick={() => onToggleEmoji(v => !v)}
-                        className="p-2 transition-opacity hover:opacity-70 shrink-0 mb-0.5"
-                        style={{ color: showEmoji ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}
+                        className="flex items-center justify-center shrink-0 transition-opacity hover:opacity-70"
+                        style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: RADIUS.pill,
+                            color: showEmoji ? C.green : C.textMuted,
+                        }}
                     >
                         <Smile className="w-5 h-5" />
+                    </button>
+                    <button
+                        disabled
+                        title="yakında"
+                        className="flex items-center justify-center shrink-0 opacity-30 cursor-not-allowed"
+                        style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: RADIUS.pill,
+                            color: C.textMuted,
+                        }}
+                    >
+                        <Image className="w-5 h-5" />
                     </button>
                     <textarea
                         ref={inputRef}
@@ -69,13 +90,14 @@ export default function Composer({
                         onKeyDown={handleKeyDown}
                         placeholder="Mesaj yaz... (Enter gönder, Shift+Enter satır)"
                         rows={1}
-                        className="msg-textarea flex-1 bg-transparent font-mono text-sm outline-none resize-none border px-3 py-2"
+                        className="msg-textarea flex-1 font-mono text-sm outline-none resize-none border px-3 py-2"
                         style={{
-                            borderColor:     'var(--color-terminal-border-raw)',
-                            color:           'var(--color-text-primary)',
+                            borderRadius:    RADIUS.field,
+                            borderColor:     C.border,
+                            color:           C.textPrimary,
+                            background:      C.surface,
                             maxHeight:       120,
                             lineHeight:      1.5,
-                            background:      'var(--color-bg-base)',
                             overflowY:       'auto',
                             scrollbarWidth:  'none',
                             msOverflowStyle: 'none',
@@ -88,8 +110,14 @@ export default function Composer({
                     <button
                         onClick={() => onSend(text, 'text')}
                         disabled={!text.trim() || sending}
-                        className="p-2.5 transition-opacity hover:opacity-80 disabled:opacity-30 shrink-0 mb-0.5"
-                        style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}
+                        className="flex items-center justify-center shrink-0 transition-opacity hover:opacity-80 disabled:opacity-30"
+                        style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 12,
+                            background: C.green,
+                            color: C.onGreen,
+                        }}
                     >
                         {sending
                             ? <Loader2 className="w-4 h-4 animate-spin" />
