@@ -65,7 +65,7 @@ export default function ConversationList({
                     </div>
                 ) : filtered.map(c => (
                     <ConversationItem key={c.partner_id} conv={c} active={activeId === c.partner_id}
-                                     onClick={() => onSelectConv(c.partner_id)} />
+                                     onClick={() => onSelectConv(c)} />
                 ))}
             </div>
         </div>

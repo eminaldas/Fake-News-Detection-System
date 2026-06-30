@@ -29,7 +29,7 @@ export default function MessagesPage() {
     const { conversations, setConversations, convLoad, loadConversations } =
         useConversations({ activeId });
 
-    const { partner, messages, msgLoad, loadConversation, handleSend, handleDelete, sending } =
+    const { partner, messages, msgLoad, loadConversation, handleSend, handleDelete, sending, beginConversation } =
         useChat({ activeId, me, setConversations, replyTo, setText, setReplyTo, inputRef, loadConversations });
 
     /* URL param → activeId sync */
@@ -83,11 +83,20 @@ export default function MessagesPage() {
                         activeId={activeId}
                         search={convSearch}
                         onSearchChange={e => setConvSearch(e.target.value)}
-                        onSelectConv={id => { setActiveId(id); navigate(`/messages/${id}`, { replace: true }); }}
+                        onSelectConv={conv => {
+                            beginConversation({ id: conv.partner_id, username: conv.partner_name, avatar_url: conv.partner_avatar });
+                            setActiveId(conv.partner_id);
+                            navigate(`/messages/${conv.partner_id}`, { replace: true });
+                        }}
                         onNewClick={() => setShowNewConv(true)}
                         showNewConv={showNewConv}
                         onNewClose={() => setShowNewConv(false)}
-                        onNewSelect={u => { setShowNewConv(false); setActiveId(u.id); navigate(`/messages/${u.id}`, { replace: true }); }}
+                        onNewSelect={u => {
+                            setShowNewConv(false);
+                            beginConversation({ id: u.id, username: u.username, avatar_url: u.avatar_url });
+                            setActiveId(u.id);
+                            navigate(`/messages/${u.id}`, { replace: true });
+                        }}
                     />
 
                     {/* ── SAĞ: Sohbet alanı ── */}

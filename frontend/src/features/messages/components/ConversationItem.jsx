@@ -15,7 +15,6 @@ export default function ConversationItem({ conv, active, onClick }) {
             style={{
                 ...BD,
                 background: active || hovered ? C.greenSoft : 'transparent',
-                borderRadius: RADIUS.field,
                 boxShadow: active ? 'inset 3px 0 0 var(--color-brand-primary)' : 'none',
             }}
         >

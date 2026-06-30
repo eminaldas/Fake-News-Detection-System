@@ -115,5 +115,11 @@ export function useChat({
         } catch { /* sessiz */ }
     }, []);
 
-    return { partner, messages, setMessages, msgLoad, loadConversation, handleSend, handleDelete, sending };
+    const beginConversation = useCallback((p) => {
+        // p: { id, username, avatar_url } — optimistik başlık verisi (liste verisinden)
+        setPartner(prev => (prev && prev.id === p.id) ? prev : p);
+        setMessages([]);
+    }, []);
+
+    return { partner, messages, setMessages, msgLoad, loadConversation, handleSend, handleDelete, sending, beginConversation };
 }
