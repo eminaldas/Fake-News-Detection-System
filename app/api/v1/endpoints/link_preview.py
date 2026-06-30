@@ -37,7 +37,7 @@ _EMPTY = {
 }
 
 
-def _check_redirect(request, response):
+async def _check_redirect(response):
     if response.is_redirect:
         loc = response.headers.get("location", "")
         if loc and not _is_safe_url(loc):
