@@ -333,3 +333,65 @@ def _classify_content(
         types.append("news")
 
     return types if types else ["news"]
+
+
+_SERVICE_SCHEDULE_PATTERNS = [
+    re.compile(r'\bsaat kaçta\b'),
+    re.compile(r'\bhangi kanalda\b'),
+    re.compile(r'\bmuhtemel 11\b'),
+    re.compile(r'\bcanlı izle\b'),
+]
+
+_SERVICE_PROGRAM_PATTERNS = [
+    re.compile(r'\byeni bölüm\b'),
+    re.compile(r'\bfragman\b'),
+    re.compile(r'\byayın akışı\b'),
+]
+
+_SERVICE_TRIVIA_PATTERNS = [
+    re.compile(r'\bburç\b'),
+    re.compile(r'\bhava durumu\b'),
+    re.compile(r'\bloto sonuç'),
+    re.compile(r'\bpiyango\b'),
+    re.compile(r'\bçekiliş\b'),
+    re.compile(r'\bat yarışı\b'),
+]
+
+_PRACTICAL_INFO_PATTERNS = [
+    re.compile(r'\bne zaman yatacak\b'),
+    re.compile(r'\bsonuçları açıkland'),
+    re.compile(r'\bsınav sonuç'),
+    re.compile(r'\bbaşvuru\b'),
+    re.compile(r'\be-devlet\b'),
+]
+
+_SCHEDULE_CATEGORIES = {"spor"}
+_PROGRAM_CATEGORIES  = {"kültür", "yaşam"}
+
+
+def _classify_content_type(title: str, category: str | None) -> list[str] | None:
+    """
+    Başlığı düşük editoryal değerli servis/trivia türlerine göre etiketler.
+    Kategori sırasıyla kontrol edilir, ilk eşleşen döner. Hiçbiri eşleşmezse
+    None (normal haber — mevcut davranış).
+    """
+    if not title:
+        return None
+
+    text = _turkish_lower(title)
+
+    if category in _SCHEDULE_CATEGORIES:
+        if any(p.search(text) for p in _SERVICE_SCHEDULE_PATTERNS):
+            return ["service_schedule"]
+
+    if category in _PROGRAM_CATEGORIES:
+        if any(p.search(text) for p in _SERVICE_PROGRAM_PATTERNS):
+            return ["service_program"]
+
+    if any(p.search(text) for p in _SERVICE_TRIVIA_PATTERNS):
+        return ["service_trivia"]
+
+    if any(p.search(text) for p in _PRACTICAL_INFO_PATTERNS):
+        return ["practical_info"]
+
+    return None
