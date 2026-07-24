@@ -11,6 +11,7 @@ import uuid as _uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, case, func, select
+from sqlalchemy.dialects.postgresql import array as pg_array
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_optional_user
@@ -20,6 +21,20 @@ from app.schemas.schemas import NewsArticleResponse, NewsListResponse
 from app.services.category_tree import build_category_tree
 
 router = APIRouter()
+
+_HIDDEN_CONTENT_TYPES = ["service_schedule", "service_program", "service_trivia"]
+
+
+def _hidden_content_type_filter():
+    """
+    Servis/trivia etiketli (A/B/C) içerikleri varsayılan feed'den gizleyen koşul.
+    content_type IS NULL olan kayıtlar bilinçli olarak dahil edilir — aksi halde
+    `NOT (NULL ?| ...)` SQL'de NULL döner ve WHERE bu satırları sessizce elerdi.
+    """
+    return (
+        NewsArticle.content_type.is_(None)
+        | ~NewsArticle.content_type.op("?|")(pg_array(_HIDDEN_CONTENT_TYPES))
+    )
 
 
 @router.get("", response_model=NewsListResponse)
@@ -42,6 +57,7 @@ async def list_news(
     base_filter = [
         NewsArticle.id == NewsArticle.cluster_id,
         (NewsArticle.pub_date.is_(None) | (NewsArticle.pub_date <= now_plus_2h)),
+        _hidden_content_type_filter(),
     ]
     if category:
         base_filter.append(NewsArticle.category == category)
