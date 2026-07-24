@@ -34,6 +34,7 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 from app.models.models import NewsArticle
+from ml_engine.processing.cleaner import _classify_content_type
 
 _WARM_WIDTH = 800
 _WARM_TTL   = 3600  # proxy.py ile aynı
@@ -533,6 +534,7 @@ async def _run_ingest():
                 else:
                     cluster_id = None  # aşağıda article_id ile dolacak
 
+                content_type = _classify_content_type(title, category)
                 article_id = uuid_module.uuid4()
                 if cluster_id is None:
                     cluster_id = article_id
@@ -555,7 +557,7 @@ async def _run_ingest():
                     label_source = None,
                     nlp_score    = None,
                     nlp_signals  = None,
-                    content_type = None,
+                    content_type = content_type,
                 )
                 db.add(article)
                 if image_url:
