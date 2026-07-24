@@ -52,18 +52,22 @@ export default function DailySummaryPanel() {
     if (loading) return <SkeletonPanel />;
 
     return (
-        <div className="overflow-hidden flex flex-col animate-fade-up w-full"
-             style={{ background: 'var(--color-terminal-surface)', borderLeft: `3px solid ${GREEN}55` }}>
+        <div className="relative overflow-hidden flex flex-col animate-fade-up w-full shadow-lg"
+             style={{ background: 'var(--color-terminal-surface)' }}>
+
+            {/* Neon sol aksan */}
+            <div className="absolute inset-y-0 left-0 w-1"
+                 style={{ background: `linear-gradient(to bottom, ${GREEN}, color-mix(in srgb, ${GREEN} 30%, transparent), transparent)` }} />
 
             {/* Başlık */}
-            <div className="flex items-center gap-2.5 px-5 pt-5 pb-4 border-b" style={{ borderColor: BORDER }}>
-                <Sparkles className="w-4 h-4 shrink-0" style={{ color: GREEN }} />
-                <span className="text-sm font-bold flex-1" style={{ color: TEXT_PRI }}>
+            <div className="flex justify-between items-start gap-3 p-6 pb-5">
+                <h2 className="text-[26px] leading-[1.1] font-bold tracking-tight flex items-center gap-2.5" style={{ color: TEXT_PRI }}>
+                    <Sparkles className="w-6 h-6 shrink-0" style={{ color: GREEN }} />
                     Günün Özeti
-                </span>
+                </h2>
                 {data && (
-                    <span className="text-[10px] font-semibold px-2 py-0.5 flex items-center gap-1.5"
-                          style={{ color: TEXT_MUT, border: `1px solid ${BORDER}` }}>
+                    <span className="text-[10px] font-semibold px-2.5 py-1.5 flex items-center gap-1.5 shrink-0"
+                          style={{ color: GREEN, background: `color-mix(in srgb, ${GREEN} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${GREEN} 35%, transparent)` }}>
                         <Clock className="w-3 h-3" />
                         {data.slot}
                     </span>

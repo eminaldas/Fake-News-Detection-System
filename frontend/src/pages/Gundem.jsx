@@ -25,8 +25,8 @@ export default function Gundem() {
     }, [subscribe, refresh]);
 
     return (
-        <div className="w-full pt-14 pb-16 px-4">
-            <div className="max-w-400 mx-auto">
+        <div className="w-full pt-14 pb-16 px-6 md:px-10">
+            <div className="max-w-[2400px] mx-auto">
 
                 {/* ── Header — üç sütunun üstünde, hepsi aynı hizada ── */}
                 <div className="mb-5">
@@ -34,7 +34,7 @@ export default function Gundem() {
                        style={{ color: 'var(--color-brand-primary)' }}>
                     </p>
                     <h1 key={category ?? 'for-you'}
-                        className="text-4xl md:text-5xl font-extrabold font-manrope tracking-tight leading-none animate-fade-up"
+                        className="text-4xl md:text-5xl font-extrabold font-manrope tracking-normal leading-tight animate-fade-up"
                         style={{ color: 'var(--color-text-primary)' }}>
                         {category
                             ? <>{category.charAt(0).toLocaleUpperCase('tr-TR') + category.slice(1)}<span style={{ color: 'var(--color-brand-primary)' }}>.</span></>
@@ -47,13 +47,13 @@ export default function Gundem() {
                 <div className="flex gap-5 w-full items-start">
 
                     {/* Sol Sidebar: Günün Özeti */}
-                    <aside className="hidden lg:block w-72 shrink-0 sticky top-14 self-start"
-                           style={{ border: '1px solid var(--color-terminal-border-raw)' }}>
+                    <aside className="hidden lg:block w-96 shrink-0 sticky top-14 self-start">
                         <DailySummaryPanel />
                     </aside>
 
                     {/* Orta: Ana İçerik */}
                     <main className="flex-1 min-w-0">
+                      <div className="max-w-[1400px] mx-auto">
 
                         {newCount > 0 && (
                             <button
@@ -96,11 +96,11 @@ export default function Gundem() {
                             hasMore={hasMore}
                             loadMore={loadMore}
                         />
+                      </div>
                     </main>
 
                     {/* Sağ Sidebar: Bugün Trend */}
-                    <aside className="hidden lg:block w-72 shrink-0 sticky top-14 self-start"
-                           style={{ border: '1px solid var(--color-terminal-border-raw)' }}>
+                    <aside className="hidden lg:block w-96 shrink-0 sticky top-14 self-start">
                         <TrendingPanel category={category} />
                     </aside>
 

@@ -314,6 +314,16 @@ const Navbar = () => {
                 {/* ── SAĞ — flex-1 + justify-end ── */}
                 <div className="flex-1 flex items-center justify-end gap-1">
 
+                    {/* Tema değiştir */}
+                    <button
+                        onClick={toggleTheme}
+                        className="p-2 flex items-center justify-center transition-opacity hover:opacity-70"
+                        style={{ color: 'var(--color-text-primary)' }}
+                        title={isDarkMode ? 'Aydınlık moda geç' : 'Karanlık moda geç'}
+                    >
+                        {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+                    </button>
+
                     {/* Giriş yok */}
                     {!isAuthenticated && (
                         <div className="hidden md:flex items-center gap-3">
@@ -444,15 +454,6 @@ const Navbar = () => {
                                                 </p>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    {/* Tema */}
-                                    <div className="border-b" style={BD}>
-                                        <MenuRow
-                                            icon={isDarkMode ? Sun : Moon}
-                                            label={isDarkMode ? 'Aydınlık moda geç' : 'Karanlık moda geç'}
-                                            onClick={toggleTheme}
-                                        />
                                     </div>
 
                                     {/* Profil linkleri */}
