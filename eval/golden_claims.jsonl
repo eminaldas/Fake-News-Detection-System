@@ -1,0 +1,8 @@
+{"claim_text": "İran, Bahreyn'de ABD 5. Filosu'nun bulunduğu üssü yeniden hedef aldı.", "expected_entities": ["LOCATION::iran", "LOCATION::bahreyn", "ORGANIZATION::abd_5_filosu"], "expected_verdict": "AUTHENTIC"}
+{"claim_text": "Sayın Mehmet Şimşek silmişti ama yılın o ayı geldi işte.", "expected_entities": ["PERSON::mehmet_simsek"], "expected_verdict": "AUTHENTIC"}
+{"claim_text": "Yozgat'ın Sorgun ilçesindeki çeşme gerçek mi?", "expected_entities": ["LOCATION::yozgat", "LOCATION::sorgun"], "expected_verdict": "AUTHENTIC"}
+{"claim_text": "Sudan İç Savaşındaki durum sandığımızdan çok daha kötü.", "expected_entities": ["LOCATION::sudan"], "expected_verdict": "FAKE"}
+{"claim_text": "MGM filmlerindeki aslanın gerçek olduğunu ve elektrik verilerek kükretilmeye zorlandığını biliyor muydunuz?", "expected_entities": ["ORGANIZATION::mgm"], "expected_verdict": "FAKE"}
+{"claim_text": "Barselona metrosunda, Kuzey Afrikalı bir göçmenin yalnızca kadınları hedef aldığı bir saldırı gerçekleşti.", "expected_entities": ["LOCATION::barselona"], "expected_verdict": "FAKE"}
+{"claim_text": "ChatGPT artık sağlık, hukuk ve finans alanlarında tavsiye vermeyecek.", "expected_entities": ["ORGANIZATION::chatgpt"], "expected_verdict": "FAKE"}
+{"claim_text": "Görüntüler Fethullah Gülen'in ölüm yıldönümünde mi çekildi?", "expected_entities": ["PERSON::fethullah_gulen"], "expected_verdict": "FAKE"}
