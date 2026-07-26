@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 from ml_engine.processing.entity_extractor import (
     normalize_entity_name,
     validate_extraction_response,
-    ENTITY_TYPES,
 )
 
 

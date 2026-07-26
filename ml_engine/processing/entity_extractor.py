@@ -95,13 +95,12 @@ def extract_claim_entities(text: str) -> list[dict]:
             client, prompt,
             types.GenerateContentConfig(response_mime_type="application/json"),
         )
+        raw = _extract_json_list(response.text)
+        validated = validate_extraction_response(raw)
+        if validated is None:
+            logger.warning("entity_extractor: geçersiz yanıt yapısı: %r", response.text[:200])
+            return []
+        return validated
     except Exception as exc:
         logger.warning("entity_extractor: Gemini çağrısı başarısız: %s", exc)
         return []
-
-    raw = _extract_json_list(response.text)
-    validated = validate_extraction_response(raw)
-    if validated is None:
-        logger.warning("entity_extractor: geçersiz yanıt yapısı: %r", response.text[:200])
-        return []
-    return validated
