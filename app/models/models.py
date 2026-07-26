@@ -188,6 +188,58 @@ class AnalysisResult(Base):
     article = relationship("Article", back_populates="analysis_result")
 
 
+class Entity(Base):
+    __tablename__ = "entities"
+
+    id              = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    entity_type     = Column(String(20), nullable=False)
+    name            = Column(String(255), nullable=False)
+    normalized_name = Column(String(255), nullable=False)
+    created_at      = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("entity_type", "normalized_name", name="uq_entities_type_normalized_name"),
+        CheckConstraint(
+            "entity_type IN ('PERSON','ORGANIZATION','LOCATION','EVENT')",
+            name="ck_entities_type",
+        ),
+    )
+
+
+class Claim(Base):
+    __tablename__ = "claims"
+
+    id           = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    article_id   = Column(UUID(as_uuid=True), ForeignKey("articles.id"), nullable=False, unique=True)
+    verdict      = Column(String(20), nullable=False)
+    source_type  = Column(String(20), nullable=False)
+    confidence   = Column(Float, nullable=True)
+    resolved_at  = Column(DateTime(timezone=True), nullable=False)
+    created_at   = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        CheckConstraint(
+            "verdict IN ('FAKE','AUTHENTIC','IDDIA','UNKNOWN')",
+            name="ck_claims_verdict",
+        ),
+        CheckConstraint(
+            "source_type IN ('TEYIT_ARCHIVE','GEMINI_VERDICT','DEEP_REPORT','TRAINING_CORPUS')",
+            name="ck_claims_source_type",
+        ),
+    )
+
+
+class ClaimEntity(Base):
+    __tablename__ = "claim_entities"
+
+    claim_id  = Column(UUID(as_uuid=True), ForeignKey("claims.id", ondelete="CASCADE"), primary_key=True)
+    entity_id = Column(UUID(as_uuid=True), ForeignKey("entities.id", ondelete="CASCADE"), primary_key=True)
+
+    __table_args__ = (
+        Index("ix_claim_entities_entity_id", "entity_id"),
+    )
+
+
 class ImageCache(Base):
     __tablename__ = "image_cache"
 
