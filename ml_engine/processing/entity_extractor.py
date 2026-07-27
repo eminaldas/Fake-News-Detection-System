@@ -93,7 +93,10 @@ def extract_claim_entities(text: str) -> list[dict]:
         client = _get_gemini_client()
         response = generate_with_fallback(
             client, prompt,
-            types.GenerateContentConfig(response_mime_type="application/json"),
+            types.GenerateContentConfig(
+                response_mime_type="application/json",
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
+            ),
         )
         raw = _extract_json_list(response.text)
         validated = validate_extraction_response(raw)
