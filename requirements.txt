@@ -28,6 +28,7 @@ scikit-learn
 
 # Data (ingest scriptleri için)
 pandas
+pyyaml   # scripts/count_infra.py — docker-compose.yml parse
 
 # Görsel analiz
 Pillow>=10.0.0
