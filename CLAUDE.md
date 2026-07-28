@@ -63,7 +63,7 @@ cd frontend && npm run lint    # Lint check
 2. Signal extraction: 8 signals (see NLP improvements below)
 3. BERT embedding: single vector via `get_embedding(cleaned_text)`
 4. scikit-learn classifier (`ml_engine/models/fake_news_classifier.pkl`)
-5. Weighted ensemble: `combined = 0.70 × fake_p + 0.30 × risk_score`; threshold 0.50
+5. Weighted ensemble: `combined = MODEL_WEIGHT × fake_p + (1-MODEL_WEIGHT) × risk_score`; `MODEL_WEIGHT = settings.ENSEMBLE_MODEL_WEIGHT` (default **1.0** as of 2026-07-28 — empirically the best Macro-F1 in `scripts/decision_policy_ablation.py`'s 5-fold sweep; effectively the risk term contributes 0 to the final decision, see note below); threshold 0.50. (A rule-based `strong_manipulative` override existed here until 2026-07-28 — removed after the same script measured it never improved fake recall and slightly worsened the false-positive rate; see `docs/decision_policy_ablation_report.md`.)
 
 ---
 
@@ -105,11 +105,13 @@ Bu mantık, düşük güvenli AUTHENTIC tahminlerini minimal kural sinyaliyle FA
 
 **Yeni yaklaşım (ağırlıklı ensemble):**
 ```python
-combined    = 0.70 × fake_p  +  0.30 × risk
+combined    = MODEL_WEIGHT × fake_p  +  (1-MODEL_WEIGHT) × risk
 pred_status = "FAKE" if combined > 0.50 else "AUTHENTIC"
 confidence  = max(combined, 1 - combined)
 ```
-Hiçbir sinyal kaynağı (model veya kural) tek başına kararı ele geçiremez.
+`MODEL_WEIGHT` = `settings.ENSEMBLE_MODEL_WEIGHT`. Tarihçesi: ilk yazıldığında 0.70, sonra kodda sessizce 0.55'e kaymıştı (makale/CLAUDE.md hâlâ 0.70 diyordu — kod/doküman çelişkisiydi), 2026-07-28'de `scripts/decision_policy_ablation.py` ile 0.0-1.0 arası 5-fold CV tarandı ve **1.0** en iyi Macro-F1'i verdi (0.8724). Yani risk skorunun ayrı bir ensemble terimi olarak katkısı ölçülemedi — 8 sinyal zaten classifier'ın 776-dim feature vektörünün içinde (bkz. `docs/ablation_signal_study_report.md`, orada fayda gösterildi). "Hibrit" iddiası bu iki deneyle birlikte şöyle çerçevelenmeli: sinyaller **feature olarak** katkı sağlıyor, **ayrı bir kural-tabanlı oylama katmanı olarak değil**. `compute_risk()` kod tabanında kalmaya devam ediyor çünkü (a) classifier yüklenemezse fallback kararı için kullanılıyor, (b) SignalPanel/HighlightedText ile kullanıcıya şeffaflık için gösteriliyor.
+
+Not (2026-07-28): Bu ensemble'dan önce çalışan bir `strong_manipulative` kural override'ı vardı (belirli clickbait/hedge/caps eşik kombinasyonlarında sınıflandırıcı hiç çalıştırılmadan doğrudan `FAKE` üretiliyordu). Aynı script ile ölçüldü: override açıkken/kapalıyken fake recall **birebir aynı** çıktı (0.7751=0.7751) — yani override hiçbir zaman modelin kaçırdığı bir sahteyi yakalamıyordu, sadece FP rate'i hafifçe kötüleştiriyordu (0.0841→0.0858). Bu ölçüm sonucu kaldırıldı — artık ensemble tek karar yolu. Detay: `docs/decision_policy_ablation_report.md`.
 
 ### 3. Başlık/İçerik Embedding Ayrımı — UYGULANMADI
 
@@ -149,24 +151,44 @@ Not: Eski filtre (`metadata_info->>'source' IS NOT NULL`) yalnızca AUTHENTIC ka
 weight = similarity²   # yakın eşleşmeler üstel olarak daha fazla oy taşır
 winner = argmax(weighted_votes["FAKE"], weighted_votes["AUTHENTIC"])
 ```
-Response'a `match_count` ve `vote_confidence` alanları eklendi. Tek eşleşmede davranış değişmez.
+Response'a `match_count` ve `vote_agreement` alanları eklendi (adı `vote_confidence`'tan değiştirildi — bu değer gerçek tahmin güveni değil, kazanan sınıfın oy uzlaşma oranıdır). Kanıt (`evidence`), en yakın eşleşmeden değil, kazanan sınıftaki en yüksek benzerlikli eşleşmeden seçilir. Tek eşleşmede davranış değişmez.
+
+Not: Ensemble ağırlığı (`combined = MODEL_WEIGHT×fake_p + (1-MODEL_WEIGHT)×risk`) artık `settings.ENSEMBLE_MODEL_WEIGHT` üzerinden okunur (varsayılan **1.0**, ölçülen argmax — bkz. yukarıdaki "Stage 2" bölümü), hardcoded 0.70/0.30 değil — bkz. `workers/tasks.py`.
+
+### Sınıflandırma Terminolojisi — Üç Ayrı Taksonomi
+
+Kod tabanında üç farklı, birbirine dönüştürülmeyen sınıflandırma sistemi bulunuyor. Bunlar aynı kavramın tutarsız isimleri değil, **kasıtlı olarak farklı üç bileşen**dir:
+
+| Taksonomi | Değerler | Nerede | Ne anlama gelir |
+|-----------|----------|--------|------------------|
+| ML/kural karar sistemi | `FAKE` / `AUTHENTIC` / `UNKNOWN` | `AnalysisResult.status`, `Article.status`, `workers/tasks.py`, `app/api/v1/endpoints/analysis.py` | Otomatik pipeline'ın (Stage 1 + Stage 2) ürettiği makine kararı |
+| Forum topluluk oylaması | `suspicious` / `authentic` / `investigate` (`ck_forum_vote_type`, `app/models/models.py`) | Forum thread modelleri, `forum.py` | İnsan kullanıcıların oyladığı, ML kararından bağımsız bir topluluk-doğrulama sinyali — ML sonucunu geçersiz kılmaz, ayrı bir katmandır |
+| Gemini/görsel LLM verdict'i | `AI_GENERATED` / `MANIPULATED` / `AUTHENTIC` / `UNCERTAIN`, ayrıca `TRUE`/`FALSE`/`MISLEADING` gibi serbest metin çıktılar | `workers/image_analysis_task.py`, `workers/ai_comment_task.py` | LLM'in kendi ürettiği, serbest formatlı bir değerlendirme; DB'ye yapılandırılmış şekilde yazılmaz (JSONB, `gemini_result`/`ai_comment`) |
+
+Bu üç sistemi **tek bir enum'a birleştirmek/rename etmek yapılmadı** çünkü `status` alanları DB'de zaten canlı veri içeriyor (rename bir migration + tüm eski kayıtların dönüştürülmesini gerektirir, yüksek risk/düşük fayda). Makalede/tez metninde üçünün ayrı taksonomiler olduğu açıkça belirtilmeli; "sistemde 4 farklı sınıflandırma şeması var, tutarsız" eleştirisine karşı savunma budur — aslında 3 farklı **bileşen** var, her biri kendi amacına göre isimlendirilmiş.
 
 ### Key Components
 
 | Path | Role |
 |------|------|
 | `app/main.py` | FastAPI app entry point, router registration |
-| `app/api/v1/endpoints/analysis.py` | Core analysis endpoint |
-| `app/models/models.py` | Article (768-dim pgvector embedding), AnalysisResult, Source ORM models |
+| `app/api/v1/endpoints/analysis.py` | Core analysis endpoint (Stage 1 vote + Stage 2 dispatch, task_id/result_id provenance) |
+| `app/models/models.py` | Article (768-dim pgvector embedding), AnalysisResult, AnalysisRequest, AnalysisMatch, ModelTrainingRun, Source ORM models |
 | `ml_engine/vectorizer.py` | Turkish sentence embedding generation (`emrecan/bert-base-turkish-cased-mean-nli-stsb-tr`) |
 | `ml_engine/processing/cleaner.py` | Text preprocessing & linguistic signal extraction |
-| `workers/tasks.py` | Main Celery analysis tasks |
+| `ml_engine/scoring/decision_policy.py` | **Tek karar mekanizması** — risk skoru, ensemble kararı; `workers/tasks.py` ve `scripts/decision_policy_ablation.py` bunu kullanır (bkz. "Sınıflandırma Terminolojisi" üstündeki not) |
+| `workers/tasks.py` | Main Celery analysis tasks — model hot-reload (`_maybe_reload_classifier`) burada |
+| `workers/retrain_task.py` | Nightly model retraining — atomik dosya değişimi + 3'lü regresyon guard (accuracy/macro_f1/fake_recall) |
 | `workers/agent_tasks.py` | AI News Agent (RSS monitoring + fact-checking pipeline) |
 | `scrapers/rss_monitor.py` | RSS feed monitoring for automated ingestion |
+| `scripts/decision_policy_ablation.py` | Ensemble ağırlığı/override etkisini 5-fold CV ile ölçen script → `docs/decision_policy_ablation_report.md` |
+| `scripts/count_infra.py` | Docker servis sayısı + gerçek API route sayısını otomatik sayar (makaledeki rakamlar elle güncellenmemeli) |
 
 ### Database
 
 PostgreSQL with pgvector. Articles store 768-dimensional BERT embeddings; cosine similarity search uses the `<=>` operator. Metadata is JSONB (evidence, fact-check sources, radar search results).
+
+`AnalysisResult` artık karar sürecinin tam izini tutuyor: `model_probability`, `risk_score`, `combined_score`, `model_version` (classifier `.pkl` dosyasının mtime'ı), `policy_version` (bkz. `decision_policy.POLICY_VERSION`), `decision_path` (`"ensemble"` | `"classifier_error"` | `"no_classifier"`). `AnalysisRequest.result_id` ilgili sonuca işaret eder (işlem sürerken NULL). `AnalysisMatch` tablosu Stage 1 oylamasına giren en fazla 3 eşleşmenin tamamını (rank/similarity/vote_weight/is_winner) saklar — önceden yalnızca en iyi eşleşme (evidence) tutuluyordu. Bkz. migration `d1a2p3o4l5c6`, `e2b3m4a5t6c7`, `f3g4t5r6a7i8` (2026-07-28, hakem-PDF revizyonu sonrası).
 
 ### Environment Variables (`.env`)
 

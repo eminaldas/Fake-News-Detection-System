@@ -10,7 +10,7 @@ A full-stack platform for automated fake news detection in Turkish. Combines BER
 
 ### Analysis Pipeline
 - **Stage 1 — Semantic Search:** Incoming text is vectorized (Turkish BERT, 768-dim) and matched against a knowledge base via pgvector cosine similarity. Threshold: 0.08 (~92% similarity). Top-3 matches use similarity² weighted voting.
-- **Stage 2 — ML Classification (async Celery):** 8 NLP signals extracted → combined with BERT embedding into a 776-dim feature vector → StandardScaler + LogisticRegression → weighted ensemble: `combined = 0.70 × fake_p + 0.30 × risk`
+- **Stage 2 — ML Classification (async Celery):** 8 NLP signals extracted → combined with BERT embedding into a 776-dim feature vector → StandardScaler + LogisticRegression → weighted ensemble: `combined = MODEL_WEIGHT × fake_p + (1-MODEL_WEIGHT) × risk` (configurable, `settings.ENSEMBLE_MODEL_WEIGHT`, empirically tuned — see `docs/decision_policy_ablation_report.md`)
 - **Stage 3 — Deep Report (on demand):** 3-stage Gemini research agent (triage → evidence gathering → synthesis). Produces 7-scale verdict, multi-dimensional credibility score, decisive factors, domain context, precedent cases, numeric claim verification.
 
 ### Content & Community
@@ -38,7 +38,7 @@ A full-stack platform for automated fake news detection in Turkish. Combines BER
 | ML | scikit-learn, `emrecan/bert-base-turkish-cased-mean-nli-stsb-tr` |
 | Task Queue | Celery + Redis |
 | LLM | Google Gemini 3.5 Flash |
-| Infra | Docker Compose (9 services), DigitalOcean, Vercel, Cloudflare |
+| Infra | Docker Compose (12 production services + dev-only frontend), DigitalOcean, Vercel, Cloudflare |
 
 ---
 
@@ -74,12 +74,14 @@ Cloudflare (CDN + DDoS + SSL)
             ├── PostgreSQL:5432 + pgvector
             ├── Redis:6379 (broker + cache)
             └── Celery Workers
-                    ├── worker           (analysis pipeline)
-                    ├── rss-worker       (news ingestion)
+                    ├── worker            (analysis pipeline)
+                    ├── rss-worker        (news ingestion)
                     ├── ai-comment-worker (Gemini comments)
-                    ├── rss-beat         (6×/day scheduler)
-                    ├── audit-beat       (async log flush)
-                    └── news-agent       (65-source monitor)
+                    ├── category-worker   (content categorization)
+                    ├── rss-beat          (6×/day scheduler)
+                    ├── category-beat     (categorization scheduler)
+                    ├── audit-beat        (async log flush + nightly model retrain)
+                    └── news-agent        (65-source monitor)
 ```
 
 ---
