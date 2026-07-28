@@ -603,12 +603,17 @@ class FeedbackRequest(BaseModel):
 
 
 class TrainingRunResponse(BaseModel):
-    triggered_at:   Optional[datetime] = None
-    accuracy:       Optional[float]    = None
-    prev_accuracy:  Optional[float]    = None
+    triggered_at:     Optional[datetime] = None
+    accuracy:         Optional[float]    = None
+    prev_accuracy:    Optional[float]    = None
+    macro_f1:         Optional[float]    = None
+    prev_macro_f1:    Optional[float]    = None
+    fake_recall:      Optional[float]    = None
+    prev_fake_recall: Optional[float]    = None
     status:         Optional[str]      = None
     sample_count:   Optional[int]      = None
     feedback_count: Optional[int]      = None
+    notes:          Optional[str]      = None
 
     model_config = ConfigDict(from_attributes=True)
 

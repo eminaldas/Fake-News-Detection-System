@@ -92,9 +92,34 @@ class AnalysisRequest(Base):
     ip_hash       = Column(String(64), nullable=False)
     analysis_type = Column(Enum(AnalysisType), nullable=False)
     task_id       = Column(String(255), nullable=True)
+    result_id     = Column(UUID(as_uuid=True), ForeignKey("analysis_results.id"), nullable=True, index=True)
     created_at    = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="analysis_requests")
+
+
+class AnalysisMatch(Base):
+    """
+    Stage 1 (pgvector) benzerlik oylamasına katılan her eşleşme — yalnızca kazanan
+    değil, oylamaya giren en fazla 3 kaydın tamamı. PDF revizyon notu: "en fazla üç
+    benzer makale ağırlıklı oylamada kullanılıyor ama yalnızca biri saklanıyor".
+    """
+    __tablename__ = "analysis_matches"
+
+    id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    request_id  = Column(UUID(as_uuid=True), ForeignKey("analysis_requests.id", ondelete="CASCADE"), nullable=False, index=True)
+    article_id  = Column(UUID(as_uuid=True), ForeignKey("articles.id"), nullable=False)
+    rank        = Column(Integer, nullable=False)          # 1 = en yakın
+    similarity  = Column(Float, nullable=False)             # [0,1]
+    cosine_distance   = Column(Float, nullable=False)
+    normalized_label  = Column(String(20), nullable=False)  # FAKE | AUTHENTIC | UNKNOWN
+    vote_weight       = Column(Float, nullable=False)       # similarity**2
+    is_winner         = Column(Boolean, nullable=False)     # bu etiket oylamayı kazandı mı
+    created_at        = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("request_id", "rank", name="uq_analysis_matches_request_rank"),
+    )
 
 
 class UserWarning(Base):
@@ -183,6 +208,16 @@ class AnalysisResult(Base):
     full_report = Column(JSONB, nullable=True)
     source_bias_summary = Column(JSONB, nullable=True)
     temporal_analysis   = Column(JSONB, nullable=True)
+
+    # Karar süreci izlenebilirliği — hangi kararın nasıl üretildiği sonradan yeniden
+    # oluşturulabilsin diye (bkz. docs/decision_policy_ablation_report.md)
+    model_probability = Column(Float,        nullable=True)  # classifier'ın fake_p'si (varsa)
+    risk_score        = Column(Float,        nullable=True)  # kural tabanlı risk skoru
+    combined_score    = Column(Float,        nullable=True)  # ensemble sonucu (varsa)
+    model_version     = Column(String(100),  nullable=True)
+    policy_version    = Column(String(50),   nullable=True)
+    decision_path     = Column(String(50),   nullable=True)  # "ensemble" | "classifier_error" | "no_classifier"
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     article = relationship("Article", back_populates="analysis_result")
@@ -418,12 +453,16 @@ class ModelFeedback(Base):
 class ModelTrainingRun(Base):
     __tablename__ = "model_training_runs"
 
-    id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    triggered_at   = Column(DateTime(timezone=True), server_default=func.now())
-    sample_count   = Column(Integer, nullable=True)
-    feedback_count = Column(Integer, nullable=True)
-    accuracy       = Column(Float, nullable=True)
-    prev_accuracy  = Column(Float, nullable=True)
+    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    triggered_at     = Column(DateTime(timezone=True), server_default=func.now())
+    sample_count     = Column(Integer, nullable=True)
+    feedback_count   = Column(Integer, nullable=True)
+    accuracy         = Column(Float, nullable=True)
+    prev_accuracy    = Column(Float, nullable=True)
+    macro_f1         = Column(Float, nullable=True)
+    prev_macro_f1    = Column(Float, nullable=True)
+    fake_recall      = Column(Float, nullable=True)
+    prev_fake_recall = Column(Float, nullable=True)
     status         = Column(String(20), nullable=False)   # 'success' | 'skipped' | 'failed'
     notes          = Column(Text, nullable=True)
     created_at     = Column(DateTime(timezone=True), server_default=func.now())

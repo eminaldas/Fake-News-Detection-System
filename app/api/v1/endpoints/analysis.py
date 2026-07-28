@@ -19,7 +19,7 @@ from app.core.security import hash_ip
 from app.db.redis import get_redis
 from app.db.session import get_db
 from app.models.gamification import XPActionType
-from app.models.models import AnalysisRequest, AnalysisType, Article, AnalysisResult, ImageCache, NewsArticle, User, ModelFeedback
+from app.models.models import AnalysisMatch, AnalysisRequest, AnalysisType, Article, AnalysisResult, ImageCache, NewsArticle, User, ModelFeedback
 from app.services.xp_service import award_xp
 from app.schemas.schemas import (
     AnalysisResponse,
@@ -52,6 +52,7 @@ cleaner    = NewsCleaner()
 
 _MAX_IMAGE_BYTES = 25 * 1024 * 1024  # 25 MB
 _PHASH_MATCH_THRESHOLD = 10           # Hamming distance ≤ 10 → eşleşme
+_PHASH_CACHE_SCAN_LIMIT = 5000        # tek istekte belleğe çekilecek en fazla cache kaydı
 _AI_KEYWORDS = [
     "midjourney", "stable diffusion", "dall-e", "dall·e",
     "firefly", "adobe photoshop", "runway", "imagen",
@@ -215,9 +216,15 @@ async def analyze_content(
 
         winner = max(weighted_votes, key=weighted_votes.get)
         total_weight = sum(weighted_votes.values()) or 1.0
-        vote_confidence = round(weighted_votes[winner] / total_weight * 100, 1)
+        vote_agreement = round(weighted_votes[winner] / total_weight * 100, 1)
 
-        best_match, best_dist = matches[0]
+        # Kanıt, oylamayı kazanan sınıftaki en yüksek benzerlikli eşleşmeden seçilmeli —
+        # matches[0] (en yakın eşleşme) kazanan sınıftan farklı olabilir.
+        winning_matches = [
+            (article, dist) for article, dist in matches
+            if _normalize_status(article.status) == winner
+        ] or list(matches)
+        best_match, best_dist = winning_matches[0]
         best_similarity = (1 - best_dist) * 100
         dayanak = (
             best_match.metadata_info.get("dayanak_noktalari", "Bilinmiyor")
@@ -230,13 +237,35 @@ async def analyze_content(
         matched_task_id = (
             best_match.metadata_info.get("task_id") if best_match.metadata_info else None
         ) or str(best_match.id)
+        matched_result_id = (
+            await db.execute(select(AnalysisResult.id).where(AnalysisResult.article_id == best_match.id))
+        ).scalar_one_or_none()
         ar = AnalysisRequest(
             user_id=current_user.id if current_user else None,
             ip_hash=hash_ip(ip),
             analysis_type=AnalysisType.text,
             task_id=matched_task_id,
+            result_id=matched_result_id,
         )
         db.add(ar)
+        await db.flush()
+
+        # Oylamaya katılan tüm eşleşmeler saklanır (yalnızca kazanan değil) — oylamanın
+        # nasıl oluştuğu sonradan yeniden kurulabilsin diye.
+        for idx, (article, dist) in enumerate(matches, start=1):
+            label = _normalize_status(article.status)
+            sim   = max(0.0, 1.0 - dist)
+            db.add(AnalysisMatch(
+                request_id=ar.id,
+                article_id=article.id,
+                rank=idx,
+                similarity=round(sim, 4),
+                cosine_distance=round(dist, 4),
+                normalized_label=label,
+                vote_weight=round(sim ** 2, 4),
+                is_winner=(label == winner),
+            ))
+
         await db.commit()
 
         if current_user:
@@ -249,14 +278,14 @@ async def analyze_content(
             user_id=str(current_user.id) if current_user else None,
             ip_hash=hash_ip(ip),
             type="text",
-            task_id=content_id,
+            task_id=matched_task_id,
         )
 
         return AnalysisResponse(
-            task_id=content_id,
+            task_id=matched_task_id,
             message=(
                 f"Sistemde %{best_similarity:.1f} oranında benzer {len(matches)} kayıt bulundu. "
-                f"Oylama güveni: %{vote_confidence:.1f}"
+                f"Oylama uzlaşması: %{vote_agreement:.1f}"
             ),
             is_direct_match=True,
             direct_match_data={
@@ -265,20 +294,17 @@ async def analyze_content(
                 "mapped_status":   winner,
                 "evidence":        dayanak,
                 "match_count":     len(matches),
-                "vote_confidence": vote_confidence,
+                "vote_agreement":  vote_agreement,
                 "signals":         match_signals,   # SignalPanel ve HighlightedText için
                 "db_article_id":   str(best_match.id),
             },
         )
 
     news_evidence = await _get_news_evidence(db, embedding)
-    task = analyze_article.delay(
-        content_id,
-        text=request.text,
-        news_evidence=news_evidence,
-        user_id=str(current_user.id) if current_user else None,
-    )
 
+    # AnalysisRequest, Celery görevi kuyruğa girmeden ÖNCE commit edilir — aksi hâlde
+    # worker istekten daha hızlı biterse (workers/tasks.py'deki result_id geri-bağlama)
+    # henüz var olmayan bir satırı güncellemeye çalışıp sessizce hiçbir şey yapmaz.
     ar = AnalysisRequest(
         user_id=current_user.id if current_user else None,
         ip_hash=hash_ip(ip),
@@ -293,16 +319,30 @@ async def analyze_content(
         await award_xp(db, redis, current_user.id, XPActionType.analysis_created, str(ar.id))
         await db.commit()
 
+    # task_id=content_id: Celery'nin kendi ürettiği rastgele ID yerine bizim content_id'mizi
+    # kullanmasını zorluyoruz — böylece response'taki task_id, DB'deki tüm kayıtlarla
+    # (Article.metadata_info, AnalysisRequest.task_id) ve /status/{task_id} sorgusuyla aynı
+    # değeri paylaşır; Celery result backend'in 1 saatlik TTL'sine bağımlı kalınmaz.
+    analyze_article.apply_async(
+        args=[content_id],
+        kwargs=dict(
+            text=request.text,
+            news_evidence=news_evidence,
+            user_id=str(current_user.id) if current_user else None,
+        ),
+        task_id=content_id,
+    )
+
     log.info(
         "analysis.requested",
         user_id=str(current_user.id) if current_user else None,
         ip_hash=hash_ip(ip),
         type="text",
-        task_id=task.id,
+        task_id=content_id,
     )
 
     return AnalysisResponse(
-        task_id=task.id,
+        task_id=content_id,
         message="Analiz görevi kuyruğa alındı. Sonuç için /status/{task_id} kullanın.",
     )
 
@@ -354,8 +394,6 @@ async def analyze_url(
             is_direct_match=True,
         )
 
-    task = analyze_article_url.delay(task_id=content_id, url=url_str)
-
     ar = AnalysisRequest(
         user_id=current_user.id if current_user else None,
         ip_hash=hash_ip(ip),
@@ -365,16 +403,21 @@ async def analyze_url(
     db.add(ar)
     await db.commit()
 
+    analyze_article_url.apply_async(
+        kwargs=dict(task_id=content_id, url=url_str),
+        task_id=content_id,
+    )
+
     log.info(
         "analysis.requested",
         user_id=str(current_user.id) if current_user else None,
         ip_hash=hash_ip(ip),
         type="url",
-        task_id=task.id,
+        task_id=content_id,
     )
 
     return AnalysisResponse(
-        task_id=task.id,
+        task_id=content_id,
         message="URL analiz görevi kuyruğa alındı. Sonuç için /status/{task_id} kullanın.",
     )
 
@@ -417,8 +460,19 @@ async def analyze_image_endpoint(
         )
 
     phash_str = _compute_phash(image)
-    cache_rows_result = await db.execute(select(ImageCache))
-    cache_rows = cache_rows_result.scalars().all()
+    # Yalnızca eşleşmede kullanılabilecek kolonlar + gerçek sonucu olan satırlar çekilir
+    # (exif_flags/created_at gereksiz), ve en yeni _PHASH_CACHE_SCAN_LIMIT kayıtla
+    # sınırlanır — cache büyüdükçe her istek tüm tabloyu belleğe çekmesin diye. Tam
+    # ölçeklenebilir çözüm (SQL tarafında bit_count/XOR veya BK-tree indeksi) canlı
+    # Postgres sürümünün bit_count() (PG14+) desteğini doğrulamadan eklenmedi —
+    # yanlış varsayımla eklenip runtime'da patlamaktansa güvenli/bounded tarafta kalındı.
+    cache_rows_result = await db.execute(
+        select(ImageCache.id, ImageCache.phash, ImageCache.gemini_result)
+        .where(ImageCache.gemini_result.is_not(None))
+        .order_by(ImageCache.created_at.desc())
+        .limit(_PHASH_CACHE_SCAN_LIMIT)
+    )
+    cache_rows = cache_rows_result.all()
 
     for row in cache_rows:
         try:
@@ -439,15 +493,18 @@ async def analyze_image_endpoint(
                 },
             )
 
+    # ÖNEMLİ: EXIF/AI-yazılım tespiti burada bir KARAR KATMANI değildir — Gemini'nin
+    # kendisi bu bilgiyi kullanmıyor (analyze_image sadece görüntüyü gönderiyor,
+    # prompt'a exif_flags eklenmiyor). Yalnızca log'a yazılır ve ImageCache.exif_flags
+    # alanında bağlamsal metadata olarak saklanır. EXIF kolayca silinebildiği/
+    # değiştirilebildiği için tek başına "AI-generated" kararı vermek güvenilir
+    # olmaz — bilinçli tasarım tercihidir, eksik değil.
     exif_flags = _extract_exif_flags(image)
     ai_software = _detect_ai_software(exif_flags)
     if ai_software:
         log.info("image.exif_ai_detected", software=ai_software)
 
     await check_rate_limit(http_request, redis, current_user)
-
-    image_b64 = base64.b64encode(contents).decode("utf-8")
-    task = celery_analyze_image.delay(content_id, image_b64, phash_str, exif_flags)
 
     ar = AnalysisRequest(
         user_id=current_user.id if current_user else None,
@@ -458,15 +515,21 @@ async def analyze_image_endpoint(
     db.add(ar)
     await db.commit()
 
+    image_b64 = base64.b64encode(contents).decode("utf-8")
+    celery_analyze_image.apply_async(
+        args=[content_id, image_b64, phash_str, exif_flags],
+        task_id=content_id,
+    )
+
     log.info(
         "image_analysis.requested",
         user_id=str(current_user.id) if current_user else None,
-        task_id=task.id,
+        task_id=content_id,
         exif_ai=ai_software,
     )
 
     return ImageAnalysisResponse(
-        task_id=task.id,
+        task_id=content_id,
         message="Görsel analiz kuyruğa alındı.",
         is_direct_match=False,
         exif_flags=exif_flags if exif_flags else None,
@@ -484,7 +547,9 @@ async def submit_feedback(
 ):
     """
     Kullanıcı bir analiz sonucunun yanlış olduğunu bildiriyor.
-    Güven < 0.80 olan sonuçlar için kabul edilir; yüksek güvenliler reddedilir.
+    Güven seviyesinden bağımsız olarak kabul edilir — modelin yüksek güvenle yanlış
+    olduğu örnekler eğitim/inceleme açısından en değerli sinyallerden biridir;
+    bunları reddetmek confirmation bias üretir.
     """
     from sqlalchemy.exc import IntegrityError
 
@@ -502,12 +567,6 @@ async def submit_feedback(
         )
 
     article, analysis_result = row
-
-    if analysis_result.confidence is not None and analysis_result.confidence >= settings.FEEDBACK_CONFIDENCE_GUARD:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Model bu sonuçtan yeterince emin, düzeltme kabul edilmiyor.",
-        )
 
     feedback = ModelFeedback(
         article_id=article.id,

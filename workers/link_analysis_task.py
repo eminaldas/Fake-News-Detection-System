@@ -16,12 +16,13 @@ import asyncio
 import logging
 
 from sqlalchemy import select
+from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
-from app.models.models import Article, AnalysisResult
+from app.models.models import AnalysisRequest, Article, AnalysisResult
 from ml_engine.processing.stylometric import TurkishStylometrics
 from scrapers.web_scraper import ScraperError, scrape_article
 
@@ -217,6 +218,13 @@ async def _async_pipeline(task_id: str, url: str) -> dict:
             signals=all_signals,
         )
         session.add(analysis_res)
+        await session.flush()
+
+        await session.execute(
+            sa_update(AnalysisRequest)
+            .where(AnalysisRequest.task_id == task_id)
+            .values(result_id=analysis_res.id)
+        )
         await session.commit()
         article_id = str(new_article.id)
 

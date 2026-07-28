@@ -2,7 +2,11 @@
 Celery Task — Görsel sahtelik analizi (Layer 3: Gemini multimodal).
 
 Çağrı:
-    analyze_image.delay(task_id, image_bytes_b64, phash_str, exif_flags_dict)
+    analyze_image.apply_async(
+        args=[task_id, image_bytes_b64, phash_str, exif_flags_dict], task_id=task_id,
+    )
+    (task_id=content_id ile eşleştirilir ki Celery'nin kendi ürettiği rastgele ID yerine
+    /status/{task_id} sorgusunun kullandığı ID kullanılsın.)
 
 Sonuç (Celery backend'e yazılır):
     {
@@ -104,6 +108,11 @@ async def _save_to_db(phash: str, exif_flags: dict, gemini_result: dict):
 def analyze_image(self, task_id: str, image_b64: str, phash: str, exif_flags: dict):
     """
     Görsel analizi Gemini 2.5 Flash ile yapar, sonucu image_cache'e kaydeder.
+
+    Not: exif_flags yalnızca image_cache'e bağlamsal metadata olarak yazılır
+    (bkz. _save_to_db) — Gemini prompt'una dahil edilmez, karar sürecini etkilemez.
+    EXIF kolayca silinip değiştirilebildiği için tek başına karar verici olarak
+    kullanılmaması bilinçli bir tercihtir.
     """
     try:
         from google.genai import types
