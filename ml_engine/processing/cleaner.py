@@ -42,43 +42,6 @@ def signals_to_vector(signals: dict) -> list:
     return vec
 
 
-_DOMAIN_TRUST: dict[str, float] = {
-    "aa.com.tr":          1.0,
-    "bbc.com":            1.0,
-    "bbc.co.uk":          1.0,
-    "trtworld.com":       1.0,
-    "reuters.com":        1.0,
-    "euronews.com":       0.9,
-    "tr.euronews.com":    0.9,
-    "cnnturk.com":        0.9,
-    "ntv.com.tr":         0.9,
-    "trthaber.com":       0.9,
-    "trtspor.com.tr":     0.9,
-    "dw.com":             0.9,
-    "indyturk.com":       0.85,
-    "t24.com.tr":         0.8,
-    "haberturk.com":      0.8,
-    "hurriyet.com.tr":    0.8,
-    "milliyet.com.tr":    0.8,
-    "cumhuriyet.com.tr":  0.8,
-    "bianet.org":         0.8,
-    "dunya.com":          0.8,
-    "gazeteduvar.com.tr": 0.8,
-    "sozcu.com.tr":       0.75,
-    "sabah.com.tr":       0.7,
-    "ahaber.com.tr":      0.7,
-    "fanatik.com.tr":     0.7,
-    "sporx.com":          0.7,
-    "ensonhaber.com":     0.6,
-    "yenisafak.com":      0.6,
-    "mynet.com":          0.6,
-    "internethaber.com":  0.6,
-    "tele1.com.tr":       0.6,
-    "yeniakit.com.tr":    0.5,
-    "sputniknews.com":    0.5,
-}
-_UNKNOWN_DOMAIN_TRUST = 0.45
-
 _CLICKBAIT_WORDS = {
     "şok", "şokta", "şoke", "inanılmaz", "bomba", "flaş", "flash",
     "son dakika", "skandal",
@@ -264,75 +227,6 @@ class NewsCleaner:
             "cleaned_detayli_analiz": cleaned_detayli,
             "signals": signals
         }
-
-
-def _compute_risk(signals: dict, domain_url: str = "") -> float:
-    """
-    Sinyal dict'inden risk skoru hesaplar (0.0 – 1.0).
-    domain_url verilirse iki katmanlı source_score kullanılır.
-    length_penalty ingest tarafında ayrıca eklenir — bu fonksiyon hesaplamaz.
-    """
-    from urllib.parse import urlparse
-
-    if domain_url:
-        try:
-            domain = urlparse(domain_url).netloc.lower().lstrip("www.")
-            domain_trust = _UNKNOWN_DOMAIN_TRUST
-            for key, score in _DOMAIN_TRUST.items():
-                if domain == key or domain.endswith("." + key):
-                    domain_trust = score
-                    break
-        except Exception:
-            domain_trust = _UNKNOWN_DOMAIN_TRUST
-    else:
-        domain_trust = _UNKNOWN_DOMAIN_TRUST
-
-    text_source  = signals.get("source_score", 0.0)
-    final_source = min(domain_trust + text_source * 0.10, 1.0)
-
-    base_risk = (
-        signals.get("clickbait_score",    0.0) * 0.28
-        + signals.get("caps_ratio",       0.0) * 0.15
-        + signals.get("exclamation_ratio", 0.0) * 0.18
-        + signals.get("hedge_ratio",      0.0) * 0.14
-        + signals.get("question_density", 0.0) * 0.08
-        + signals.get("number_density",   0.0) * 0.05
-        - final_source * 0.15
-    )
-    return round(max(0.0, min(1.0, base_risk)), 4)
-
-
-def _classify_content(
-    title_signals: dict,
-    content_signals: dict,
-    trust_score: float = 0.5,
-    nlp_score: float = 0.0,
-) -> list[str]:
-    """
-    Haber içeriğini tip olarak sınıflandırır.
-    Döndürdüğü liste birden fazla etiket içerebilir:
-      'news'      — kaynaklı, doğrulanabilir haber
-      'claim'     — başlıkta doğrulanmamış iddia dili
-      'clickbait' — başlıkta sensasyon/clickbait dili
-      'high_risk' — genel NLP skoru yüksek
-    """
-    types: list[str] = []
-
-    if title_signals.get("clickbait_score", 0.0) >= 0.08 and trust_score < 0.9:
-        types.append("clickbait")
-
-    if title_signals.get("hedge_ratio", 0.0) >= 0.05:
-        types.append("claim")
-
-    if nlp_score >= 0.60:
-        types.append("high_risk")
-
-    content_source = content_signals.get("source_score", 0.0)
-    content_hedge  = content_signals.get("hedge_ratio",  0.0)
-    if not types and (content_source >= 0.5 or trust_score >= 0.8) and content_hedge < 0.05:
-        types.append("news")
-
-    return types if types else ["news"]
 
 
 _SERVICE_SCHEDULE_PATTERNS = [

@@ -26,7 +26,7 @@ import uuid as _uuid
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, f1_score, recall_score
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -172,12 +172,14 @@ async def _retrain_async() -> None:
                 X_np, y_np, test_size=0.2, random_state=42, stratify=stratify_arg
             )
 
-            prev_accuracy = None
+            prev_accuracy = prev_macro_f1 = prev_fake_recall = None
             try:
                 with open(_MODEL_PATH, "rb") as f:
                     current_model = pickle.load(f)
                 y_pred_prev = current_model.predict(X_test)
-                prev_accuracy = float(accuracy_score(y_test, y_pred_prev))
+                prev_accuracy    = float(accuracy_score(y_test, y_pred_prev))
+                prev_macro_f1    = float(f1_score(y_test, y_pred_prev, average="macro", zero_division=0))
+                prev_fake_recall = float(recall_score(y_test, y_pred_prev, pos_label=1, zero_division=0))
             except Exception as exc:
                 logger.warning("retrain: mevcut model ölçülemedi: %s", exc)
 
@@ -192,14 +194,28 @@ async def _retrain_async() -> None:
             ])
             new_pipeline.fit(X_train, y_train)
             y_pred_new = new_pipeline.predict(X_test)
-            new_accuracy = float(accuracy_score(y_test, y_pred_new))
+            new_accuracy    = float(accuracy_score(y_test, y_pred_new))
+            new_macro_f1    = float(f1_score(y_test, y_pred_new, average="macro", zero_division=0))
+            new_fake_recall = float(recall_score(y_test, y_pred_new, pos_label=1, zero_division=0))
 
+            # Tek metrikle (accuracy) yanıltıcı kabul riskini azaltmak için üç ayrı
+            # regression guard — herhangi biri düşerse retraining reddedilir.
+            regressions = []
             if prev_accuracy is not None and new_accuracy < prev_accuracy - 0.02:
-                notes = f"Accuracy düştü: {new_accuracy:.3f} < {prev_accuracy:.3f} - 0.02"
+                regressions.append(f"accuracy {new_accuracy:.3f} < {prev_accuracy:.3f} - 0.02")
+            if prev_macro_f1 is not None and new_macro_f1 < prev_macro_f1 - 0.01:
+                regressions.append(f"macro_f1 {new_macro_f1:.3f} < {prev_macro_f1:.3f} - 0.01")
+            if prev_fake_recall is not None and new_fake_recall < prev_fake_recall - 0.02:
+                regressions.append(f"fake_recall {new_fake_recall:.3f} < {prev_fake_recall:.3f} - 0.02")
+
+            if regressions:
+                notes = "Regresyon guard(lar)ı tetiklendi: " + "; ".join(regressions)
                 await _write_run(
                     session, status="skipped", notes=notes,
                     sample_count=total_count, feedback_count=n_feedback,
                     accuracy=new_accuracy, prev_accuracy=prev_accuracy,
+                    macro_f1=new_macro_f1, prev_macro_f1=prev_macro_f1,
+                    fake_recall=new_fake_recall, prev_fake_recall=prev_fake_recall,
                 )
                 await session.commit()
                 logger.info("retrain: skipped — %s", notes)
@@ -208,8 +224,13 @@ async def _retrain_async() -> None:
             if os.path.exists(_MODEL_PATH):
                 shutil.copy(_MODEL_PATH, _MODEL_PATH + ".bak")
             os.makedirs(os.path.dirname(_MODEL_PATH), exist_ok=True)
-            with open(_MODEL_PATH, "wb") as f:
+            # Geçici dosyaya yazıp os.replace ile atomik değiştir — analiz worker'ları
+            # dosyayı mtime değişince otomatik yeniden yüklüyor (bkz. workers/tasks.py
+            # _maybe_reload_classifier); yarım yazılmış bir dosyanın okunmasını önler.
+            tmp_path = _MODEL_PATH + ".tmp"
+            with open(tmp_path, "wb") as f:
                 pickle.dump(new_pipeline, f)
+            os.replace(tmp_path, _MODEL_PATH)
 
             logger.info(
                 "retrain: model güncellendi — accuracy=%.4f prev=%.4f samples=%d feedback=%d",
@@ -220,6 +241,8 @@ async def _retrain_async() -> None:
                 session, status="success",
                 sample_count=total_count, feedback_count=n_feedback,
                 accuracy=new_accuracy, prev_accuracy=prev_accuracy,
+                macro_f1=new_macro_f1, prev_macro_f1=prev_macro_f1,
+                fake_recall=new_fake_recall, prev_fake_recall=prev_fake_recall,
             )
             await session.commit()
 
@@ -282,6 +305,10 @@ async def _write_run(
     feedback_count: int = None,
     accuracy: float = None,
     prev_accuracy: float = None,
+    macro_f1: float = None,
+    prev_macro_f1: float = None,
+    fake_recall: float = None,
+    prev_fake_recall: float = None,
 ) -> None:
     run = ModelTrainingRun(
         status=status,
@@ -290,5 +317,9 @@ async def _write_run(
         feedback_count=feedback_count,
         accuracy=accuracy,
         prev_accuracy=prev_accuracy,
+        macro_f1=macro_f1,
+        prev_macro_f1=prev_macro_f1,
+        fake_recall=fake_recall,
+        prev_fake_recall=prev_fake_recall,
     )
     session.add(run)

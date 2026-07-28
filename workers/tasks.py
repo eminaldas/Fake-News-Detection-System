@@ -2,17 +2,18 @@ import asyncio
 import logging
 import os
 import pickle
-from datetime import datetime, timezone
 
 from celery import Celery
 from celery.signals import worker_process_init
+from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
-from app.models.models import Article, AnalysisResult
+from app.models.models import AnalysisRequest, Article, AnalysisResult
 from ml_engine.processing.cleaner import NewsCleaner, signals_to_vector
+from ml_engine.scoring.decision_policy import POLICY_VERSION, compute_risk, ensemble_decision
 from ml_engine.vectorizer import TurkishVectorizer
 from workers.ai_comment_task import generate_ai_comment
 
@@ -32,14 +33,22 @@ celery_app.conf.update(
     result_expires=3600,   # task sonuçları 1 saat sonra Redis'ten silinir
 )
 
-cleaner          = None
-vectorizer       = None
-classifier_model = None
+cleaner                  = None
+vectorizer               = None
+classifier_model         = None
+classifier_model_version = None   # .pkl'nin mtime'ı — hangi model sürümünün yüklü olduğunu işaretler
 
 _MODEL_PATH = os.path.join(
     os.path.dirname(os.path.dirname(__file__)),
     "ml_engine", "models", "fake_news_classifier.pkl",
 )
+
+
+def _load_classifier() -> None:
+    global classifier_model, classifier_model_version
+    with open(_MODEL_PATH, "rb") as f:
+        classifier_model = pickle.load(f)
+    classifier_model_version = str(int(os.path.getmtime(_MODEL_PATH)))
 
 
 @worker_process_init.connect
@@ -48,15 +57,34 @@ def _load_models(**kwargs):
     cleaner    = NewsCleaner()
     vectorizer = TurkishVectorizer()
     try:
-        with open(_MODEL_PATH, "rb") as f:
-            classifier_model = pickle.load(f)
-        logger.info("Fake News Classifier yüklendi.")
+        _load_classifier()
+        logger.info("Fake News Classifier yüklendi (version=%s).", classifier_model_version)
     except Exception as exc:
         logger.warning("Classifier yüklenemedi, kural tabanlı fallback kullanılacak: %s", exc)
         classifier_model = None
 
 
+def _maybe_reload_classifier() -> None:
+    """
+    workers/retrain_task.py her gece yeni bir .pkl yazabilir; worker süreci yeniden
+    başlamadan bunu fark etmez. Her analizden önce mtime'ı kontrol edip değiştiyse
+    yeniden yükler — retraining sonrası worker restart'a gerek kalmaz.
+    """
+    try:
+        disk_mtime = str(int(os.path.getmtime(_MODEL_PATH)))
+    except OSError:
+        return
+    if disk_mtime != classifier_model_version:
+        try:
+            _load_classifier()
+            logger.info("Classifier yeniden yüklendi (yeni version=%s).", classifier_model_version)
+        except Exception as exc:
+            logger.warning("Classifier yeniden yükleme hatası, mevcut model kullanılmaya devam ediyor: %s", exc)
+
+
 async def _analyze_and_save(content_id: str, text: str, news_evidence: str = None, user_id: str = None) -> dict:
+    _maybe_reload_classifier()
+
     engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
@@ -94,60 +122,38 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
             "message": "Metin çok kısa veya analiz edilemiyor. Lütfen daha uzun bir metin girin.",
         }
 
-    _AVG_WORD_LEN_BASELINE = 5.5   # Türkçe haber metni beklenen ortalaması
-    avg_len = signals.get("avg_word_length", _AVG_WORD_LEN_BASELINE)
-    short_word_penalty = max(0.0, (_AVG_WORD_LEN_BASELINE - avg_len) / _AVG_WORD_LEN_BASELINE)
+    risk = compute_risk(signals)
+    model_probability = None
+    combined_score    = None
+    model_version     = None
 
-    risk = (
-        signals.get("clickbait_score",   0) * 0.30
-        + signals.get("exclamation_ratio", 0) * 0.20
-        + signals.get("caps_ratio",        0) * 0.15
-        + signals.get("hedge_ratio",       0) * 0.15
-        + signals.get("question_density",  0) * 0.10
-        + signals.get("number_density",    0) * 0.05
-        + short_word_penalty               * 0.10
-        - signals.get("source_score",      0) * 0.15   # kaynak varsa riski düşür
-    )
-    risk = max(0.0, min(risk, 1.0))   # [0, 1] aralığına sıkıştır
-
-    clickbait = signals.get("clickbait_score",   0)
-    uppercase = signals.get("caps_ratio",        0)
-    exclaim   = signals.get("exclamation_ratio", 0)
-
-    hedge   = signals.get("hedge_ratio",       0)
-    question = signals.get("question_density", 0)
-
-    strong_manipulative = (
-        (clickbait > 0.15 and uppercase > 0.12) or              # bağırarak sensasyon
-        (clickbait > 0.15 and exclaim   > 0.02) or              # clickbait + ünlem
-        (clickbait > 0.30) or                                    # çoklu komplo/sensasyon ifadesi
-        (clickbait > 0.05 and hedge > 0.08) or                       # clickbait + anonim kaynak kombinasyonu (soru işareti gerekmez)
-        (hedge > 0.15)                                           # yüksek anonim kaynak yoğunluğu
-    )
-
-    if strong_manipulative:
-        pred_status    = "FAKE"
-        override_conf  = 0.55 + clickbait * 0.50 + exclaim * 2.0 + uppercase * 0.30
-        confidence     = round(min(override_conf, 0.90), 4)
-
-    elif classifier_model and cleaned:
+    if classifier_model and cleaned:
         signal_vec     = signals_to_vector(signals)       # 8-dim, normalize edilmiş
         feature_vector = embedding + signal_vec           # 776-dim
         try:
             proba  = classifier_model.predict_proba([feature_vector])[0]
             fake_p = float(proba[1])
 
-            combined    = 0.55 * fake_p + 0.45 * risk
-            pred_status = "FAKE" if combined > 0.50 else "AUTHENTIC"
-            confidence  = round(max(combined, 1.0 - combined), 4)
+            pred_status, combined = ensemble_decision(fake_p, risk, settings.ENSEMBLE_MODEL_WEIGHT)
+            confidence = round(max(combined, 1.0 - combined), 4)
+
+            model_probability = round(fake_p, 4)
+            combined_score    = round(combined, 4)
+            model_version     = classifier_model_version
+            decision_path     = "ensemble"
         except Exception as exc:
             logger.warning("Classifier tahmin hatası: %s", exc)
             pred_status = "UNKNOWN"
             confidence  = 0.0
+            decision_path = "classifier_error"
 
     else:
-        pred_status = "FAKE" if risk > 0.20 else "AUTHENTIC"
-        confidence  = round(min(risk if risk > 0.20 else 1.0 - risk, 0.99), 4)
+        # Classifier yüklenemedi — kural tabanlı risk tek başına kesin FAKE/AUTHENTIC
+        # kararı için yeterince güvenilir değil, bu yüzden UNKNOWN dönülür.
+        logger.warning("Classifier mevcut değil, UNKNOWN dönülüyor. task_id=%s", content_id)
+        pred_status = "UNKNOWN"
+        confidence  = 0.0
+        decision_path = "no_classifier"
 
     title_db = (text[:50] + "...") if len(text) > 50 else text
     async with Session() as session:
@@ -161,32 +167,36 @@ async def _analyze_and_save(content_id: str, text: str, news_evidence: str = Non
         session.add(article)
         await session.flush()
 
-        _ai_comment_skipped = None
-        if strong_manipulative:
-            _ai_comment_skipped = {
-                "summary": "Yüksek güvenli otomatik tespit — linguistik sinyal eşiği aşıldı.",
-                "evidence": [],
-                "gemini_verdict": None,
-                "model": None,
-                "generated_at": datetime.now(timezone.utc).isoformat(),
-            }
-
         analysis = AnalysisResult(
             article_id=article.id,
             status=pred_status,
             confidence=confidence,   # artık Float
             signals=signals,         # artık JSONB — dict doğrudan
-            ai_comment=_ai_comment_skipped,
+            model_probability=model_probability,
+            risk_score=round(risk, 4),
+            combined_score=combined_score,
+            model_version=model_version,
+            policy_version=POLICY_VERSION,
+            decision_path=decision_path,
         )
         session.add(analysis)
+        await session.flush()
+
+        # AnalysisRequest bu task_id ile daha önce oluşturulmuşsa (yarış durumu hariç,
+        # bkz. analysis.py'de .delay()'den önce commit sırası) sonucu geri bağla.
+        await session.execute(
+            sa_update(AnalysisRequest)
+            .where(AnalysisRequest.task_id == content_id)
+            .values(result_id=analysis.id)
+        )
         await session.commit()
         article_id = str(article.id)
 
-    _LOW  = settings.GEMINI_ESCALATION_LOW
-    _HIGH = settings.GEMINI_ESCALATION_HIGH
-    _uncertain = _LOW <= confidence <= _HIGH
+    # confidence = max(combined, 1-combined) her zaman >= 0.50 döner, bu yüzden
+    # GEMINI_ESCALATION_LOW burada hiçbir zaman tetiklenemez — üst sınır yeterli.
+    _uncertain = confidence <= settings.GEMINI_ESCALATION_HIGH
 
-    if not strong_manipulative and settings.GEMINI_API_KEY:
+    if settings.GEMINI_API_KEY:
         generate_ai_comment.apply_async(
             kwargs=dict(
                 article_id=article_id,

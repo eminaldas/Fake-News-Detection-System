@@ -34,7 +34,6 @@ class Settings(BaseSettings):
 
     FEEDBACK_CONSENSUS_THRESHOLD: int   = 10    # env: FEEDBACK_CONSENSUS_THRESHOLD
     FEEDBACK_MAX_PROPORTION:      float = 0.15  # toplam training verisinin max %15'i
-    FEEDBACK_CONFIDENCE_GUARD:    float = 0.80  # bu eşiğin üzerinde feedback kabul etme
 
     RSS_DEDUP_THRESHOLD: float = 0.15
     RSS_INGEST_QUEUE:    str   = "rss"
@@ -65,6 +64,12 @@ class Settings(BaseSettings):
     GEMINI_FALLBACK_MODEL:  str   = "gemini-2.5-flash"
     GEMINI_ESCALATION_LOW:  float = 0.40
     GEMINI_ESCALATION_HIGH: float = 0.65
+
+    # combined = MODEL_WEIGHT*fake_p + (1-MODEL_WEIGHT)*risk
+    # 1.0: scripts/decision_policy_ablation.py 5-fold CV taramasında en yüksek Macro-F1'i veren
+    # değer (bkz. docs/decision_policy_ablation_report.md). risk skorunun ayrı bir ensemble
+    # terimi olarak katkısı ölçülmedi; 8 sinyal zaten classifier'ın 776-dim feature vektöründe.
+    ENSEMBLE_MODEL_WEIGHT: float = 1.0
 
     model_config = SettingsConfigDict(
         env_file=".env",

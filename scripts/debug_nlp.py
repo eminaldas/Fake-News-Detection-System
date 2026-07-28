@@ -1,13 +1,20 @@
 """
 NLP pipeline debug scripti — test metinleri üzerinde tüm ara değerleri gösterir.
 Kullanım: docker-compose exec app python scripts/debug_nlp.py
+
+Karar mantığı ml_engine/scoring/decision_policy.py'den import edilir — burada
+ayrıca yeniden yazılmaz. Önceden bu script kendi compute_risk/override
+kopyasını tutuyordu ve production'dan (0.70/0.30, "uppercase_ratio" adı hâlâ
+kullanılıyordu — signal adı caps_ratio olarak değiştirileli çok oldu) sessizce
+sapmıştı; tam da decision_policy.py'nin önlemek için var olduğu drift türü.
 """
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pickle
-import numpy as np
+from app.core.config import settings
 from ml_engine.processing.cleaner import NewsCleaner, signals_to_vector, SIGNAL_KEYS
+from ml_engine.scoring.decision_policy import compute_risk, ensemble_decision
 from ml_engine.vectorizer import TurkishVectorizer
 
 TEXTS = [
@@ -32,23 +39,8 @@ except Exception as e:
     print(f"Model yüklenemedi: {e}")
     clf = None
 
-_AVG_BASELINE = 5.5
-
-def compute_risk(signals):
-    avg_len = signals.get("avg_word_length", _AVG_BASELINE)
-    short_penalty = max(0.0, (_AVG_BASELINE - avg_len) / _AVG_BASELINE)
-    risk = (
-        signals.get("clickbait_score",   0) * 0.30 +
-        signals.get("exclamation_ratio", 0) * 0.20 +
-        signals.get("uppercase_ratio",   0) * 0.15 +
-        signals.get("hedge_ratio",       0) * 0.15 +
-        signals.get("question_density",  0) * 0.10 +
-        signals.get("number_density",    0) * 0.05 +
-        short_penalty                    * 0.10 -
-        signals.get("source_score",      0) * 0.15
-    )
-    return max(0.0, min(risk, 1.0))
-
+print("=" * 75)
+print(f"MODEL_WEIGHT (settings.ENSEMBLE_MODEL_WEIGHT) = {settings.ENSEMBLE_MODEL_WEIGHT}")
 print("=" * 75)
 for label, text in TEXTS:
     processed  = cleaner.process(raw_iddia=text)
@@ -67,22 +59,8 @@ for label, text in TEXTS:
         except Exception as e:
             print(f"  [!] predict hatası: {e}")
 
-    clickbait = signals.get("clickbait_score",   0)
-    uppercase = signals.get("uppercase_ratio",   0)
-    exclaim   = signals.get("exclamation_ratio", 0)
-
-    strong = (clickbait > 0.15 and uppercase > 0.12) or (clickbait > 0.15 and exclaim > 0.02)
-
-    if strong:
-        prediction = "FAKE"
-        override_conf = 0.55 + clickbait * 0.50 + exclaim * 2.0 + uppercase * 0.30
-        confidence = round(min(override_conf, 0.90) * 100, 1)
-        path = "HARD OVERRIDE"
-    else:
-        combined   = 0.70 * fake_p + 0.30 * risk
-        prediction = "FAKE" if combined > 0.50 else "AUTHENTIC"
-        confidence = round(max(combined, 1.0 - combined) * 100, 1)
-        path = f"ensemble (combined={combined:.4f})"
+    prediction, combined = ensemble_decision(fake_p, risk, settings.ENSEMBLE_MODEL_WEIGHT)
+    confidence = round(max(combined, 1.0 - combined) * 100, 1)
 
     print(f"[{label}]")
     print(f"  Sinyaller:")
@@ -92,7 +70,7 @@ for label, text in TEXTS:
         print(f"    {k:<22} {v:.4f}  {bar}")
     print(f"  risk       = {risk:.4f}")
     print(f"  fake_p     = {fake_p:.4f}  (model)")
-    print(f"  karar yolu = {path}")
+    print(f"  combined   = {combined:.4f}")
     print(f"  → {prediction}  %{confidence}")
     print()
 print("=" * 75)
