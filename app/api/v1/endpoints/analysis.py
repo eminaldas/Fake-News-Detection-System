@@ -6,7 +6,7 @@ import imagehash
 from PIL import Image, UnidentifiedImageError
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from celery.result import AsyncResult
 import uuid
 import json
@@ -53,6 +53,15 @@ cleaner    = NewsCleaner()
 _MAX_IMAGE_BYTES = 25 * 1024 * 1024  # 25 MB
 _PHASH_MATCH_THRESHOLD = 10           # Hamming distance ≤ 10 → eşleşme
 _PHASH_CACHE_SCAN_LIMIT = 5000        # tek istekte belleğe çekilecek en fazla cache kaydı
+
+# Stage 1 pgvector eşleşmesinde "gerçek bir FAKE/AUTHENTIC etiketi" sayılan ham status
+# değerleri (büyük harfe çevrilmiş). RSS/AI-agent ile ingest edilen makalelerin çoğu
+# status="completed" taşıyor — bu bir karar değil, pipeline'ın bittiğini gösteren bir
+# işaret; eşleşme adayı olarak dahil edilirse hem oylamaya katkısı olmuyor hem de
+# gerçek bir FAKE/AUTHENTIC emsalinin top-3'e girmesini engelleyebiliyor.
+_FAKE_LABELS_UPPER      = {"FAKE", "YANLIŞ", "YANLIS", "FALSE"}
+_AUTHENTIC_LABELS_UPPER = {"AUTHENTIC", "DOĞRU", "DOGRU", "TRUE"}
+_STAGE1_MATCHABLE_LABELS_UPPER = _FAKE_LABELS_UPPER | _AUTHENTIC_LABELS_UPPER
 _AI_KEYWORDS = [
     "midjourney", "stable diffusion", "dall-e", "dall·e",
     "firefly", "adobe photoshop", "runway", "imagen",
@@ -186,7 +195,7 @@ async def analyze_content(
         select(Article, Article.embedding.cosine_distance(embedding).label("distance"))
         .where(
             (Article.embedding.cosine_distance(embedding) < settings.SIMILARITY_THRESHOLD)
-            & Article.status.is_not(None)
+            & func.upper(Article.status).in_(_STAGE1_MATCHABLE_LABELS_UPPER)
         )
         .order_by("distance")
         .limit(3)
@@ -200,9 +209,9 @@ async def analyze_content(
             if not raw:
                 return "UNKNOWN"
             upper = raw.strip().upper()
-            if upper in {"FAKE", "YANLIŞ", "YANLIS", "FALSE"}:
+            if upper in _FAKE_LABELS_UPPER:
                 return "FAKE"
-            if upper in {"AUTHENTIC", "DOĞRU", "DOGRU", "TRUE"}:
+            if upper in _AUTHENTIC_LABELS_UPPER:
                 return "AUTHENTIC"
             return "UNKNOWN"
 
