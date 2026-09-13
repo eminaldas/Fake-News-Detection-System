@@ -22,7 +22,7 @@ from app.services.category_tree import build_category_tree
 
 router = APIRouter()
 
-_HIDDEN_CONTENT_TYPES = ["service_schedule", "service_program", "service_trivia"]
+_HIDDEN_CONTENT_TYPES = ["service_schedule", "service_program", "service_trivia", "clickbait_title"]
 
 
 def _hidden_content_type_filter():

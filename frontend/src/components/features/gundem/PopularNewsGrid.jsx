@@ -237,7 +237,7 @@ function FeaturedCard({ article }) {
             {/* Flex spacer + içerik: absolute yerine flex flow ile daha yukarıda konumlanır */}
             <div className="flex-1" />
             <div className="relative z-10 px-5 pb-5 pt-10">
-                <h2 className="text-white font-extrabold text-xl md:text-2xl leading-snug line-clamp-3 mb-3 drop-shadow
+                <h2 className="text-white font-extrabold text-lg md:text-xl leading-snug line-clamp-4 mb-3 drop-shadow
                                group-hover:text-brand transition-colors">
                     {article.title}
                 </h2>
@@ -307,7 +307,7 @@ function SmallCard({ article }) {
                 )}
 
                 {/* Başlık */}
-                <h3 className="text-[13px] font-bold leading-snug line-clamp-2 mb-2.5"
+                <h3 className="text-[12.5px] font-bold leading-snug line-clamp-3 mb-2"
                     style={{ color: '#fff' }}>
                     {article.title}
                 </h3>

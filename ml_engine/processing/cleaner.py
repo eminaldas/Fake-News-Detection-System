@@ -262,6 +262,21 @@ _PRACTICAL_INFO_PATTERNS = [
 _SCHEDULE_CATEGORIES = {"spor"}
 _PROGRAM_CATEGORIES  = {"kültür", "yaşam"}
 
+# "X | X - X" gibi aynı bilgiyi '|' ile tekrar eden SEO-doldurmalı başlıklar
+# (ör. "AMEDSPOR-BAŞAKŞEHİR MAÇ ÖZETİ | Amedspor - Başakşehir maç sonucu |
+# Goller ve önemli anlar") — kategoriden bağımsız, her zaman kontrol edilir.
+_CLICKBAIT_MIN_PIPES = 2
+
+
+def _is_question_clickbait(title: str) -> bool:
+    """Soru işaretiyle biten başlıklar ('... mi?', 'Bu doğru mu?') — kategoriden bağımsız."""
+    return title.rstrip().endswith('?')
+
+
+def _is_repetitive_clickbait(title: str) -> bool:
+    """'|' ile ayrılmış, aynı bilgiyi tekrar eden SEO-doldurmalı başlıklar."""
+    return title.count('|') >= _CLICKBAIT_MIN_PIPES
+
 
 def _classify_content_type(title: str, category: str | None) -> list[str] | None:
     """
@@ -271,6 +286,9 @@ def _classify_content_type(title: str, category: str | None) -> list[str] | None
     """
     if not title:
         return None
+
+    if _is_question_clickbait(title) or _is_repetitive_clickbait(title):
+        return ["clickbait_title"]
 
     text = _turkish_lower(title)
 

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-    Award, Trophy, BarChart2, Star, Shield, Search, Cpu, Zap,
-    MessageSquare, TrendingUp, Users, Calendar, Lock, Crown, Pin, PinOff, Check,
+    User, Award, Trophy, BarChart2, Star, Shield, ShieldCheck, Search, FileSearch,
+    Cpu, Zap, MessageSquare, TrendingUp, Users, UserCheck, Calendar, CalendarCheck,
+    ThumbsUp, Newspaper, BookOpen, Globe, Globe2, Microscope, Music, DollarSign,
+    Link as LinkIcon, Lock, Pin, PinOff, Check,
 } from 'lucide-react';
 import GamificationService from '../services/gamification.service';
 import { useAuth } from '../contexts/AuthContext';
@@ -19,14 +21,15 @@ const Corner = () => (
     </>
 );
 
+/* badge_definitions.py'deki `icon` alanıyla birebir eşleşir — her rozet kendi
+   anlamına uygun tekil ikonu gösterir, geneleşmiş Award/Zap fallback'i yok. */
 const ICON_MAP = {
-    User: Award, Search, FileSearch: Search, BarChart2, Shield,
-    Star, Cpu, TrendingUp, MessageSquare, Zap, Link: Zap,
-    Award, Users, Calendar, CalendarCheck: Calendar,
-    ShieldCheck: Shield, ThumbsUp: Award, UserCheck: Users,
-    Newspaper: Award, BookOpen: Award, Trophy, DollarSign: TrendingUp,
-    Globe: Award, Globe2: Award, Microscope: Award, Music: Award,
-    Bird: Zap, Crown,
+    User, Search, FileSearch, BarChart2, Shield,
+    Star, Cpu, TrendingUp, MessageSquare, Zap, Link: LinkIcon,
+    Award, Users, Calendar, CalendarCheck,
+    ShieldCheck, ThumbsUp, UserCheck,
+    Newspaper, BookOpen, Trophy, DollarSign,
+    Globe, Globe2, Microscope, Music,
 };
 
 function getIcon(iconName) {
@@ -395,6 +398,7 @@ export default function Badges() {
                     <div>
                         <h1 className="font-mono text-xl font-black tracking-wider"
                             style={{ color: 'var(--color-brand-primary)' }}>
+                            Rozetler
                         </h1>
                         <p className="font-mono text-xs mt-1"
                            style={{ color: 'var(--color-text-primary)', opacity: 0.7 }}>
@@ -465,6 +469,7 @@ export default function Badges() {
                         <div>
                             <p className="font-mono text-xs font-bold uppercase tracking-widest mb-2"
                                style={{ color: 'var(--color-brand-primary)' }}>
+                                Vitrin Önizleme
                             </p>
                             <div className="flex items-center gap-2 flex-wrap">
                                 {Array.from({ length: 3 }).map((_, i) => {
