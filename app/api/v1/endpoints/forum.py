@@ -1380,13 +1380,19 @@ async def get_trending(
         for t in threads
     ]
 
+    recent_uses = func.count(ThreadTag.thread_id)
     tags_result = await db.execute(
-        select(Tag).order_by(desc(Tag.usage_count)).limit(10)
+        select(Tag.id, Tag.name, Tag.is_system, recent_uses.label("recent_uses"))
+        .join(ThreadTag, ThreadTag.tag_id == Tag.id)
+        .join(ForumThread, ForumThread.id == ThreadTag.thread_id)
+        .where(ForumThread.created_at >= cutoff)
+        .group_by(Tag.id, Tag.name, Tag.is_system)
+        .order_by(desc(recent_uses))
+        .limit(10)
     )
-    tags = tags_result.scalars().all()
     trending_tags = [
-        TagItem(id=tg.id, name=tg.name, is_system=tg.is_system, usage_count=tg.usage_count)
-        for tg in tags
+        TagItem(id=row.id, name=row.name, is_system=row.is_system, usage_count=row.recent_uses)
+        for row in tags_result.all()
     ]
 
     return ForumTrendingResponse(trending_threads=trending_threads, trending_tags=trending_tags)

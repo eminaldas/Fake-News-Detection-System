@@ -19,8 +19,7 @@ function formatCount(n) {
 
 function SkeletonPanel() {
     return (
-        <div className="relative overflow-hidden animate-pulse w-full" style={{ background: SURFACE }}>
-            <div className="absolute inset-y-0 left-0 w-1" style={{ background: 'var(--color-skeleton)' }} />
+        <div className="relative border overflow-hidden animate-pulse w-full" style={{ background: SURFACE, borderColor: BORDER }}>
             <div className="p-6">
                 <div className="flex justify-between items-start mb-7">
                     <div className="space-y-2">
@@ -114,26 +113,28 @@ export default function TrendingPanel({ category }) {
     if (loading) return <SkeletonPanel />;
 
     return (
-        <div className="relative overflow-hidden w-full animate-fade-up shadow-lg" style={{ background: SURFACE }}>
-            {/* Neon sol aksan */}
-            <div className="absolute inset-y-0 left-0 w-1"
-                 style={{ background: `linear-gradient(to bottom, ${ACCENT}, color-mix(in srgb, ${ACCENT} 30%, transparent), transparent)` }} />
+        <div className="relative border overflow-hidden w-full animate-fade-up" style={{ background: SURFACE, borderColor: BORDER }}>
+            {/* Köşe aksanları */}
+            <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand pointer-events-none" />
+            <div className="absolute top-0 left-0 h-4 w-[2px] bg-brand pointer-events-none" />
+            <div className="absolute bottom-0 right-0 w-4 h-[2px] bg-brand pointer-events-none" />
+            <div className="absolute bottom-0 right-0 h-4 w-[2px] bg-brand pointer-events-none" />
+
+            {/* Başlık */}
+            <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: BORDER }}>
+                <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 shrink-0" style={{ color: ACCENT }} />
+                    <span className="font-mono font-bold text-xs uppercase tracking-widest" style={{ color: TEXT_PRI }}>
+                        Günün Trendleri
+                    </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0" style={{ background: ACCENT }} />
+                    <span className="font-mono text-[10px] tracking-widest" style={{ color: ACCENT }}>CANLI</span>
+                </div>
+            </div>
 
             <div className="p-6">
-                {/* Başlık */}
-                <div className="flex justify-between items-start mb-7">
-                    <h2 className="text-[26px] leading-[1.1] font-bold tracking-tight" style={{ color: TEXT_PRI }}>
-                        Günün<br />Trendleri
-                    </h2>
-                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 shrink-0"
-                         style={{ background: 'color-mix(in srgb, var(--color-brand-primary) 10%, transparent)', border: `1px solid color-mix(in srgb, ${ACCENT} 35%, transparent)` }}>
-                        <span className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0" style={{ background: ACCENT }} />
-                        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ACCENT }}>
-                            Canlı
-                        </span>
-                    </div>
-                </div>
-
                 {/* Liste */}
                 {items.length === 0 ? (
                     <p className="py-8 text-sm text-center" style={{ color: TEXT_MUT }}>

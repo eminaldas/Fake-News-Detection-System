@@ -11,8 +11,8 @@ const GREEN_DIM = '#2ec46a';
 
 function SkeletonPanel() {
     return (
-        <div className="overflow-hidden animate-pulse w-full"
-             style={{ background: 'var(--color-terminal-surface)' }}>
+        <div className="relative border overflow-hidden animate-pulse w-full"
+             style={{ background: 'var(--color-terminal-surface)', borderColor: BORDER }}>
             <div className="px-5 pt-5 pb-4 flex items-center gap-2 border-b" style={{ borderColor: BORDER }}>
                 <div className="w-4 h-4 rounded" style={{ background: 'var(--color-skeleton)' }} />
                 <div className="h-4 w-24 rounded" style={{ background: 'var(--color-skeleton)' }} />
@@ -52,22 +52,25 @@ export default function DailySummaryPanel() {
     if (loading) return <SkeletonPanel />;
 
     return (
-        <div className="relative overflow-hidden flex flex-col animate-fade-up w-full shadow-lg"
-             style={{ background: 'var(--color-terminal-surface)' }}>
+        <div className="relative border overflow-hidden flex flex-col animate-fade-up w-full"
+             style={{ background: 'var(--color-terminal-surface)', borderColor: BORDER }}>
 
-            {/* Neon sol aksan */}
-            <div className="absolute inset-y-0 left-0 w-1"
-                 style={{ background: `linear-gradient(to bottom, ${GREEN}, color-mix(in srgb, ${GREEN} 30%, transparent), transparent)` }} />
+            {/* Köşe aksanları */}
+            <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand pointer-events-none" />
+            <div className="absolute top-0 left-0 h-4 w-[2px] bg-brand pointer-events-none" />
+            <div className="absolute bottom-0 right-0 w-4 h-[2px] bg-brand pointer-events-none" />
+            <div className="absolute bottom-0 right-0 h-4 w-[2px] bg-brand pointer-events-none" />
 
             {/* Başlık */}
-            <div className="flex justify-between items-start gap-3 p-6 pb-5">
-                <h2 className="text-[26px] leading-[1.1] font-bold tracking-tight flex items-center gap-2.5" style={{ color: TEXT_PRI }}>
-                    <Sparkles className="w-6 h-6 shrink-0" style={{ color: GREEN }} />
-                    Günün Özeti
-                </h2>
+            <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: BORDER }}>
+                <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 shrink-0" style={{ color: GREEN }} />
+                    <span className="font-mono font-bold text-xs uppercase tracking-widest" style={{ color: TEXT_PRI }}>
+                        Günün Özeti
+                    </span>
+                </div>
                 {data && (
-                    <span className="text-[10px] font-semibold px-2.5 py-1.5 flex items-center gap-1.5 shrink-0"
-                          style={{ color: GREEN, background: `color-mix(in srgb, ${GREEN} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${GREEN} 35%, transparent)` }}>
+                    <span className="font-mono text-[11px] flex items-center gap-1.5 shrink-0" style={{ color: GREEN }}>
                         <Clock className="w-3 h-3" />
                         {data.slot}
                     </span>

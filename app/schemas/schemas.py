@@ -1059,6 +1059,20 @@ class FullReportResponse(BaseModel):
     title:      Optional[str]  = None
 
 
+class ShareReportSuggestion(BaseModel):
+    title: str
+    body:  str
+
+
+class ShareReportRequest(BaseModel):
+    title: Optional[str] = Field(None, max_length=200)
+    body:  Optional[str] = Field(None, max_length=5000)
+
+
+class ShareReportResponse(BaseModel):
+    thread_id: str
+
+
 class SimilarReportResponse(BaseModel):
     found:       bool
     task_id:     Optional[str]   = None

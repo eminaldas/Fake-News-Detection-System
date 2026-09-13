@@ -523,6 +523,32 @@ def _validate_report_v3(raw: dict, signals: dict | None = None) -> dict:
     return raw
 
 
+def build_share_suggestion(title: str | None, report: dict | None, source_url: str | None) -> tuple[str, str]:
+    """Paylaşım için düz metin öneri (başlık, gövde) üretir — markdown/emoji yok, kullanıcı düzenleyebilir."""
+    report   = report or {}
+    verdict  = report.get("verdict") or {}
+    decision = verdict.get("decision", "")
+    score    = (report.get("credibility_score") or {}).get("overall")
+    factors  = [f for f in (report.get("decisive_factors") or [])[:2] if f.get("factor")]
+
+    suggested_title = (title or "Haber Analizi")[:200]
+
+    lines: list[str] = []
+    if decision:
+        lines.append(f"Karar: {decision.replace('_', ' ').title()}")
+    if score is not None:
+        lines.append(f"Güvenilirlik skoru: {score}/100")
+    if factors:
+        lines.append("")
+        lines.append("Belirleyici faktörler:")
+        lines.extend(f"- {f['factor']}" for f in factors)
+    if source_url:
+        lines.append("")
+        lines.append(f"Kaynak: {source_url}")
+
+    return suggested_title, "\n".join(lines)
+
+
 async def _create_report_thread(
     session: AsyncSession,
     article_id,
@@ -532,26 +558,16 @@ async def _create_report_thread(
     overall_assessment: str,
     source_url: str | None,
     report: dict | None = None,
+    title_override: str | None = None,
+    body_override: str | None = None,
 ) -> str | None:
     """Tam rapor için forum thread açar. Hata olursa None döner."""
     try:
-        thread_title = (title or "Haber Analizi")[:200]
-        report = report or {}
-        verdict = report.get("verdict") or {}
-        decision = verdict.get("decision", "")
-        score = (report.get("credibility_score") or {}).get("overall")
-        factors = [f for f in (report.get("decisive_factors") or [])[:2] if f.get("factor")]
-        factor_lines = "\n".join(f"- {f['factor']}" for f in factors)
-        verdict_line = f"\n🏷️ **Karar:** {decision.replace('_', ' ').title()}" if decision else ""
-        score_line   = f"\n📊 **Güvenilirlik:** {score}/100" if score is not None else ""
-        source_line  = f"\n🔗 **Kaynak:** {source_url}" if source_url else ""
-        body = (
-            f"**{(title or 'Haber')[:200]}** — tam analiz raporu."
-            f"{verdict_line}{score_line}{source_line}"
-            + (f"\n\n**Belirleyici faktörler:**\n{factor_lines}" if factor_lines else "")
-            + f"\n\n🔗 **Tam raporu gör:** /analysis/report/{task_id}"
-            + f"\n\n🤖 *Gemini AI + Google Search ile oluşturuldu.*"
-        )
+        suggested_title, suggested_body = build_share_suggestion(title, report, source_url)
+        thread_title = (title_override or suggested_title)[:200]
+        body         = (body_override if body_override is not None else suggested_body)[:5000]
+        verdict      = (report or {}).get("verdict") or {}
+        decision     = verdict.get("decision", "")
         thread = ForumThread(
             title=thread_title,
             body=body,
@@ -562,14 +578,15 @@ async def _create_report_thread(
         session.add(thread)
         await session.flush()
 
-        tag_names = ["#tam-rapor"]
+        # Not: Tag.name "#" içermez — frontend gösterirken kendi "#" önekini ekliyor.
+        tag_names = ["tam-rapor"]
         dom = verdict.get("domain")
         if dom and dom != "genel":
-            tag_names.append(f"#{dom}")
+            tag_names.append(dom)
         verdict_tag_map = {
-            "SAHTE": "#sahte", "YANILTICI": "#yaniltici", "BAĞLAMDAN_KOPARILMIŞ": "#baglamdan-koparilmis",
-            "KISMEN_DOĞRU": "#kismen-dogru", "KANIT_YETERSİZ": "#kanit-yetersiz",
-            "DOĞRU": "#dogru", "BÜYÜK_ÖLÇÜDE_DOĞRU": "#buyuk-olcude-dogru",
+            "SAHTE": "sahte", "YANILTICI": "yaniltici", "BAĞLAMDAN_KOPARILMIŞ": "baglamdan-koparilmis",
+            "KISMEN_DOĞRU": "kismen-dogru", "KANIT_YETERSİZ": "kanit-yetersiz",
+            "DOĞRU": "dogru", "BÜYÜK_ÖLÇÜDE_DOĞRU": "buyuk-olcude-dogru",
         }
         if decision in verdict_tag_map:
             tag_names.append(verdict_tag_map[decision])
@@ -696,27 +713,8 @@ async def _run_deep_report(task_id: str, user_id: str | None, user_note: str = "
             )
             await session.commit()
 
-        source_url = (data.metadata_info or {}).get("source_url")
-        async with Session() as session:
-            thread_id = await _create_report_thread(
-                session=session,
-                article_id=data.article_id,
-                user_id=user_id,
-                task_id=task_id,
-                title=data.title,
-                overall_assessment=report.get("overall_assessment", ""),
-                source_url=source_url,
-                report=report,
-            )
-        if thread_id:
-            report["forum_thread_id"] = thread_id
-            async with Session() as session:
-                await session.execute(
-                    update(AnalysisResult)
-                    .where(AnalysisResult.id == data.result_id)
-                    .values(full_report=report)
-                )
-                await session.commit()
+        # Not: Topluluğa paylaşım artık otomatik değil — kullanıcı isterse
+        # POST /analyze/full-report/{task_id}/share ile açıkça paylaşır (bkz. analysis.py).
 
         await _publish_user_event(user_id, "report_ready", {"task_id": task_id})
 

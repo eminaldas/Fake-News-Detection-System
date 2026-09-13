@@ -1,8 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { ChevronDown } from 'lucide-react';
 
-const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
-
 export default function CollapsiblePanel({
     icon: Icon, title, count, badge, storageKey, defaultOpen = true, children,
 }) {
@@ -22,29 +20,31 @@ export default function CollapsiblePanel({
     }, [storageKey]);
 
     return (
-        <div className="border" style={{ ...TS, borderLeft: '3px solid rgba(63,255,139,0.55)' }}>
+        <div className="rounded-2xl p-6 transition-shadow hover:shadow-md" style={{ background: 'var(--color-navbar-bg)', border: '1px solid var(--color-border)' }}>
             <button
                 type="button"
                 onClick={toggle}
                 aria-expanded={open}
-                className="w-full flex items-center gap-2.5 px-4 py-3"
-                style={{ borderBottom: open ? '1px solid var(--color-terminal-border-raw)' : 'none' }}
+                className="w-full flex items-center gap-2 group"
+                style={{ marginBottom: open ? 14 : 0 }}
             >
-                {Icon && <Icon className="w-4 h-4 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />}
-                <span className="text-sm font-bold flex-1 text-left" style={{ color: 'var(--color-text-primary)' }}>
+                {Icon && <Icon className="w-4 h-4 shrink-0" style={{ color: 'var(--color-text-muted)' }} />}
+                <span className="text-[12px] font-extrabold uppercase tracking-wider flex-1 text-left" style={{ color: 'var(--color-text-muted)' }}>
                     {title}
                 </span>
                 {count != null && (
-                    <span className="font-mono text-[10px] px-1.5 py-0.5 border"
-                          style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-terminal-border-raw)' }}>
+                    <span className="text-[12px] font-bold" style={{ color: 'var(--color-text-muted)' }}>
                         {count}
                     </span>
                 )}
                 {badge}
-                <ChevronDown className="w-4 h-4 shrink-0 transition-transform duration-200"
+                <ChevronDown className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:opacity-70"
                              style={{ color: 'var(--color-text-muted)', transform: open ? 'none' : 'rotate(-90deg)' }} />
             </button>
-            {open && <div>{children}</div>}
+            <div className="grid transition-all duration-200 ease-out"
+                 style={{ gridTemplateRows: open ? '1fr' : '0fr', opacity: open ? 1 : 0 }}>
+                <div className="overflow-hidden">{children}</div>
+            </div>
         </div>
     );
 }

@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Pacifico&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Pacifico&display=swap');
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -207,7 +207,7 @@
   [data-font-scale="lg"] { font-size: 18px; }
 
   html {
-    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   }
 
   button, a, [role="button"], label[for], select, input[type="submit"] {
@@ -215,7 +215,7 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     font-weight: 800;
   }
 
@@ -254,9 +254,9 @@
    ═══════════════════════════════════════════════════════════════════ */
 @theme {
   /* Fontlar */
-  --font-inter:    'Space Grotesk', system-ui, sans-serif;
-  --font-outfit:   'Space Grotesk', system-ui, sans-serif;
-  --font-manrope:  'Space Grotesk', system-ui, sans-serif;
+  --font-inter:    'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-outfit:   'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-manrope:  'Plus Jakarta Sans', system-ui, sans-serif;
   --font-mono:     'JetBrains Mono', ui-monospace, monospace;
   --font-pacifico: 'Pacifico', cursive;
 

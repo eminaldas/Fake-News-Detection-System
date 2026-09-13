@@ -3,6 +3,7 @@ import { Flag, CheckCircle, XCircle, MessageSquare, Loader2, X } from 'lucide-re
 import axiosInstance from '../api/axios';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import toast from '../services/toast';
 import { A, pageWrap, card, cardHead, badge, ANIM } from './adminTheme';
 
 const STATUS_COLORS = {
@@ -91,30 +92,42 @@ export default function AdminModeration() {
 
   const approveComment = async (id) => {
     setActing(id + '_approve');
-    await axiosInstance.put(`/forum/admin/comments/${id}/approve`).catch(() => {});
-    setFlaggedComments(prev => prev.filter(c => c.id !== id));
-    setActing(null);
+    try {
+      await axiosInstance.put(`/forum/admin/comments/${id}/approve`);
+      setFlaggedComments(prev => prev.filter(c => c.id !== id));
+    } catch (e) {
+      toast.error('İşlem başarısız', { sub: e.response?.data?.detail || e.message });
+    } finally { setActing(null); }
   };
 
   const removeComment = async (id) => {
     setActing(id + '_remove');
-    await axiosInstance.put(`/forum/admin/comments/${id}/remove`).catch(() => {});
-    setFlaggedComments(prev => prev.filter(c => c.id !== id));
-    setActing(null);
+    try {
+      await axiosInstance.put(`/forum/admin/comments/${id}/remove`);
+      setFlaggedComments(prev => prev.filter(c => c.id !== id));
+    } catch (e) {
+      toast.error('İşlem başarısız', { sub: e.response?.data?.detail || e.message });
+    } finally { setActing(null); }
   };
 
   const resolveThread = async (id) => {
     setActing(id + '_resolve');
-    await axiosInstance.put(`/forum/admin/threads/${id}/resolve`).catch(() => {});
-    setFlaggedThreads(prev => prev.filter(t => t.id !== id));
-    setActing(null);
+    try {
+      await axiosInstance.put(`/forum/admin/threads/${id}/resolve`);
+      setFlaggedThreads(prev => prev.filter(t => t.id !== id));
+    } catch (e) {
+      toast.error('İşlem başarısız', { sub: e.response?.data?.detail || e.message });
+    } finally { setActing(null); }
   };
 
   const closeThread = async (id) => {
     setActing(id + '_close');
-    await axiosInstance.put(`/forum/admin/threads/${id}/close`).catch(() => {});
-    setFlaggedThreads(prev => prev.filter(t => t.id !== id));
-    setActing(null);
+    try {
+      await axiosInstance.put(`/forum/admin/threads/${id}/close`);
+      setFlaggedThreads(prev => prev.filter(t => t.id !== id));
+    } catch (e) {
+      toast.error('İşlem başarısız', { sub: e.response?.data?.detail || e.message });
+    } finally { setActing(null); }
   };
 
   const submitReply = async () => {

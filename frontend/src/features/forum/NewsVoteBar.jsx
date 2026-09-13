@@ -1,35 +1,35 @@
 import React from 'react';
 
+const soft = (v, pct) => `color-mix(in srgb, var(${v}) ${pct}%, transparent)`;
+
 const VOTE_OPTIONS = [
-    { type: 'suspicious',  label: 'Şüpheli', prefix: '!', color: 'var(--color-fake-fill)',     border: 'rgba(239,68,68,0.40)',  bg: 'rgba(239,68,68,0.08)'  },
-    { type: 'authentic',   label: 'Doğru',   prefix: '✓', color: 'var(--color-brand-primary)', border: 'rgba(16,185,129,0.40)', bg: 'rgba(16,185,129,0.08)' },
-    { type: 'investigate', label: 'İncele',  prefix: '?', color: 'var(--color-accent-amber)',  border: 'rgba(245,158,11,0.40)', bg: 'rgba(245,158,11,0.08)' },
+    { type: 'suspicious',  label: 'Şüpheli', v: '--color-fake-fill'     },
+    { type: 'authentic',   label: 'Doğru',   v: '--color-brand-primary' },
+    { type: 'investigate', label: 'İncele',  v: '--color-accent-amber'  },
 ];
 
 export default function NewsVoteBar({ thread, onVote, disabled }) {
     return (
         <div className="flex items-center gap-2 flex-wrap">
-            {VOTE_OPTIONS.map(v => {
-                const isActive = thread.current_user_vote === v.type;
+            {VOTE_OPTIONS.map(opt => {
+                const isActive = thread.current_user_vote === opt.type;
                 const count =
-                    v.type === 'suspicious'  ? thread.vote_suspicious  :
-                    v.type === 'authentic'   ? thread.vote_authentic   :
+                    opt.type === 'suspicious'  ? thread.vote_suspicious  :
+                    opt.type === 'authentic'   ? thread.vote_authentic   :
                     thread.vote_investigate;
                 return (
                     <button
-                        key={v.type}
+                        key={opt.type}
                         disabled={disabled}
-                        onClick={() => onVote(v.type)}
-                        className="flex items-center gap-2 px-3 py-2 border font-mono text-sm font-semibold transition-all disabled:opacity-40"
+                        onClick={() => onVote(opt.type)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-full text-[13.5px] font-bold transition-all duration-150 hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
                         style={{
-                            color:       v.color,
-                            borderColor: isActive ? v.border : 'var(--color-terminal-border-raw)',
-                            background:  isActive ? v.bg     : 'transparent',
+                            color:      isActive ? `var(${opt.v})` : 'var(--color-text-secondary)',
+                            background: isActive ? soft(opt.v, 14) : 'var(--color-bg-surface-solid)',
                         }}
                     >
-                        <span className="font-black text-base leading-none">{v.prefix}</span>
-                        {v.label}
-                        <span className="font-mono text-xs opacity-70">{count}</span>
+                        {opt.label}
+                        <span className="text-[12px] opacity-75">{count}</span>
                     </button>
                 );
             })}

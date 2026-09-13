@@ -29,6 +29,16 @@ class AnalysisService {
         return response.data;
     }
 
+    static async getShareSuggestion(taskId) {
+        const response = await axiosInstance.get(`/analysis/analyze/full-report/${taskId}/share-suggestion`);
+        return response.data;
+    }
+
+    static async shareReport(taskId, { title, body } = {}) {
+        const response = await axiosInstance.post(`/analysis/analyze/full-report/${taskId}/share`, { title, body });
+        return response.data;
+    }
+
     static async checkSimilar(taskId) {
         const response = await axiosInstance.get(`/analysis/analyze/check-similar/${taskId}`);
         return response.data;

@@ -8,7 +8,6 @@ import ThreadCard from './ThreadCard';
 import AuthorAvatar from './AuthorAvatar';
 
 const BD = { borderColor: 'var(--color-terminal-border-raw)' };
-const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
 
 const ForumFeed = () => {
     const { user } = useAuth();
@@ -129,37 +128,29 @@ const ForumFeed = () => {
 
             {/* ── Yeni tartışma çubuğu ── */}
             <div
-                className="relative border flex items-center gap-3 px-4 py-3 cursor-pointer group transition-colors"
-                style={{ ...TS, borderColor: 'var(--color-terminal-border-raw)' }}
+                className="flex items-center gap-3 h-16 px-5 rounded-full cursor-pointer transition-all duration-200 hover:shadow-md"
+                style={{ background: 'var(--color-navbar-bg)', border: '1px solid var(--color-border)' }}
                 onClick={() => setShowModal(true)}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-brand-primary)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-terminal-border-raw)'}
             >
-                <div className="absolute top-0 left-0 w-3 h-[2px] bg-brand pointer-events-none" />
-                <div className="absolute top-0 left-0 h-3 w-[2px] bg-brand pointer-events-none" />
-                <div className="absolute bottom-0 right-0 w-3 h-[2px] bg-brand pointer-events-none" />
-                <div className="absolute bottom-0 right-0 h-3 w-[2px] bg-brand pointer-events-none" />
-
-                <AuthorAvatar username={user?.username ?? '?'} avatarUrl={user?.avatar_url} size={8} />
-                <span className="font-mono text-xs mr-1" style={{ color: 'var(--color-brand-primary)' }}>{'>'}</span>
-                <span className="flex-1 font-mono text-sm" style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
-                    yeni bir tartışma başlat veya iddia paylaş...
+                <AuthorAvatar username={user?.username ?? '?'} avatarUrl={user?.avatar_url} size={9} />
+                <span className="flex-1 text-[15px]" style={{ color: 'var(--color-text-muted)' }}>
+                    Yeni bir tartışma başlat veya iddia paylaş…
                 </span>
                 <button
-                    className="flex items-center gap-1.5 px-3 py-1.5 border font-mono text-xs font-bold transition-colors hover:opacity-80"
-                    style={{ borderColor: 'rgba(16,185,129,0.30)', color: 'var(--color-brand-primary)', background: 'rgba(16,185,129,0.08)' }}
+                    className="flex items-center gap-1.5 px-5 py-2 rounded-full text-[13.5px] font-bold transition-all duration-150 hover:scale-105 hover:shadow-md"
+                    style={{ color: '#fff', background: 'var(--color-brand-primary)' }}
                     onClick={e => { e.stopPropagation(); setShowModal(true); }}
                 >
-                    <Plus className="w-3.5 h-3.5" /> YENİ
+                    <Plus className="w-3.5 h-3.5" /> Yeni
                 </button>
             </div>
 
             {/* ── Tab bar ── */}
             {!category && !tag && (
-                <div className="flex border" style={BD}>
+                <div className="flex gap-6 border-b" style={BD}>
                     {[
-                        { id: 'discover',  label: 'KEŞFET',         Icon: Compass },
-                        { id: 'following', label: 'TAKİP EDİLENLER', Icon: Users   },
+                        { id: 'discover',  label: 'Keşfet',          Icon: Compass },
+                        { id: 'following', label: 'Takip Edilenler', Icon: Users   },
                     ].map((tab) => {
                         const active = activeTab === tab.id;
                         const TabIcon = tab.Icon;
@@ -170,24 +161,12 @@ const ForumFeed = () => {
                                     if (tab.id === 'following' && !user) { navigate('/login'); return; }
                                     setActiveTab(tab.id);
                                 }}
-                                className="flex-1 flex items-center justify-center gap-2 py-2.5 font-mono text-xs font-bold tracking-wider uppercase relative overflow-hidden"
-                                style={{
-                                    background: active ? 'var(--color-forum-tab-active)' : 'var(--color-terminal-surface)',
-                                    color:      'var(--color-text-primary)',
-                                    borderLeft: `2px solid ${active ? 'var(--color-brand-primary)' : 'transparent'}`,
-                                    transition: 'background 0.22s ease, border-color 0.22s ease',
-                                }}
+                                className="flex items-center gap-1.5 pb-2.5 text-[14px] font-bold relative"
+                                style={{ color: active ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}
                             >
-                                <TabIcon className="w-3.5 h-3.5"
-                                    style={{
-                                        color:      active ? 'var(--color-brand-primary)' : 'var(--color-text-muted)',
-                                        transition: 'color 0.22s ease, transform 0.22s ease',
-                                        transform:  active ? 'scale(1.1)' : 'scale(1)',
-                                    }} />
-                                <span style={{ opacity: active ? 1 : 0.6, transition: 'opacity 0.22s ease' }}>
-                                    {tab.label}
-                                </span>
-                                {active && <span className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: 'var(--color-brand-primary)' }} />}
+                                <TabIcon className="w-3.5 h-3.5" />
+                                {tab.label}
+                                {active && <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full" style={{ background: 'var(--color-brand-primary)' }} />}
                             </button>
                         );
                     })}
@@ -197,12 +176,12 @@ const ForumFeed = () => {
             {/* ── Aktif filtreler ── */}
             {(category || tag) && (
                 <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] tracking-widest" style={{ color: 'var(--color-text-muted)' }}>filtre:</span>
+                    <span className="text-[12.5px] font-semibold" style={{ color: 'var(--color-text-muted)' }}>Filtre:</span>
                     {category && (
                         <button
                             onClick={() => { const n = new URLSearchParams(searchParams); n.delete('category'); setSearchParams(n); }}
-                            className="font-mono text-[10px] uppercase px-2 py-0.5 border transition-opacity hover:opacity-70"
-                            style={{ color: 'var(--color-accent-blue)', borderColor: 'rgba(59,130,246,0.30)' }}
+                            className="text-[12.5px] font-bold px-3 py-1 rounded-full transition-opacity hover:opacity-70"
+                            style={{ color: 'var(--color-text-secondary)', background: 'var(--color-bg-surface)' }}
                         >
                             {category} ✕
                         </button>
@@ -210,10 +189,10 @@ const ForumFeed = () => {
                     {tag && (
                         <button
                             onClick={() => { const n = new URLSearchParams(searchParams); n.delete('tag'); setSearchParams(n); }}
-                            className="font-mono text-[10px] uppercase px-2 py-0.5 border transition-opacity hover:opacity-70"
-                            style={{ color: 'var(--color-brand-primary)', borderColor: 'rgba(16,185,129,0.30)' }}
+                            className="text-[12.5px] font-bold px-3 py-1 rounded-full transition-opacity hover:opacity-70"
+                            style={{ color: 'var(--color-brand-primary)', background: 'var(--color-bg-surface)' }}
                         >
-                            {tag} ✕
+                            #{tag} ✕
                         </button>
                     )}
                 </div>
@@ -223,21 +202,21 @@ const ForumFeed = () => {
             {loading ? (
                 <div className="flex flex-col gap-3">
                     {[...Array(5)].map((_, i) => (
-                        <div key={i} className="h-36 border animate-pulse" style={TS} />
+                        <div key={i} className="h-32 rounded-xl animate-pulse" style={{ background: 'var(--color-bg-surface)' }} />
                     ))}
                 </div>
             ) : threads.length === 0 ? (
-                <div className="border py-16 text-center" style={TS}>
+                <div className="py-16 text-center">
                     {activeTab === 'following' ? (
                         <>
-                            <Users className="w-8 h-8 mx-auto mb-3 opacity-20" style={{ color: 'var(--color-text-muted)' }} />
-                            <p className="font-mono text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>// takip listesi boş</p>
-                            <p className="font-mono text-xs opacity-50" style={{ color: 'var(--color-text-muted)' }}>kullanıcı profillerinden takip edebilirsin</p>
+                            <Users className="w-8 h-8 mx-auto mb-3 opacity-30" style={{ color: 'var(--color-text-muted)' }} />
+                            <p className="text-[14px] font-semibold mb-1" style={{ color: 'var(--color-text-secondary)' }}>Takip listesi boş</p>
+                            <p className="text-[13px]" style={{ color: 'var(--color-text-muted)' }}>Kullanıcı profillerinden takip edebilirsin</p>
                         </>
                     ) : (
                         <>
-                            <MessageSquare className="w-8 h-8 mx-auto mb-3 opacity-20" style={{ color: 'var(--color-text-muted)' }} />
-                            <p className="font-mono text-sm" style={{ color: 'var(--color-text-muted)' }}>// tartışma bulunamadı</p>
+                            <MessageSquare className="w-8 h-8 mx-auto mb-3 opacity-30" style={{ color: 'var(--color-text-muted)' }} />
+                            <p className="text-[14px] font-semibold" style={{ color: 'var(--color-text-secondary)' }}>Tartışma bulunamadı</p>
                         </>
                     )}
                 </div>

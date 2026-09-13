@@ -15,6 +15,7 @@ services:
       timeout: 5s
       retries: 18
       start_period: 90s
+    restart: unless-stopped
     mem_limit: 900m
     memswap_limit: 1800m
 
@@ -36,6 +37,7 @@ services:
         embedding-service:
           condition: service_healthy
       command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+      restart: unless-stopped
       mem_limit: 700m
       memswap_limit: 700m
 
@@ -52,6 +54,7 @@ services:
       - db
       - embedding-service
     command: celery -A workers.tasks worker --concurrency=1 --include=workers.link_analysis_task,workers.daily_digest_task --loglevel=info -Q celery,deep_report
+    restart: unless-stopped
     mem_limit: 600m
     memswap_limit: 600m
 
@@ -65,6 +68,7 @@ services:
       - redis
       - db
     command: celery -A workers.ai_comment_task worker --loglevel=info --concurrency=1 -Q ai_comment
+    restart: unless-stopped
     mem_limit: 400m
     memswap_limit: 400m
 
@@ -201,6 +205,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
     mem_limit: 700m
     memswap_limit: 700m
 
@@ -229,6 +234,7 @@ services:
     volumes:
       - redis_data:/data
     command: redis-server --maxmemory 384mb --maxmemory-policy volatile-lru
+    restart: unless-stopped
     mem_limit: 400m
     memswap_limit: 400m
 

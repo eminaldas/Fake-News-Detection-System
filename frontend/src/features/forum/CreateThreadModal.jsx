@@ -16,8 +16,9 @@ const CATEGORIES = [
     { value: 'genel',     label: 'Genel'       },
 ];
 
-const BD    = { borderColor: 'var(--color-terminal-border-raw)' };
+const BD    = { borderColor: 'var(--color-border)' };
 const BRAND = 'var(--color-brand-primary)';
+const soft  = (v, pct) => `color-mix(in srgb, var(${v}) ${pct}%, transparent)`;
 
 function extractError(err) {
     const detail = err?.response?.data?.detail;
@@ -53,7 +54,7 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
 
     const handleClose = React.useCallback(() => {
         setVisible(false);
-        setTimeout(onClose, 220);
+        setTimeout(onClose, 200);
     }, [onClose]);
 
     useEffect(() => {
@@ -115,10 +116,10 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
             <div
                 className="fixed inset-0 z-9999"
                 style={{
-                    background:           visible ? 'rgba(0,0,0,0.68)' : 'rgba(0,0,0,0)',
-                    backdropFilter:       visible ? 'blur(3px)' : 'blur(0px)',
-                    WebkitBackdropFilter: visible ? 'blur(3px)' : 'blur(0px)',
-                    transition: 'background 0.18s ease, backdrop-filter 0.18s ease',
+                    background:           visible ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0)',
+                    backdropFilter:       visible ? 'blur(4px)' : 'blur(0px)',
+                    WebkitBackdropFilter: visible ? 'blur(4px)' : 'blur(0px)',
+                    transition: 'background 0.2s ease, backdrop-filter 0.2s ease',
                 }}
                 onClick={handleClose}
             />
@@ -126,30 +127,28 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
             {/* Modal */}
             <div className="fixed inset-0 z-10000 flex items-center justify-center px-4 py-6 pointer-events-none">
                 <div
-                    className="w-full max-w-xl pointer-events-auto flex flex-col overflow-hidden relative"
+                    className="w-full max-w-xl rounded-2xl pointer-events-auto flex flex-col overflow-hidden relative"
                     style={{
-                        background:      'var(--color-terminal-surface)',
-                        border:          '1px solid var(--color-terminal-border-raw)',
-                        borderTop:       `3px solid ${BRAND}`,
-                        boxShadow:       '0 24px 64px rgba(0,0,0,0.75), 0 0 0 1px rgba(16,185,129,0.10)',
-                        transformOrigin: 'top center',
-                        transform:       visible ? 'scaleY(1) translateY(0)' : 'scaleY(0.62) translateY(-14px)',
-                        opacity:         visible ? 1 : 0,
-                        transition:      'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease',
-                        maxHeight:       '86vh',
+                        background: 'var(--color-navbar-bg)',
+                        border:     '1px solid var(--color-border)',
+                        boxShadow:  '0 24px 64px rgba(0,0,0,0.35)',
+                        transform:  visible ? 'scale(1) translateY(0)' : 'scale(0.96) translateY(8px)',
+                        opacity:    visible ? 1 : 0,
+                        transition: 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease',
+                        maxHeight:  '86vh',
                     }}
                 >
                     {/* Header */}
-                    <div className="flex items-center gap-3 px-5 py-4 border-b shrink-0" style={BD}>
-                        <div className="w-7 h-7 flex items-center justify-center shrink-0"
-                             style={{ background: 'rgba(63,255,139,0.10)', border: '1px solid rgba(63,255,139,0.22)' }}>
-                            <MessageSquare className="w-3.5 h-3.5" style={{ color: BRAND }} />
+                    <div className="flex items-center gap-3 px-6 py-5 border-b shrink-0" style={BD}>
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                             style={{ background: soft('--color-brand-primary', 12) }}>
+                            <MessageSquare className="w-4 h-4" style={{ color: BRAND }} />
                         </div>
-                        <span className="text-sm font-bold flex-1" style={{ color: 'var(--color-text-primary)' }}>
+                        <span className="text-[16px] font-bold flex-1" style={{ color: 'var(--color-text-primary)' }}>
                             Tartışma Başlat
                         </span>
                         <button onClick={handleClose}
-                                className="p-1 transition-opacity hover:opacity-60"
+                                className="p-1.5 rounded-full transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                                 style={{ color: 'var(--color-text-muted)' }}>
                             <X className="w-4 h-4" />
                         </button>
@@ -159,10 +158,10 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
 
                         {/* Bağlı haber bandı */}
                         {articleId && suggestion && (
-                            <div className="mx-5 mt-4 flex items-start gap-3 px-3 py-2.5"
-                                 style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.20)' }}>
-                                <LinkIcon className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: BRAND }} />
-                                <p className="text-xs flex-1 leading-snug"
+                            <div className="mx-6 mt-5 flex items-start gap-3 px-4 py-3 rounded-xl"
+                                 style={{ background: soft('--color-brand-primary', 8) }}>
+                                <LinkIcon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: BRAND }} />
+                                <p className="text-[13px] flex-1 leading-snug"
                                    style={{ color: 'var(--color-text-secondary)' }}>
                                     {suggestion}
                                 </p>
@@ -170,14 +169,14 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
                         )}
 
                         {/* Başlık */}
-                        <div className="px-5 pt-4 pb-4 border-b" style={BD}>
-                            <div className="flex items-center justify-between mb-2">
-                                <label className="text-[11px] font-semibold uppercase tracking-wider"
+                        <div className="px-6 pt-5 pb-5 border-b" style={BD}>
+                            <div className="flex items-center justify-between mb-2.5">
+                                <label className="text-[12px] font-bold uppercase tracking-wider"
                                        style={{ color: 'var(--color-text-muted)' }}>
-                                    Başlık <span style={{ color: 'var(--color-es-error)' }}>*</span>
+                                    Başlık <span style={{ color: 'var(--color-fake-fill)' }}>*</span>
                                 </label>
-                                <span className="text-[10px]"
-                                      style={{ color: title.length > 0 && title.length < 3 ? '#ff6b6b' : 'var(--color-text-muted)' }}>
+                                <span className="text-[11px] font-semibold"
+                                      style={{ color: title.length > 0 && title.length < 3 ? 'var(--color-fake-fill)' : 'var(--color-text-muted)' }}>
                                     {title.length}/300
                                 </span>
                             </div>
@@ -189,26 +188,24 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
                                 onKeyDown={handleTitleKeyDown}
                                 maxLength={300}
                                 placeholder={suggestion ? 'Başlık yaz veya Tab ile önerilen başlığı kullan…' : 'Tartışma başlığını yaz…'}
-                                className="w-full bg-transparent outline-none text-sm"
+                                className="w-full bg-transparent outline-none text-[15px]"
                                 style={{
-                                    color:       'var(--color-text-primary)',
-                                    caretColor:  BRAND,
-                                    fontFamily:  "'Elms Sans', sans-serif",
-                                    padding:     '6px 0',
-                                    borderBottom: `1px solid ${title ? 'rgba(63,255,139,0.30)' : 'var(--color-terminal-border-raw)'}`,
-                                    transition:  'border-color 0.2s',
+                                    color:        'var(--color-text-primary)',
+                                    caretColor:   BRAND,
+                                    padding:      '8px 0',
+                                    borderBottom: `2px solid ${title ? BRAND : 'var(--color-border)'}`,
+                                    transition:   'border-color 0.2s',
                                 }}
                             />
 
                             {/* Tab öneri ipucu */}
                             {suggestion && !title && (
-                                <div className="flex items-center gap-1.5 mt-2">
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-bold font-mono"
-                                          style={{ background: 'var(--color-terminal-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-terminal-border-raw)' }}>
+                                <div className="flex items-center gap-2 mt-2.5">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold"
+                                          style={{ background: 'var(--color-bg-surface-solid)', color: 'var(--color-text-muted)' }}>
                                         Tab ↹
                                     </span>
-                                    <span className="text-[10px] truncate max-w-75"
-                                          style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
+                                    <span className="text-[12px] truncate max-w-75" style={{ color: 'var(--color-text-muted)' }}>
                                         {suggestion.length > 60 ? suggestion.slice(0, 60) + '…' : suggestion}
                                     </span>
                                 </div>
@@ -216,14 +213,14 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
                         </div>
 
                         {/* Açıklama */}
-                        <div className="px-5 pt-4 pb-4 border-b" style={BD}>
-                            <div className="flex items-center justify-between mb-2">
-                                <label className="text-[11px] font-semibold uppercase tracking-wider"
+                        <div className="px-6 pt-5 pb-5 border-b" style={BD}>
+                            <div className="flex items-center justify-between mb-2.5">
+                                <label className="text-[12px] font-bold uppercase tracking-wider"
                                        style={{ color: 'var(--color-text-muted)' }}>
                                     Açıklama
-                                    <span className="ml-1 font-normal normal-case" style={{ opacity: 0.55 }}>(isteğe bağlı)</span>
+                                    <span className="ml-1.5 font-medium normal-case" style={{ opacity: 0.6 }}>(isteğe bağlı)</span>
                                 </label>
-                                <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                                <span className="text-[11px] font-semibold" style={{ color: 'var(--color-text-muted)' }}>
                                     {body.length}/10000
                                 </span>
                             </div>
@@ -233,19 +230,15 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
                                 rows={3}
                                 maxLength={10000}
                                 placeholder="Kanıtını veya görüşünü yaz…"
-                                className="w-full bg-transparent resize-none outline-none text-sm leading-relaxed"
-                                style={{
-                                    color:      'var(--color-text-primary)',
-                                    caretColor: BRAND,
-                                    fontFamily: "'Elms Sans', sans-serif",
-                                }}
+                                className="w-full bg-transparent resize-none outline-none text-[14.5px] leading-relaxed"
+                                style={{ color: 'var(--color-text-primary)', caretColor: BRAND }}
                             />
                         </div>
 
                         {/* Gönderi türü + Kategori — yan yana */}
-                        <div className="px-5 pt-4 pb-4 border-b flex gap-4" style={BD}>
+                        <div className="px-6 pt-5 pb-5 border-b flex gap-4" style={BD}>
                             <div className="flex-1">
-                                <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2"
+                                <label className="block text-[12px] font-bold uppercase tracking-wider mb-2.5"
                                        style={{ color: 'var(--color-text-muted)' }}>
                                     Tür
                                 </label>
@@ -259,11 +252,10 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
                                             key={opt.value}
                                             type="button"
                                             onClick={() => setPostType(opt.value)}
-                                            className="flex-1 py-1.5 text-xs font-semibold border transition-all"
+                                            className="flex-1 py-2 rounded-lg text-[12.5px] font-bold transition-all duration-150"
                                             style={{
-                                                borderColor: postType === opt.value ? BRAND : 'var(--color-terminal-border-raw)',
-                                                color:       postType === opt.value ? BRAND : 'var(--color-text-muted)',
-                                                background:  postType === opt.value ? 'rgba(16,185,129,0.06)' : 'transparent',
+                                                color:      postType === opt.value ? BRAND : 'var(--color-text-muted)',
+                                                background: postType === opt.value ? soft('--color-brand-primary', 12) : 'var(--color-bg-surface-solid)',
                                             }}
                                         >
                                             {opt.label}
@@ -273,20 +265,15 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
                             </div>
 
                             <div className="flex-1">
-                                <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2"
+                                <label className="block text-[12px] font-bold uppercase tracking-wider mb-2.5"
                                        style={{ color: 'var(--color-text-muted)' }}>
                                     Kategori
                                 </label>
                                 <select
                                     value={category}
                                     onChange={e => setCategory(e.target.value)}
-                                    className="w-full px-3 py-1.5 text-xs cursor-pointer border outline-none"
-                                    style={{
-                                        background:  'var(--color-terminal-surface)',
-                                        borderColor: 'var(--color-terminal-border-raw)',
-                                        color:       'var(--color-text-primary)',
-                                        fontFamily:  "'Elms Sans', sans-serif",
-                                    }}
+                                    className="w-full px-3 py-2 rounded-lg text-[12.5px] font-semibold cursor-pointer outline-none"
+                                    style={{ background: 'var(--color-bg-surface-solid)', color: 'var(--color-text-primary)' }}
                                 >
                                     {CATEGORIES.map(c => (
                                         <option key={c.value} value={c.value}>{c.label}</option>
@@ -296,21 +283,20 @@ const CreateThreadModal = ({ onClose, articleId = null, articleTitle: propTitle 
                         </div>
 
                         {/* Footer */}
-                        <div className="flex items-center gap-3 px-5 py-4 shrink-0"
-                             style={{ background: 'rgba(0,0,0,0.15)', borderTop: `1px solid var(--color-terminal-border-raw)` }}>
+                        <div className="flex items-center gap-3 px-6 py-5 shrink-0">
                             {error
-                                ? <p className="text-xs flex-1 leading-relaxed" style={{ color: '#ff6b6b' }}>{error}</p>
+                                ? <p className="text-[13px] flex-1 leading-relaxed font-medium" style={{ color: 'var(--color-fake-fill)' }}>{error}</p>
                                 : <span className="flex-1" />
                             }
                             <div className="flex gap-2 ml-auto shrink-0">
                                 <button type="button" onClick={handleClose}
-                                        className="px-4 py-2 text-xs font-semibold border transition-opacity hover:opacity-60"
-                                        style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-terminal-border-raw)' }}>
+                                        className="px-4 py-2 rounded-full text-[13px] font-bold transition-colors"
+                                        style={{ color: 'var(--color-text-muted)', background: 'var(--color-bg-surface-solid)' }}>
                                     İptal
                                 </button>
                                 <button type="submit" disabled={!canSubmit}
-                                        className="flex items-center gap-1.5 px-5 py-2 text-xs font-bold transition-opacity hover:opacity-80 disabled:opacity-30"
-                                        style={{ background: BRAND, color: '#070f12' }}>
+                                        className="flex items-center gap-1.5 px-5 py-2 rounded-full text-[13px] font-bold transition-all duration-150 hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+                                        style={{ background: BRAND, color: '#fff' }}>
                                     <CornerDownLeft className="w-3.5 h-3.5" />
                                     {submitting ? 'Oluşturuluyor…' : 'Tartışmayı Başlat'}
                                 </button>

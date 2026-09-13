@@ -22,8 +22,8 @@ export default function PopularTagsPanel({ activeTag = '', onSelect }) {
 
     return (
         <CollapsiblePanel icon={Hash} title="Popüler Etiketler" storageKey="tags">
-            <div className="flex flex-col">
-                {tags.map((t, i) => {
+            <div className="flex flex-wrap gap-2">
+                {tags.map((t) => {
                     const name = t.name.replace(/^#/, '');
                     const on = activeTag === name;
                     return (
@@ -31,19 +31,14 @@ export default function PopularTagsPanel({ activeTag = '', onSelect }) {
                             key={t.id ?? name}
                             type="button"
                             onClick={() => onSelect(name)}
-                            className="flex items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-white/[0.03]"
-                            style={{ borderBottom: i < tags.length - 1 ? '1px solid var(--color-terminal-border-raw)' : 'none' }}
+                            className="text-[13.5px] font-bold px-3.5 py-1.5 rounded-full transition-all duration-150 hover:scale-[1.04]"
+                            style={{
+                                background: on ? 'var(--color-brand-primary)' : 'var(--color-bg-surface-solid)',
+                                color:      on ? '#fff' : 'var(--color-text-secondary)',
+                            }}
+                            title={`${t.usage_count} gönderi`}
                         >
-                            <span className="font-mono font-extrabold text-[15px]" style={{ color: 'var(--color-brand-primary)' }}>#</span>
-                            <span className="flex-1 min-w-0">
-                                <span className="block font-mono text-[13px] font-bold truncate"
-                                      style={{ color: on ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)' }}>
-                                    {name}
-                                </span>
-                                <span className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
-                                    {t.usage_count} gönderi
-                                </span>
-                            </span>
+                            #{name}
                         </button>
                     );
                 })}

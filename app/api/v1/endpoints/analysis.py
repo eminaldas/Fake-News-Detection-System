@@ -6,7 +6,7 @@ import imagehash
 from PIL import Image, UnidentifiedImageError
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select, text, update
 from celery.result import AsyncResult
 import uuid
 import json
@@ -28,6 +28,9 @@ from app.schemas.schemas import (
     FullReportRequest,
     FullReportResponse,
     ImageAnalysisResponse,
+    ShareReportRequest,
+    ShareReportResponse,
+    ShareReportSuggestion,
     SharedAnalysisResponse,
     SignalsRequest,
     SignalsResponse,
@@ -906,6 +909,89 @@ async def get_full_report(
         task_id=task_id, status="cached", report=data.full_report,
         confidence=data.confidence, ml_verdict=data.status, title=data.title,
     )
+
+
+@router.get(
+    "/analyze/full-report/{task_id}/share-suggestion",
+    response_model=ShareReportSuggestion,
+)
+async def get_share_suggestion(
+    task_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Topluluğa paylaşım için önerilen (düzenlenebilir) başlık + metin döner."""
+    from workers.deep_report_task import build_share_suggestion
+
+    row = await db.execute(
+        select(AnalysisResult.full_report, Article.title, Article.metadata_info)
+        .join(Article, AnalysisResult.article_id == Article.id)
+        .where(Article.metadata_info.op("->>")(  "task_id") == task_id)
+        .limit(1)
+    )
+    data = row.first()
+    if not data or not data.full_report:
+        raise HTTPException(status_code=404, detail="Rapor bulunamadı.")
+
+    source_url = (data.metadata_info or {}).get("source_url")
+    title, body = build_share_suggestion(data.title, data.full_report, source_url)
+    return ShareReportSuggestion(title=title, body=body)
+
+
+@router.post(
+    "/analyze/full-report/{task_id}/share",
+    response_model=ShareReportResponse,
+)
+async def share_full_report(
+    task_id: str,
+    body: ShareReportRequest = Body(default=ShareReportRequest()),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Tam raporu, kullanıcının düzenlediği başlık/metinle topluluğa (foruma) paylaşır."""
+    from workers.deep_report_task import _create_report_thread
+
+    row = await db.execute(
+        select(
+            AnalysisResult.id, AnalysisResult.full_report,
+            Article.id.label("article_id"), Article.title, Article.metadata_info,
+        )
+        .join(Article, AnalysisResult.article_id == Article.id)
+        .where(Article.metadata_info.op("->>")(  "task_id") == task_id)
+        .limit(1)
+    )
+    data = row.first()
+    if not data or not data.full_report:
+        raise HTTPException(status_code=404, detail="Rapor bulunamadı — önce tam rapor oluşturulmalı.")
+
+    report = data.full_report
+    if report.get("forum_thread_id"):
+        return ShareReportResponse(thread_id=report["forum_thread_id"])
+
+    source_url = (data.metadata_info or {}).get("source_url")
+    thread_id = await _create_report_thread(
+        session=db,
+        article_id=data.article_id,
+        user_id=str(current_user.id),
+        task_id=task_id,
+        title=data.title,
+        overall_assessment=report.get("overall_assessment", ""),
+        source_url=source_url,
+        report=report,
+        title_override=body.title,
+        body_override=body.body,
+    )
+    if not thread_id:
+        raise HTTPException(status_code=500, detail="Paylaşım oluşturulamadı.")
+
+    report["forum_thread_id"] = thread_id
+    await db.execute(
+        update(AnalysisResult)
+        .where(AnalysisResult.id == data.id)
+        .values(full_report=report)
+    )
+    await db.commit()
+    return ShareReportResponse(thread_id=thread_id)
 
 
 @router.get("/similar-news/{task_id}", response_model=SimilarNewsResponse)

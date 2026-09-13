@@ -15,6 +15,7 @@ import FalseClaimsCard from './FalseClaimsCard';
 import ForumSuggestion from '../forum/ForumSuggestion';
 import ShareModal from '../../components/ui/ShareModal';
 import FullReportModal from './FullReportModal';
+import AnalysisService from '../../services/analysis.service';
 import { getTheme, buildExplanation, RING_CIRC } from './analysisTheme';
 import { useIsDark } from '../../hooks/useIsDark';
 
@@ -75,6 +76,16 @@ const AnalysisResultCard = ({ result }) => {
 
     const reportTaskId = result.task_id ?? result.content_id ?? null;
     const reportJob = reportTaskId ? jobs[reportTaskId] : null;
+    const [reportReady, setReportReady] = useState(false);
+
+    useEffect(() => {
+        if (!reportTaskId || !isAuthenticated) return;
+        let alive = true;
+        AnalysisService.getFullReport(reportTaskId)
+            .then((data) => { if (alive && data?.status === 'cached' && data.report) setReportReady(true); })
+            .catch(() => {});
+        return () => { alive = false; };
+    }, [reportTaskId, isAuthenticated]);
 
     const hasGeminiVerdict = !!aiComment?.gemini_verdict;
     const badgeLabel = isUrlAnalysis
@@ -373,7 +384,7 @@ const AnalysisResultCard = ({ result }) => {
                 </div>
             </div>
         )}
-        {reportJob && reportJob.status === 'done' && (
+        {(reportReady || (reportJob && reportJob.status === 'done')) && (
             <button onClick={() => navigate(`/analysis/report/${reportTaskId}`)} className="mt-4 w-full py-2.5 border font-bold text-sm" style={{ borderColor: '#3fff8b55', color: '#3fff8b', background: '#3fff8b10' }}>
                 Tam rapor hazır — Görüntüle
             </button>

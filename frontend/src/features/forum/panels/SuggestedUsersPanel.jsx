@@ -48,36 +48,37 @@ export default function SuggestedUsersPanel() {
 
     return (
         <CollapsiblePanel icon={Users} title="Önerilen Kullanıcılar" storageKey="suggested">
-            <div className="flex flex-col">
-                {users.map((u, i) => {
+            <div className="flex flex-col gap-1 -mx-2">
+                {users.map((u) => {
                     const on = !!following[u.user_id];
                     return (
-                        <div key={u.user_id} className="flex items-center gap-3 px-4 py-2.5"
-                             style={{ borderBottom: i < users.length - 1 ? '1px solid var(--color-terminal-border-raw)' : 'none' }}>
+                        <div key={u.user_id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors"
+                             onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg-surface-solid)'; }}
+                             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
                             <Avatar username={u.username} url={u.avatar_url} />
                             <Link to={`/users/${u.user_id}`} className="min-w-0 flex-1" style={{ textDecoration: 'none' }}>
                                 <span className="flex items-center gap-1.5">
-                                    <span className="text-[13px] font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>
+                                    <span className="text-[14px] font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>
                                         {u.username}
                                     </span>
-                                    <span className="font-mono text-[9px] font-extrabold px-1 shrink-0"
-                                          style={{ color: 'var(--color-brand-primary)', background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.25)' }}>
+                                    <span className="text-[10.5px] font-extrabold px-1.5 py-0.5 rounded shrink-0"
+                                          style={{ color: 'var(--color-brand-primary)', background: 'color-mix(in srgb, var(--color-brand-primary) 12%, transparent)' }}>
                                         Lv {u.level ?? 1}
                                     </span>
                                 </span>
-                                <span className="font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                                <span className="text-[11.5px]" style={{ color: 'var(--color-text-muted)' }}>
                                     {u.value} gönderi
                                 </span>
                             </Link>
                             <button
                                 type="button"
                                 onClick={() => toggleFollow(u.user_id)}
-                                className="font-mono text-[10px] font-extrabold px-2.5 py-1.5 border transition-colors shrink-0"
+                                className="text-[12px] font-bold px-3 py-1.5 rounded-full transition-all duration-150 hover:scale-105 shrink-0"
                                 style={on
-                                    ? { color: 'var(--color-text-muted)', borderColor: 'var(--color-terminal-border-raw)' }
-                                    : { color: 'var(--color-brand-primary)', borderColor: 'rgba(16,185,129,0.40)' }}
+                                    ? { color: 'var(--color-text-muted)', background: 'var(--color-bg-surface-solid)' }
+                                    : { color: '#fff', background: 'var(--color-brand-primary)' }}
                             >
-                                {on ? '✓ Takip' : '+ Takip'}
+                                {on ? 'Takip ediliyor' : 'Takip Et'}
                             </button>
                         </div>
                     );

@@ -10,7 +10,32 @@ const VOTES = [
     { type: 'investigate', label: 'ARAŞTIR' },
 ];
 
-export default function FeedbackSection({ taskId, forumThreadId }) {
+export default function FeedbackSection({ taskId, forumThreadId, onShared }) {
+    const [shareState, setShareState] = useState('idle'); // idle | loading | editing | sharing | done
+    const [suggestion, setSuggestion] = useState({ title: '', body: '' });
+
+    const startShare = async () => {
+        setShareState('loading');
+        try {
+            const data = await AnalysisService.getShareSuggestion(taskId);
+            setSuggestion({ title: data.title, body: data.body });
+            setShareState('editing');
+        } catch {
+            setShareState('idle');
+        }
+    };
+
+    const submitShare = async () => {
+        setShareState('sharing');
+        try {
+            const data = await AnalysisService.shareReport(taskId, suggestion);
+            setShareState('done');
+            onShared?.(data.thread_id);
+        } catch {
+            setShareState('editing');
+        }
+    };
+
     const [fbState,   setFbState]   = useState(() =>
         localStorage.getItem(`fnds_fb_${taskId}`) ? STATE.done : STATE.idle
     );
@@ -183,6 +208,79 @@ export default function FeedbackSection({ taskId, forumThreadId }) {
                                 </button>
                             ))}
                         </div>
+                    )}
+                </div>
+            )}
+
+            {/* ── Topluluğa Paylaş (rapor henüz paylaşılmadıysa) ── */}
+            {!forumThreadId && (
+                <div className="pt-5 pb-5 px-5" style={{ borderTop: '1px solid var(--color-terminal-border-raw)' }}>
+                    {shareState === 'idle' || shareState === 'loading' ? (
+                        <>
+                            <div className="flex items-center gap-2 mb-3">
+                                <Users className="w-4 h-4 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
+                                <span className="font-bold text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                                    Topluluğa Paylaş
+                                </span>
+                            </div>
+                            <p className="font-mono text-xs mb-4" style={{ color: 'var(--color-text-secondary)' }}>
+                                Bu raporu foruma taşıyıp topluluğun değerlendirmesine açabilirsin — paylaşmadan önce başlık ve metni düzenleyebilirsin.
+                            </p>
+                            <button
+                                disabled={shareState === 'loading'}
+                                onClick={startShare}
+                                className="font-mono text-xs uppercase tracking-widest px-4 py-2 transition-opacity disabled:opacity-40"
+                                style={{ border: '1px solid var(--color-terminal-border-raw)', color: 'var(--color-brand-primary)', background: 'transparent' }}
+                            >
+                                {shareState === 'loading' ? '[ HAZIRLANIYOR... ]' : '[ TOPLULUĞA PAYLAŞ ]'}
+                            </button>
+                        </>
+                    ) : shareState === 'editing' || shareState === 'sharing' ? (
+                        <>
+                            <label className="block font-mono text-[10px] uppercase tracking-widest mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                                Başlık
+                            </label>
+                            <input
+                                value={suggestion.title}
+                                onChange={e => setSuggestion(s => ({ ...s, title: e.target.value }))}
+                                maxLength={200}
+                                className="w-full bg-transparent font-mono text-sm outline-none px-3 py-2 border mb-3"
+                                style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}
+                            />
+                            <label className="block font-mono text-[10px] uppercase tracking-widest mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                                Metin
+                            </label>
+                            <textarea
+                                value={suggestion.body}
+                                onChange={e => setSuggestion(s => ({ ...s, body: e.target.value }))}
+                                rows={5}
+                                maxLength={5000}
+                                className="w-full bg-transparent font-mono text-sm outline-none px-3 py-2 border resize-none mb-3"
+                                style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}
+                            />
+                            <div className="flex gap-2">
+                                <button
+                                    disabled={shareState === 'sharing' || !suggestion.title.trim()}
+                                    onClick={submitShare}
+                                    className="font-mono text-xs uppercase tracking-widest px-4 py-2 font-bold transition-opacity disabled:opacity-40"
+                                    style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}
+                                >
+                                    {shareState === 'sharing' ? '[ PAYLAŞILIYOR... ]' : '[ PAYLAŞ ]'}
+                                </button>
+                                <button
+                                    disabled={shareState === 'sharing'}
+                                    onClick={() => setShareState('idle')}
+                                    className="font-mono text-xs px-4 py-2 border transition-opacity hover:opacity-70"
+                                    style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)' }}
+                                >
+                                    İptal
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <p className="font-mono text-xs" style={{ color: '#3fff8b' }}>
+                            [ OK ] Topluluğa paylaşıldı.
+                        </p>
                     )}
                 </div>
             )}

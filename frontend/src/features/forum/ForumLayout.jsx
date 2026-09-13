@@ -45,33 +45,29 @@ const ForumLayout = () => {
         return () => document.removeEventListener('keydown', onKey);
     }, []);
 
-    const showSides = !isSearchPage && !isThreadPage;
+    const showSides = !isSearchPage;
 
     return (
         <div className="w-full">
             {showWall && <LoginNudgeModal />}
             {searchOpen && <ForumSearchModal onClose={() => setSearchOpen(false)} />}
 
-            <div className="max-w-[1500px] mx-auto w-full px-4 md:px-6 py-6 flex flex-col lg:grid lg:gap-5 lg:items-start"
-                 style={{ gridTemplateColumns: showSides ? '236px 1fr 300px' : '1fr' }}>
+            <div className="max-w-[1720px] mx-auto w-full px-4 md:px-10 py-8 flex flex-col lg:grid lg:gap-12 lg:items-start"
+                 style={{ gridTemplateColumns: showSides ? '270px minmax(0,1fr) 320px' : '1fr' }}>
 
                 {/* SOL · keşif (sabit) */}
                 {showSides && (
-                    <aside className="hidden lg:flex flex-col gap-4 lg:sticky lg:top-36 self-start">
+                    <aside className="hidden lg:flex flex-col gap-4 lg:sticky lg:top-6 self-start">
                         <button
                             type="button"
                             onClick={() => setSearchOpen(true)}
-                            className="flex items-center gap-2.5 w-full px-4 py-3 border font-bold text-[13.5px] transition-colors hover:brightness-105"
-                            style={{
-                                background:  'var(--color-terminal-surface)',
-                                borderColor: 'var(--color-terminal-border-raw)',
-                                color:       'var(--color-brand-primary)',
-                            }}
+                            className="flex items-center gap-2.5 w-full h-16 px-5 rounded-full font-semibold text-[14.5px] transition-colors hover:brightness-95"
+                            style={{ background: 'var(--color-navbar-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
                         >
                             <Search className="w-4 h-4 shrink-0" />
                             Keşfet — ara
-                            <span className="ml-auto font-mono text-[9px] font-bold px-1.5 py-0.5"
-                                  style={{ color: 'var(--color-brand-primary)', background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.25)' }}>
+                            <span className="ml-auto text-[10.5px] font-bold px-1.5 py-0.5 rounded"
+                                  style={{ color: 'var(--color-text-muted)', background: 'var(--color-bg-surface-solid)' }}>
                                 ⌘K
                             </span>
                         </button>
@@ -85,7 +81,7 @@ const ForumLayout = () => {
 
                 {/* SAĞ · topluluk (sabit) */}
                 {showSides && (
-                    <aside className="hidden lg:flex flex-col gap-4 lg:sticky lg:top-36 self-start">
+                    <aside className="hidden lg:flex flex-col gap-4 lg:sticky lg:top-6 self-start">
                         <PopularPostsPanel />
                         <PopularTagsPanel activeTag={activeTag} onSelect={(t) => setParam('tag', t)} />
                         <SuggestedUsersPanel />

@@ -90,6 +90,7 @@ export default function AnalysisReport() {
     const navigate    = useNavigate();
     const { report, confidence, mlVerdict, loading, error } = useReport(taskId);
     const [copied, setCopied] = React.useState(false);
+    const [sharedThreadId, setSharedThreadId] = React.useState(null);
 
     const handleShare = () => {
         navigator.clipboard?.writeText(window.location.href).then(() => {
@@ -266,7 +267,8 @@ export default function AnalysisReport() {
                     <div className="animate-fade-up" style={{ animationDelay: '560ms' }}>
                         <FeedbackSection
                             taskId={taskId}
-                            forumThreadId={report.forum_thread_id ?? null}
+                            forumThreadId={report.forum_thread_id ?? sharedThreadId}
+                            onShared={setSharedThreadId}
                         />
                     </div>
 

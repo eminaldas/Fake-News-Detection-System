@@ -1,7 +1,7 @@
 import React from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-    AlertTriangle, Send, X,
+    AlertTriangle, Send,
     ShieldCheck, ShieldAlert, ChevronDown, ChevronUp,
     ArrowLeft, ExternalLink,
 } from 'lucide-react';
@@ -19,58 +19,16 @@ import GeneralVoteBar from './GeneralVoteBar';
 import VerdictModal   from './VerdictModal';
 import VerdictBox     from './VerdictBox';
 
-const TS = { background: 'var(--color-terminal-surface)', borderColor: 'var(--color-terminal-border-raw)' };
-const BD = { borderColor: 'var(--color-terminal-border-raw)' };
+const soft = (v, pct) => `color-mix(in srgb, var(${v}) ${pct}%, transparent)`;
+const CARD = { background: 'var(--color-navbar-bg)', border: '1px solid var(--color-border)' };
+const CHIP = { background: 'var(--color-bg-surface-solid)', color: 'var(--color-text-secondary)' };
 
-const STATUS_COLOR = {
-    active:       'var(--color-brand-primary)',
-    under_review: 'var(--color-accent-amber)',
-    resolved:     'var(--color-accent-blue)',
-};
-const STATUS_LABEL = {
-    active:       'AKTİF',
-    under_review: 'İNCELEME ALTINDA',
-    resolved:     'ÇÖZÜLDÜ',
-};
+const STATUS_LABEL = { under_review: 'İncelemede', resolved: 'Çözüldü' };
 
-function Block({ title, children, footer }) {
+function Card({ children, className = '' }) {
     return (
-        <div className="relative border overflow-hidden" style={TS}>
-            <div className="absolute top-0 left-0 w-3 h-[2px] bg-brand pointer-events-none" />
-            <div className="absolute top-0 left-0 h-3 w-[2px] bg-brand pointer-events-none" />
-            <div className="absolute bottom-0 right-0 w-3 h-[2px] bg-brand pointer-events-none" />
-            <div className="absolute bottom-0 right-0 h-3 w-[2px] bg-brand pointer-events-none" />
-            {title && (
-                <div className="px-4 py-3 border-b" style={BD}>
-                    <span className="font-mono text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-brand-primary)' }}>
-                        {title}
-                    </span>
-                </div>
-            )}
-            <div>{children}</div>
-            {footer && (
-                <div className="border-t px-4 py-2 flex justify-between items-center" style={BD}>
-                    {footer}
-                </div>
-            )}
-        </div>
-    );
-}
-
-function VoteSegBar({ suspicious, authentic, investigate }) {
-    const total = suspicious + authentic + investigate || 1;
-    const SEGS  = 10;
-    const sSegs = Math.round((suspicious / total) * SEGS);
-    const aSegs = Math.round((authentic  / total) * SEGS);
-    const iSegs = SEGS - sSegs - aSegs;
-    return (
-        <div className="flex gap-[2px]">
-            {Array(sSegs).fill('var(--color-fake-fill)').concat(
-             Array(Math.max(0,aSegs)).fill('var(--color-brand-primary)'),
-             Array(Math.max(0,iSegs)).fill('var(--color-accent-amber)')
-            ).map((c, i) => (
-                <div key={i} className="h-2 w-3" style={{ background: c }} />
-            ))}
+        <div className={`rounded-2xl overflow-hidden ${className}`} style={CARD}>
+            {children}
         </div>
     );
 }
@@ -94,12 +52,11 @@ const ForumThread = () => {
     const [editBody,  setEditBody]  = React.useState('');
 
     const [body,              setBody]              = React.useState('');
-    const [parentId,          setParentId]          = React.useState(null);
-    const [replyTo,           setReplyTo]           = React.useState(null);
     const [submitting,        setSubmitting]        = React.useState(false);
     const [moderationWarning, setModerationWarning] = React.useState(false);
     const [sendModal,         setSendModal]         = React.useState(false);
     const [verdictModal,      setVerdictModal]      = React.useState(false);
+    const [following,        setFollowing]         = React.useState(false);
 
     const load = React.useCallback(async () => {
         try {
@@ -128,12 +85,6 @@ const ForumThread = () => {
         finally { setVoting(false); }
     };
 
-    const handleReply   = (commentId, username) => {
-        setParentId(commentId);
-        setReplyTo(username);
-        document.getElementById('comment-input')?.focus();
-    };
-    const cancelReply   = () => { setParentId(null); setReplyTo(null); };
     const handleDelete  = async () => {
         popup.confirm({
             title: 'Tartışmayı sil',
@@ -145,6 +96,12 @@ const ForumThread = () => {
             },
         });
     };
+    const toggleFollow  = async () => {
+        if (!user || !thread?.author?.id) return;
+        setFollowing(v => !v);
+        try { await axiosInstance.post(`/users/${thread.author.id}/follow`); }
+        catch { setFollowing(v => !v); }
+    };
     const submitEdit    = async () => {
         try { await axiosInstance.put(`/forum/threads/${threadId}`, { title: editTitle, body: editBody }); setEditMode(false); await load(); } catch {}
     };
@@ -155,12 +112,12 @@ const ForumThread = () => {
         setSubmitting(true);
         try {
             const res = await axiosInstance.post(`/forum/threads/${threadId}/comments`, {
-                body: body.trim(), parent_id: parentId ?? undefined,
+                body: body.trim(),
             });
             if (res.status === 202) {
                 setModerationWarning(true);
             } else {
-                setBody(''); setParentId(null); setReplyTo(null); setModerationWarning(false);
+                setBody(''); setModerationWarning(false);
                 await load();
             }
         } catch {}
@@ -169,50 +126,44 @@ const ForumThread = () => {
 
     if (loading) return (
         <div className="flex flex-col gap-4">
-            {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-24 border animate-pulse" style={TS} />
+            {[...Array(2)].map((_, i) => (
+                <div key={i} className="h-40 rounded-2xl animate-pulse" style={{ background: 'var(--color-bg-surface-solid)' }} />
             ))}
         </div>
     );
 
-    if (!thread) return (
-        <p className="font-mono text-sm text-center py-16" style={{ color: 'var(--color-text-muted)' }}>
-        </p>
-    );
+    if (!thread) return null;
 
-    const totalVotes    = thread.vote_suspicious + thread.vote_authentic + thread.vote_investigate;
-    const statusColor   = STATUS_COLOR[thread.status] ?? STATUS_COLOR.active;
-    const statusLabel   = STATUS_LABEL[thread.status] ?? 'AKTİF';
+    const statusLabel   = STATUS_LABEL[thread.status];
     const isFake        = thread.article?.ai_verdict === 'FAKE';
     const confidencePct = thread.article ? Math.round(thread.article.confidence * 100) : null;
     const isNews        = thread.article_id || thread.category === 'haberler';
 
     return (
         <>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
 
             {/* Geri */}
             <button
                 onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/forum')}
-                className="flex items-center gap-2 px-3 py-1.5 font-mono text-xs font-bold border transition-all hover:opacity-80 self-start"
-                style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)', background: 'var(--color-terminal-surface)' }}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-full text-[13px] font-bold transition-colors self-start"
+                style={{ color: 'var(--color-text-secondary)', background: 'var(--color-bg-surface-solid)' }}
             >
                 <ArrowLeft className="w-3.5 h-3.5" /> Forum'a Dön
             </button>
 
             {/* ── Ana kart: başlık + açıklama + meta ── */}
-            <Block>
-                <div className="p-5 flex flex-col gap-4">
+            <Card>
+                <div className="p-6 flex flex-col gap-4">
 
                     {/* Meta badges */}
                     <div className="flex items-center gap-2 flex-wrap">
                         {thread.article && (
                             <span
-                                className="flex items-center gap-1.5 font-mono text-xs font-bold px-2.5 py-1 border"
+                                className="flex items-center gap-1.5 text-[12.5px] font-bold px-3 py-1.5 rounded-full"
                                 style={{
-                                    color:       isFake ? 'var(--color-fake-text)'  : 'var(--color-brand-primary)',
-                                    borderColor: isFake ? 'rgba(239,68,68,0.35)'    : 'rgba(16,185,129,0.35)',
-                                    background:  isFake ? 'rgba(239,68,68,0.06)'    : 'rgba(16,185,129,0.06)',
+                                    color:      isFake ? 'var(--color-fake-fill)' : 'var(--color-brand-primary)',
+                                    background: soft(isFake ? '--color-fake-fill' : '--color-brand-primary', 10),
                                 }}
                             >
                                 {isFake ? <ShieldAlert className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5" />}
@@ -220,52 +171,55 @@ const ForumThread = () => {
                             </span>
                         )}
                         {thread.category && (
-                            <span className="font-mono text-xs font-bold uppercase tracking-wider px-2 py-0.5 border"
-                                  style={{ color: 'var(--color-accent-blue)', borderColor: 'rgba(59,130,246,0.30)' }}>
+                            <button
+                                type="button"
+                                onClick={() => navigate(`/forum?category=${encodeURIComponent(thread.category)}`)}
+                                className="text-[12px] font-bold px-2.5 py-1 rounded-full transition-opacity hover:opacity-75"
+                                style={CHIP}
+                            >
                                 {thread.category}
+                            </button>
+                        )}
+                        {statusLabel && (
+                            <span className="text-[12px] font-bold px-2.5 py-1 rounded-full ml-auto" style={CHIP}>
+                                {statusLabel}
                             </span>
                         )}
-                        <span
-                            className="font-mono text-xs font-bold uppercase tracking-wider px-2 py-0.5 border ml-auto"
-                            style={{ color: statusColor, borderColor: statusColor + '50' }}
-                        >
-                            {statusLabel}
-                        </span>
                     </div>
 
                     {/* Başlık + gövde (birleşik) */}
                     {editMode ? (
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-3">
                             <input
                                 value={editTitle}
                                 onChange={e => setEditTitle(e.target.value)}
-                                className="w-full bg-transparent font-mono text-base font-bold outline-none px-3 py-2 border"
-                                style={{ borderColor: 'var(--color-brand-primary)', color: 'var(--color-text-primary)', background: 'var(--color-bg-base)' }}
+                                className="w-full bg-transparent text-[18px] font-extrabold outline-none px-0 py-2 border-b-2"
+                                style={{ borderColor: 'var(--color-brand-primary)', color: 'var(--color-text-primary)' }}
                             />
                             <textarea
                                 value={editBody}
                                 onChange={e => setEditBody(e.target.value)}
                                 rows={4}
-                                className="w-full bg-transparent font-mono text-sm outline-none px-3 py-2 border resize-none"
-                                style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-primary)', background: 'var(--color-bg-base)' }}
+                                className="w-full bg-transparent text-[14.5px] outline-none px-3.5 py-3 rounded-xl resize-none"
+                                style={{ color: 'var(--color-text-primary)', background: 'var(--color-bg-surface-solid)' }}
                             />
                             <div className="flex gap-2">
                                 <button onClick={submitEdit}
-                                    className="px-4 py-2 font-mono text-sm font-bold transition-opacity hover:opacity-80"
-                                    style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}>
-                                    [ KAYDET ]
+                                    className="px-5 py-2 rounded-full text-[13px] font-bold transition-opacity hover:opacity-85"
+                                    style={{ background: 'var(--color-brand-primary)', color: '#fff' }}>
+                                    Kaydet
                                 </button>
                                 <button onClick={() => setEditMode(false)}
-                                    className="px-4 py-2 font-mono text-sm border transition-opacity hover:opacity-70"
-                                    style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)' }}>
+                                    className="px-5 py-2 rounded-full text-[13px] font-bold transition-colors"
+                                    style={{ color: 'var(--color-text-muted)', background: 'var(--color-bg-surface-solid)' }}>
                                     İptal
                                 </button>
                             </div>
                         </div>
                     ) : (
-                        <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-3.5">
                             <div className="flex items-start gap-3">
-                                <h2 className="flex-1 font-mono text-xl font-bold leading-snug" style={{ color: 'var(--color-text-primary)' }}>
+                                <h2 className="flex-1 font-manrope text-[22px] font-extrabold leading-snug" style={{ color: 'var(--color-text-primary)' }}>
                                     {thread.title}
                                 </h2>
                                 <div className="flex items-center gap-1.5 shrink-0">
@@ -277,8 +231,8 @@ const ForumThread = () => {
                                     {isAuthor && (
                                         <button
                                             onClick={() => { setEditTitle(thread.title); setEditBody(thread.body ?? ''); setEditMode(true); }}
-                                            className="font-mono text-[10px] font-bold px-2.5 py-1.5 border transition-all hover:opacity-80 tracking-wider uppercase"
-                                            style={{ borderColor: 'var(--color-terminal-border-raw)', color: 'var(--color-text-muted)', background: 'transparent' }}
+                                            className="text-[12px] font-bold px-3 py-1.5 rounded-full transition-colors"
+                                            style={{ color: 'var(--color-text-muted)', background: 'var(--color-bg-surface-solid)' }}
                                         >
                                             Düzenle
                                         </button>
@@ -287,8 +241,8 @@ const ForumThread = () => {
                                         <button
                                             onClick={handleDelete}
                                             title={!isAuthor && canModerate ? 'Moderatör olarak sil' : undefined}
-                                            className="font-mono text-[10px] font-bold px-2.5 py-1.5 border transition-all hover:opacity-80 tracking-wider uppercase"
-                                            style={{ borderColor: 'rgba(239,68,68,0.40)', color: '#ef4444', background: 'rgba(239,68,68,0.06)' }}
+                                            className="text-[12px] font-bold px-3 py-1.5 rounded-full transition-colors"
+                                            style={{ color: 'var(--color-fake-fill)', background: soft('--color-fake-fill', 10) }}
                                         >
                                             Sil
                                         </button>
@@ -296,27 +250,19 @@ const ForumThread = () => {
                                     {isAuthor && !thread.verdict && (
                                         thread.featured_comment_id ? (
                                             <div
-                                                className="flex items-center gap-2 px-3 py-2 border font-mono text-[10px]"
-                                                style={{
-                                                    borderColor: 'rgba(245,158,11,0.4)',
-                                                    color: 'var(--color-accent-amber)',
-                                                    background: 'rgba(245,158,11,0.05)',
-                                                }}
+                                                className="flex items-center gap-2 px-3.5 py-2 rounded-full text-[12px] font-semibold"
+                                                style={{ color: 'var(--color-accent-amber)', background: soft('--color-accent-amber', 10) }}
                                             >
-                                                <ShieldCheck className="w-3 h-3 shrink-0" />
+                                                <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
                                                 Yüksek güvenilirlikte kanıt var — topluluk oyuna bırakılıyor
                                             </div>
                                         ) : (
                                             <button
                                                 onClick={() => setVerdictModal(true)}
-                                                className="flex items-center gap-1.5 px-3 py-2 font-mono text-xs font-bold border transition-opacity hover:opacity-80"
-                                                style={{
-                                                    borderColor: 'var(--color-brand-primary)',
-                                                    color: 'var(--color-brand-primary)',
-                                                    background: 'rgba(16,185,129,0.05)',
-                                                }}
+                                                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[12.5px] font-bold transition-all duration-150 hover:scale-105"
+                                                style={{ color: '#fff', background: 'var(--color-brand-primary)' }}
                                             >
-                                                [ SONUÇLANDIR ]
+                                                Sonuçlandır
                                             </button>
                                         )
                                     )}
@@ -325,7 +271,7 @@ const ForumThread = () => {
 
                             {/* Thread görselleri */}
                             {thread.image_urls?.length > 0 && (
-                                <div className={`grid gap-1 ${
+                                <div className={`grid gap-1.5 ${
                                     thread.image_urls.length === 1 ? 'grid-cols-1' :
                                     thread.image_urls.length === 2 ? 'grid-cols-2' :
                                     thread.image_urls.length === 3 ? 'grid-cols-3' :
@@ -334,10 +280,9 @@ const ForumThread = () => {
                                     {thread.image_urls.map((url, idx) => (
                                         <div
                                             key={idx}
-                                            className={`overflow-hidden border ${
+                                            className={`overflow-hidden rounded-xl ${
                                                 thread.image_urls.length === 4 && idx === 0 ? 'col-span-2 row-span-1' : ''
                                             }`}
-                                            style={BD}
                                         >
                                             <img
                                                 src={url}
@@ -356,36 +301,56 @@ const ForumThread = () => {
                             {thread.body && (
                                 <>
                                     <button
-                                        className="flex items-center gap-2 font-mono text-[10px] font-bold tracking-widest uppercase transition-opacity hover:opacity-70 self-start"
+                                        className="flex items-center gap-1.5 text-[12px] font-bold transition-opacity hover:opacity-70 self-start"
                                         style={{ color: 'var(--color-brand-primary)' }}
                                         onClick={() => setBodyOpen(v => !v)}
                                     >
                                         {bodyOpen
-                                            ? <><ChevronUp className="w-3.5 h-3.5" /> açıklamayı gizle</>
-                                            : <><ChevronDown className="w-3.5 h-3.5" /> açıklamayı gör</>
+                                            ? <><ChevronUp className="w-3.5 h-3.5" /> Açıklamayı gizle</>
+                                            : <><ChevronDown className="w-3.5 h-3.5" /> Açıklamayı gör</>
                                         }
                                     </button>
-                                    {bodyOpen && (
-                                        <p className="font-mono text-sm leading-relaxed border-l-2 pl-3"
-                                           style={{ color: 'var(--color-text-primary)', borderLeftColor: 'rgba(16,185,129,0.30)' }}>
-                                            {thread.body}
-                                        </p>
-                                    )}
+                                    <div className="grid transition-all duration-200 ease-out"
+                                         style={{ gridTemplateRows: bodyOpen ? '1fr' : '0fr', opacity: bodyOpen ? 1 : 0 }}>
+                                        <div className="overflow-hidden">
+                                            <p className="text-[15px] leading-relaxed rounded-xl px-4 py-3"
+                                               style={{ color: 'var(--color-text-secondary)', background: 'var(--color-bg-surface-solid)' }}>
+                                                {thread.body}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </>
                             )}
                         </div>
                     )}
 
-                    {/* Yazar + tarih */}
-                    <p className="font-mono text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                        {thread.author?.username} · {new Date(thread.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </p>
+                    {/* Yazar + tarih + takip */}
+                    <div className="flex items-center gap-2.5">
+                        <p className="text-[13px] font-medium flex-1" style={{ color: 'var(--color-text-muted)' }}>
+                            <Link to={`/users/${thread.author?.id}`} className="font-bold hover:text-brand transition-colors" style={{ color: 'var(--color-text-secondary)' }}>
+                                {thread.author?.username}
+                            </Link>
+                            {' · '}{new Date(thread.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
+                        {!isAuthor && thread.author?.id && (
+                            <button
+                                type="button"
+                                onClick={toggleFollow}
+                                className="text-[12px] font-bold px-3.5 py-1.5 rounded-full transition-all duration-150 hover:scale-105 shrink-0"
+                                style={following
+                                    ? { color: 'var(--color-text-muted)', background: 'var(--color-bg-surface-solid)' }
+                                    : { color: '#fff', background: 'var(--color-brand-primary)' }}
+                            >
+                                {following ? 'Takip ediliyor' : 'Takip Et'}
+                            </button>
+                        )}
+                    </div>
 
                     {/* İnceleme uyarısı */}
                     {thread.status === 'under_review' && (
                         <div
-                            className="flex items-center gap-2.5 px-3 py-2.5 border font-mono text-sm"
-                            style={{ background: 'rgba(245,158,11,0.06)', borderColor: 'rgba(245,158,11,0.30)', color: 'var(--color-accent-amber)' }}
+                            className="flex items-center gap-2.5 px-4 py-3 rounded-xl text-[14px] font-medium"
+                            style={{ background: soft('--color-accent-amber', 10), color: 'var(--color-accent-amber)' }}
                         >
                             <AlertTriangle className="w-4 h-4 shrink-0" />
                             Topluluk kararı AI kararıyla çelişiyor — inceleme altında
@@ -396,42 +361,36 @@ const ForumThread = () => {
                     {thread.tags?.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
                             {thread.tags.map(t => (
-                                <span
+                                <button
                                     key={t.id}
-                                    className="font-mono text-[10px] px-2 py-0.5 border"
-                                    style={{
-                                        color:       t.is_system ? 'var(--color-brand-primary)' : 'var(--color-text-muted)',
-                                        borderColor: t.is_system ? 'rgba(16,185,129,0.25)' : 'var(--color-terminal-border-raw)',
-                                    }}
+                                    type="button"
+                                    onClick={() => navigate(`/forum?tag=${encodeURIComponent(t.name)}`)}
+                                    className="text-[12px] font-bold px-2.5 py-0.5 rounded-full transition-opacity hover:opacity-75"
+                                    style={t.is_system ? { background: soft('--color-brand-primary', 12), color: 'var(--color-brand-primary)' } : CHIP}
                                 >
-                                    #{t.name}
-                                </span>
+                                    #{t.name.replace(/^#/, '')}
+                                </button>
                             ))}
                         </div>
                     )}
 
                     {/* ── Bağlı haber kartı ── */}
                     {thread.article && (
-                        <div
-                            className="flex items-start gap-3 px-3 py-3 border"
-                            style={{ background: 'rgba(168,85,247,0.06)', borderColor: 'rgba(168,85,247,0.25)' }}
-                        >
+                        <div className="flex items-start gap-3 px-4 py-3.5 rounded-xl" style={{ background: 'var(--color-bg-surface-solid)' }}>
                             {thread.article.image_url && (
                                 <img
                                     src={thread.article.image_url}
                                     alt=""
-                                    className="w-12 h-9 object-cover shrink-0"
+                                    className="w-14 h-11 object-cover shrink-0 rounded-lg"
                                     onError={e => { e.currentTarget.style.display = 'none'; }}
                                 />
                             )}
                             <div className="flex-1 min-w-0">
-                                <span className="font-mono text-[9px] uppercase tracking-widest font-bold block mb-1" style={{ color: '#a855f7' }}>
-                                </span>
-                                <p className="font-mono text-sm font-semibold leading-snug" style={{ color: 'var(--color-text-primary)' }}>
+                                <p className="text-[14px] font-semibold leading-snug" style={{ color: 'var(--color-text-primary)' }}>
                                     {thread.article.title}
                                 </p>
                                 {thread.article.source_name && (
-                                    <span className="font-mono text-[10px] mt-1 block" style={{ color: 'var(--color-text-muted)' }}>
+                                    <span className="text-[12px] mt-1 block" style={{ color: 'var(--color-text-muted)' }}>
                                         {thread.article.source_name}
                                     </span>
                                 )}
@@ -441,8 +400,8 @@ const ForumThread = () => {
                                     href={thread.article.source_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-1.5 px-3 py-2 font-mono text-xs font-bold shrink-0 transition-opacity hover:opacity-80"
-                                    style={{ background: 'rgba(168,85,247,0.18)', color: '#c084fc', border: '1px solid rgba(168,85,247,0.35)' }}
+                                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12.5px] font-bold shrink-0 transition-all duration-150 hover:scale-105"
+                                    style={{ background: 'var(--color-brand-primary)', color: '#fff' }}
                                     onClick={e => e.stopPropagation()}
                                 >
                                     <ExternalLink className="w-3.5 h-3.5" /> Habere Git
@@ -455,48 +414,30 @@ const ForumThread = () => {
                     {thread.verdict && <VerdictBox thread={thread} />}
 
                     {/* ── Alt satır: oy butonları ── */}
-                    <div className="flex items-center gap-3 pt-3 border-t" style={BD}>
-                        {thread.verdict ? (
-                            <span className="font-mono text-[10px] opacity-40" style={{ color: 'var(--color-text-muted)' }}>
-                            </span>
-                        ) : (
-                            isNews
+                    {!thread.verdict && (
+                        <div className="flex items-center gap-3 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
+                            {isNews
                                 ? <NewsVoteBar    thread={thread} onVote={handleVote} disabled={voting} />
                                 : <GeneralVoteBar thread={thread} onVote={handleVote} disabled={voting} />
-                        )}
-                    </div>
-                </div>
-            </Block>
-
-            {/* ── Yorumlar ── */}
-            <Block
-                title={`// tartışma · ${thread.comment_count} yorum`}
-                footer={
-                    <span className="font-mono text-[10px] opacity-40" style={{ color: 'var(--color-text-muted)' }}>
-                    </span>
-                }
-            >
-                {/* Yorum formu — ÜSTTE */}
-                <form
-                    onSubmit={submitComment}
-                    className="border-b flex flex-col gap-3 p-4"
-                    style={BD}
-                >
-                    {replyTo && (
-                        <div
-                            className="flex items-center gap-2 font-mono text-xs px-3 py-2 border"
-                            style={{ background: 'rgba(16,185,129,0.05)', borderColor: 'rgba(16,185,129,0.20)', color: 'var(--color-text-muted)' }}
-                        >
-                            <span>↪ <strong style={{ color: 'var(--color-brand-primary)' }}>{replyTo}</strong> kullanıcısına yanıt</span>
-                            <button type="button" onClick={cancelReply} className="ml-auto">
-                                <X className="w-3.5 h-3.5" />
-                            </button>
+                            }
                         </div>
                     )}
+                </div>
+            </Card>
 
+            {/* ── Yorumlar ── */}
+            <Card>
+                <div className="px-6 pt-5 pb-1">
+                    <h3 className="text-[16px] font-extrabold" style={{ color: 'var(--color-text-primary)' }}>
+                        Tartışma <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}>· {thread.comment_count} yorum</span>
+                    </h3>
+                </div>
+
+                {/* Yorum formu — ÜSTTE */}
+                <form onSubmit={submitComment} className="flex flex-col gap-3 p-6 border-b" style={{ borderColor: 'var(--color-border)' }}>
                     {moderationWarning && (
-                        <div className="border px-3 py-2.5" style={{ borderColor: 'rgba(245,158,11,0.30)', background: 'rgba(245,158,11,0.06)' }}>
-                            <p className="font-mono text-sm" style={{ color: 'var(--color-accent-amber)' }}>
+                        <div className="px-3.5 py-3 rounded-xl" style={{ background: soft('--color-accent-amber', 10) }}>
+                            <p className="text-[14px] font-medium" style={{ color: 'var(--color-accent-amber)' }}>
                                 Yorumunuz incelemeye alındı. İçeriği düzenleyip tekrar gönderebilirsiniz.
                             </p>
                         </div>
@@ -507,34 +448,33 @@ const ForumThread = () => {
                         value={body}
                         onChange={(val) => { setBody(val); setModerationWarning(false); }}
                         rows={3}
-                        placeholder="Kanıt veya yorumunu ekle..."
-                        className="w-full resize-none font-mono text-sm outline-none px-3 py-2.5 border transition-colors"
-                        style={{ borderColor: 'var(--color-terminal-border-raw)', background: 'var(--color-terminal-surface)', color: 'var(--color-text-primary)', caretColor: 'var(--color-brand-primary)' }}
+                        placeholder="Kanıt veya yorumunu ekle…"
+                        className="w-full resize-none text-[14.5px] outline-none px-4 py-3 rounded-xl transition-colors"
+                        style={{ background: 'var(--color-bg-surface-solid)', color: 'var(--color-text-primary)', caretColor: 'var(--color-brand-primary)' }}
                     />
 
                     <div className="flex justify-end">
                         <button
                             type="submit"
                             disabled={!body.trim() || submitting}
-                            className="flex items-center gap-2 px-5 py-2.5 font-mono text-sm font-bold tracking-wider disabled:opacity-40 transition-opacity hover:opacity-80"
-                            style={{ background: 'var(--color-brand-primary)', color: '#070f12' }}
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-full text-[13.5px] font-bold disabled:opacity-40 transition-all duration-150 hover:scale-105 disabled:hover:scale-100"
+                            style={{ background: 'var(--color-brand-primary)', color: '#fff' }}
                         >
                             <Send className="w-4 h-4" />
-                            [ GÖNDER ]
+                            Gönder
                         </button>
                     </div>
                 </form>
 
                 {/* Yorum listesi */}
-                <div className="px-5 py-4">
+                <div className="px-6 py-5">
                     <ForumCommentTree
                         comments={thread.comments ?? []}
                         threadId={threadId}
-                        onReply={handleReply}
                         onNewComment={load}
                     />
                 </div>
-            </Block>
+            </Card>
         </div>
         {sendModal && (
             <SendToFriendModal

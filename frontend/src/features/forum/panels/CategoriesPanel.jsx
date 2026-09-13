@@ -22,7 +22,7 @@ export default function CategoriesPanel({ activeCategory = '', onSelect }) {
 
     return (
         <CollapsiblePanel icon={LayoutGrid} title="Kategoriler" count={cats.length || null} storageKey="categories">
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-1 -mx-2">
                 {rows.map((c) => {
                     const on = (activeCategory || '') === c.name;
                     return (
@@ -30,18 +30,17 @@ export default function CategoriesPanel({ activeCategory = '', onSelect }) {
                             key={c.name || '__all'}
                             type="button"
                             onClick={() => onSelect(c.name)}
-                            className="flex items-center gap-2 px-4 py-2.5 text-left transition-colors"
-                            style={{
-                                borderLeft: `2px solid ${on ? 'var(--color-brand-primary)' : 'transparent'}`,
-                                background: on ? 'rgba(63,255,139,0.07)' : 'transparent',
-                            }}
+                            className="flex items-center gap-2 px-3 py-2.5 text-left rounded-lg transition-all duration-150 hover:translate-x-0.5"
+                            style={{ background: on ? 'color-mix(in srgb, var(--color-brand-primary) 10%, transparent)' : 'transparent' }}
+                            onMouseEnter={e => { if (!on) e.currentTarget.style.background = 'var(--color-bg-surface-solid)'; }}
+                            onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
                         >
-                            <span className="text-[13px] font-semibold flex-1"
+                            <span className="text-[14.5px] font-bold flex-1"
                                   style={{ color: on ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)' }}>
                                 {c.label}
                             </span>
                             {c.count != null && (
-                                <span className="font-mono text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+                                <span className="text-[12px] font-semibold" style={{ color: 'var(--color-text-muted)' }}>
                                     {c.count}
                                 </span>
                             )}

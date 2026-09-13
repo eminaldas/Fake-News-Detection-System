@@ -92,11 +92,8 @@ function CategoryBar({ activeCategory, onSelect, categories, hiddenCategories, o
                             key={refKey}
                             ref={el => { btnRefs.current[refKey] = el; }}
                             onClick={() => onSelect(item.value)}
-                            className="px-4 py-3 text-[11px] font-bold tracking-widest whitespace-nowrap transition-colors duration-200 shrink-0"
-                            style={{
-                                fontFamily: "'Elms Sans', sans-serif",
-                                color:      isActive ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)',
-                            }}
+                            className="px-3.5 py-2.5 text-[12.5px] font-semibold whitespace-nowrap transition-colors duration-200 shrink-0"
+                            style={{ color: isActive ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)' }}
                         >
                             {item.label}
                         </button>
@@ -104,11 +101,12 @@ function CategoryBar({ activeCategory, onSelect, categories, hiddenCategories, o
                 })}
                 <button
                     onClick={onCustomize}
-                    className="px-4 py-3 text-[11px] font-bold tracking-widest whitespace-nowrap shrink-0 ml-auto"
-                    style={{ fontFamily: "'Elms Sans', sans-serif", color: 'var(--color-text-secondary)' }}
+                    className="flex items-center gap-1.5 px-3.5 py-2.5 text-[12px] font-semibold whitespace-nowrap shrink-0 ml-auto transition-colors hover:text-brand"
+                    style={{ color: 'var(--color-text-muted)' }}
                     title="Kategorileri özelleştir"
                 >
-                    ⚙ ÖZELLEŞTİR
+                    <Settings className="w-3.5 h-3.5" />
+                    Özelleştir
                 </button>
             </div>
         </div>
@@ -127,15 +125,15 @@ function SubcategoryBar({ activeCategory, activeSub, categories, hiddenSubcatego
             <div className="max-w-7xl mx-auto px-2 flex items-center gap-1 overflow-x-auto scrollbar-none"
                  style={{ scrollbarWidth: 'none' }}>
                 <button onClick={() => onSelect(null)}
-                        className="px-3 py-2 text-[10px] font-bold tracking-wider whitespace-nowrap shrink-0"
-                        style={{ color: !activeSub ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)' }}>
-                    TÜMÜ
+                        className="px-3 py-2 text-[11.5px] font-semibold whitespace-nowrap shrink-0"
+                        style={{ color: !activeSub ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}>
+                    Tümü
                 </button>
                 {subs.map(s => (
                     <button key={s.slug} onClick={() => onSelect(s.slug)}
-                        className="px-3 py-2 text-[10px] font-bold tracking-wider whitespace-nowrap shrink-0"
-                        style={{ color: activeSub === s.slug ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)' }}>
-                        {s.name.toLocaleUpperCase('tr-TR')}
+                        className="px-3 py-2 text-[11.5px] font-semibold whitespace-nowrap shrink-0"
+                        style={{ color: activeSub === s.slug ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}>
+                        {s.name}
                     </button>
                 ))}
             </div>

@@ -1,16 +1,18 @@
 import React from 'react';
 import { CheckCircle, XCircle, AlertTriangle, ShieldCheck, Brain } from 'lucide-react';
 
+const soft = (v, pct) => `color-mix(in srgb, var(${v}) ${pct}%, transparent)`;
+
 const AI_VERDICT_CONFIG = {
-    DESTEKLIYOR: { label: 'AI: Kararı Destekliyor', color: 'var(--color-brand-primary)', bg: 'rgba(16,185,129,0.06)', border: 'rgba(16,185,129,0.25)' },
-    'ÇÜRÜTÜYOR': { label: 'AI: Kararı Çürütüyor',  color: 'var(--color-fake-fill)',     bg: 'rgba(239,68,68,0.06)',  border: 'rgba(239,68,68,0.25)'  },
-    BELIRSIZ:    { label: 'AI: Belirsiz',            color: 'var(--color-accent-amber)',  bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.25)' },
+    DESTEKLIYOR: { label: 'AI: Kararı Destekliyor', v: '--color-brand-primary' },
+    'ÇÜRÜTÜYOR': { label: 'AI: Kararı Çürütüyor',  v: '--color-fake-fill'     },
+    BELIRSIZ:    { label: 'AI: Belirsiz',           v: '--color-accent-amber'  },
 };
 
 const VERDICT_CONFIG = {
-    DOGRU:     { label: 'DOĞRU',     Icon: CheckCircle,   color: 'var(--color-brand-primary)', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.30)' },
-    YANLIS:    { label: 'YANLIŞ',    Icon: XCircle,        color: 'var(--color-fake-fill)',      bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.30)'  },
-    YANILTICI: { label: 'YANILTICI', Icon: AlertTriangle,  color: 'var(--color-accent-amber)',   bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.30)' },
+    DOGRU:     { label: 'Doğru',     Icon: CheckCircle,  v: '--color-brand-primary' },
+    YANLIS:    { label: 'Yanlış',    Icon: XCircle,       v: '--color-fake-fill'     },
+    YANILTICI: { label: 'Yanıltıcı', Icon: AlertTriangle, v: '--color-accent-amber'  },
 };
 
 function pct(n, total) { return total > 0 ? Math.round((n / total) * 100) : 0; }
@@ -28,6 +30,7 @@ const VerdictBox = ({ thread }) => {
     if (!cfg) return null;
 
     const { Icon } = cfg;
+    const color = `var(${cfg.v})`;
     const total = thread.vote_suspicious + thread.vote_authentic + thread.vote_investigate;
     const match = aiMatch(thread.article?.ai_verdict, thread.verdict);
 
@@ -39,68 +42,62 @@ const VerdictBox = ({ thread }) => {
         ? new Date(thread.verdict_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
         : null;
 
+    const aiCfg = AI_VERDICT_CONFIG[thread.ai_evidence_verdict];
+
     return (
-        <div
-            className="flex flex-col gap-3 px-4 py-4 border"
-            style={{ background: cfg.bg, borderColor: cfg.border }}
-        >
+        <div className="flex flex-col gap-3.5 px-5 py-4 rounded-2xl" style={{ background: soft(cfg.v, 8) }}>
             <div className="flex items-center gap-2">
-                <Icon className="w-5 h-5 shrink-0" style={{ color: cfg.color }} />
-                <span className="font-mono text-sm font-black tracking-widest uppercase" style={{ color: cfg.color }}>
+                <Icon className="w-5 h-5 shrink-0" style={{ color }} />
+                <span className="text-[15px] font-extrabold" style={{ color }}>
                     {cfg.label}
                 </span>
-                <span className="font-mono text-[10px] ml-auto opacity-60" style={{ color: cfg.color }}>
+                <span className="text-[12px] ml-auto font-medium" style={{ color: 'var(--color-text-muted)' }}>
                     {byLabel}{verdictDate ? ` · ${verdictDate}` : ''}
                 </span>
             </div>
 
             {thread.verdict_reason && (
-                <p className="font-mono text-sm leading-relaxed border-l-2 pl-3"
-                   style={{ color: 'var(--color-text-secondary)', borderLeftColor: cfg.color + '60' }}>
+                <p className="text-[14px] leading-relaxed rounded-xl px-3.5 py-2.5" style={{ color: 'var(--color-text-secondary)', background: 'var(--color-bg-surface)' }}>
                     {thread.verdict_reason}
                 </p>
             )}
 
             {total > 0 && (
-                <div className="flex items-center gap-3 font-mono text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
-                    <span style={{ color: 'var(--color-fake-fill)'      }}>✗ {pct(thread.vote_suspicious,  total)}% Şüpheli</span>
-                    <span style={{ color: 'var(--color-brand-primary)'  }}>✓ {pct(thread.vote_authentic,   total)}% Doğru</span>
-                    <span style={{ color: 'var(--color-accent-amber)'   }}>? {pct(thread.vote_investigate, total)}% Araştır</span>
-                    <span className="opacity-50">({total} oy)</span>
+                <div className="flex items-center gap-3 text-[12px] font-semibold flex-wrap" style={{ color: 'var(--color-text-muted)' }}>
+                    <span style={{ color: 'var(--color-fake-fill)'     }}>{pct(thread.vote_suspicious,  total)}% Şüpheli</span>
+                    <span style={{ color: 'var(--color-brand-primary)' }}>{pct(thread.vote_authentic,   total)}% Doğru</span>
+                    <span style={{ color: 'var(--color-accent-amber)'  }}>{pct(thread.vote_investigate, total)}% Araştır</span>
+                    <span className="opacity-70">({total} oy)</span>
                 </div>
             )}
 
             {thread.article && match !== null && (
-                <div
-                    className="flex items-center gap-2 px-3 py-2 border font-mono text-[10px]"
-                    style={{
-                        borderColor: match ? 'rgba(16,185,129,0.25)' : 'rgba(245,158,11,0.25)',
-                        background:  match ? 'rgba(16,185,129,0.05)' : 'rgba(245,158,11,0.05)',
-                        color: 'var(--color-text-muted)',
-                    }}
-                >
-                    <span>AI: <strong>{thread.article.ai_verdict === 'FAKE' ? 'YANLIŞ' : 'DOĞRU'}</strong></span>
+                <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-[12px] font-medium flex-wrap"
+                     style={{ background: soft(match ? '--color-brand-primary' : '--color-accent-amber', 10), color: 'var(--color-text-secondary)' }}>
+                    <span>AI: <strong>{thread.article.ai_verdict === 'FAKE' ? 'Yanlış' : 'Doğru'}</strong></span>
                     <span>·</span>
                     <span>Topluluk: <strong>{cfg.label}</strong></span>
-                    <span className="ml-auto">{match ? '✅ Uyuşuyor' : '⚠️ Uyuşmuyor'}</span>
+                    <span className="ml-auto font-bold" style={{ color: match ? 'var(--color-brand-primary)' : 'var(--color-accent-amber)' }}>
+                        {match ? 'Uyuşuyor' : 'Uyuşmuyor'}
+                    </span>
                 </div>
             )}
 
             {thread.featured_evidence && (
-                <div className="flex flex-col gap-1.5 border-t pt-3" style={{ borderColor: cfg.border }}>
-                    <div className="flex items-center gap-1.5 font-mono text-[9px] font-bold uppercase tracking-widest"
-                         style={{ color: 'var(--color-brand-primary)' }}>
-                        <ShieldCheck className="w-3 h-3" />
+                <div className="flex flex-col gap-1.5 pt-3.5 border-t" style={{ borderColor: 'var(--color-border)' }}>
+                    <div className="flex items-center gap-1.5 text-[11.5px] font-bold" style={{ color: 'var(--color-brand-primary)' }}>
+                        <ShieldCheck className="w-3.5 h-3.5" />
                         Öne Çıkan Kanıt · {thread.featured_evidence.username}
-                        <span className="ml-auto opacity-50">{thread.featured_evidence.verified_count} doğrulama</span>
+                        <span className="ml-auto font-semibold opacity-70" style={{ color: 'var(--color-text-muted)' }}>
+                            {thread.featured_evidence.verified_count} doğrulama
+                        </span>
                     </div>
-                    <p className="font-mono text-[11px] leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                    <p className="text-[13px] leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
                         {thread.featured_evidence.body.slice(0, 200)}{thread.featured_evidence.body.length > 200 ? '…' : ''}
                     </p>
                     {thread.featured_evidence.evidence_urls?.slice(0, 1).map(url => (
                         <a key={url} href={url} target="_blank" rel="noopener noreferrer"
-                           className="font-mono text-[10px] underline truncate"
-                           style={{ color: 'var(--color-accent-blue)' }}>
+                           className="text-[12px] underline truncate" style={{ color: 'var(--color-accent-blue)' }}>
                             {url}
                         </a>
                     ))}
@@ -108,20 +105,12 @@ const VerdictBox = ({ thread }) => {
             )}
 
             {thread.ai_evidence_analysis && (
-                <div
-                    className="flex flex-col gap-1 px-3 py-2 border font-mono text-[10px]"
-                    style={{
-                        borderColor: AI_VERDICT_CONFIG[thread.ai_evidence_verdict]?.border ?? 'var(--color-terminal-border-raw)',
-                        background:  AI_VERDICT_CONFIG[thread.ai_evidence_verdict]?.bg    ?? 'transparent',
-                        color: 'var(--color-text-muted)',
-                    }}
-                >
-                    <div className="flex items-center gap-1.5"
-                         style={{ color: AI_VERDICT_CONFIG[thread.ai_evidence_verdict]?.color ?? 'var(--color-text-muted)' }}>
-                        <Brain className="w-3 h-3" />
-                        <span className="font-bold">{AI_VERDICT_CONFIG[thread.ai_evidence_verdict]?.label ?? 'AI Analizi'}</span>
+                <div className="flex flex-col gap-1.5 px-3.5 py-2.5 rounded-xl" style={{ background: aiCfg ? soft(aiCfg.v, 8) : 'var(--color-bg-surface)' }}>
+                    <div className="flex items-center gap-1.5 text-[12px] font-bold" style={{ color: aiCfg ? `var(${aiCfg.v})` : 'var(--color-text-muted)' }}>
+                        <Brain className="w-3.5 h-3.5" />
+                        {aiCfg?.label ?? 'AI Analizi'}
                     </div>
-                    <p>{thread.ai_evidence_analysis}</p>
+                    <p className="text-[13px]" style={{ color: 'var(--color-text-secondary)' }}>{thread.ai_evidence_analysis}</p>
                 </div>
             )}
         </div>

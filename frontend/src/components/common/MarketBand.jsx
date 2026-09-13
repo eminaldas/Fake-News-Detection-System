@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import MarketService from '../../services/market.service';
 import WeatherWidget from './WeatherWidget';
-import CornerBrackets from './CornerBrackets';
 import MarketDetailCard from './MarketDetailCard';
 import { useMarketPrefs } from '../../hooks/useMarketPrefs';
 
@@ -170,10 +169,9 @@ const MarketBand = () => {
         >
             <div className="w-full flex items-stretch h-full">
 
-                {/* SOL — market kutusu (kendi çentikleri) */}
+                {/* SOL — market kutusu */}
                 <div className="relative flex-1 min-w-0 flex items-center gap-4 overflow-hidden px-3"
                      style={{ background: 'var(--color-market-box-bg)' }}>
-                    <CornerBrackets color="#47b172" length={12} thickness={2} />
 
                     <Link to="/borsa" className="flex items-center gap-1.5 font-mono shrink-0 hover:opacity-70 transition-opacity">
                         <span className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0"

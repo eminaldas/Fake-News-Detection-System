@@ -11,7 +11,7 @@ const OPTS = [
 export default function SortPanel({ activeSort = 'hot', onSelect }) {
     return (
         <CollapsiblePanel icon={ArrowDownUp} title="Sıralama" storageKey="sort">
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-1 -mx-2">
                 {OPTS.map((o) => {
                     const on = activeSort === o.key;
                     const Icon = o.Icon;
@@ -20,12 +20,13 @@ export default function SortPanel({ activeSort = 'hot', onSelect }) {
                             key={o.key}
                             type="button"
                             onClick={() => onSelect(o.key)}
-                            className="flex items-center gap-2.5 px-4 py-2.5 text-left text-[13.5px] font-bold transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2.5 text-left text-[14.5px] font-bold rounded-lg transition-all duration-150 hover:translate-x-0.5"
                             style={{
-                                borderLeft: `2px solid ${on ? 'var(--color-brand-primary)' : 'transparent'}`,
-                                background: on ? 'rgba(16,185,129,0.07)' : 'transparent',
                                 color:      on ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)',
+                                background: on ? 'color-mix(in srgb, var(--color-brand-primary) 10%, transparent)' : 'transparent',
                             }}
+                            onMouseEnter={e => { if (!on) e.currentTarget.style.background = 'var(--color-bg-surface-solid)'; }}
+                            onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
                         >
                             <Icon className="w-4 h-4 shrink-0" />
                             {o.label}
