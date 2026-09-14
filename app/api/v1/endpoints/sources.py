@@ -1,11 +1,13 @@
+from urllib.parse import urlparse
+
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
-from app.models.models import Source, User
+from app.models.models import NewsArticle, User
 from app.schemas.schemas import SourceSearchItem
 
 router = APIRouter()
@@ -18,21 +20,38 @@ async def search_sources(
     db:     AsyncSession = Depends(get_db),
     _:      User = Depends(get_current_user),
 ):
+    """
+    "Engellenen kaynaklar" arama kutusu için öneri listesi.
+
+    Not: Bu uctan onceden bagimsiz bir Source (bilgi tabani yayincisi)
+    tablosu sorgulaniyordu - o tablo hic doldurulmadigi icin arama
+    her zaman bos donuyordu. Kullanicinin gercekte engellemek istedigi
+    sey RSS haber akisindaki kaynaklar (NewsArticle.source_name), feed
+    filtresi de zaten oradaki source_url'e gore calisiyor (bkz.
+    app/api/v1/endpoints/news.py:list_news). O yuzden dogrudan
+    NewsArticle'dan distinct kaynak adi araniyor.
+    """
     result = await db.execute(
-        select(Source)
+        select(NewsArticle.source_name, func.max(NewsArticle.source_url).label("sample_url"))
         .where(
-            Source.name.ilike(f"%{search}%") | Source.url.ilike(f"%{search}%")
+            NewsArticle.source_name.isnot(None),
+            NewsArticle.source_name.ilike(f"%{search}%"),
         )
-        .order_by(Source.name)
+        .group_by(NewsArticle.source_name)
+        .order_by(NewsArticle.source_name)
         .limit(limit)
     )
-    sources = result.scalars().all()
-    return [
-        SourceSearchItem(
-            id=str(s.id),
-            name=s.name or "",
-            url=s.url or "",
-            credibility_score=s.credibility_score if s.credibility_score is not None else None,
-        )
-        for s in sources
-    ]
+    rows = result.all()
+
+    items = []
+    for name, sample_url in rows:
+        domain = name
+        if sample_url:
+            try:
+                netloc = urlparse(sample_url).netloc
+                if netloc:
+                    domain = netloc[4:] if netloc.startswith("www.") else netloc
+            except ValueError:
+                pass
+        items.append(SourceSearchItem(id=name, name=name, url=domain, credibility_score=None))
+    return items
