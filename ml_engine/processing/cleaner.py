@@ -269,8 +269,11 @@ _CLICKBAIT_MIN_PIPES = 2
 
 
 def _is_question_clickbait(title: str) -> bool:
-    """Soru işaretiyle biten başlıklar ('... mi?', 'Bu doğru mu?') — kategoriden bağımsız."""
-    return title.rstrip().endswith('?')
+    """Soru işaretiyle biten VEYA içinde 2+ soru işareti olan başlıklar — kategoriden
+    bağımsız. ("GÜNÜN MAÇLARI ...: Bugün Kimlerin Maçlar Var? Bugünkü Maçlar Neler?
+    İşte ... Günün Maçları" gibi başlıklar sonda '?' ile bitmeyebilir ama içinde birden
+    fazla soru istifleyerek aynı clickbait deseni oluşturur.)"""
+    return title.rstrip().endswith('?') or title.count('?') >= 2
 
 
 def _is_repetitive_clickbait(title: str) -> bool:
