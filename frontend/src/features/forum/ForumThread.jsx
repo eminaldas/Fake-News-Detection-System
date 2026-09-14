@@ -114,12 +114,9 @@ const ForumThread = () => {
             const res = await axiosInstance.post(`/forum/threads/${threadId}/comments`, {
                 body: body.trim(),
             });
-            if (res.status === 202) {
-                setModerationWarning(true);
-            } else {
-                setBody(''); setModerationWarning(false);
-                await load();
-            }
+            setModerationWarning(res.status === 202);
+            setBody('');
+            await load();
         } catch {}
         finally { setSubmitting(false); }
     };
