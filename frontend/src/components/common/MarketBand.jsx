@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import MarketService from '../../services/market.service';
 import WeatherWidget from './WeatherWidget';
@@ -20,6 +20,7 @@ function parseChange(raw) {
 }
 
 function MarketItem({ label, unit, decimals, value, changePct, symbol, onHover, onLeave }) {
+    const navigate = useNavigate();
     const chg      = changePct !== null && changePct !== undefined ? changePct : null;
     const isUp     = chg !== null && chg > 0;
     const isDown   = chg !== null && chg < 0;
@@ -32,7 +33,8 @@ function MarketItem({ label, unit, decimals, value, changePct, symbol, onHover, 
     return (
         <span className="flex items-center gap-1.5 font-mono shrink-0 cursor-pointer"
               onMouseEnter={e => onHover?.(symbol, e)}
-              onMouseLeave={onLeave}>
+              onMouseLeave={onLeave}
+              onClick={() => navigate(`/borsa/${encodeURIComponent(symbol)}`)}>
             <span className="text-[11px] font-bold uppercase tracking-widest"
                   style={{ color: 'var(--color-market-label)' }}>
                 {label}

@@ -134,7 +134,7 @@ export default function MarketDetailCard({ symbol, onEnter, onLeave }) {
 
                     <div className="flex items-center justify-between px-3 py-2 font-mono text-[10px]">
                         <span style={{ color: 'var(--color-text-muted)' }}>Yahoo Finance · gecikmeli</span>
-                        <Link to="/borsa" className="font-bold" style={{ color: 'var(--color-brand-primary)' }}>Borsa'da gör →</Link>
+                        <Link to={`/borsa/${encodeURIComponent(symbol)}`} className="font-bold" style={{ color: 'var(--color-brand-primary)' }}>Borsa'da gör →</Link>
                     </div>
                 </>
             )}
