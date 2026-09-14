@@ -113,7 +113,7 @@ const About = () => (
                 <Notch />
                 <div className="grid grid-cols-2 md:grid-cols-4">
                     {[
-                        { icon: Database,  label: 'Analiz Kaydı',     target: 3286,  suffix: 'K+', delay: 0,   accent: BRAND },
+                        { icon: Database,  label: 'Analiz Kaydı',     target: 3286,  suffix: '+',  delay: 0,   accent: BRAND },
                         { icon: BarChart2, label: 'Doğruluk Oranı',   target: 88,    suffix: '%',  delay: 120, accent: '#3fff8b' },
                         { icon: Zap,       label: 'NLP Sinyali',      target: 8,     suffix: '',   delay: 240, accent: '#60a5fa' },
                         { icon: Timer,     label: 'Ort. Analiz Süresi', target: 1.4, suffix: 'sn', delay: 360, accent: '#f59e0b' },
@@ -273,6 +273,10 @@ const About = () => (
                                 'RSS haber monitörü',
                                 'Kullanıcı XP & rozet sistemi',
                                 'Derin AI fact-check raporu',
+                                'Kaynak önyargı & zamansal analiz',
+                                'Öneri motoru A/B test altyapısı',
+                                'Canlı piyasa & döviz takip paneli',
+                                'Güvenlik izleme merkezi (admin)',
                             ].map(t => (
                                 <div key={t} className="flex items-start gap-2">
                                     <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: '#10b981' }} />
@@ -295,11 +299,9 @@ const About = () => (
                         <div className="p-4 flex flex-col gap-3">
                             {[
                                 'Model feedback loop (kullanıcı geri bildirimi)',
-                                'A/B test altyapısı',
                                 'WebSocket gerçek zamanlı bildirimler',
-                                'Gelişmiş önyargı analizi (kaynak)',
-                                'Sinyal highlight — heatmap görselleştirme',
                                 'Kullanıcı davranış takibi',
+                                'İddia-Varlık Grafiği — kanıt zinciri ilişkilendirme',
                             ].map(t => (
                                 <div key={t} className="flex items-start gap-2">
                                     <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 animate-pulse-soft" style={{ background: '#f59e0b' }} />
@@ -322,7 +324,6 @@ const About = () => (
                         <div className="p-4 flex flex-col gap-3">
                             {[
                                 'Tarayıcı uzantısı (Chrome / Firefox)',
-                                'Mobil uygulama (iOS & Android)',
                                 'Açık REST API — dış entegrasyon',
                                 'Çoklu dil desteği (EN/AR/DE)',
                                 'Federe doğrulama ağı',
