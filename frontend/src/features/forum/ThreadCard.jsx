@@ -23,6 +23,15 @@ const VERDICT_CFG = {
     YANILTICI: { label: 'Yanıltıcı', v: '--color-accent-amber'  },
 };
 
+const Corner = () => (
+    <>
+        <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand pointer-events-none" />
+        <div className="absolute top-0 left-0 h-4 w-[2px] bg-brand pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-4 h-[2px] bg-brand pointer-events-none" />
+        <div className="absolute bottom-0 right-0 h-4 w-[2px] bg-brand pointer-events-none" />
+    </>
+);
+
 export default function ThreadCard({ thread }) {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -93,10 +102,11 @@ export default function ThreadCard({ thread }) {
 
     return (
         <article
-            className="group cursor-pointer flex flex-col gap-3 p-6 rounded-2xl transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
-            style={{ background: 'var(--color-navbar-bg)', border: '1px solid var(--color-border)' }}
+            className="group relative cursor-pointer flex flex-col gap-3 p-6 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+            style={{ background: 'var(--color-terminal-surface)', border: '1px solid var(--color-terminal-border-raw)' }}
             onClick={() => navigate(`/forum/${local.id}`)}
         >
+            <Corner />
             {/* ── Yazar satırı ── */}
             <div className="flex items-center gap-3">
                 <AuthorAvatar username={local.author?.username} avatarUrl={local.author?.avatar_url} />

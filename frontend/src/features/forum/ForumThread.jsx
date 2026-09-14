@@ -20,14 +20,24 @@ import VerdictModal   from './VerdictModal';
 import VerdictBox     from './VerdictBox';
 
 const soft = (v, pct) => `color-mix(in srgb, var(${v}) ${pct}%, transparent)`;
-const CARD = { background: 'var(--color-navbar-bg)', border: '1px solid var(--color-border)' };
+const CARD = { background: 'var(--color-terminal-surface)', border: '1px solid var(--color-terminal-border-raw)' };
 const CHIP = { background: 'var(--color-bg-surface-solid)', color: 'var(--color-text-secondary)' };
 
 const STATUS_LABEL = { under_review: 'İncelemede', resolved: 'Çözüldü' };
 
+const CardCorner = () => (
+    <>
+        <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand pointer-events-none" />
+        <div className="absolute top-0 left-0 h-4 w-[2px] bg-brand pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-4 h-[2px] bg-brand pointer-events-none" />
+        <div className="absolute bottom-0 right-0 h-4 w-[2px] bg-brand pointer-events-none" />
+    </>
+);
+
 function Card({ children, className = '' }) {
     return (
-        <div className={`rounded-2xl overflow-hidden ${className}`} style={CARD}>
+        <div className={`relative overflow-hidden ${className}`} style={CARD}>
+            <CardCorner />
             {children}
         </div>
     );
