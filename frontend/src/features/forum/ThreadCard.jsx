@@ -23,15 +23,6 @@ const VERDICT_CFG = {
     YANILTICI: { label: 'Yanıltıcı', v: '--color-accent-amber'  },
 };
 
-const Corner = () => (
-    <>
-        <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand pointer-events-none" />
-        <div className="absolute top-0 left-0 h-4 w-[2px] bg-brand pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-4 h-[2px] bg-brand pointer-events-none" />
-        <div className="absolute bottom-0 right-0 h-4 w-[2px] bg-brand pointer-events-none" />
-    </>
-);
-
 export default function ThreadCard({ thread }) {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -102,11 +93,10 @@ export default function ThreadCard({ thread }) {
 
     return (
         <article
-            className="group relative cursor-pointer flex flex-col gap-3 p-6 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
-            style={{ background: 'var(--color-terminal-surface)', border: '1px solid var(--color-terminal-border-raw)' }}
+            className="group cursor-pointer flex flex-col gap-3 p-6 rounded-2xl transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+            style={{ background: 'var(--color-navbar-bg)', border: '1px solid var(--color-border)' }}
             onClick={() => navigate(`/forum/${local.id}`)}
         >
-            <Corner />
             {/* ── Yazar satırı ── */}
             <div className="flex items-center gap-3">
                 <AuthorAvatar username={local.author?.username} avatarUrl={local.author?.avatar_url} />
@@ -156,7 +146,7 @@ export default function ThreadCard({ thread }) {
 
             {/* ── Görseller ── */}
             {local.image_urls?.length > 0 && (
-                <div className={`grid gap-1 overflow-hidden ${
+                <div className={`grid gap-1 overflow-hidden rounded-lg ${
                     local.image_urls.length === 1 ? 'grid-cols-1' :
                     local.image_urls.length === 2 ? 'grid-cols-2' : 'grid-cols-3'
                 }`}>
@@ -193,7 +183,7 @@ export default function ThreadCard({ thread }) {
             {local.article && (
                 <a href={local.article.source_url} target="_blank" rel="noopener noreferrer"
                    onClick={e => e.stopPropagation()}
-                   className="flex gap-3 p-2.5 transition-colors hover:opacity-90"
+                   className="flex gap-3 rounded-lg p-2.5 transition-colors hover:opacity-90"
                    style={{ background: 'var(--color-bg-surface-solid)', textDecoration: 'none' }}>
                     {local.article.image_url && (
                         <img src={local.article.image_url} alt="" className="w-14 h-14 object-cover shrink-0 rounded-md"
@@ -221,7 +211,7 @@ export default function ThreadCard({ thread }) {
 
             {/* ── Doğrulama kartı: nihai karar VEYA canlı oylama ── */}
             {verdictCfg ? (
-                <div className="flex items-center gap-2.5 px-3.5 py-2.5" style={{ background: soft(verdictCfg.v, 10) }}>
+                <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg" style={{ background: soft(verdictCfg.v, 10) }}>
                     <span className="text-[12px] font-black shrink-0" style={{ color: `var(${verdictCfg.v})` }}>
                         {verdictCfg.label}
                     </span>
@@ -230,7 +220,7 @@ export default function ThreadCard({ thread }) {
                     </span>
                 </div>
             ) : (
-                <div className="flex items-center gap-3 px-3.5 py-2.5" style={{ background: 'var(--color-bg-surface-solid)' }} onClick={stopNav}>
+                <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg" style={{ background: 'var(--color-bg-surface-solid)' }} onClick={stopNav}>
                     <div className="flex items-center gap-0.5 shrink-0">
                         <button type="button" disabled={voting} onClick={(e) => { e.stopPropagation(); handleVote('authentic'); }}
                                 aria-label="Doğru oyu" className="p-0.5 transition-transform hover:scale-110 disabled:opacity-40"
@@ -249,7 +239,7 @@ export default function ThreadCard({ thread }) {
                     </div>
                     {total > 0 ? (
                         <div className="flex-1 min-w-0 flex flex-col gap-1">
-                            <div className="flex h-1.5 overflow-hidden" style={{ background: 'var(--color-terminal-border-raw)' }}>
+                            <div className="flex h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--color-terminal-border-raw)' }}>
                                 <span style={{ width: `${(local.vote_authentic   / total) * 100}%`, background: 'var(--color-brand-primary)' }} />
                                 <span style={{ width: `${(local.vote_suspicious  / total) * 100}%`, background: 'var(--color-fake-fill)' }} />
                                 <span style={{ width: `${(local.vote_investigate / total) * 100}%`, background: 'var(--color-accent-amber)' }} />
@@ -294,9 +284,8 @@ export default function ThreadCard({ thread }) {
                             <Share2 className="w-4 h-4" />
                         </button>
                         {shareOpen && (
-                            <div className="absolute right-0 bottom-full mb-1 w-48 z-50 overflow-hidden shadow-lg relative"
-                                 style={{ background: 'var(--color-terminal-surface)' }} onClick={e => e.stopPropagation()}>
-                                <Corner />
+                            <div className="absolute right-0 bottom-full mb-1 w-48 rounded-lg z-50 overflow-hidden shadow-lg"
+                                 style={{ background: 'var(--color-navbar-bg)', border: '1px solid var(--color-border)' }} onClick={e => e.stopPropagation()}>
                                 <button onClick={handleCopyLink}
                                         className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-[13px] font-medium transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                                         style={{ color: 'var(--color-text-primary)' }}>
@@ -341,8 +330,7 @@ export default function ThreadCard({ thread }) {
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
                      style={{ background: 'rgba(0,0,0,0.60)' }}
                      onClick={() => { setReportOpen(false); setReportReason(''); setReportSent(false); }}>
-                    <div className="relative w-96 max-w-full shadow-xl" style={{ background: 'var(--color-terminal-surface)' }} onClick={e => e.stopPropagation()}>
-                        <Corner />
+                    <div className="relative rounded-2xl w-96 max-w-full shadow-xl" style={{ background: 'var(--color-navbar-bg)', border: '1px solid var(--color-border)' }} onClick={e => e.stopPropagation()}>
                         <div className="px-5 py-4 flex items-center justify-between">
                             <span className="font-manrope font-extrabold text-[15px]" style={{ color: 'var(--color-text-primary)' }}>
                                 Bildir
@@ -368,7 +356,7 @@ export default function ThreadCard({ thread }) {
                                         {reportSent !== 'already' && 'Belirli sayıda bildirim sonrası içerik incelemeye alınır.'}
                                     </p>
                                     <button onClick={() => { setReportOpen(false); setReportReason(''); setReportSent(false); }}
-                                            className="mt-2 px-6 py-2.5 text-[13px] font-bold transition-opacity hover:opacity-85"
+                                            className="mt-2 px-6 py-2.5 rounded-full text-[13px] font-bold transition-opacity hover:opacity-85"
                                             style={{ background: 'var(--color-brand-primary)', color: '#fff' }}>
                                         Kapat
                                     </button>
@@ -390,7 +378,7 @@ export default function ThreadCard({ thread }) {
                                             { value: 'other',          label: 'Diğer' },
                                         ].map(({ value, label }) => (
                                             <button key={value} onClick={() => setReportReason(value)}
-                                                    className="flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors"
+                                                    className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-left transition-colors"
                                                     style={{
                                                         background: reportReason === value ? soft('--color-brand-primary', 10) : 'transparent',
                                                         color: 'var(--color-text-primary)',
@@ -415,7 +403,7 @@ export default function ThreadCard({ thread }) {
                                                     setReportSubmitting(false);
                                                 }
                                             }}
-                                            className="w-full py-3 text-[14px] font-bold transition-opacity hover:opacity-85 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                            className="w-full py-3 rounded-full text-[14px] font-bold transition-opacity hover:opacity-85 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                             style={{ background: 'var(--color-brand-primary)', color: '#fff' }}>
                                         {reportSubmitting
                                             ? <><span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> Gönderiliyor...</>

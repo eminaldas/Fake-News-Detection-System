@@ -146,18 +146,18 @@ function CommentNode({ comment, threadId, onHelpful, onReport, onNewComment, cur
                                     value={editBody}
                                     onChange={e => setEditBody(e.target.value)}
                                     rows={3}
-                                    className="w-full text-[14px] bg-transparent outline-none px-3.5 py-2.5 resize-none"
-                                    style={{ background: 'transparent', border: '1px solid var(--color-terminal-border-raw)', color: 'var(--color-text-primary)' }}
+                                    className="w-full text-[14px] bg-transparent outline-none px-3.5 py-2.5 rounded-xl resize-none"
+                                    style={{ background: 'var(--color-bg-surface-solid)', color: 'var(--color-text-primary)' }}
                                 />
                                 <div className="flex gap-2">
                                     <button onClick={handleEdit}
-                                        className="text-[12.5px] px-4 py-1.5 font-bold transition-opacity hover:opacity-85"
+                                        className="text-[12.5px] px-4 py-1.5 rounded-full font-bold transition-opacity hover:opacity-85"
                                         style={{ background: 'var(--color-brand-primary)', color: '#fff' }}>
                                         Kaydet
                                     </button>
                                     <button onClick={() => setEditMode(false)}
-                                        className="text-[12.5px] px-4 py-1.5 font-bold transition-colors border"
-                                        style={{ background: 'transparent', color: 'var(--color-text-primary)', borderColor: 'var(--color-terminal-border-raw)' }}>
+                                        className="text-[12.5px] px-4 py-1.5 rounded-full font-bold transition-colors"
+                                        style={{ background: 'var(--color-bg-surface-solid)', color: 'var(--color-text-primary)' }}>
                                         İptal
                                     </button>
                                 </div>
@@ -266,14 +266,14 @@ function CommentNode({ comment, threadId, onHelpful, onReport, onNewComment, cur
                                     onChange={setReplyBody}
                                     rows={2}
                                     placeholder={`${comment.username} kullanıcısına yanıt yaz…`}
-                                    className="w-full block resize-none text-[14px] leading-normal outline-none px-3.5 py-2.5 transition-colors box-border"
-                                    style={{ background: 'transparent', border: '1px solid var(--color-terminal-border-raw)', color: 'var(--color-text-primary)', caretColor: 'var(--color-brand-primary)' }}
+                                    className="w-full block resize-none text-[14px] leading-normal outline-none px-3.5 py-2.5 rounded-xl transition-colors box-border"
+                                    style={{ background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', caretColor: 'var(--color-brand-primary)' }}
                                 />
                                 <div className="flex justify-end mt-2">
                                     <button
                                         onClick={submitReply}
                                         disabled={!replyBody.trim() || replySending}
-                                        className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-bold transition-all duration-150 hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+                                        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-bold transition-all duration-150 hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
                                         style={{ background: 'var(--color-brand-primary)', color: '#fff' }}
                                     >
                                         <Send className="w-3.5 h-3.5" />
@@ -380,9 +380,10 @@ const ForumCommentTree = ({ comments, threadId, onNewComment }) => {
                     />
                     <div className="fixed inset-0 z-10000 flex items-center justify-center px-4 pointer-events-none">
                         <div
-                            className="w-80 max-w-full p-6 pointer-events-auto relative"
+                            className="w-80 max-w-full rounded-2xl p-6 pointer-events-auto"
                             style={{
-                                background: 'var(--color-terminal-surface)',
+                                background: 'var(--color-navbar-bg)',
+                                border:     '1px solid var(--color-border)',
                                 boxShadow:  '0 24px 64px rgba(0,0,0,0.35)',
                                 transform:  visible ? 'scale(1) translateY(0)' : 'scale(0.96) translateY(8px)',
                                 opacity:    visible ? 1 : 0,
@@ -390,10 +391,6 @@ const ForumCommentTree = ({ comments, threadId, onNewComment }) => {
                             }}
                             onClick={e => e.stopPropagation()}
                         >
-                            <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand pointer-events-none" />
-                            <div className="absolute top-0 left-0 h-4 w-[2px] bg-brand pointer-events-none" />
-                            <div className="absolute bottom-0 right-0 w-4 h-[2px] bg-brand pointer-events-none" />
-                            <div className="absolute bottom-0 right-0 h-4 w-[2px] bg-brand pointer-events-none" />
                             <div className="flex items-center justify-between mb-4">
                                 <span className="text-[15px] font-extrabold" style={{ color: 'var(--color-text-primary)' }}>
                                     Yorumu bildir
@@ -437,7 +434,7 @@ const ForumCommentTree = ({ comments, threadId, onNewComment }) => {
                                                 .then(() => setReportSent(true))
                                                 .catch(() => setReportSent(true));
                                         }}
-                                        className="w-full py-2.5 text-[13.5px] font-bold transition-all duration-150 hover:scale-105"
+                                        className="w-full py-2.5 rounded-full text-[13.5px] font-bold transition-all duration-150 hover:scale-105"
                                         style={{ background: 'var(--color-brand-primary)', color: '#fff' }}
                                     >
                                         Bildir

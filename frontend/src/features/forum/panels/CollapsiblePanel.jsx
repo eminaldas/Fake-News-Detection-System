@@ -20,11 +20,7 @@ export default function CollapsiblePanel({
     }, [storageKey]);
 
     return (
-        <div className="relative p-6 transition-shadow hover:shadow-md" style={{ background: 'var(--color-terminal-surface)', border: '1px solid var(--color-terminal-border-raw)' }}>
-            <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand pointer-events-none" />
-            <div className="absolute top-0 left-0 h-4 w-[2px] bg-brand pointer-events-none" />
-            <div className="absolute bottom-0 right-0 w-4 h-[2px] bg-brand pointer-events-none" />
-            <div className="absolute bottom-0 right-0 h-4 w-[2px] bg-brand pointer-events-none" />
+        <div className="rounded-2xl p-6 transition-shadow hover:shadow-md" style={{ background: 'var(--color-navbar-bg)', border: '1px solid var(--color-border)' }}>
             <button
                 type="button"
                 onClick={toggle}
