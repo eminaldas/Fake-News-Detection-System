@@ -7,6 +7,7 @@ export const TYPE_LABELS = {
     reply:              'Yorumuna yanıt geldi',
     mention:            'Bir tartışmada senden bahsedildi',
     under_review:       'Tartışman inceleme altında',
+    comment_flagged:    'Yorumun incelemeye alındı',
     fact_check_started: 'Haber doğrulaması başlatıldı',
     fact_check_done:    'Haber doğrulaması tamamlandı',
     report_ready:       'Tam rapor hazır',

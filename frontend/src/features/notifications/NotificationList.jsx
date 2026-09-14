@@ -12,6 +12,7 @@ const TYPE_ICONS = {
     reply:              CornerDownRight,
     mention:            AtSign,
     under_review:       Search,
+    comment_flagged:    Search,
     fact_check_started: Newspaper,
     fact_check_done:    BadgeCheck,
     report_ready:       FileText,
@@ -45,6 +46,10 @@ export default function NotificationList({ items, loading, onSelect }) {
                         ? `${n.payload.sender_name} sana mesaj gönderdi`
                     : n.type === 'new_follower' && n.payload?.actor
                         ? `${n.payload.actor} seni takip etmeye başladı`
+                    : n.type === 'comment_flagged'
+                        ? (n.payload?.removed
+                            ? 'Yorumun kurallara aykırı bulunduğu için kaldırıldı. Düzenleyip tekrar gönderebilirsin.'
+                            : 'Yorumun incelemeye alındı. Düzenlemen önerilir.')
                     : label;
                 return (
                     <button

@@ -1,5 +1,5 @@
 """
-Celery Task #2 — Gemini 2.5 Flash AI yorum üretici.
+Celery Task #2 — Gemini AI yorum üretici (settings.GEMINI_MODEL, üretimde 3.5 Flash → 2.5 Flash fallback).
 
 Belirsiz modda:  local ML karar veremedi → Gemini kararı verir.
 Açıklayıcı modda: local ML kararlı  → Gemini açıklar.
@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 from celery import Celery
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
@@ -652,3 +652,62 @@ def generate_ai_comment(
     _publish_ws(user_id, {"stage": "complete", "task_id": article_id})
 
     return {"success": True, "article_id": article_id, "partial": partial}
+
+
+async def _moderate_comment(comment_id: str) -> dict:
+    """
+    Forum yorumunu arkaplanda Gemini ile tarar (bkz. workers/moderation_task.py).
+    Yorum zaten "clean" olarak kaydedilmiş ve kullanıcıya gösterilmiştir — bu fonksiyon
+    senkron akıştan çıkarılan toksisite kontrolünü burada tamamlar. Sorun bulunursa
+    moderation_status güncellenir ve yazara bildirim gönderilir.
+    """
+    from app.core.notifications import send_notification
+    from app.models.models import ForumComment
+    from workers.moderation_task import check_toxicity
+
+    engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
+    Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    try:
+        async with Session() as session:
+            comment = (await session.execute(
+                select(ForumComment).where(ForumComment.id == comment_id)
+            )).scalar_one_or_none()
+            if not comment:
+                return {"skipped": True, "reason": "not_found"}
+
+            tox = check_toxicity(comment.body)
+            if tox["safe"]:
+                return {"safe": True}
+
+            removed = tox["severity"] == "high"
+            comment.moderation_status = "removed" if removed else "flagged_ai"
+            comment.moderation_note   = tox["reason"]
+            await session.flush()
+
+            await send_notification(
+                db=session,
+                user_id=comment.user_id,
+                notif_type="comment_flagged",
+                payload={
+                    "thread_id":  str(comment.thread_id),
+                    "comment_id": str(comment.id),
+                    "reason":     tox["reason"],
+                    "removed":    removed,
+                },
+            )
+            await session.commit()
+            return {"safe": False, "severity": tox["severity"]}
+    finally:
+        await engine.dispose()
+
+
+@celery_app.task(
+    name="moderate_comment",
+    queue="ai_comment",
+    rate_limit="30/m",
+    time_limit=30,
+    soft_time_limit=25,
+)
+def moderate_comment_task(comment_id: str) -> dict:
+    return asyncio.run(_moderate_comment(comment_id))

@@ -53,7 +53,6 @@ const ForumThread = () => {
 
     const [body,              setBody]              = React.useState('');
     const [submitting,        setSubmitting]        = React.useState(false);
-    const [moderationWarning, setModerationWarning] = React.useState(false);
     const [sendModal,         setSendModal]         = React.useState(false);
     const [verdictModal,      setVerdictModal]      = React.useState(false);
     const [following,        setFollowing]         = React.useState(false);
@@ -111,10 +110,9 @@ const ForumThread = () => {
         if (!body.trim() || submitting) return;
         setSubmitting(true);
         try {
-            const res = await axiosInstance.post(`/forum/threads/${threadId}/comments`, {
+            await axiosInstance.post(`/forum/threads/${threadId}/comments`, {
                 body: body.trim(),
             });
-            setModerationWarning(res.status === 202);
             setBody('');
             await load();
         } catch {}
@@ -432,18 +430,10 @@ const ForumThread = () => {
 
                 {/* Yorum formu — ÜSTTE */}
                 <form onSubmit={submitComment} className="flex flex-col gap-3 p-6 border-b" style={{ borderColor: 'var(--color-border)' }}>
-                    {moderationWarning && (
-                        <div className="px-3.5 py-3 rounded-xl" style={{ background: soft('--color-accent-amber', 10) }}>
-                            <p className="text-[14px] font-medium" style={{ color: 'var(--color-accent-amber)' }}>
-                                Yorumunuz incelemeye alındı. İçeriği düzenleyip tekrar gönderebilirsiniz.
-                            </p>
-                        </div>
-                    )}
-
                     <MentionTextarea
                         id="comment-input"
                         value={body}
-                        onChange={(val) => { setBody(val); setModerationWarning(false); }}
+                        onChange={(val) => setBody(val)}
                         rows={3}
                         placeholder="Kanıt veya yorumunu ekle…"
                         className="w-full resize-none text-[14.5px] outline-none px-4 py-3 rounded-xl transition-colors"

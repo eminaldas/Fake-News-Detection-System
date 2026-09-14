@@ -12,7 +12,6 @@ GET  /forum/trending             — trend thread ve etiketler
 GET  /forum/articles/{article_id}/threads — article'a bağlı thread'ler
 """
 
-import asyncio
 import re
 import uuid as _uuid
 from datetime import datetime, timedelta, timezone
@@ -23,8 +22,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, select, desc, update, case, extract
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-
-from workers.moderation_task import check_toxicity
 
 from app.api.deps import get_current_user, get_optional_user, get_admin_user
 from app.core.notifications import send_notification
@@ -987,14 +984,9 @@ async def add_comment(
             raise HTTPException(status_code=404, detail="Yanıtlanacak yorum bulunamadı")
         depth = min(parent.depth + 1, 3)
 
-    tox = await asyncio.to_thread(check_toxicity, body.body)
-    if not tox["safe"] and tox["severity"] == "high":
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="İçerik forum politikalarına aykırı. Lütfen düzenleyin.",
-        )
-    flagged_by_ai = not tox["safe"]   # low/medium severity → kaydet, flag
-
+    # Gemini toksisite taraması artık senkron değil (~3sn gecikme yaratıyordu) —
+    # yorum hemen "clean" olarak kaydedilir, tarama arkaplanda moderate_comment_task
+    # ile yapılır; sorun bulunursa yazara bildirim gönderilir (bkz. workers/ai_comment_task.py).
     comment = ForumComment(
         thread_id=thread_id,
         parent_id=body.parent_id,
@@ -1002,8 +994,7 @@ async def add_comment(
         body=body.body,
         evidence_urls=body.evidence_urls,
         depth=depth,
-        moderation_status="flagged_ai" if flagged_by_ai else "clean",
-        moderation_note=tox["reason"] if flagged_by_ai else None,
+        moderation_status="clean",
     )
     db.add(comment)
 
@@ -1094,7 +1085,10 @@ async def add_comment(
     await award_xp(db, _redis, current_user.id, _action, str(comment.id))
     await db.commit()
 
-    item = ForumCommentItem(
+    from workers.ai_comment_task import moderate_comment_task
+    moderate_comment_task.delay(str(comment.id))
+
+    return ForumCommentItem(
         id=comment.id,
         thread_id=comment.thread_id,
         parent_id=comment.parent_id,
@@ -1107,13 +1101,6 @@ async def add_comment(
         created_at=comment.created_at,
         moderation_status=comment.moderation_status,
     )
-    if flagged_by_ai:
-        return Response(
-            content=item.model_dump_json(),
-            status_code=202,
-            media_type="application/json",
-        )
-    return item
 
 
 @router.post("/comments/{comment_id}/vote", status_code=status.HTTP_204_NO_CONTENT)
@@ -1217,16 +1204,17 @@ async def update_comment(
     if age.total_seconds() > 900:
         raise HTTPException(status_code=403, detail="Yorumlar yalnızca 15 dakika içinde düzenlenebilir")
 
-    tox = await asyncio.to_thread(check_toxicity, body.body)
-    if not tox["safe"] and tox["severity"] == "high":
-        raise HTTPException(status_code=422, detail="İçerik forum politikalarına aykırı")
-
-    comment.body      = body.body
-    comment.is_edited = True
-    comment.edited_at = datetime.now(timezone.utc)
+    comment.body              = body.body
+    comment.is_edited         = True
+    comment.edited_at         = datetime.now(timezone.utc)
+    comment.moderation_status = "clean"
+    comment.moderation_note   = None
 
     await db.commit()
     await db.refresh(comment)
+
+    from workers.ai_comment_task import moderate_comment_task
+    moderate_comment_task.delay(str(comment.id))
 
     return ForumCommentItem(
         id=comment.id,
