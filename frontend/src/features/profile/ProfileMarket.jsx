@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown, Star } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { TrendingUp, TrendingDown, Star, ArrowUpRight } from 'lucide-react';
 import MarketService from '../../services/market.service';
 import { useMarketPrefs } from '../../hooks/useMarketPrefs';
 import { useAuth } from '../../contexts/AuthContext';
@@ -44,7 +45,7 @@ function StarBtn({ symbol, isActive, onToggle, atMax, requiresAuth }) {
     return (
         <button
             title={title}
-            onClick={() => !requiresAuth && onToggle(symbol)}
+            onClick={(e) => { e.stopPropagation(); if (!requiresAuth) onToggle(symbol); }}
             className="transition-all hover:scale-110 active:scale-95"
             style={{
                 color:   isActive ? '#f59e0b' : 'var(--color-text-muted)',
@@ -86,6 +87,7 @@ function SkeletonRow() {
 }
 
 function StockRow({ stock, isActive, toggle, atMax, isAuthenticated }) {
+    const navigate = useNavigate();
     const active   = isActive(stock.symbol);
     const isUp     = stock.change_pct > 0;
     const isDown   = stock.change_pct < 0;
@@ -94,8 +96,10 @@ function StockRow({ stock, isActive, toggle, atMax, isAuthenticated }) {
     const unit     = stock.currency === 'USD' ? '$' : '₺';
 
     return (
-        <div className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-white/[0.02]"
-             style={{ borderColor: BORDER }}>
+        <div className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-white/[0.02] cursor-pointer"
+             style={{ borderColor: BORDER }}
+             onClick={() => navigate(`/borsa/${encodeURIComponent(stock.symbol)}`)}
+             title="Borsa'da gör">
             <span className="font-mono text-xs font-black w-16 shrink-0 text-tx-primary">{label}</span>
             <span className="font-mono text-xs flex-1 min-w-0 truncate"
                   style={{ color: 'var(--color-text-secondary)' }}>
@@ -112,6 +116,7 @@ function StockRow({ stock, isActive, toggle, atMax, isAuthenticated }) {
                  isDown ? <TrendingDown className="w-3 h-3" /> : null}
                 {stock.change_pct > 0 ? '+' : ''}{stock.change_pct.toFixed(2)}%
             </span>
+            <ArrowUpRight className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-text-muted)' }} />
             <StarBtn symbol={stock.symbol} isActive={active} onToggle={toggle}
                      atMax={atMax} requiresAuth={!isAuthenticated} />
         </div>
@@ -138,6 +143,7 @@ function StockSection({ title, items, loading, error, isActive, toggle, atMax, i
 }
 
 export default function ProfileMarket() {
+    const navigate = useNavigate();
     const [rates,        setRates]        = useState({});
     const [stocks,       setStocks]       = useState([]);
     const [ratesLoading, setRatesLoading] = useState(true);
@@ -193,8 +199,10 @@ export default function ProfileMarket() {
                         const active = isActive(tile.key);
 
                         return (
-                            <div key={tile.key} className="flex items-center justify-between p-4"
-                                 style={{ background: SURFACE }}>
+                            <div key={tile.key} className="flex items-center justify-between p-4 cursor-pointer transition-colors hover:bg-white/[0.02]"
+                                 style={{ background: SURFACE }}
+                                 onClick={() => navigate(`/borsa/${encodeURIComponent(tile.key)}`)}
+                                 title="Borsa'da gör">
                                 <div>
                                     <p className="font-mono text-[10px] uppercase tracking-widest mb-1"
                                        style={{ color: active ? '#f59e0b' : 'var(--color-text-muted)', opacity: 0.7 }}>
@@ -211,13 +219,16 @@ export default function ProfileMarket() {
                                     )}
                                     <ChangeChip value={chg} />
                                 </div>
-                                <StarBtn
-                                    symbol={tile.key}
-                                    isActive={active}
-                                    onToggle={toggle}
-                                    atMax={atMax}
-                                    requiresAuth={!isAuthenticated}
-                                />
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <ArrowUpRight className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} />
+                                    <StarBtn
+                                        symbol={tile.key}
+                                        isActive={active}
+                                        onToggle={toggle}
+                                        atMax={atMax}
+                                        requiresAuth={!isAuthenticated}
+                                    />
+                                </div>
                             </div>
                         );
                     })}
