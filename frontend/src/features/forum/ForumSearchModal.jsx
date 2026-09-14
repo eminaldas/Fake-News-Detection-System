@@ -6,6 +6,15 @@ import axiosInstance from '../../api/axios';
 
 const soft = (v, pct) => `color-mix(in srgb, var(${v}) ${pct}%, transparent)`;
 
+const Corner = () => (
+    <>
+        <div className="absolute top-0 left-0 w-4 h-[2px] bg-brand pointer-events-none" />
+        <div className="absolute top-0 left-0 h-4 w-[2px] bg-brand pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-4 h-[2px] bg-brand pointer-events-none" />
+        <div className="absolute bottom-0 right-0 h-4 w-[2px] bg-brand pointer-events-none" />
+    </>
+);
+
 function Group({ label }) {
     return (
         <div className="text-[11px] font-bold uppercase tracking-wider px-6 pt-4 pb-2"
@@ -18,7 +27,7 @@ function Group({ label }) {
 function Row({ onClick, children }) {
     return (
         <button type="button" onClick={onClick}
-                className="block w-full text-left px-6 py-2.5 text-[14px] font-medium rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                className="block w-full text-left px-6 py-2.5 text-[14px] font-medium transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                 style={{ color: 'var(--color-text-secondary)' }}>
             {children}
         </button>
@@ -122,10 +131,9 @@ export default function ForumSearchModal({ onClose }) {
             {/* Modal */}
             <div className="fixed inset-0 z-10000 flex items-center justify-center px-4 py-6 pointer-events-none">
                 <div
-                    className="w-full max-w-xl rounded-2xl pointer-events-auto overflow-hidden relative"
+                    className="w-full max-w-xl pointer-events-auto overflow-hidden relative"
                     style={{
-                        background: 'var(--color-navbar-bg)',
-                        border:     '1px solid var(--color-border)',
+                        background: 'var(--color-terminal-surface)',
                         boxShadow:  '0 24px 64px rgba(0,0,0,0.35)',
                         transform:  visible ? 'scale(1) translateY(0)' : 'scale(0.96) translateY(8px)',
                         opacity:    visible ? 1 : 0,
@@ -133,15 +141,16 @@ export default function ForumSearchModal({ onClose }) {
                         maxHeight:  '80vh',
                     }}
                 >
-                    <form onSubmit={submit} className="flex items-center gap-3 px-6 py-5 border-b" style={{ borderColor: 'var(--color-border)' }}>
+                    <Corner />
+                    <form onSubmit={submit} className="flex items-center gap-3 px-6 py-5 border-b" style={{ borderColor: 'var(--color-terminal-border-raw)' }}>
                         <Search className="w-5 h-5 shrink-0" style={{ color: 'var(--color-brand-primary)' }} />
                         <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)}
                                placeholder="Gönderi, etiket veya kişi ara…"
                                className="flex-1 bg-transparent outline-none text-[16px]"
                                style={{ color: 'var(--color-text-primary)', caretColor: 'var(--color-brand-primary)' }} />
                         <button type="button" onClick={handleClose}
-                                className="text-[11px] font-bold px-2 py-1 rounded"
-                                style={{ color: 'var(--color-text-muted)', background: 'var(--color-bg-surface-solid)' }}>
+                                className="text-[11px] font-bold px-2 py-1 border"
+                                style={{ color: 'var(--color-text-muted)', background: 'var(--color-bg-surface-solid)', borderColor: 'var(--color-terminal-border-raw)' }}>
                             ESC
                         </button>
                     </form>

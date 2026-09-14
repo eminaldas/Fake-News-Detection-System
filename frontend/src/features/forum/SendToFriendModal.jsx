@@ -90,7 +90,6 @@ const SendToFriendModal = ({ threadTitle, threadUrl, onClose }) => {
                     className="w-full max-w-sm pointer-events-auto flex flex-col overflow-hidden relative"
                     style={{
                         ...TS,
-                        border: '1px solid var(--color-terminal-border-raw)',
                         boxShadow: '0 20px 60px rgba(0,0,0,0.80)',
                         maxHeight: '70vh',
                         transform: visible ? 'translateY(0)' : 'translateY(-12px)',
