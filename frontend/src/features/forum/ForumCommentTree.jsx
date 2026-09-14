@@ -352,7 +352,7 @@ const ForumCommentTree = ({ comments, threadId, onNewComment }) => {
     }
 
     return (
-        <div className="flex flex-col divide-y" style={{ borderColor: 'var(--color-border)' }}>
+        <div className="flex flex-col">
             {comments.map(c => (
                 <CommentNode
                     key={c.id}
