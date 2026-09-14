@@ -115,7 +115,7 @@
     /* Metin */
     --color-text-primary:     #eef2f7;
     --color-text-secondary:   #c9d1d9;
-    --color-text-muted:       #7d8896;
+    --color-text-muted:       #9aa5b2;
     --color-avatar-border:    #ffffff;
 
     /* Kenarlık */
@@ -147,7 +147,7 @@
 
     /* ── Terminal / Cyber kartlar (dark) ── */
     --color-terminal-surface:    #0c1518;
-    --color-terminal-border-raw: rgba(65,73,77,0.50);
+    --color-terminal-border-raw: rgba(63,255,139,0.16);
     --color-text-muted-accent:   #8db08d;   /* açık yeşil-gri, #0c1518 üzerinde 8:1 */
     --color-brand-badge-text:    #021a0a;   /* koyu metin, #10b981 üzerinde 8:1 */
 
